@@ -14,10 +14,7 @@ add_library(${TARGET_NAME} STATIC
 )
 
 if(UNIX)
-    target_compile_definitions(${TARGET_NAME} PUBLIC -D_PR_LINUX_ -DWIZ_UNUSE_SIMD)
-    target_compile_definitions(${TARGET_NAME}_s PUBLIC -D_PR_LINUX_ -DWIZ_UNUSE_SIMD)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DPOSIX -DLINUX)
-    target_compile_definitions(${TARGET_NAME}_s PRIVATE -DPOSIX -DLINUX)
 endif()
 
 target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE)
