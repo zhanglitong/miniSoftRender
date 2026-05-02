@@ -13,6 +13,9 @@ add_library(${TARGET_NAME} STATIC
 		${SOURCE_FILES}
 )
 
+target_link_libraries(${TARGET_NAME} tools.shader)
+
+
 if(UNIX)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DPOSIX -DLINUX)
 endif()

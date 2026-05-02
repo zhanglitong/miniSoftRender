@@ -36,9 +36,9 @@ if(UNIX)
 endif()
 target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-target_include_directories(${PROJECT_NAME} PRIVATE 
+target_include_directories(${TARGET_NAME} PRIVATE 
     ${FLEX_INCLUDE_DIRS}
 )
