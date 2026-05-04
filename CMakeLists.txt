@@ -12,7 +12,11 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${TARGET} PRIVATE -Wall -Wextra)  # 对应 /W4 的级别
 endif()
 
+
+
 project ("miniSoftRender")
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # 包含子项目。
 add_subdirectory ("source")

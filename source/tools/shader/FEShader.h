@@ -10,9 +10,15 @@
 
 namespace   FE
 {
-
+    struct  FEShaderInfo
+    {
+        const char* source;
+    };
     class   FE_API FEShader :public FEObject
-    {};
+    {
+    public:
+        bool    compile(const FEShaderInfo& info);
+    };
 
     using   ShaderPtr   =   SharedPtr<FEShader>;
     using   Shaders     =   std::vector<ShaderPtr>;

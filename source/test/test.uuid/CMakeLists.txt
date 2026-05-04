@@ -1,4 +1,4 @@
-﻿set(TARGET_NAME window)
+﻿set(TARGET_NAME test.uuid)
 
 file(GLOB_RECURSE HEADER_FILES *.h *.hpp)
 file(GLOB_RECURSE SOURCE_FILES *.c *.cc *.cpp) 
@@ -19,5 +19,7 @@ if(UNIX)
 endif()
 
 target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE)
-set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "sample/basic/window")
+
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "test")
+
 target_link_libraries(${TARGET_NAME} core)
