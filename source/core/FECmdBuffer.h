@@ -9,9 +9,13 @@
 
 namespace   FE
 {
+    DEFINE_CLASS_UUID(FECmdBuffer,"{E6706B0B-0BAA-4172-82C6-841D28AEC5A1}");
+
     class   FE_API  FECmdBuffer 
         :public FEBuffer
     {
+    public:
+        IMPLEMENT_CLASS_REFLECT(FECmdBuffer)
     public:
         FECmdBuffer();
 

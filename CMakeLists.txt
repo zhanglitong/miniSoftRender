@@ -12,6 +12,9 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${TARGET} PRIVATE -Wall -Wextra)  # 对应 /W4 的级别
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 project ("miniSoftRender")

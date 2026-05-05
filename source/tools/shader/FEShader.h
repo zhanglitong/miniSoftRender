@@ -10,14 +10,14 @@
 
 namespace   FE
 {
-    struct  FEShaderInfo
+    struct  FEShaderCreateInfo
     {
         const char* source;
     };
     class   FE_API FEShader :public FEObject
     {
     public:
-        bool    compile(const FEShaderInfo& info);
+        bool    compile(const FEShaderCreateInfo& info);
     };
 
     using   ShaderPtr   =   SharedPtr<FEShader>;

@@ -5,7 +5,7 @@
 
 namespace   FE
 {
-    struct   FEProgramInfo
+    struct   FEProgramCreateInfo
     {
         ShaderPtr   _vs;
         ShaderPtr   _ps;
@@ -15,10 +15,10 @@ namespace   FE
     public:
         using   ProgramPtr  =   SharedPtr<FEProgram>;
     public:
-        bool    create(const FEProgramInfo& info);
+        bool    create(const FEProgramCreateInfo& info);
         bool    link(ShaderPtr vs,ShaderPtr ps);
     protected:
-        FEProgramInfo   _cInfo;
+        FEProgramCreateInfo _cInfo;
     public:
         static  ProgramPtr  create(const char* vs,const char* ps);
     

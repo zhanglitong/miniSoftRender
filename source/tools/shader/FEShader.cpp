@@ -3,7 +3,7 @@
 
 namespace FE
 {
-    bool    FEShader::compile(const FEShaderInfo& )
+    bool    FEShader::compile(const FEShaderCreateInfo& )
     {
         return  true;
     }

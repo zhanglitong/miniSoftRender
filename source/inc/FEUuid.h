@@ -103,6 +103,11 @@ namespace   FE
     public:
         static  FEUuid  create();
         static  FEUuid  from(const char* uuid,bool* pResult = nullptr);
+        static  auto&   zero()
+        {
+            static const FEUuid nullUuid;
+            return  nullUuid;
+        }
     };
 }
 

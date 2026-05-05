@@ -1,4 +1,4 @@
-﻿set(TARGET_NAME window)
+﻿set(TARGET_NAME sample.basic.window)
 
 file(GLOB_RECURSE HEADER_FILES *.h *.hpp)
 file(GLOB_RECURSE SOURCE_FILES *.c *.cc *.cpp) 

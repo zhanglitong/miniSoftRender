@@ -3,7 +3,7 @@
 
 namespace   FE
 {
-    bool    FEProgram::create(const FEProgramInfo& info)
+    bool    FEProgram::create(const FEProgramCreateInfo& info)
     {
         _cInfo  =   info;
         return  true;
@@ -24,7 +24,7 @@ namespace   FE
         if (!pPS->compile({ps}))
             return  nullptr;
 
-        FEProgramInfo   info;
+        FEProgramCreateInfo   info;
         info._vs    =   pVS;
         info._ps    =   pPS;
         ProgramPtr  prg =   ProgramPtr(new FEProgram());

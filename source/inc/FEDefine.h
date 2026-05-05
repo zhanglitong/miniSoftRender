@@ -4,6 +4,8 @@
 #include    <stdio.h>
 #include    <memory>
 #include    <array>
+#include    <assert.h>
+
 #define     FE_API
 
 #define     FE_API

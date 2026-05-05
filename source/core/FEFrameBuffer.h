@@ -8,11 +8,10 @@ namespace   FE
     /// <summary>
     /// 用来重载绘制结果的画布
     /// </summary>
-    class   FE_API  FEFrameBuffer
+    class   FE_API  FEFrameBuffer :public FEObject
     {
     public:
-        FEPBuffer*  _color;
-        FEPBuffer*  _depth;
+        IMPLEMENT_CLASS_REFLECT(FEFrameBuffer)
     };
 
     using   FBOPtr  =   SharedPtr<FEFrameBuffer>;

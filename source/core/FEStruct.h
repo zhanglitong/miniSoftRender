@@ -25,7 +25,8 @@ namespace   FE
 
     enum    FEImageFormat : uint32_t
     {
-        FMT_RGBA8   =   0,
+        FMT_NONE    =   0,
+        FMT_RGBA8       ,
         FMT_RGBAI16     ,
         FMT_RGBAI32     ,
 
@@ -152,5 +153,14 @@ namespace   FE
         /// 数据格式
         /// </summary>
         FEImageFormat   _format =   FMT_RGBA8;
+        /// <summary>
+        /// 如果不为null,则使用
+        /// </summary>
+        size_t          _bufferSize =   0;
+        void*           _buffer     =   nullptr;
+        /// <summary>
+        /// 标记_buffer管理权限(1,移交给内部释放)
+        /// </summary>
+        uint32_t        _flag       =   0;
     };
 }
