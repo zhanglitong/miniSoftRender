@@ -26,7 +26,7 @@ namespace   FE
     }
     void    FEObject::operator delete(void* ptr) noexcept 
     {
-        ::operator delete(ptr);
+        ::operator delete(ptr,std::align_val_t(16));
     }
     void    FEObject::operator delete(void* ptr, std::align_val_t align) noexcept 
     {
