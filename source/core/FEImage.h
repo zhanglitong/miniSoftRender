@@ -13,6 +13,19 @@ namespace   FE
     {
         IMPLEMENT_CLASS_REFLECT(FEImage)
     public:
+        /// <summary>
+        /// 获取创建信息
+        /// </summary>
+        /// <returns></returns>
+        auto&   createInfo() const
+        {
+            return  _cInfo;
+        }
+        /// <summary>
+        /// 创建图片
+        /// </summary>
+        /// <param name="info"></param>
+        /// <returns></returns>
         bool    create(const FEImageCreateInfo& info);
     protected:
         static  void*   allocMemory(FEImageCreateInfo& info);
