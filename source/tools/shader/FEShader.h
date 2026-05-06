@@ -7,9 +7,12 @@
 #include    "../../inc/FEDefine.h"
 #include    "../../inc/FELog.h"
 #include    "../../inc/FEObject.h"
+#include	"../../inc/FESmallVector.h"
 
 namespace   FE
 {
+	
+
     struct  FEShaderCreateInfo
     {
         const char* source;

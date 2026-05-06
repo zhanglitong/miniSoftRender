@@ -28,6 +28,17 @@ namespace   FE
         CallResult  cmdBindPipeline(const FEPLBindInfo& info);
         CallResult  cmdBindDescriptor(const FEDescInfo& info);
 
+        CallResult  cmdDraw(  uint32_t vertexCount
+                            , uint32_t instanceCount
+                            , uint32_t firstVertex
+                            , uint32_t firstInstance);
+
+        CallResult  cmdDrawIndexed(   uint32_t indexCount
+                                    , uint32_t instanceCount
+                                    , uint32_t firstIndex
+                                    , int32_t  vertexOffset
+                                    , uint32_t firstInstance);
+
         CallResult  end();
     protected:
         /// <summary>

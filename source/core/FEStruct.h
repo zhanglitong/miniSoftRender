@@ -17,6 +17,7 @@ namespace   FE
     enum    CallResult  :   uint32_t
     {
         CR_SUCCESS,
+        CR_FAILED,
     };
 
     enum    StructureType:uint32_t

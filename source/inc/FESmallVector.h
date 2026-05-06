@@ -4,7 +4,7 @@ namespace   FE
 {
 
     template <typename T, size_t N>
-    class    AlignedBuffer
+    class   AlignedBuffer
     {
     public:
         T*    data()
@@ -16,7 +16,7 @@ namespace   FE
         alignas(T) char _data[sizeof(T) * N];
     };
     template <typename T>
-    class AlignedBuffer<T, 0>
+    class   AlignedBuffer<T, 0>
     {
     public:
         T*  data()
@@ -25,7 +25,7 @@ namespace   FE
         }
     };
     template <typename T>
-    class    VectorView
+    class   TVectorView
     {
     public:
         T&        operator[](size_t i) 
@@ -38,110 +38,111 @@ namespace   FE
             return _ptr[i];
         }
         
-        bool    empty() const 
+        inline  bool    empty() const 
         {
-            return _bufferSize == 0;
+            return _size == 0;
         }
         
-        size_t    size() const 
+        inline  size_t  size() const 
         {
-            return _bufferSize;
+            return _size;
         }
         
-        inline  T*  data() 
-        {
-            return _ptr;
-        }
-        
-        const   T*  data() const 
+        inline  T*      data() 
         {
             return _ptr;
         }
         
-        inline  T*  begin() 
+        const   T*      data() const 
         {
             return _ptr;
         }
         
-        inline  T*  end() 
-        {
-            return _ptr + _bufferSize;
-        }
-        
-        const   T*  begin() const 
+        inline  T*      begin() 
         {
             return _ptr;
         }
         
-        const   T*  end() const 
+        inline  T*      end() 
         {
-            return _ptr + _bufferSize;
+            return _ptr + _size;
         }
         
-        inline  T&  front() 
+        const   T*      begin() const 
+        {
+            return _ptr;
+        }
+        
+        const   T*      end() const 
+        {
+            return _ptr + _size;
+        }
+        
+        inline  T&      front() 
         {
             return _ptr[0];
         }
         
-        const   T&  front() const 
+        const   T&      front() const 
         {
             return _ptr[0];
         }
         
-        inline  T&  back() 
+        inline  T&      back() 
         {
-            return _ptr[_bufferSize - 1];
+            return _ptr[_size - 1];
         }
         
-        const   T&  back() const 
+        const   T&      back() const 
         {
-            return _ptr[_bufferSize - 1];
+            return _ptr[_size - 1];
         }
         
         explicit operator std::vector<T>() const &
         {
-            return std::vector<T>(_ptr, _ptr + _bufferSize);
+            return std::vector<T>(_ptr, _ptr + _size);
         }
         
         // If we are converting as an r-value, we can pilfer our elements.
         explicit operator std::vector<T>() &&
         {
-            return std::vector<T>(std::make_move_iterator(_ptr), std::make_move_iterator(_ptr + _bufferSize));
+            return std::vector<T>(std::make_move_iterator(_ptr), std::make_move_iterator(_ptr + _size));
         }
         
         // Avoid sliced copies. Base class should only be read as a reference.
-        VectorView(const VectorView &)        =    delete;
-        void operator=(const VectorView &)    =    delete;
+        TVectorView(const TVectorView &)    =    delete;
+        void operator=(const TVectorView &) =    delete;
     protected:
-        VectorView()            =    default;
-        uint32_t    _bufferSize =    0;
-        uint32_t    _capacity   =    0;
+        TVectorView()           =    default;
+        size_t      _size       =    0;
         T*          _ptr        =    nullptr;
         
     };
     
     template <typename T, size_t N = 8>
-    class    TSmallVector : public VectorView<T>
+    class   TSmallVector : public TVectorView<T>
     {
     public:
         TSmallVector() 
         {
-            this->_ptr = _memory.data();
-            _capacity = N;
+            _ptr  =   _memory.data();
+            _capacity   =   N;
         }
         
         template <typename U>
-        TSmallVector(const U *arg_list_begin, const U *arg_list_end)  : TSmallVector()
+        TSmallVector(const U *arg_list_begin, const U *arg_list_end)  
+            : TSmallVector()
         {
-            auto count = size_t(arg_list_end - arg_list_begin);
+            auto    count   =   size_t(arg_list_end - arg_list_begin);
             reserve(count);
             for (size_t i = 0; i < count; i++, arg_list_begin++)
-                new (&this->_ptr[i]) T(*arg_list_begin);
-            this->_bufferSize = count;
+                new (&_ptr[i]) T(*arg_list_begin);
+            _size   =   count;
         }
         
         template <typename U>
-        TSmallVector(std::initializer_list<U> init)  : TSmallVector(init.begin(), init.end())
+        TSmallVector(std::initializer_list<U> init)  
+            : TSmallVector(init.begin(), init.end())
         {
         }
         
@@ -150,9 +151,10 @@ namespace   FE
         {
         }
         
-        TSmallVector(TSmallVector &&other)  : TSmallVector()
+        TSmallVector(TSmallVector &&other)  
+            : TSmallVector()
         {
-            *this = std::move(other);
+            *this   =   std::move(other);
         }
         
         TSmallVector &operator=(TSmallVector &&other) 
@@ -161,33 +163,33 @@ namespace   FE
             if (other._ptr != other._memory.data())
             {
                 // Pilfer allocated pointer.
-                if (this->_ptr != _memory.data())
-                    free(this->_ptr);
-                this->_ptr = other._ptr;
-                this->_bufferSize = other._bufferSize;
-                _capacity = other._capacity;
-                other._ptr = nullptr;
-                other._bufferSize = 0;
-                other._capacity = 0;
+                if (_ptr != _memory.data())
+                    free(_ptr);
+                _ptr          =   other._ptr;
+                _size   =   other._size;
+                _capacity           =   other._capacity;
+                other._ptr          =   nullptr;
+                other._size   =   0;
+                other._capacity     =   0;
             }
             else
             {
                 // Need to move the stack contents individually.
-                reserve(other._bufferSize);
-                for (size_t i = 0; i < other._bufferSize; i++)
+                reserve(other._size);
+                for (size_t i = 0; i < other._size; i++)
                 {
-                    new (&this->_ptr[i]) T(std::move(other._ptr[i]));
+                    new (&_ptr[i]) T(std::move(other._ptr[i]));
                     other._ptr[i].~T();
                 }
-                this->_bufferSize = other._bufferSize;
-                other._bufferSize = 0;
+                _size   =   other._size;
+                other._size   =   0;
             }
             return *this;
         }
         
         TSmallVector(const TSmallVector &other)  : TSmallVector()
         {
-            *this = other;
+            *this   =   other;
         }
         
         TSmallVector &operator=(const TSmallVector &other) 
@@ -196,10 +198,10 @@ namespace   FE
                 return *this;
 
             clear();
-            reserve(other._bufferSize);
-            for (size_t i = 0; i < other._bufferSize; i++)
-                new (&this->_ptr[i]) T(other._ptr[i]);
-            this->_bufferSize = other._bufferSize;
+            reserve(other._size);
+            for (size_t i = 0; i < other._size; i++)
+                new (&_ptr[i]) T(other._ptr[i]);
+            _size = other._size;
             return *this;
         }
         
@@ -211,45 +213,44 @@ namespace   FE
         ~TSmallVector()
         {
             clear();
-            if (this->_ptr != _memory.data())
-                free(this->_ptr);
+            if (_ptr != _memory.data())
+                free(_ptr);
         }
-        
         void    clear() 
         {
-            for (size_t i = 0; i < this->_bufferSize; i++)
-                this->_ptr[i].~T();
-            this->_bufferSize = 0;
+            for (size_t i = 0; i < _size; i++)
+                _ptr[i].~T();
+            _size   =   0;
         }
         
         void    push_back(const T &t) 
         {
-            reserve(this->_bufferSize + 1);
-            new (&this->_ptr[this->_bufferSize]) T(t);
-            this->_bufferSize++;
+            reserve(_size + 1);
+            new (&_ptr[_size]) T(t);
+            _size++;
         }
         
         void    push_back(T &&t) 
         {
-            reserve(this->_bufferSize + 1);
-            new (&this->_ptr[this->_bufferSize]) T(std::move(t));
-            this->_bufferSize++;
+            reserve(_size + 1);
+            new (&_ptr[_size]) T(std::move(t));
+            _size++;
         }
         
         void    pop_back() 
         {
             // Work around false positive warning on GCC 8.3.
             // Calling pop_back on empty vector is undefined.
-            if (!this->empty())
-                resize(this->_bufferSize - 1);
+            if (!empty())
+                resize(_size - 1);
         }
         
         template <typename... Ts>
         void    emplace_back(Ts &&... ts) 
         {
-            reserve(this->_bufferSize + 1);
-            new (&this->_ptr[this->_bufferSize]) T(std::forward<Ts>(ts)...);
-            this->_bufferSize++;
+            reserve(_size + 1);
+            new (&_ptr[_size]) T(std::forward<Ts>(ts)...);
+            _size++;
         }
         
         void    reserve(size_t count) 
@@ -275,46 +276,45 @@ namespace   FE
                 while (target_capacity < count)
                     target_capacity <<= 1u;
 
-                T *new_buffer =
-                    target_capacity > N ? static_cast<T *>(malloc(target_capacity * sizeof(T))) : _memory.data();
+                T*  new_buffer = target_capacity > N ? static_cast<T *>(malloc(target_capacity * sizeof(T))) : _memory.data();
 
                 // If we actually fail this malloc, we are hosed anyways, there is no reason to attempt recovery.
                 if (!new_buffer)
                     std::terminate();
 
                 // In case for some reason two allocations both come from same stack.
-                if (new_buffer != this->_ptr)
+                if (new_buffer != _ptr)
                 {
                     // We don't deal with types which can throw in move constructor.
-                    for (size_t i = 0; i < this->_bufferSize; i++)
+                    for (size_t i = 0; i < _size; i++)
                     {
-                        new (&new_buffer[i]) T(std::move(this->_ptr[i]));
-                        this->_ptr[i].~T();
+                        new (&new_buffer[i]) T(std::move(_ptr[i]));
+                        _ptr[i].~T();
                     }
                 }
 
-                if (this->_ptr != _memory.data())
-                    free(this->_ptr);
-                this->_ptr = new_buffer;
-                _capacity = target_capacity;
+                if (_ptr != _memory.data())
+                    free(_ptr);
+                _ptr  =   new_buffer;
+                _capacity   =   target_capacity;
             }
         }
         
         void    insert(T *itr, const T *insert_begin, const T *insert_end) 
         {
             auto count = size_t(insert_end - insert_begin);
-            if (itr == this->end())
+            if (itr == end())
             {
-                reserve(this->_bufferSize + count);
+                reserve(_size + count);
                 for (size_t i = 0; i < count; i++, insert_begin++)
-                    new (&this->_ptr[this->_bufferSize + i]) T(*insert_begin);
-                this->_bufferSize += count;
+                    new (&_ptr[_size + i]) T(*insert_begin);
+                _size += count;
             }
             else
             {
-                if (this->_bufferSize + count > _capacity)
+                if (_size + count > _capacity)
                 {
-                    auto target_capacity = this->_bufferSize + count;
+                    auto target_capacity = _size + count;
                     if (target_capacity == 0)
                         target_capacity = 1;
                     if (target_capacity < N)
@@ -334,9 +334,9 @@ namespace   FE
                     // First, move elements from source buffer to new buffer.
                     // We don't deal with types which can throw in move constructor.
                     auto *target_itr = new_buffer;
-                    auto *original_source_itr = this->begin();
+                    auto *original_source_itr = begin();
 
-                    if (new_buffer != this->_ptr)
+                    if (new_buffer != _ptr)
                     {
                         while (original_source_itr != itr)
                         {
@@ -352,9 +352,9 @@ namespace   FE
                         new (target_itr) T(*source_itr);
 
                     // Move over the other half.
-                    if (new_buffer != this->_ptr || insert_begin != insert_end)
+                    if (new_buffer != _ptr || insert_begin != insert_end)
                     {
-                        while (original_source_itr != this->end())
+                        while (original_source_itr != end())
                         {
                             new (target_itr) T(std::move(*original_source_itr));
                             original_source_itr->~T();
@@ -363,18 +363,18 @@ namespace   FE
                         }
                     }
 
-                    if (this->_ptr != _memory.data())
-                        free(this->_ptr);
-                    this->_ptr = new_buffer;
+                    if (_ptr != _memory.data())
+                        free(_ptr);
+                    _ptr = new_buffer;
                     _capacity = target_capacity;
                 }
                 else
                 {
                     // Move in place, need to be a bit careful about which elements are constructed and which are not.
                     // Move the end and construct the new elements.
-                    auto *target_itr = this->end() + count;
-                    auto *source_itr = this->end();
-                    while (target_itr != this->end() && source_itr != itr)
+                    auto *target_itr = end() + count;
+                    auto *source_itr = end();
+                    while (target_itr != end() && source_itr != itr)
                     {
                         --target_itr;
                         --source_itr;
@@ -385,7 +385,7 @@ namespace   FE
                     std::move_backward(itr, source_itr, target_itr);
 
                     // For the inserts which go to already constructed elements, we can do a plain copy.
-                    while (itr != this->end() && insert_begin != insert_end)
+                    while (itr != end() && insert_begin != insert_end)
                         *itr++ = *insert_begin++;
 
                     // For inserts into newly allocated memory, we must copy-construct instead.
@@ -397,7 +397,7 @@ namespace   FE
                     }
                 }
 
-                this->_bufferSize += count;
+                _size += count;
             }
         }
         
@@ -408,41 +408,42 @@ namespace   FE
         
         T*      erase(T *itr) 
         {
-            std::move(itr + 1, this->end(), itr);
-            this->_ptr[--this->_bufferSize].~T();
+            std::move(itr + 1, end(), itr);
+            _ptr[--_size].~T();
             return itr;
         }
         
         void    erase(T *start_erase, T *end_erase) 
         {
-            if (end_erase == this->end())
+            if (end_erase == end())
             {
-                resize(size_t(start_erase - this->begin()));
+                resize(size_t(start_erase - begin()));
             }
             else
             {
-                auto new_size = this->_bufferSize - (end_erase - start_erase);
-                std::move(end_erase, this->end(), start_erase);
+                auto new_size = _size - (end_erase - start_erase);
+                std::move(end_erase, end(), start_erase);
                 resize(new_size);
             }
         }
         
         void    resize(size_t new_size) 
         {
-            if (new_size < this->_bufferSize)
+            if (new_size < _size)
             {
-                for (size_t i = new_size; i < this->_bufferSize; i++)
-                    this->_ptr[i].~T();
+                for (size_t i = new_size; i < _size; i++)
+                    _ptr[i].~T();
             }
-            else if (new_size > this->_bufferSize)
+            else if (new_size > _size)
             {
                 reserve(new_size);
-                for (size_t i = this->_bufferSize; i < new_size; i++)
-                    new (&this->_ptr[i]) T();
+                for (size_t i = _size; i < new_size; i++)
+                    new (&_ptr[i]) T();
             }
-            this->_bufferSize = new_size;
+            _size = new_size;
         }
-    private:
+    protected:
+        size_t              _capacity   =    0;
         AlignedBuffer<T, N> _memory;
     };
 }

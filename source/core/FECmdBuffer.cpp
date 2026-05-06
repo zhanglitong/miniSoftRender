@@ -10,35 +10,52 @@ namespace   FE
     CallResult  FECmdBuffer::reset()
     {
         _buffer.clear();
-        return  CR_SUCCESS;
+        return  CallResult::CR_SUCCESS;
     }
     CallResult  FECmdBuffer::begin(const FECmdBufferInfo& infor)
     {
-        return  CR_SUCCESS;
+        return  CallResult::CR_FAILED; 
     }
 
 
     CallResult  FECmdBuffer::cmdBeginRenderPass(const FERPBeginInfo& info)
     {
-        return  CR_SUCCESS;
+        return  CallResult::CR_FAILED; 
     }
     CallResult  FECmdBuffer::cmdEndRenderPass()
     {
-        return  CR_SUCCESS;
+        return  CallResult::CR_FAILED; 
     }
     CallResult  FECmdBuffer::cmdBindPipeline(const FEPLBindInfo& info)
     {
-        return  CR_SUCCESS;
+        return  CallResult::CR_FAILED; 
     }
 
     CallResult  FECmdBuffer::cmdBindDescriptor(const FEDescInfo& info)
     {
-        return  CR_SUCCESS;
+        return  CallResult::CR_FAILED; 
+    }
+
+    CallResult  FECmdBuffer::cmdDraw( uint32_t vertexCount
+                                    , uint32_t instanceCount
+                                    , uint32_t firstVertex
+                                    , uint32_t firstInstance)
+    {
+        return  CallResult::CR_FAILED; 
+    }
+
+    CallResult  FECmdBuffer::cmdDrawIndexed(  uint32_t indexCount
+                                            , uint32_t instanceCount
+                                            , uint32_t firstIndex
+                                            , int32_t  vertexOffset
+                                            , uint32_t firstInstance)
+    {
+        return  CallResult::CR_FAILED; 
     }
 
     CallResult  FECmdBuffer::end()
     {
-        return  CR_SUCCESS;
+        return  CallResult::CR_FAILED; 
     }
 
 
