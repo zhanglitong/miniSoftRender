@@ -113,6 +113,7 @@ target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/../../../in
 target_link_libraries(${TARGET_NAME} PUBLIC Vulkan::Headers)
 target_link_libraries(${TARGET_NAME} PRIVATE core)
 target_link_libraries(${TARGET_NAME} PRIVATE rs.vulkan)
+target_link_libraries(${TARGET_NAME} PRIVATE rs.webgpu)
 
 if(UNIX)
     target_compile_definitions(${TARGET_NAME} PUBLIC -D_LINUX_ -D_UNUSE_SIMD)

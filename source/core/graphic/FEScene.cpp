@@ -21,7 +21,7 @@ namespace   FE
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
         _app        =   app;
-        _renderSys  =   FERenderSystem::create(_ctx,RS_VULKAN);
+        _renderSys  =   FERenderSystem::create(_ctx,RS_WEBGPU);
         assert(_renderSys != nullptr);
         if (_renderSys == nullptr)
             return  false;

@@ -5,7 +5,7 @@
 
 namespace   FE
 {
-    DEFINE_CLASS_UUID(WGRenderSystem,"{08B58233-B5F1-48B7-9FC4-187A0AC977BC}");
+    DEFINE_CLASS_UUID(WGRenderSystem,"{730F1C2C-7AE6-4A69-A39E-0C591C659E97}");
     class   WGRenderSystem :public FERenderSystem
     {
         IMPLEMENT_CLASS_REFLECT(WGRenderSystem)

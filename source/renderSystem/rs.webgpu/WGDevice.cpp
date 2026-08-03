@@ -323,15 +323,15 @@ namespace   FE
     {
         switch (format)
         {
-        case FMT_R8G8B8A8_UNORM:    return WGPUTextureFormat_RGBA8Unorm;
-        case FMT_R8G8B8A8_UINT:     return WGPUTextureFormat_RGBA8Uint;
-        case FMT_R8G8B8A8_SINT:     return WGPUTextureFormat_RGBA8Sint;
-        case FMT_R16G16B16A16_FLOAT: return WGPUTextureFormat_RGBA16Float;
-        case FMT_R32G32B32A32_FLOAT: return WGPUTextureFormat_RGBA32Float;
-        case FMT_D32_UNORM:         return WGPUTextureFormat_Depth32Float;
-        case FMT_R8_UNORM:          return WGPUTextureFormat_R8Unorm;
-        case FMT_R8G8_UNORM:         return WGPUTextureFormat_RG8Unorm;
-        default:                    return WGPUTextureFormat_Undefined;
+        case FMT_R8G8B8A8_UNORM:        return WGPUTextureFormat_RGBA8Unorm;
+        case FMT_R8G8B8A8_UINT:         return WGPUTextureFormat_RGBA8Uint;
+        case FMT_R8G8B8A8_SINT:         return WGPUTextureFormat_RGBA8Sint;
+        case FMT_R16G16B16A16_FLOAT:    return WGPUTextureFormat_RGBA16Float;
+        case FMT_R32G32B32A32_FLOAT:    return WGPUTextureFormat_RGBA32Float;
+        case FMT_D32_UNORM:             return WGPUTextureFormat_Depth32Float;
+        case FMT_R8_UNORM:              return WGPUTextureFormat_R8Unorm;
+        case FMT_R8G8_UNORM:            return WGPUTextureFormat_RG8Unorm;
+        default:                        return WGPUTextureFormat_Undefined;
         }
     }
 }
