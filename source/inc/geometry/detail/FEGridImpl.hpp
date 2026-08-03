@@ -58,7 +58,6 @@ namespace   FE
         /// <returns></returns>
         static  float3s     extractXYLines(const FEParamGrid& param)
         {
-            const auto  center  =   param._divs / 2;
             const auto  step    =   (float)(param._size) / (float)(param._divs);
             const auto  halfSize=   (float)(param._size) * 0.5f;
             float       k       =   -halfSize;
@@ -67,7 +66,6 @@ namespace   FE
        
             for (uint32_t i = 0; i <= param._divs; i++)
             {
-                auto&       color   =   (i == center ? param._color1 : param._color4);
                 verts[i*4 + 0]      =   {-halfSize, k,   0};
                 verts[i*4 + 1]      =   {+halfSize, k,   0};
                                                      
@@ -81,7 +79,6 @@ namespace   FE
 
         static  float3s     extractXZLines(const FEParamGrid& param)
         {
-            const auto  center  =   param._divs / 2;
             const auto  step    =   (float)(param._size) / (float)(param._divs);
             const auto  halfSize=   (float)(param._size) * 0.5f;
             float       k       =   -halfSize;
@@ -90,7 +87,6 @@ namespace   FE
 
             for (uint32_t i = 0; i <= param._divs; i++)
             {
-                auto&       color   =   (i == center ? param._color1 : param._color4);
                 verts[i*4 + 0]      =   {-halfSize, 0,  k};
                 verts[i*4 + 1]      =   {+halfSize, 0,  k};
 
@@ -105,8 +101,6 @@ namespace   FE
         static  Rgba8s      extractXYColor(const FEParamGrid& param)
         {
             const auto  center  =   param._divs / 2;
-            const auto  step    =   (float)(param._size) / (float)(param._divs);
-            const auto  halfSize=   (float)(param._size) * 0.5f;
             uint32_t    nCnt    =   (param._divs + 1) * 4;
             Rgba8s      colors(nCnt);
             for (uint32_t i = 0; i <= param._divs; i++)
@@ -134,8 +128,6 @@ namespace   FE
         static  Rgba8s      extractXZColor(const FEParamGrid& param)
         {
             const auto  center  =   param._divs / 2;
-            const auto  step    =   (float)(param._size) / (float)(param._divs);
-            const auto  halfSize=   (float)(param._size) * 0.5f;
             uint32_t    nCnt    =   (param._divs + 1) * 4;
             Rgba8s      colors(nCnt);
             for (uint32_t i = 0; i <= param._divs; i++)

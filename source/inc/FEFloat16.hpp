@@ -75,7 +75,7 @@ namespace   FE
             v.ui    >>= shift;
             v.si    ^=  ((v.si - maxD) ^ v.si) & -(v.si > maxC);
             v.si    ^=  ((v.si - minD) ^ v.si) & -(v.si > subC);
-            return v.ui | sign;
+            return uint16_t(v.ui | sign);
         }
 
         inline static float half2Float(uint16_t val)

@@ -41,36 +41,36 @@ namespace   FE
                 if (var.slot() & (IS_VERTEX_POS))
                 {
                     auto    pStart  =   pData;
-                    for (auto& var : poss)
+                    for (auto& var1 : poss)
                     {
-                        memcpy(pStart,&var,sizeof(var));
+                        memcpy(pStart,&var1,sizeof(var1));
                         pStart  +=  stride;
                     }
                 }
                 if (var.slot() & (IS_VERTEX_NOR))
                 {
                     auto    pStart  =   pData;
-                    for (auto& var :normals)
+                    for (auto& var1 :normals)
                     {
-                        memcpy(pStart,&var,sizeof(var));
+                        memcpy(pStart,&var1,sizeof(var1));
                         pStart  +=  stride;
                     }
                 }
                 if (var.slot() & (IS_VERTEX_COLOR0))
                 {
                     auto    pStart  =   pData;
-                    for (auto& var : colors)
+                    for (auto& var1 : colors)
                     {
-                        memcpy(pStart,&var,sizeof(var));
+                        memcpy(pStart,&var,sizeof(var1));
                         pStart  +=  stride;
                     }
                 }
                 if (var.slot() & (IS_VERTEX_TEXCOORD0))
                 {
                     auto    pStart  =   pData;
-                    for (auto& var : uvs)
+                    for (auto& var1 : uvs)
                     {
-                        memcpy(pStart,&var,sizeof(var));
+                        memcpy(pStart,&var,sizeof(var1));
                         pStart  +=  stride;
                     }
                 }

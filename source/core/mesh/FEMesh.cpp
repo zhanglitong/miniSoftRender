@@ -72,7 +72,6 @@ namespace   FE
         Ray         ray     =   raySrc.transformed(mat);
 
         FEMesh*     pSelf   =   const_cast<FEMesh*>(this);
-        bool        bRet    =   false;
         for(auto& var : _primitives)
         {
             switch(var->type())
@@ -98,7 +97,7 @@ namespace   FE
         return  false;
     }
 
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawArray* pri,       const mat4r& mat, FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawArray* pri,       const mat4r& , FEPickup& result) 
     {
         auto    pSubMesh    =   get(IS_VERTEX_POS);
         if (pSubMesh == nullptr)
@@ -287,7 +286,7 @@ namespace   FE
         }
         return  pickup;
     }
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint8*pri, const mat4r& mat, FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint8*pri, const mat4r& , FEPickup& result) 
     {
         /// 获取顶点缓冲区数据
         auto    pBuffer =   get(IS_VERTEX_POS);
@@ -308,7 +307,6 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
-        real    minDist2    =   FLT_MAX;
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -386,7 +384,7 @@ namespace   FE
         }
         return  pickup;
     }
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint16*pri,const mat4r& mat, FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint16*pri,const mat4r& , FEPickup& result) 
     {
         /// 获取顶点缓冲区数据
         auto    pBuffer =   get(IS_VERTEX_POS);
@@ -407,7 +405,6 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
-        real    minDist2    =   FLT_MAX;
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -485,7 +482,7 @@ namespace   FE
         }
         return  pickup;
     }
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint32*pri,const mat4r& mat, FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint32*pri,const mat4r& , FEPickup& result) 
     {
         /// 获取顶点缓冲区数据
         auto    pBuffer =   get(IS_VERTEX_POS);
@@ -506,7 +503,6 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
-        real    minDist2    =   FLT_MAX;
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;

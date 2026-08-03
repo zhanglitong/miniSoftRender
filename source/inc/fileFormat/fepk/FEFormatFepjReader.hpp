@@ -189,9 +189,9 @@ namespace   FE
                     
                 } while (!reader.end());
                 
-                for (auto& var : entryList)
+                for (auto& var1 : entryList)
                 {
-                    auto        pList   =   var->cast<FEEntryList>();
+                    auto        pList   =   var1->cast<FEEntryList>();
                     if (pList == nullptr)
                         continue;
                     Objects&    eList   =   pList->entryList();

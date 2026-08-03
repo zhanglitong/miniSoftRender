@@ -15,6 +15,7 @@ namespace   FE
     }
     bool    VKSemaphore::create(const CreateInfo& cInfo)
     {
+        (void)cInfo;
         if (isValid())
             return	true;
         auto&   vkDevice    =   (VKDevice&)_ctx.device();

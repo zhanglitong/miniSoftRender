@@ -20,6 +20,7 @@ namespace   FE
 
     void WGFence::wait(uint64 tm)
     {
+        (void)tm;
         if (!_signaled)
         {
             _signaled =   true;

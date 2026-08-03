@@ -31,6 +31,7 @@ namespace   FE
         template<class T>
         inline  uint64  write(const T& val,const Tag& tag = {})
         {
+            (void)tag;
             return  writeBuffer(&val,sizeof(val));
         }
         template<typename T>

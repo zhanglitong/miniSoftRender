@@ -115,6 +115,9 @@ namespace   FE
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override
         {
+            (void)ctx;
+            (void)version;
+            (void)chk;
             writer.write(_primitive);
             writer.write(_type);
         }
@@ -126,6 +129,10 @@ namespace   FE
         /// <returns></returns>
         virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chk,uint version,FESerializeCtx& ctx) override
         {
+            (void)ctx;
+            (void)version;
+            (void)chk;
+
             reader.read(_primitive);
             reader.read(_type);
         }

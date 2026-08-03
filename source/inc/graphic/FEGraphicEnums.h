@@ -236,7 +236,7 @@ namespace   FE
 
     using   DynamicStates   =   std::vector<DynamicState>;
 
-    static  auto    nameOfState(DynamicState state)
+    inline  auto    nameOfState(DynamicState state)
     {
         switch(state)
         {
@@ -316,7 +316,7 @@ namespace   FE
         return  "";
     }
 
-    static  auto    stateFromName(const char* name)
+    inline  auto    stateFromName(const char* name)
     {
         if(     _stricmp(name,nameOfState(VIEWPORT                               )) == 0)    return  VIEWPORT                               ;
         else if(_stricmp(name,nameOfState(SCISSOR                                )) == 0)    return  SCISSOR                                ;

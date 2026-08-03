@@ -34,6 +34,7 @@ namespace   FE
 
     bool    VKFence::create(const CreateInfo& cInfo)
     {
+        (void)cInfo;
         if (isValid())
             return	true;
         auto&   vkDevice    =   (VKDevice&)_ctx.device();

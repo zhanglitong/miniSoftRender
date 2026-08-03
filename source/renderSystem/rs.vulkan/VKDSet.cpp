@@ -73,9 +73,9 @@ namespace   FE
         _wdss.clear();
         _wdss.reserve(_cInfo._binds.size());
 
-        for (size_t i = 0; i < _cInfo._binds.size(); i++)
+        for (size_t c = 0; c < _cInfo._binds.size(); c++)
         {
-            auto&           binding     =   _cInfo._binds[i];
+            auto&           binding     =   _cInfo._binds[c];
             FEGPUBuffer*    pBuffer     =   dynamic_cast<FEGPUBuffer*>(binding._objects.front().get());
             switch(binding._type)
             {

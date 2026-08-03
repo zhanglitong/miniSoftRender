@@ -39,7 +39,7 @@ namespace   FE
         virtual bool    writeFile(const Objects&ojects,const String& filePathName) override
         {
             FESerializeCtx    xsCtx;
-            xsCtx.query =   [&](const OBJId& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
+            xsCtx.query =   [&](const OBJId& ,FEObject* ,FESerializeCtx::Option )->FESerializeCtx::QResult
             {
                 return  {nullptr,0};
             };

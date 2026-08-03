@@ -9,7 +9,7 @@ namespace   FE
 {
 
     /// <summary>
-    /// ��̬״̬�Ƿ�����
+    /// 
     /// </summary>
     struct  RenderState
     {
@@ -17,8 +17,8 @@ namespace   FE
         bool            _enabled;
     };
     /// <summary>
-    /// ��������״̬���Ͻṹ��
-    /// ��������Ŀ�ı����ѯ
+    ///
+    /// 
     /// </summary>
     struct  StateBits
     {

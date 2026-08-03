@@ -742,9 +742,9 @@ private:
     }
 
   protected:
-    std::string full_description(const std::string &desc){
+    std::string full_description(const std::string &desc1){
       return
-        desc+" ("+detail::readable_typename<T>()+
+          desc1+" ("+detail::readable_typename<T>()+
         (need?"":" [="+detail::default_value<T>(def)+"]")
         +")";
     }

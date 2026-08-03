@@ -36,6 +36,9 @@ namespace   FE
 
     bool    SWGPUBuffer::update(const void* pData,uint64 length,uint64 offset)
     {
+        (void)pData;
+        (void)length;
+        (void)offset;
         return  true;
     }
 
@@ -47,6 +50,8 @@ namespace   FE
 
     void*   SWGPUBuffer::lock(uint64 size,uint64 offset)
     {
+        (void)size;
+        (void)offset;
         return  nullptr;
     }
 

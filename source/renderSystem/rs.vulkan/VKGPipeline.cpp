@@ -20,6 +20,7 @@ namespace   FE
 
     DSetLayout  createDSLayoutFromShaders(FEContext& ctx,FEDevice& device,const std::vector<Shader>& shaders)
     {
+        (void)device;
         std::vector<FEDSetBinding>        allBindings;
         std::map<uint32_t, FEDSetBinding> bindingMap;
 
@@ -107,7 +108,7 @@ namespace   FE
         pipelineLayoutCI.pPushConstantRanges    =    pushConsts.data();
         VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &_layout));
 
-        /// 外部查询使用
+        /// 锟解部锟斤拷询使锟斤拷
         _cInfo._pushConstant   =   !pushConsts.empty();
 
         VkGraphicsPipelineCreateInfo pipelineCI{};
@@ -229,7 +230,7 @@ namespace   FE
         pipelineCI.pDynamicState        =   &dynamicStateCI;
 
         // Create rendering pipeline using the specified states
-        auto    result  =   (vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCI, nullptr, &_native));
+        (void)vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCI, nullptr, &_native);
 
         return  _native != nullptr;
     }

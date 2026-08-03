@@ -39,8 +39,11 @@ namespace   FE
         /// <param name="version">版本号</param>
         /// <param name="ctx">上下文对象</param>
         /// <returns></returns>
-        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override
+        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ) const override
         {
+            (void)version;
+            (void)chunk;
+            (void)writer;
             uint    cnt =   (uint)_entryList.size();
             writer.write(cnt);
             for (auto& var: _entryList)
@@ -57,6 +60,9 @@ namespace   FE
         /// <returns></returns>
         virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override
         {
+            (void)chunk;
+            (void)version;
+            (void)ctx;
             uint    cnt =   (uint)_entryList.size();
             reader.read(cnt);
             _entryList.reserve(cnt);

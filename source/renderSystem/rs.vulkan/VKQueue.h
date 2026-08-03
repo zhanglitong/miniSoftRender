@@ -6,7 +6,7 @@
 namespace   FE
 {
     /// <summary>
-    /// �������ػ��ƽ���Ļ���
+    /// 
     /// </summary>
     class   VKQueue :public TRSObject<VkQueue,FEQueue>
     {

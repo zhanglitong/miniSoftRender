@@ -684,6 +684,7 @@ namespace   FE
         /// <param name="n"></param>
         static void     deallocate(pointer p, TSize n) noexcept 
         {
+            (void)n;
             if (p) ::operator delete(p);
         }
         /// <summary>

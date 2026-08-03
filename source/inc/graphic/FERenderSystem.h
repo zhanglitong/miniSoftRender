@@ -117,4 +117,10 @@ namespace   FE
     /// {01B71260-C1CE-4DF4-B58C-7E727DFDCBB4}
     /// </summary>
     inline  static  FEUuid  RS_FASTEARTH    =   FEUuid({ 0x1b71260, 0xc1ce, 0x4df4, { 0xb5, 0x8c, 0x7e, 0x72, 0x7d, 0xfd, 0xcb, 0xb4 } });
+
+    /// <summary>
+    /// {730F1C2C-7AE6-4A69-A39E-0C591C659E97}
+    /// </summary>
+    static const    FEUuid  RS_WEBGPU       =   FEUuid({ 0x730f1c2c, 0x7ae6, 0x4a69, { 0xa3, 0x9e, 0xc, 0x59, 0x1c, 0x65, 0x9e, 0x97 } });
+
 }

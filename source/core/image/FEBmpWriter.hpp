@@ -114,7 +114,6 @@ namespace   FE
                 file.write((const char*)(&palette), sizeof(palette));
             char    pad[16] =   {};
             memset(pad,0,sizeof(pad));
-            auto    buffer  =   (const char*)image.cInfo()._buffers.front()->cInfo().dataPtr();
             
             for (int y = 0; y < height; ++y) 
             {

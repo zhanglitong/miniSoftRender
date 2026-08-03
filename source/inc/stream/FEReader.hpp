@@ -26,6 +26,7 @@ namespace   FE
         {
             T       value   =   {};
             auto    result  =   read(value);
+            assert(result == sizeof(value));
             return  value;
         }
         /// <summary>

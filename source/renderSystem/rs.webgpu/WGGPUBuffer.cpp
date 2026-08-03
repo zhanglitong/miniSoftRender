@@ -110,6 +110,8 @@ namespace   FE
         WGPUMapMode mapMode =   WGPUMapMode_Read | WGPUMapMode_Write;
 
         auto mapCallback = [](WGPUMapAsyncStatus status,WGPUStringView message,void* userdata1,void* userdata2) {
+            (void)message;
+            (void)userdata2;
             if (status == WGPUMapAsyncStatus_Success)
             {
                 auto* buffer = static_cast<WGGPUBuffer*>(userdata1);

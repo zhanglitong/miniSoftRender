@@ -95,6 +95,7 @@ namespace   FE
 
     static void handle_request_adapter(WGPURequestAdapterStatus status,WGPUAdapter adapter,WGPUStringView message,void* userdata1,void* userdata2)
     {
+        (void)userdata2;
         if (status == WGPURequestAdapterStatus_Success)
         {
             WGPUAdapterResult* pAResult = (WGPUAdapterResult*)userdata1;

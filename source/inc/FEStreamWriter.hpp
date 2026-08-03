@@ -49,7 +49,6 @@ namespace   FE
         virtual bool    onExec() override
         {
             LOG_DBG("onExec(%s)!",_name.c_str());
-            return  true;
 
             auto    fileParam   =   param(TBWriteFile);
             bool    bOK         =   false;

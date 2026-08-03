@@ -261,7 +261,11 @@ namespace   FE
             /// 第三个参数: 日志内容
             /// 第四个参数: 时间
             _notify     =   [](const char* moduleName,const char* type ,const char* log,const FEDateTime&)
-            {};
+            {
+                (void)moduleName;
+                (void)type;
+                (void)log;
+            };
             /// 默认关联打印到控制台
             _notifyDebug=   [](const char* moduleName,const char* type ,const char* log,const FEDateTime& dateTime)
             {

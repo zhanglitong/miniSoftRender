@@ -18,6 +18,8 @@ namespace   FE
         };
         FEFepjHeader(bool cacheFromSystem )
         {
+
+            (void)cacheFromSystem;
 #ifdef  CLASS_INDEX
             /// 遍历获取类型id
             /// 缓存下来
@@ -72,6 +74,7 @@ namespace   FE
         /// <returns>result >= 0 ,找到了，否则没有找到</returns>
         int16   index(const FEUuid& classId)
         {
+            (void)classId;
 #ifdef  CLASS_INDEX
             auto it = std::lower_bound(_classIds.begin(), _classIds.end(), classId);
             if (it != _classIds.end() && *it == classId) 

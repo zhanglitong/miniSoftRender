@@ -63,7 +63,7 @@ namespace   FE
 
             if (settings._fullscreen)
             {
-                if ((width != (uint32_t)screenWidth) && (height != (uint32_t)screenHeight))
+                if ((width != screenWidth) && (height != screenHeight))
                 {
                     DEVMODEA dmScreenSettings       =   {};
                     dmScreenSettings.dmSize         =   sizeof(dmScreenSettings);

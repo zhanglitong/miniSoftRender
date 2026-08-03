@@ -118,7 +118,7 @@ EMSCRIPTEN_BINDINGS(my_module)
     emscripten::function("greet", &greet);
     emscripten::function("get_numbers", &get_numbers);
 
-    // æ³¨å†Œ vector<int> ç±»å‹ï¼ˆEmbind è‡ªåŠ¨å¤„ç†ï¼‰
+    // ×¢²á vector<int> ÀàĞÍ£¨Embind ×Ô¶¯´¦Àí£©
     emscripten::register_vector<int>("VectorInt");
 }
 
@@ -126,7 +126,7 @@ EMSCRIPTEN_BINDINGS(my_module)
 
 
 
-int main(int argc,char** argv)
+int main(int ,char** )
 {
     return  0;
 }

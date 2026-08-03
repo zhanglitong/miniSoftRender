@@ -11,6 +11,10 @@ namespace   FE
 
     bool    SWSwapchain::acquireNextImage(uint64 timeout, Semaphore sem, Fence fence,uint& imageIndex)
     {
+        (void)timeout;
+        (void)sem;
+        (void)fence;
+        (void)imageIndex;
         return  true;
     }
 
@@ -27,6 +31,7 @@ namespace   FE
 
     bool    SWSwapchain::queuePresent(const PresentInfo& pInfo)
     {
+        (void)pInfo;
         return  true;
     }
 

@@ -486,9 +486,9 @@ namespace   FE
         auto    fileList    =   FEFileSystem::entryList(plDir,".xml");
         LOG_DBG("loadPipelines()");
 
-        for (auto& var : fileList)
+        for (auto& file : fileList)
         {   
-            auto    fullPath    =   plDir + var;
+            auto    fullPath    =   plDir + file;
             auto    pipelines   =   FEPipelineHelper::create(_ctx,*_device,_renderPass,fullPath.c_str());
 
             LOG_DBG("loading pipeline:%s",fullPath.c_str());

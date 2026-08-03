@@ -35,6 +35,7 @@ namespace   FE
 
     FEResult WGCmdBuffer::begin(bool oneTimeSubmit)
     {
+        (void)oneTimeSubmit;
         auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
 
         WGPUCommandEncoderDescriptor encoderDesc;
@@ -49,6 +50,9 @@ namespace   FE
 
     FEResult WGCmdBuffer::setViewport(uint first,uint cnt,const Viewport* viewports)
     {
+        (void)first;
+        (void)cnt;
+        (void)viewports;
         if (!_encoder)
             return FEResult::ER_FAILED;
         return FEResult::ER_SUCCESS;
@@ -56,6 +60,9 @@ namespace   FE
 
     FEResult WGCmdBuffer::setScissor(uint first,uint cnt,const RectU32* scissors)
     {
+        (void)first;
+        (void)cnt;
+        (void)scissors;
         if (!_encoder)
             return FEResult::ER_FAILED;
         return FEResult::ER_SUCCESS;
@@ -204,6 +211,11 @@ namespace   FE
 
     FEResult WGCmdBuffer::pushConstants(FEPipeline* pl,uint32_t shaderBits,uint32_t offset,uint32_t size,const void* data)
     {
+        (void)pl;
+        (void)shaderBits;
+        (void)offset;
+        (void)size;
+        (void)data;
         return FEResult::ER_FAILED;
     }
 
@@ -272,6 +284,8 @@ namespace   FE
 
     FEResult WGCmdBuffer::drawArrayIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride)
     {
+        (void)drawCount;
+        (void)stride;
         if (!_renderPassEncoder || !buffer)
             return FEResult::ER_FAILED;
 
@@ -285,6 +299,8 @@ namespace   FE
 
     FEResult WGCmdBuffer::drawIndexedIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride)
     {
+        (void)drawCount;
+        (void)stride;
         if (!_renderPassEncoder || !buffer)
             return FEResult::ER_FAILED;
 
@@ -298,6 +314,7 @@ namespace   FE
 
     FEResult WGCmdBuffer::setPrimitiveTopology(EPrimitive pri)
     {
+        (void)pri;
         return FEResult::ER_SUCCESS;
     }
 

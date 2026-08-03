@@ -113,8 +113,6 @@ namespace   FE
         /// <returns></returns>
         ImgSource       plane(uint32 level,uint32 layer = 0) const
         {
-            auto            pData   =   _cInfo._buffers[layer]->cInfo().dataPtr();
-            const size_t    nByte   =   offsetOfLevel(level);
             const auto      w       =   (std::max<uint32>)(_cInfo._extent.x >> level,1);
             const auto      h       =   (std::max<uint32>)(_cInfo._extent.y >> level,1);
             FEImageSource   data;

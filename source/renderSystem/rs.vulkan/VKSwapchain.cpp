@@ -183,7 +183,7 @@ namespace   FE
         // Initialize the format to the first one returned by the implementation in case we can't find one of the preffered formats
         VkSurfaceFormatKHR  selectedFormat          =   surfaceFormats[0];
         /// <summary>
-        /// ÆÚÍûµÄ¸ñÊ½ÅÅÐò,°´ÕÕË³ÐòÓÅÏÈ¼¶²éÕÒÆ¥Åä
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½Ê½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ë³ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½Æ¥ï¿½ï¿½
         /// </summary>
         VkFormats           preferredImageFormats   = 
         { 
@@ -212,9 +212,9 @@ namespace   FE
         if (!isValid())
             return  false;
         auto&   vkDevice        =   (VKDevice&)(_ctx.device());
-        auto    physicalDevice  =   vkDevice.physicalDevice();
+        //auto    physicalDevice  =   vkDevice.physicalDevice();
         auto    device          =   vkDevice.logicalDevice();
-        auto    instance        =   (VkInstance)vkDevice.renderSystem().native();
+        //auto    instance        =   (VkInstance)vkDevice.renderSystem().native();
         auto    nativeSem       =   sem ? (VkSemaphore)sem->native() : nullptr;
         auto    nativeFence     =   fence ? (VkFence)fence->native() : nullptr;
         auto    result          =   vkAcquireNextImageKHR(device, _native, timeout, nativeSem, nativeFence, &imageIndex);
@@ -241,8 +241,7 @@ namespace   FE
 
     bool        VKSwapchain::queuePresent(const PresentInfo& pInfo)
     {
-        auto&       vkDevice        =   (VKDevice&)(_ctx.device());
-        auto        physicalDevice  =   vkDevice.physicalDevice();
+        //auto        physicalDevice  =   vkDevice.physicalDevice();
 
         VkSemaphore         nativeSems[1]   =   {};
                             nativeSems[0]   =   pInfo._sem   ? (VkSemaphore)(pInfo._sem->native()) : nullptr;
@@ -257,7 +256,7 @@ namespace   FE
         auto    result  =   vkQueuePresentKHR(nativeQueue, &presentInfo);
         return  result == VK_SUCCESS;
     }
-    void        VKSwapchain::create(uint32_t& width, uint32_t& height, bool vsync, bool fullscreen)
+    void        VKSwapchain::create(uint32_t& width, uint32_t& height, bool vsync, bool /*fullscreen*/)
     {
         auto&       vkDevice        =   (VKDevice&)(_ctx.device());
         auto        physicalDevice  =   vkDevice.physicalDevice();
@@ -426,7 +425,6 @@ namespace   FE
     void        VKSwapchain::cleanup()
     {
         auto&   vkDevice        =   (VKDevice&)_ctx.device();
-        auto    physicalDevice  =   vkDevice.physicalDevice();
         auto    device          =   vkDevice.logicalDevice();
         auto    instance        =   (VkInstance)vkDevice.renderSystem().native();
         if (_native != VK_NULL_HANDLE) 

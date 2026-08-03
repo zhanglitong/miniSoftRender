@@ -219,12 +219,12 @@ namespace   FE
         }
         void    update64(const unsigned char input[], size_t length)
         {
-            /// æ”¯æŒå†…å­˜è¶…è¿‡4Gçš„æƒ…å†µ
-            /// æ¯æ¬¡æœ€å¤§1Gå†…å­˜è®¡ç®—
+            /// Ö§³ÖÄÚ´æ³¬¹ı4GµÄÇé¿ö
+            /// Ã¿´Î×î´ó1GÄÚ´æ¼ÆËã
             constexpr   uint  BLOCK   =   1024 * 1024 * 1024;
-            /// å—æ•°
+            /// ¿éÊı
             size_t      nBlock  =   length/BLOCK;
-            /// å‰©ä½™å­—èŠ‚
+            /// Ê£Óà×Ö½Ú
             size_t      nLast   =   length - nBlock * BLOCK;
             uint8*      pBuf    =   (uint8*)input;
             for (size_t i = 0; i < nBlock; i++)
@@ -256,7 +256,7 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// æ ¹æ®å­—ç¬¦ä¸²äº§ç”Ÿkey
+        /// ¸ù¾İ×Ö·û´®²úÉúkey
         /// </summary>
         /// <param name="source"></param>
         /// <returns></returns>
@@ -265,7 +265,7 @@ namespace   FE
             return  fromBuffer(source,(unsigned)strlen(source));
         }
         /// <summary>
-        /// æ ¹æ®ç¼“å†²åŒºäº§ç”Ÿkey
+        /// ¸ù¾İ»º³åÇø²úÉúkey
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="length"></param>
@@ -276,7 +276,7 @@ namespace   FE
             return  sInstance.md5((const char*)buffer,length);
         }
         /// <summary>
-        /// è®¡ç®—æ–‡ä»¶çš„MD5;
+        /// ¼ÆËãÎÄ¼şµÄMD5;
         /// </summary>
         /// <param name="fileName"></param>
         /// <returns></returns>
@@ -285,9 +285,9 @@ namespace   FE
             FILE*   pFile   =   fopen(fileName,"rb");
             if (pFile == nullptr)
                 return  FEMd5Key();
-            /// æ¯æ¬¡è¯»å–çš„å¤§å°
+            /// Ã¿´Î¶ÁÈ¡µÄ´óĞ¡
             char    szTemp[4096]    =   {};
-            /// è·å–æ–‡ä»¶å¤§å°
+            /// »ñÈ¡ÎÄ¼ş´óĞ¡
             _fseeki64(pFile,0,  SEEK_END);
             uint64_t    nFile   =   _ftelli64(pFile);
             _fseeki64(pFile,0,  SEEK_SET);

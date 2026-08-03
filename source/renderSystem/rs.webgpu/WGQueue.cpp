@@ -16,6 +16,7 @@ namespace   FE
 
     bool WGQueue::submit(uint cnt,const SubmitInfo* pInfo,Fence fence)
     {
+        (void)cnt;
         if (!_native || !pInfo)
             return false;
 

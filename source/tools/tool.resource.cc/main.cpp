@@ -34,7 +34,7 @@ char*   replaceDot(char* pStr)
     return  pStr;
 }
 /// <summary>
-/// è·å–ç›¸å¯¹äºç»™å®šè·Ÿç›®å½•çš„ç›¸å¯¹ç›®å½•ï¼Œå³ rootPath - path
+/// »ñÈ¡Ïà¶ÔÓÚ¸ø¶¨¸úÄ¿Â¼µÄÏà¶ÔÄ¿Â¼£¬¼´ rootPath - path
 /// </summary>
 /// <param name="rootPath"></param>
 /// <param name="path"></param>
@@ -66,14 +66,6 @@ const char* getRelPath(const std::string& rootPath,const char* path)
         return  relName;
 }
 
-/// <summary>
-/// åˆ¤æ–­ç»™å®šfileï¼Œæ˜¯è·¯å¾„è¿˜æ˜¯æ–‡ä»¶
-/// </summary>
-/// <param name="file">ç›®å½•</param>
-static  bool    isDir(const char* file)
-{
-      return    fs::is_directory(file) ;
-}
 
 static  String  fileExtension(const char* fileName)
 {
@@ -98,7 +90,7 @@ static  bool    makeDir(const char* dir)
     namespace   fs  =   std::filesystem;
     try
     {
-        /// æˆåŠŸ, å¤±è´¥ï¼Œåˆ™æ˜¯å·²ç»å­˜åœ¨
+        /// ³É¹¦, Ê§°Ü£¬ÔòÊÇÒÑ¾­´æÔÚ
         if (fs::create_directory(dir))
             return  true;
         else
@@ -111,7 +103,7 @@ static  bool    makeDir(const char* dir)
     }
 }
 
-// linuxä¸‹ä¸º"zh_CN.GBK"
+// linuxÏÂÎª"zh_CN.GBK"
 #ifdef WIN32
     #define GBK_NAME ".936"
 #else
@@ -131,20 +123,20 @@ inline  String  utf8_2_gbk(const char* utf8)
     try
     {
         using   WCHAR_UTF8  =   std::codecvt_utf8<wchar_t>;
-        /// gbkä¸unicodeä¹‹é—´çš„è½¬æ¢å™¨
+        /// gbkÓëunicodeÖ®¼äµÄ×ª»»Æ÷
         std::wstring_convert<WCHAR_GBK>  cvtGBK(new WCHAR_GBK(GBK_NAME));
-        /// utf8ä¸unicodeä¹‹é—´çš„è½¬æ¢å™¨
+        /// utf8ÓëunicodeÖ®¼äµÄ×ª»»Æ÷
         std::wstring_convert<WCHAR_UTF8> cvtUTF8;
-        /// ä»utf8è½¬æ¢ä¸ºunicode
+        /// ´Óutf8×ª»»Îªunicode
         WString    ustr = cvtUTF8.from_bytes(utf8);
-        /// ä»unicodeè½¬æ¢ä¸ºgbk
+        /// ´Óunicode×ª»»Îªgbk
         String     str = cvtGBK.to_bytes(ustr);
         return str;
     }
     catch (const std::exception& exc)
     {
-        /// linux ä¸‹å¦‚æœæŠ¥è¯¥å¼‚å¸¸ï¼Œåˆ™éœ€è¦å®‰è£… zh_CN.GBK
-        printf("å¼‚å¸¸(%s)ï¼Œåˆ™éœ€è¦å®‰è£… zh_CN.GBK\n",exc.what());
+        /// linux ÏÂÈç¹û±¨¸ÃÒì³££¬ÔòĞèÒª°²×° zh_CN.GBK
+        printf("Òì³£(%s)£¬ÔòĞèÒª°²×° zh_CN.GBK\n",exc.what());
     }
     return utf8;
 }
@@ -154,29 +146,29 @@ inline  String  gbk_2_utf8(const char* gbk)
     using   WCHAR_UTF8  =   std::codecvt_utf8<wchar_t>;
     try
     {
-        /// gbkä¸unicodeä¹‹é—´çš„è½¬æ¢å™¨
+        /// gbkÓëunicodeÖ®¼äµÄ×ª»»Æ÷
         std::wstring_convert<WCHAR_GBK>  cvtGBK(new WCHAR_GBK(GBK_NAME));
-        /// utf8ä¸unicodeä¹‹é—´çš„è½¬æ¢å™¨
+        /// utf8ÓëunicodeÖ®¼äµÄ×ª»»Æ÷
         std::wstring_convert<WCHAR_UTF8> cvtUTF8;
-        /// ä»utf8è½¬æ¢ä¸ºunicode
+        /// ´Óutf8×ª»»Îªunicode
         WString    ustr = cvtGBK.from_bytes(gbk);
-        /// ä»unicodeè½¬æ¢ä¸ºgbk
+        /// ´Óunicode×ª»»Îªgbk
         String     str = cvtUTF8.to_bytes(ustr);
         return  str;
     }
     catch (const std::exception& exc)
     {
-        /// linux ä¸‹å¦‚æœæŠ¥è¯¥å¼‚å¸¸ï¼Œåˆ™éœ€è¦å®‰è£… zh_CN.GBK
-        printf("å¼‚å¸¸(%s)ï¼Œåˆ™éœ€è¦å®‰è£… zh_CN.GBK\n",exc.what());
+        /// linux ÏÂÈç¹û±¨¸ÃÒì³££¬ÔòĞèÒª°²×° zh_CN.GBK
+        printf("Òì³£(%s)£¬ÔòĞèÒª°²×° zh_CN.GBK\n",exc.what());
         return gbk;
     }
 }
 /// <summary>
-/// è·å–åç§°
+/// »ñÈ¡Ãû³Æ
 /// </summary>
-/// <param name="rootPath"> æ ¹ç›®å½•</param>
-/// <param name="doc">xml doc å¯¹è±¡</param>
-/// <param name="parent">æ ¹èŠ‚ç‚¹</param>
+/// <param name="rootPath"> ¸ùÄ¿Â¼</param>
+/// <param name="doc">xml doc ¶ÔÏó</param>
+/// <param name="parent">¸ù½Úµã</param>
 void    findFileToXML(const char* workPath,const char* rootPath,XMLDoc& doc,XMLNode* parent)
 {
     std::string     rootDir =   rootPath;
@@ -337,7 +329,7 @@ bool    compile( const char* srcFile
     fread(pBuf,1,nLen,pFile);
     pBuf[nLen]  =   '\0';
     fclose(pFile);
-    /// ä½¿ç”¨æ–‡ä»¶å†…å®¹ç”Ÿæˆä¸€ä¸ªå”¯ä¸€MD5
+    /// Ê¹ÓÃÎÄ¼şÄÚÈİÉú³ÉÒ»¸öÎ¨Ò»MD5
     FEMd5Key    classId         =   FEMD5::fromBuffer(pBuf,(uint)nLen);
 
 
@@ -398,7 +390,7 @@ bool    compile( const char* srcFile
     result  +=  "   };\n";
     result  +=  "};\n";
 
-    /// å¦‚æœæœ‰è¾“å…¥æ–‡ä»¶ï¼Œåˆ™ä½¿ç”¨
+    /// Èç¹ûÓĞÊäÈëÎÄ¼ş£¬ÔòÊ¹ÓÃ
     FILE*   pOutFile    =   pDstFile;
     if (pOutFile == nullptr)
     {
@@ -415,8 +407,8 @@ bool    compile( const char* srcFile
         outFileHeader(pOutFile);
     }
     fwrite(result.c_str(),1,result.size(),pOutFile);
-    /// pDstFile == nullptr åˆ™è¯´æ˜ pOutFile æ˜¯åˆ›å»ºçš„ï¼Œä¸æ˜¯è‡ªå»ºçš„
-    /// éœ€è¦å…³é—­ï¼Œå¦åˆ™ä¸å…³é—­
+    /// pDstFile == nullptr ÔòËµÃ÷ pOutFile ÊÇ´´½¨µÄ£¬²»ÊÇ×Ô½¨µÄ
+    /// ĞèÒª¹Ø±Õ£¬·ñÔò²»¹Ø±Õ
     if (pDstFile == nullptr)
     {
         std::string     className   =   dstName;
@@ -563,7 +555,7 @@ void    procNode(
             sName   =   srcFile.substr(rootDir.size() + 1);
 
         std::string dstNames    =   sName;
-        /// å¦‚æœæŒ‡å®šäº†è¾“å‡ºæ–‡ä»¶åç§°ï¼Œåˆ™ä½¿ç”¨æŒ‡å®šçš„åç§°æœ€ä¸ºå˜é‡åç§°
+        /// Èç¹ûÖ¸¶¨ÁËÊä³öÎÄ¼şÃû³Æ£¬ÔòÊ¹ÓÃÖ¸¶¨µÄÃû³Æ×îÎª±äÁ¿Ãû³Æ
         if (aOutPut)
             dstNames            =   aOutPut->value();
 
@@ -694,15 +686,16 @@ bool    processXML(
 bool    processQRC(
      const char* workPath
     ,const char* ccPath
-    ,const char* srcFile
+    ,const char* srcFileName
     ,const char* dstFile
     ,Headers& headers)
 {
-
-    FILE*   pFile   =   fopen(srcFile,"rb");
+    (void)ccPath;
+    (void)workPath;
+    FILE*   pFile   =   fopen(srcFileName,"rb");
     if (pFile == nullptr)
     {
-        printf("open file(%s) failed!\n",srcFile);
+        printf("open file(%s) failed!\n",srcFileName);
         return  false;
     }
     fseek(pFile,0,SEEK_END);
@@ -714,7 +707,7 @@ bool    processQRC(
     fclose(pFile);
 
 
-    std::string     className   =   srcFile;
+    std::string     className   =   srcFileName;
     replaceDot(className.data());
     try
     {
@@ -726,7 +719,7 @@ bool    processQRC(
         {
             return false;
         }
-        std::string     path        =   filePath(srcFile);
+        std::string     path        =   filePath(srcFileName);
         std::string     outPath     =   path;
 
         FILE*           pOutFile    =   fopen(dstFile,"w+");
@@ -781,17 +774,17 @@ bool    processQRC(
 int     main(int argc,char** argv)
 {
     CMDLine::Parser a;
-    /// å·¥ä½œç›®å½•ï¼Œç”¨æ¥æå–èµ„æºåç§°ä½¿ç”¨
-    /// ä¾‹å¦‚å·¥ä½œç›®å½•æ˜¯: c:/xx/yy/zz/ww,å¦‚æœ æ–‡ä»¶å¦‚æœæ˜¯ c:/xx/yy/zz/ww/xyz/tt.xx
-    /// æå–ç»“æœæ˜¯: xyz/tt.xx
+    /// ¹¤×÷Ä¿Â¼£¬ÓÃÀ´ÌáÈ¡×ÊÔ´Ãû³ÆÊ¹ÓÃ
+    /// ÀıÈç¹¤×÷Ä¿Â¼ÊÇ: c:/xx/yy/zz/ww,Èç¹û ÎÄ¼şÈç¹ûÊÇ c:/xx/yy/zz/ww/xyz/tt.xx
+    /// ÌáÈ¡½á¹ûÊÇ: xyz/tt.xx
     a.add<std::string>("work",  'w',    "work dir",         true,       "");
-    /// æ¨¡å¼: æ–‡ä»¶å¤¹ï¼Œfersæ–‡ä»¶,qrc
+    /// Ä£Ê½: ÎÄ¼ş¼Ğ£¬fersÎÄ¼ş,qrc
     a.add<std::string>("mode",  'm',    "dir,fers,qrc",     true,       "");
-    /// è¾“å…¥ï¼Œæ–‡ä»¶å¤¹ï¼Œæˆ–è€…æ–‡ä»¶
+    /// ÊäÈë£¬ÎÄ¼ş¼Ğ£¬»òÕßÎÄ¼ş
     a.add<std::string>("in",    'i',    "src file",         true,       "");
-    /// è¾“å‡ºfersèµ„æºæ–‡ä»¶(xml)æ ¼å¼æè¿°,å¦‚æœä¸æŒ‡å®šåˆ™ä½¿ç”¨é»˜è®¤å€¼
+    /// Êä³öfers×ÊÔ´ÎÄ¼ş(xml)¸ñÊ½ÃèÊö,Èç¹û²»Ö¸¶¨ÔòÊ¹ÓÃÄ¬ÈÏÖµ
     a.add<std::string>("fers",  'f',    "fers file",        false,      "");
-    /// è¾“å‡º,cppæ–‡ä»¶
+    /// Êä³ö,cppÎÄ¼ş
     a.add<std::string>("out",   'o',    "cpp file",         false,      "");
     
     bool ok = a.parse(argc, argv);
@@ -802,24 +795,23 @@ int     main(int argc,char** argv)
         return 0;
     }
 
-    /// 1:æ˜¯å·¥ä½œç›®å½•ï¼Œé‡è¦ï¼Œå®šä½èµ„æºçš„ä½ç½®
-    /// 2:è¾“å…¥æ–‡ä»¶ä¿¡æ¯
+    /// 1:ÊÇ¹¤×÷Ä¿Â¼£¬ÖØÒª£¬¶¨Î»×ÊÔ´µÄÎ»ÖÃ
+    /// 2:ÊäÈëÎÄ¼şĞÅÏ¢
     /// 3 -out
-    /// 4 è¾“å‡ºçš„æ–‡ä»¶
+    /// 4 Êä³öµÄÎÄ¼ş
     
     ArrayString     files;
     Headers         headers;
-    /// ç¼–è¯‘å™¨çš„è·¯å¾„
+    /// ±àÒëÆ÷µÄÂ·¾¶
     char            szCCPath[FE_PATH_LENGTH]  =   {0};
     strcpy(szCCPath,argv[0]);
 
     std::string     ccPath  =   filePath(szCCPath);
     
-    /// å·¥ä½œç›®å½•
+    /// ¹¤×÷Ä¿Â¼
     std::string     workPath    =   a.get<std::string>("work");
     std::string     packPath    =   a.get<std::string>("in");
     std::string     mode        =   a.get<std::string>("mode");
-    bool            bIsDir      =   mode == "dir";
     std::string     fersFile    =   a.get<std::string>("fers");
     std::string     outDefine   =   a.get<std::string>("out");
     
@@ -845,10 +837,10 @@ int     main(int argc,char** argv)
     replacePath((char*)outName.c_str());
     replaceDot((char*)outName.c_str());
 
-    /// æ–‡ä»¶å¤¹
+    /// ÎÄ¼ş¼Ğ
     if (mode == "dir")
     {
-        /// éå†æ–‡ä»¶ç”Ÿæˆèµ„æºæ–‡ä»¶
+        /// ±éÀúÎÄ¼şÉú³É×ÊÔ´ÎÄ¼ş
 
         printf("Gen Resource File\n");
         XMLDoc      doc;

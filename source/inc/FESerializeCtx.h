@@ -74,6 +74,9 @@ namespace   FE
         /// </summary>
         QueryObject query   =   [](const FEUuid& id,FEObject* object,Option option)->QResult
         {
+            (void)id;
+            (void)object;
+            (void)option;
             return  {};
         };
     };

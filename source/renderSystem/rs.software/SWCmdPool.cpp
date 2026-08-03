@@ -10,6 +10,7 @@ namespace   FE
 
     bool    SWCmdPool::create(const FECmdPool::CreateInfo& cInf)
     {
+        (void)cInf;
         return  true;
     }
 

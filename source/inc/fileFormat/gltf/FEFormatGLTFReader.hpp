@@ -56,7 +56,6 @@ namespace   FE
             Objects         result;
             FEReader*       pReader =   nullptr;
             uint64          offset  =   0;
-            const float     oneOver255  =   1.0f/255.0f;
             xsCtx.query     =   [&](const OBJId& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
             {
                 switch(option)
@@ -255,8 +254,8 @@ namespace   FE
                         const auto&     norBuffer       =   model.buffers[norView.buffer];
 
                         normalData  =   procData<3>(norAccessor,norView,norBuffer);
-                        auto&           buffer          =   mesh->getOrCreate({IS_VERTEX_NOR,FMT_R32G32B32_FLOAT});
-                        buffer.setBuffer(normalData.data(),normalData.size()* sizeof(normalData[0]));
+                        auto&           buffer1         =   mesh->getOrCreate({IS_VERTEX_NOR,FMT_R32G32B32_FLOAT});
+                        buffer1.setBuffer(normalData.data(),normalData.size()* sizeof(normalData[0]));
                     }
                     if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
                     {
@@ -265,8 +264,8 @@ namespace   FE
                         const auto&     tanBuffer       =   model.buffers[tanView.buffer];
                         tangentData =   procData<3>(tanAccessor,tanView,tanBuffer);
 
-                        auto&           buffer          =   mesh->getOrCreate({IS_VERTEX_TANGENT,FMT_R32G32B32_FLOAT});
-                        buffer.setBuffer(tangentData.data(),tangentData.size()* sizeof(tangentData[0]));
+                        auto&           buffer1          =   mesh->getOrCreate({IS_VERTEX_TANGENT,FMT_R32G32B32_FLOAT});
+                        buffer1.setBuffer(tangentData.data(),tangentData.size()* sizeof(tangentData[0]));
                     }
                     if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
                     {
@@ -275,8 +274,8 @@ namespace   FE
                         const auto&     uvBuffer       =   model.buffers[uvView.buffer];
                         uvData      =   procData<2>(uvAccessor,uvView,uvBuffer);
 
-                        auto&           buffer          =   mesh->getOrCreate({IS_VERTEX_TEXCOORD0,FMT_R32G32_FLOAT});
-                        buffer.setBuffer(uvData.data(),uvData.size()* sizeof(uvData[0]));
+                        auto&           buffer1         =   mesh->getOrCreate({IS_VERTEX_TEXCOORD0,FMT_R32G32_FLOAT});
+                        buffer1.setBuffer(uvData.data(),uvData.size()* sizeof(uvData[0]));
                     }
                     if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end())
                     {
@@ -284,8 +283,8 @@ namespace   FE
                         const auto&     uvView         =   model.bufferViews[uvAccessor.bufferView];
                         const auto&     uvBuffer       =   model.buffers[uvView.buffer];
                         uvData1     =   procData<2>(uvAccessor,uvView,uvBuffer);
-                        auto&           buffer          =   mesh->getOrCreate({IS_VERTEX_TEXCOORD1,FMT_R32G32_FLOAT});
-                        buffer.setBuffer(uvData1.data(),uvData1.size()* sizeof(uvData1[0]));
+                        auto&           buffer1     =   mesh->getOrCreate({IS_VERTEX_TEXCOORD1,FMT_R32G32_FLOAT});
+                        buffer1.setBuffer(uvData1.data(),uvData1.size()* sizeof(uvData1[0]));
                     }
                     if (primitive.attributes.find("COLOR_0") != primitive.attributes.end())
                     {
@@ -295,21 +294,21 @@ namespace   FE
                         if (colorAccessor.type == TINYGLTF_TYPE_VEC2)
                         {
                             colorData   =   procColor<2>(colorAccessor,colorView,colorBuffer);
-                            auto&           buffer      =   mesh->getOrCreate({IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM});
-                            buffer.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
+                            auto&           buffer1     =   mesh->getOrCreate({IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM});
+                            buffer1.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
                         }
                         else if (colorAccessor.type == TINYGLTF_TYPE_VEC3)
                         {
                             colorData   =   procColor<3>(colorAccessor,colorView,colorBuffer);
-                            auto&           buffer      =   mesh->getOrCreate({IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM});
-                            buffer.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
+                            auto&           buffer1     =   mesh->getOrCreate({IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM});
+                            buffer1.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
                         }
                             
                         else if (colorAccessor.type == TINYGLTF_TYPE_VEC4)
                         {
                             colorData   =   procColor<4>(colorAccessor,colorView,colorBuffer);
-                            auto&           buffer      =   mesh->getOrCreate({IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM});
-                            buffer.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
+                            auto&           buffer1     =   mesh->getOrCreate({IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM});
+                            buffer1.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
                         }
                     }
                     /// 解析面的点索引数据，图元信息
@@ -367,13 +366,17 @@ namespace   FE
 
         Material    parseMaterialV3(const tinygltf::Model& model, int matIndex)
         {
-            auto&       material    =   model.materials[matIndex];
+            (void)model;
+            (void)matIndex;
+            /// auto&       material    =   model.materials[matIndex];
             auto        sysMat      =   new FEMaterialV3C4(_ctx);
             return      sysMat;
         }
         Material    parseMaterialV3C4(const tinygltf::Model& model, int matIndex)
         {
-            auto&       material    =   model.materials[matIndex];
+            (void)model;
+            (void)matIndex;
+           ///  auto&       material    =   model.materials[matIndex];
             auto        sysMat      =   new FEMaterialV3(_ctx);
             return      sysMat;
         }
@@ -443,9 +446,11 @@ namespace   FE
             };
             auto&       material    =   model.materials[matIndex];
             bool        bTest       =   material.alphaMode == "MASK";
+            (void)bTest;
             auto        alphaRef    =   (float)material.alphaCutoff;
+            (void)alphaRef;
             const auto& pbr         =   material.pbrMetallicRoughness;
-
+            (void)pbr;
             auto        pbrMat      =   new FEMaterialPBR(_ctx);
 
             pbrMat->data()._value._emissive     =   float4(1,1,1,1);
@@ -526,13 +531,11 @@ namespace   FE
                 {
                     mat[i/4][i%4] = node.matrix[i];
                 }
-                real3   pos;
-                quatr   qRot;
-                real3   scale;
-                FE::decompose(mat, pos, scale, qRot);
-                pNode->setLocalTranslation(pos);
+
+                FE::decompose(mat, trans, scale, rotation);
+                pNode->setLocalTranslation(trans);
                 pNode->setLocalScaling(scale);
-                pNode->setLocalRotation(qRot);
+                pNode->setLocalRotation(rotation);
             }
 
             auto    itr     =   meshMap.find(node.mesh);
@@ -660,9 +663,9 @@ namespace   FE
 
             result.reserve( posAccessor.count * COMS);
 
-            for (size_t i = 0; i < posAccessor.count; ++i)
+            for (size_t c = 0; c < posAccessor.count; ++c)
             {
-                const unsigned char* address = dataPtr + (i * byteStride);
+                const unsigned char* address = dataPtr + (c * byteStride);
                 switch (posAccessor.componentType)
                 {
                 case TINYGLTF_COMPONENT_TYPE_BYTE:
@@ -784,9 +787,9 @@ namespace   FE
             static  constexpr   float   oneOver32767    =   (float)(1.0/32767.0); 
             static  constexpr   float   oneOver65535    =   (float)(1.0/65535.0);      //  1.0f/1024.f;
 
-            for (size_t i = 0; i < posAccessor.count; ++i)
+            for (size_t c = 0; c < posAccessor.count; ++c)
             {
-                const unsigned char* address = dataPtr + (i * byteStride);
+                const unsigned char* address = dataPtr + (c * byteStride);
                 switch (posAccessor.componentType)
                 {
                 case TINYGLTF_COMPONENT_TYPE_BYTE:

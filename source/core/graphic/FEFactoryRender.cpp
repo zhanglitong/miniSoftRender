@@ -54,13 +54,13 @@ namespace   FE
     {
         return  addNodes(objects.begin(),objects.end());
     }
-    size_t  GroupNode::removeNode(Node object)
+    size_t  GroupNode::removeNode(Node obj)
     {
         size_t  nOld    =   _objects.size();
         /// 删除逻辑：如果当前值在 deletes 里能找到，就删除(返回 true)
         auto    newEnd  =   std::remove_if(_objects.begin(), _objects.end(), [&](const Node& value) 
         {
-            return  object == value;
+            return  obj == value;
         });
         _objects.erase(newEnd, _objects.end());
 
@@ -118,7 +118,7 @@ namespace   FE
         }
     }
 
-    size_t  GroupNode::nodeMeshChanged(Node node)
+    size_t  GroupNode::nodeMeshChanged(Node )
     {
         return  0;
     }
@@ -256,13 +256,10 @@ namespace   FE
 
     void    FEFactoryRender::render(CMDPtr cmd)
     {
-        uint        count   =   uint(_vboVertexs.size());
-
         if (_groupNode.empty())
             return;
         Material    mat     =   _groupNode.front()->_mat; 
         auto        pl      =   mat->pipeline(_key._primitive)->as<FEGPipeline>();
-        auto&       binds   =   pl->cInfo()._binds;
 
         cmd->bindPipeline(pl);
 
@@ -299,7 +296,6 @@ namespace   FE
             binds.plLayout      =   pl->nativeLayout();
             cmd->bindDescriptors(binds);
             uint64  offset      =   grp->start() * sizeof(FECmdIndex);
-            uint64  indxOff     =   grp->start();
             switch(_key._drawType)
             {
             case EDrawType::DRAW_ARRAY:
@@ -327,7 +323,7 @@ namespace   FE
         _indirect   =   nullptr;
     }
 
-    void    FEFactoryRender::updateImpl(CMDPtr cmd)
+    void    FEFactoryRender::updateImpl(CMDPtr )
     {
         if (_groupNode.empty())
             return;
@@ -567,7 +563,6 @@ namespace   FE
             return  {};
         /// instance数量
         uint32      count   =   0;
-        uint32      idxSize =   0;
         for (auto& var : _groupNode)
         {
             var->setStart(count);
@@ -806,8 +801,8 @@ namespace   FE
     {
         if (meshSet.empty())
             return  nullptr;
-        auto&       mesh    =   *meshSet.begin();
-        auto&       buffers =   mesh->buffers();
+        auto&       temp    =   *meshSet.begin();
+        auto&       buffers =   temp->buffers();
         /// 输出每一个buffer对应的属性
         size_t      index   =   size_t(-1);
         for (size_t i = 0; i < buffers.size(); i++)
@@ -848,8 +843,6 @@ namespace   FE
     {
         if (meshSet.empty())    
             return  nullptr;
-        auto&       mesh    =   *meshSet.begin();
-        auto&       buffers =   mesh->buffers();
         /// 统计缓冲所有mesh属性缓冲区的长度
         size_t      length  =   0;
         for (auto& mesh : meshSet)
@@ -868,7 +861,6 @@ namespace   FE
             return  nullptr;
         /// 属性数据拷贝到大缓冲区中
         uint8*  pData   =   (uint8*)vboCPU->lock(length,0);
-        float3* pFloat  =   (float3*)pData;
         for (auto& mesh : meshSet)
         {
             struct  DataStride
@@ -890,8 +882,6 @@ namespace   FE
             {
                 for (size_t i = 0 ;i < indexs.size(); ++ i)
                 {
-                    auto    index   =   indexs[i];
-                    auto&   buffer  =   buffers[index];
                     auto    stride  =   dataStride[i].stride;
                     memcpy(pData,dataStride[i].source,stride);
                     pData                   +=  stride;
@@ -1008,7 +998,6 @@ namespace   FE
 
     void    FEFactoryRender::collectNode(const Node&  node,Nodes& nodes)
     {
-        uint    result  =   0;
         Mesh    mesh    =   node->mesh(); 
 
         if (mesh && node->material())
@@ -1043,7 +1032,7 @@ namespace   FE
         return  result;
     }
 
-    RFactory    queryFactory(FEContext&ctx,FEScene& scene,uint64 key,const Nodes& nodes)
+    RFactory    queryFactory(FEContext&ctx,FEScene& scene,uint64 key,const Nodes& )
     {
         assert(scene.device() != nullptr);
 

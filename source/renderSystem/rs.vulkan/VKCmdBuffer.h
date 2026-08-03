@@ -34,15 +34,18 @@ namespace   FE
 
         virtual FEResult    bindIBO(IBO ibo,uint64 offset,FEIndexType typpe) override;
         
-        virtual FEResult    pushTexture     (FEPipeline* pl,uint16_t set,uint16_t binding,TexPtr    ptr) override
+        virtual FEResult    pushTexture     (FEPipeline* /*pl*/,uint16_t /*set*/,uint16_t /*binding*/,TexPtr    /*ptr*/) override
         {
             return  FEResult::ER_FAILED;
         }
-        virtual FEResult    pushDescriptor  (FEPipeline* pl,uint16_t set,uint16_t binding,DSet      ptr) override
+        virtual FEResult    pushDescriptor  (FEPipeline* pl,uint16_t set,uint16_t binding,DSet      /*ptr*/) override
         {
+            (void)pl;
+            (void)set;
+            (void)binding;
             return  FEResult::ER_FAILED;
         }
-        virtual FEResult    pushBuffer      (FEPipeline* pl,uint16_t set,uint16_t binding,BufferPtr ptr) override
+        virtual FEResult    pushBuffer      (FEPipeline* /*pl*/,uint16_t /*set*/,uint16_t /*binding*/,BufferPtr /*ptr*/) override
         {
             return  FEResult::ER_FAILED;
         }

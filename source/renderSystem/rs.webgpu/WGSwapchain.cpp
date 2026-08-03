@@ -72,6 +72,9 @@ namespace   FE
 
     bool WGSwapchain::acquireNextImage(uint64 timeout,Semaphore sem,Fence fence,uint& imageIndex)
     {
+        (void)timeout;
+        (void)sem;
+        (void)fence;
         if (!_native)
             return false;
 
@@ -103,10 +106,10 @@ namespace   FE
 
     bool WGSwapchain::queuePresent(const PresentInfo& pInfo)
     {
+        (void)pInfo;
         if (!_native)
             return false;
 
-        auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
         wgpuSurfacePresent(_native);
         return true;
     }

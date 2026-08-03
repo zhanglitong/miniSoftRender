@@ -30,6 +30,9 @@ namespace   FE
         }
         void    removeFlagChangedNotify(void* pKey,const NFlagChange& notify)
         {
+
+            (void)pKey;
+            (void)notify;
             _NFlagChanges.erase(pKey);
         }
 

@@ -9,6 +9,7 @@ namespace   FE
 
     bool    SWSemaphore::create(const CreateInfo& cInfo)
     {
+        (void)cInfo;
         return  true;
     }
 }

@@ -70,7 +70,11 @@ namespace   FE
             WGPUDevice device;
         };
 
-        auto deviceCallback = [](WGPURequestDeviceStatus status,WGPUDevice device,WGPUStringView message,void* userdata1,void* userdata2) {
+        auto deviceCallback = [](WGPURequestDeviceStatus status,WGPUDevice device,WGPUStringView message,void* userdata1,void* userdata2) 
+        {
+            (void)message;
+            (void)userdata1;
+            (void)userdata2;
             if (status == WGPURequestDeviceStatus_Success)
             {
                 auto* result = static_cast<DeviceRequestResult*>(userdata1);
@@ -80,10 +84,10 @@ namespace   FE
 
         DeviceRequestResult deviceResult;
         WGPURequestDeviceCallbackInfo callbackInfo = {};
-        callbackInfo.nextInChain =   nullptr;
-        callbackInfo.callback = deviceCallback;
-        callbackInfo.userdata1 =   &deviceResult;
-        callbackInfo.userdata2 =   nullptr;
+        callbackInfo.nextInChain    =   nullptr;
+        callbackInfo.callback       =   deviceCallback;
+        callbackInfo.userdata1      =   &deviceResult;
+        callbackInfo.userdata2      =   nullptr;
 
         wgpuAdapterRequestDevice(adapter,&deviceDesc,callbackInfo);
 
@@ -93,9 +97,9 @@ namespace   FE
 
         _queue =   wgpuDeviceGetQueue(_nativeDevice);
 
-        _graphicPool =   createCmdPool();
-        _computePool =   createCmdPool();
-        _transferPool =   createCmdPool();
+        _graphicPool    =   createCmdPool();
+        _computePool    =   _graphicPool;
+        _transferPool   =   _graphicPool;
 
         if (_createNotify) _createNotify(*this);
 

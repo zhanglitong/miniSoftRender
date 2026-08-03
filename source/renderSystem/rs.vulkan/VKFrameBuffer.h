@@ -5,7 +5,7 @@
 namespace   FE
 {
     /// <summary>
-    /// �������ػ��ƽ���Ļ���
+    /// 
     /// </summary>
     class   VKFrameBuffer :public TRSObject<VkFramebuffer,FEFrameBuffer>
     {

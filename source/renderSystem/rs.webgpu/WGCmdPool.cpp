@@ -10,6 +10,7 @@ namespace   FE
 
     bool WGCmdPool::create(const CreateInfo& cInf)
     {
+        (void)cInf;
         return true;
     }
 

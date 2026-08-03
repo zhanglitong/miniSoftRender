@@ -31,32 +31,30 @@ namespace   FE
         }
 
         /// <summary>
-        /// �����Ƿ�����Ч��
+        /// 
         /// </summary>
         virtual bool    isValid() const
         {
             return  _native != nullptr;
         }
         /// <summary>
-        /// ��������������洴��֮ǰ�����������е�����Ⱦ��غ����ᱨ��
-        /// ������Ҫ�ڴ�������ɹ�������ڵ�����Ⱦ��غ���
-        /// �ú���������ɹ����������
+        /// 
         /// </summary>
         virtual void    initialize() 
         {}
         /// <summary>
-        /// �������������������֮ǰ������
+        /// 
         /// </summary>
         virtual void    destroy();
         /// <summary>
-        /// ������,����ʵ�ֵ�ԭʼ����
+        /// 
         /// </summary>
         virtual Handle  native()  const 
         {
             return  Handle(_native);
         }
         /// <summary>
-        /// ��ȡ�Կ��б�
+        /// 
         /// </summary>
         /// <returns></returns>
         virtual const GPUs& gpuList()   const   override

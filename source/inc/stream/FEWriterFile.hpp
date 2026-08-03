@@ -37,6 +37,7 @@ namespace   FE
         /// <returns>–¥»Î¥Û–°,0 ß∞‹</returns>
         virtual uint64  writeBuffer(const void*data,uint64 len ,const Tag& tag = {}) override
         {
+            (void)tag;
             assert(_file != nullptr);
             if (_file == nullptr || data == nullptr || len == 0)
                 return  0;

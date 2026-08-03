@@ -112,7 +112,7 @@ namespace   FE
             const auto  gridY1          =   gridY + 1;
 
             int         vertexCounter   =   0;
-            int         groupCount      =   0;
+           
             float3      vector;
             // generate vertices, normals and uvs
             for (unsigned iy = 0; iy < gridY1; iy++)

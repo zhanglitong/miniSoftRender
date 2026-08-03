@@ -35,14 +35,26 @@ namespace   FE
 
         virtual FEResult    pushTexture     (FEPipeline* pl,uint16_t set,uint16_t binding,TexPtr    ptr) override
         {
+            (void)pl;
+            (void)set;
+            (void)binding;
+            (void)ptr;
             return  FEResult::ER_FAILED;
         }
         virtual FEResult    pushDescriptor  (FEPipeline* pl,uint16_t set,uint16_t binding,DSet      ptr) override
         {
+            (void)pl;
+            (void)set;
+            (void)binding;
+            (void)ptr;
             return  FEResult::ER_FAILED;
         }
         virtual FEResult    pushBuffer      (FEPipeline* pl,uint16_t set,uint16_t binding,BufferPtr ptr) override
         {
+            (void)pl;
+            (void)set;
+            (void)binding;
+            (void)ptr;
             return  FEResult::ER_FAILED;
         }
         virtual FEResult    pushConstants   (FEPipeline* pl,uint32_t shaderBits,uint32_t offset,uint32_t size,const void* data)  override;

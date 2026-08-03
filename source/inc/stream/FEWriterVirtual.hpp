@@ -21,6 +21,7 @@ namespace   FE
         /// <returns>–¥»Î¥Û–°,0 ß∞‹</returns>
         virtual uint64  writeBuffer(const void*,uint64 len,const Tag& tag = {}) override
         {
+            (void)tag;
             _cur    +=  len;
             return  len;
         }

@@ -25,10 +25,9 @@ namespace   FE
         uint32      instVersion =   0;
         vkEnumerateInstanceVersion(&instVersion);
 
-        uint32_t    major       =   VK_VERSION_MAJOR(instVersion);
-        uint32_t    minor       =   VK_VERSION_MINOR(instVersion);
-        uint32_t    patch       =   VK_VERSION_PATCH(instVersion);
-        uint32_t    extCount    =   0;
+        /// uint32_t    major       =   VK_VERSION_MAJOR(instVersion);
+        /// uint32_t    minor       =   VK_VERSION_MINOR(instVersion);
+        /// uint32_t    patch       =   VK_VERSION_PATCH(instVersion);
 
         VkApplicationInfo   appInfo{};
         appInfo.sType                   =   VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -164,6 +163,7 @@ namespace   FE
                                             , const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData
                                             , void* pUserData)
     {
+        (void)messageType;
         VKRenderSystem*  pThis   =   (VKRenderSystem*)pUserData;
         if (pThis == nullptr)
             return  VK_FALSE;

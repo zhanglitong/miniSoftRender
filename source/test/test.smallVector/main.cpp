@@ -8,7 +8,7 @@
 
 
 using   namespace   FE;
-int     main(int argc,char** argv)
+int     main(int ,char** )
 {
     TSmallVector<FEUuid>    tt;
 

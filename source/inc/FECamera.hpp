@@ -517,6 +517,10 @@ namespace   FE
         /// <param name="zFar"></param>
         inline  void    perspective(real fov, real aspect, real zNear, real zFar)
         {
+            (void)aspect;
+            (void)zNear;
+            (void)zFar;
+
             _fov       =    fov;
             _zNear      =   zNear;
             _zFar       =   zFar;
@@ -938,7 +942,9 @@ public:
         /// <returns>返回级联数据</returns>
         static  real2s  calcCascade(const real2& nearFar,SplitMethod method = SM_Auto,size_t cnt= 3)
         {
-            return  calcCascade(nearFar.x,nearFar.y,SM_Auto,cnt);
+            (void)SM_Auto;
+            (void)cnt;
+            return  calcCascade(nearFar.x,nearFar.y,method,cnt);
         }
         /// <summary>
         /// 根据最近点与最远点计算相机级联数据

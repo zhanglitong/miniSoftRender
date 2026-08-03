@@ -132,7 +132,7 @@ namespace   FE
                         input.slot          =   FEInputSlotHelper::enumFromName(slots[i].c_str());
                         input.format        =   FEFormatHelper::formatFromName(fmts[i].c_str());
                         input.location      =   baseLoc + uint(i);
-                        /// 有偏移量,使用偏移量
+                        /// ???????,????????
                         if (!offsets.empty())
                             input.offset    =   atoi(offsets[i].c_str());
                         else
@@ -145,7 +145,7 @@ namespace   FE
             cInfo._binds.emplace_back(desc);
         }
 
-        /// 加载自定义配置管辖
+        /// ????????????ù??
         XMLNode*    xmlPL   =   root->first_node("pipeline");
         Pipelines   result;
         for ( ; xmlPL ; xmlPL = xmlPL->next_sibling())
@@ -160,9 +160,9 @@ namespace   FE
             result.emplace_back(pileline.get());
         }
         /// 
-        /// 生成默认的管线
-        /// 这里需要根据根据显卡是否是指动态切换图元拓扑结构决定是否创建多个管线
-        /// 用来提升整体性能
+        /// ???????????
+        /// ???????????????????????????л????????????????????????
+        /// ????????????????
         /// 
         if (aUsingDef && atoi(aUsingDef->value()))
         {
@@ -179,7 +179,7 @@ namespace   FE
                 }
 
                 String  name        =   prefix + "/" + nameOfEnum(cInfo._inputAssemblyState._primitive);
-                /// 先查找是否存在，不存在在创建
+                /// ???????????????????????
                 auto    itr         =   std::find_if(result.begin(),result.end(),[&](Pipeline pl)
                     {
                         return  pl->name() == name;
@@ -202,6 +202,8 @@ namespace   FE
 
     Pipeline    FEPipelineHelper::createPipeline(FEContext& ctx,FEDevice& device,RenderPass renderPass,FEPipeline::CreateInfo& cInfo,XMLNode* node,const String& prefix)
     {
+        (void)ctx;
+        (void)renderPass;
         auto    xmlStates   =   node->first_node("dynamicStates");
         if (xmlStates)
         {

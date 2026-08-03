@@ -45,7 +45,7 @@ namespace   FE
     public:  
         FEChunkInf(uint8_t type = 0,uint16_t flags = 0xFFFF,uint64_t len = 0)
         {
-            _type       =   0;
+            _type       =   type;
             _flags      =   flags;
             _length     =   len;  
             _hasChild   =   0;

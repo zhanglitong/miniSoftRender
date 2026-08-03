@@ -9,7 +9,7 @@ namespace   FE
     struct   FER4g4Unorm
     {
     public:
-        FER4g4Unorm(uint8_t r,uint8_t g,uint8_t b)
+        FER4g4Unorm(uint8_t r,uint8_t g)
         {
             _r  =   r;
             _g  =   g;
