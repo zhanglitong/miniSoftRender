@@ -1,0 +1,107 @@
+#include    "demo.h"
+#include    "../../../inc/FEAppHelper.hpp"
+#include    "../../../inc/geometry/FEGeometryGrid.hpp"
+#include    "../../../inc/FEFileFormatHelper.hpp"
+#include    "../../../inc/FENodeHelper.hpp"
+#include    "../../../inc/FEProperty.hpp"
+
+namespace   FE
+{
+    Demo::Demo()
+    {
+        FEApp::CreateInfo   info    =   {};
+        info._notify    =   std::bind(&Demo::messageNotify,this,std::placeholders::_1);
+        info._appInst   =   GetModuleHandle(nullptr);
+        _app    =   FE::FEAppHelper::create(_ctx,info);
+        if (_app == nullptr)
+            return;
+        _ctx.setWorkPath(_app->path());
+        _ctx.setResourcePath(_app->path() + "/../");
+        _scene      =   new FEScene(_ctx);
+        _scene->setup(_app);
+        _scene->test();
+
+        //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
+        String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\AnimatedTriangle\glTF-Embedded/AnimatedTriangle.gltf)";
+        FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
+
+        auto    reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);
+        if (reader)
+        {
+            auto    objects =   reader->readFiles({gltfFile});
+            Nodes   nodes;
+            for (auto var : objects)
+            {   
+                Node    node    =   var->cast<FENode>();
+                if (node == nullptr)
+                    continue;
+                else
+                    nodes.push_back(node);
+            }
+            _scene->addNodesToFactory(nodes);
+            _scene->addNodesToTree(nodes);
+        }
+
+        _prepared   =   true;
+    }
+
+
+    Demo::~Demo()
+    {
+        _scene  =   nullptr;
+        _app    =   nullptr;
+    }
+    void    Demo::main()
+    {
+        LOG_INF("Demo::main()");
+        _app->run();
+
+        _scene  =   nullptr;
+        _app->destroy();
+        _app    =   nullptr;
+    }
+ 
+    void    Demo::messageNotify(const FEMessage& msgIn)
+    {
+        if (_scene == nullptr)
+            return;
+        switch(msgIn.msgId())
+        {
+        case MSG_RESIZE         :
+            _prepared   =   false;
+            _scene->onMessage(msgIn);
+            _prepared   =   true;
+            return;
+        case MSG_RESIZE_START   :
+            break;
+        case MSG_RESIZE_END     :
+            break;
+        case MSG_UPDATE         :   
+            if (!_prepared)
+                return;
+            break;
+        case MSG_RENDER         :
+            if (!_prepared)
+                return;
+            break;
+        }
+        _scene->onMessage(msgIn);
+    }
+
+    Node    Demo::createGrid()
+    {
+        Node            node    =   new FENode(_ctx);
+        FEGeometryGrid  geo (_ctx);
+
+        geo.param()._size      =   100;
+        geo.param()._divs      =   100;
+        geo.param()._color1    =   Rgba8(212,  96, 112,255);
+        geo.param()._color2    =   Rgba8(155,  209,79, 255);
+        geo.param()._color3    =   Rgba8(0,    0,  255,255);
+        geo.param()._color4    =   Rgba8(128,  128,128,255);
+
+        auto    mesh    =   geo.triangular({{IS_VERTEX_POS,FMT_R32G32B32_FLOAT},{IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM}});
+        node->setMesh(mesh);
+        return  node;
+    }
+}

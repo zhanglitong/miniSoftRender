@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!--是否生成默认管线组-->
+<root using_defult="0">
+  <!--shader-->
+  <shaders>
+    <shader url =":/data/shader/cache/point/shader.frag.spv"/>
+    <shader url =":/data/shader/cache/point/shader.vert.spv"/>
+</shaders>
+  <dynamicStates>
+    <VIEWPORT/>
+    <SCISSOR/>
+    <PRIMITIVE_TOPOLOGY/>
+  </dynamicStates>
+  <!--顶点定义: 重要-->
+  <bindings>
+    <binding binding="0" inputRate="0">
+      <input 
+          name      = "" 
+          location  = "0" 
+          slots     = "IS_VERTEX_POS" 
+          formats   = "R32G32B32_FLOAT"    
+          offsets   = "0"/>
+      <input
+          name      = ""
+          location  = "1"
+          slots     = "IS_VERTEX_COLOR0"
+          formats   = "R8G8B8A8_UNORM"
+          offsets   = "12"/>
+    </binding>
+    <binding binding="1" inputRate="1">
+      <input
+           name      = "matLocal"
+           location  = "2"
+           slots     = "IS_INSTANCE_MAT_C0,IS_INSTANCE_MAT_C1,IS_INSTANCE_MAT_C2,IS_INSTANCE_MAT_C3"
+           formats   = "R32G32B32A32_FLOAT,R32G32B32A32_FLOAT,R32G32B32A32_FLOAT,R32G32B32A32_FLOAT"
+           offsets   = "0,16,32,48"/>
+    </binding>
+  </bindings>
+  <!--支持的特性-->
+  <features></features>
+  <!--支持的扩展-->
+  <extensions></extensions>
+  <!--动态状态-->
+  <states></states>
+  <!--自定义配置管线-->
+  <pipeline name="point/POINTS">
+    <inputAssemblyState>
+      <primitive>POINTS</primitive>
+    </inputAssemblyState>
+  </pipeline>
+</root>

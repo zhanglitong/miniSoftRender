@@ -18,6 +18,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project ("miniSoftRender")
 
+include_directories(source/external)
+include_directories(source/external/glm)
+include_directories(source/external/webgpu/include)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if(CMAKE_GENERATOR_PLATFORM)
@@ -28,6 +32,8 @@ else()
     set(PLATFORM_SUFFIX "x86")
 endif()
 
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/bin/$<PLATFORM_ID>$<CONFIG>${PLATFORM_SUFFIX})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_SOURCE_DIR}/lib/$<PLATFORM_ID>$<CONFIG>${PLATFORM_SUFFIX})

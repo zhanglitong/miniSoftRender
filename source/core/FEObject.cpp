@@ -1,9 +1,27 @@
-
-#include    "../inc/FEObject.h"
 #include    <new> 
 #include    <memory> 
+
+#include    "../inc/FEObject.h"
+#include    "../inc/FEReaderHelper.hpp"
+#include    "../inc/FEWriterHelper.hpp"
+#include    "../inc/FEObjectHelper.hpp"
+#include    "../inc/FEProgress.hpp"
+#include    "../inc/FENotify.hpp"
+
 namespace   FE
 {
+    FEObject::FEObject(FEContext& ctx,bool genId)
+        :_ctx(ctx)
+    {
+        _flags          =   FLAG_VISIBLE | FLAG_UPDATE | FLAG_SERIAL;
+        if (genId)  _id =   FEUuid::create();
+    }
+    FEObject::FEObject(const FEObject& other)
+        :_ctx(other._ctx)
+    {
+        _flags  =   other._flags;
+    }
+
     const char*     FEObject::className() const          
     {                                                  
         return  "FEObject";                           
@@ -12,24 +30,102 @@ namespace   FE
     {                                                  
         return  UUIDOF(FEObject);                    
     }
+    const CLSProp&  FEObject::property() const
+    {                                                           
+        return  CLS_PROPERTY(FEObject);                       
+    }                                                           
+    CLSProp&        FEObject::property()             
+    {                                                           
+        return  CLS_PROPERTY(FEObject);                       
+    }
 
-    void*   FEObject::operator new(std::size_t size) 
+    uint64  FEObject::serialize(FEWriter&writer ,uint& vVersion,FESerializeCtx& sCtx) const
     {
-        /// 调用带对齐参数的版本，默认对齐 16 字节
-        return operator new(size, std::align_val_t(16));
+        FEChunkInf      infor   =   {};
+        uint64          nStart  =   writer.tell();
+        FEWriterHelper  helper(writer,[&](FEWriterHelper&)
+        {   
+            uint64  nCur    =   writer.tell();
+            writer.seek(nStart);
+            writer.write(infor);
+            writer.seek(nCur);
+        });
+        /// 输出版本号，调用者会用到
+        vVersion    =   version();
+        /// 检测是否需要写入版本号，如果是默认值，不写入
+        infor._hasVersion == (vVersion == FEObject::version()) ? 0 : 1;
+        
+        writer.write(infor);
+        writer.write(classId());
+        writer.write(objectId());
+        writer.write(flags());
+        serializeTraits(writer,infor,vVersion,sCtx);
+
+        uint    cnt =   0;
+        
+        switch(infor._hasChild)
+        {
+        case 1: writer.write((uint8_t)cnt);     break;
+        case 2: writer.write((uint16_t)cnt);    break;
+        case 3: writer.write(cnt);              break;
+        }
+        
+        /// 更新进度
+        if (sCtx.query)
+            sCtx.query(FEUuid::zero(),&writer,FESerializeCtx::O_UpdateProgress);
+
+        return  helper.size();
     }
-    void*   FEObject::operator new(std::size_t size, std::align_val_t align) 
+    uint64  FEObject::deserialize(FEReader& reader ,uint& version,FESerializeCtx& sCtx) 
     {
-        /// 直接使用 C++17 提供的全局对齐分配函数
-        /// 如果分配失败，将抛出 std::bad_alloc （或调用 new_handler）
-        return ::operator new(size, align);
+        FEReaderHelper  helper(reader);
+        FEChunkInf      infor   =   {};
+        reader.read(infor);
+        reader.skip(sizeof(classId()));
+
+        reader.read(_id);
+        reader.read(flags());
+        /// 赋值默认版本
+        version =   FEObject::version();
+        /// 如果有版本号，读取
+        if (infor._hasVersion)  reader.read(version);
+        /// 子类内容读取
+        deserializeTraits(reader,infor,version,sCtx);
+        /// 更新进度
+        if (sCtx.query)
+            sCtx.query(FEUuid::zero(),&reader,FESerializeCtx::O_UpdateProgress);
+
+        uint    childs  =   0;
+        switch(infor._hasChild)
+        {
+        case 1: childs  =   reader.readValue<uint8>();  break;
+        case 2: childs  =   reader.readValue<uint16>(); break;
+        case 3: childs  =   reader.readValue<uint32>(); break;
+        }
+        
+        return  helper.size();
     }
-    void    FEObject::operator delete(void* ptr) noexcept 
+
+    void    FEObject::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint ersion,FESerializeCtx& ctx) const
+    {}
+    void    FEObject::deserializeTraits(FEReader& ,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx)
+    {}
+
+    Object  FEObject::queryInterface(const CLSId& )
     {
-        ::operator delete(ptr,std::align_val_t(16));
+        return  nullptr;
     }
-    void    FEObject::operator delete(void* ptr, std::align_val_t align) noexcept 
+    uint    FEObject::version() const
     {
-        ::operator delete(ptr, align);
+        return  V1_0_0_0;
+    }
+    size_t  FEObject::queryDepends(ObjectUSet& uset) const
+    {
+        return  0;
+    }
+
+    Object  FEObject::clone() const
+    {
+        return  new FEObject(*this);
     }
 }

@@ -2,14 +2,13 @@
 
 namespace   FE
 {
-
     template <typename T, size_t N>
     class   AlignedBuffer
     {
     public:
         T*    data()
         {
-            return reinterpret_cast<T *>(_data);
+            return reinterpret_cast<T*>(_data);
         }
 
     private:
@@ -28,12 +27,12 @@ namespace   FE
     class   TVectorView
     {
     public:
-        T&        operator[](size_t i) 
+        inline  T&  operator[](size_t i) 
         {
             return _ptr[i];
         }
         
-        const T&    operator[](size_t i) const 
+        const   T&  operator[](size_t i) const 
         {
             return _ptr[i];
         }
@@ -114,8 +113,8 @@ namespace   FE
         void operator=(const TVectorView &) =    delete;
     protected:
         TVectorView()           =    default;
-        size_t      _size       =    0;
         T*          _ptr        =    nullptr;
+        size_t      _size       =    0;
         
     };
     
@@ -140,11 +139,9 @@ namespace   FE
             _size   =   count;
         }
         
-        template <typename U>
-        TSmallVector(std::initializer_list<U> init)  
+        TSmallVector(std::initializer_list<T> init)  
             : TSmallVector(init.begin(), init.end())
-        {
-        }
+        {}
         
         template <typename U, size_t M>
         explicit TSmallVector(const U (&init)[M])  : TSmallVector(init, init + M)
@@ -203,6 +200,12 @@ namespace   FE
                 new (&_ptr[i]) T(other._ptr[i]);
             _size = other._size;
             return *this;
+        }
+        
+        TSmallVector &operator=(std::initializer_list<T> init)  
+        {
+            *this   =   TSmallVector(init.begin(), init.end());
+            return  *this;
         }
         
         explicit TSmallVector(size_t count)  : TSmallVector()

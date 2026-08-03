@@ -2,6 +2,12 @@
 
 namespace   FE
 {
-    FERaster::FERaster()
+    FERaster::FERaster(FEContext& ctx)
+        :FEObject(ctx)
     {}
+
+    FERaster::FERaster(const FERaster& other)
+        :FEObject(other)
+    {}
+
 }

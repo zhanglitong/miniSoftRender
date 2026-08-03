@@ -34,7 +34,7 @@ namespace   FE
             _64[0]  =   0;
             _64[1]  =   0;
         }
-        FEUuid(const GUID& guid)
+        explicit    FEUuid(const GUID& guid)
         {
             _guid   =   guid;
         }
@@ -100,13 +100,57 @@ namespace   FE
         {
             return  _guid;
         }
+        inline  String  toString() const
+        {
+            char    szBuf[64]   =   {0};
+            sprintf_s(szBuf
+                , "{%08X-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}"
+                , _guid.Data1
+                , _guid.Data2
+                , _guid.Data3
+                , _guid.Data4[0], _guid.Data4[1]
+                , _guid.Data4[2], _guid.Data4[3]
+                , _guid.Data4[4], _guid.Data4[5]
+                , _guid.Data4[6], _guid.Data4[7]);
+            return  szBuf;
+        }
     public:
         static  FEUuid  create();
         static  FEUuid  from(const char* uuid,bool* pResult = nullptr);
+        static  FEUuid  fromBuffer(const void* buffer)
+        {
+            FEUuid  uuid;
+            memcpy(&uuid._64,buffer,sizeof(uuid._64));
+            return  uuid;
+        }
         static  auto&   zero()
         {
             static const FEUuid nullUuid;
             return  nullUuid;
+        }
+    };
+
+    using   Uuids   =   std::vector<FEUuid>;
+}
+
+
+namespace   std
+{
+    template<>
+    class   hash<FE::FEUuid>
+    {
+    public:
+        inline  uint64_t operator()(const FE::FEUuid& key) const noexcept
+        {
+            constexpr uint64_t _FNV_offset_basis = 14695981039346656037ULL;
+            constexpr uint64_t _FNV_prime        = 1099511628211ULL;
+            uint64_t    val    =   _FNV_offset_basis;
+            for (size_t i = 0; i < 4; ++i)
+            {
+                val ^=  static_cast<uint64_t>(key._32[i]);
+                val *=  _FNV_prime;
+            }
+            return val;
         }
     };
 }

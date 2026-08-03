@@ -1,0 +1,781 @@
+
+#include    "../inc/FELog.hpp"
+#include    "../inc/FEPickup.hpp"
+#include    "../inc/FEFileSystem.hpp"
+#include    "../inc/geometry/FEGeometryGrid.hpp"
+#include    "../inc/material/FEMaterialLibrary.hpp"
+#include    "../inc/graphic/FEScene.h"
+#include    "../inc/graphic/FEConstUuid.h"
+#include    "../inc/graphic/FEShaderDefine.h"
+#include    "../inc/graphic/FEPipelineHelper.h"
+#include    "../inc/graphic/FELightMgr.h"
+
+
+constexpr   uint32_t    MAX_FRAME_BUFFER    =   2;
+
+namespace   FE
+{
+    bool    FEScene::setup(App app)
+    {
+        FETimestamp     timestamp;
+        LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
+        timestamp.update();
+        _app        =   app;
+        _renderSys  =   FERenderSystem::create(_ctx,RS_VULKAN);
+        assert(_renderSys != nullptr);
+        if (_renderSys == nullptr)
+            return  false;
+        auto    result  =   _renderSys->create();
+        auto    gpuList =   _renderSys->gpuList();
+
+        for (auto& gpu : gpuList)
+        {
+            auto    gpuId   =   gpu.gpuId.toString();
+            _ctx.log().infor("gpu.id    =   %s",gpuId.c_str());
+            _ctx.log().infor("gpu.name  =   %s",gpu.name.c_str());
+            _ctx.log().infor("gpu.type  =   %s",FERenderSystem::nameOf(gpu.type));
+            _ctx.log().infor("gpu.api   =   %d",gpu.apiVersion);
+        }
+        if (gpuList.empty())
+        {
+            LOG_INF("systetm gpu not founded!");
+            return  false;
+        }
+        _device         =   _renderSys->createDevice();
+        _ctx._device    =   _device;
+        _ctx._scene     =   this;
+        /// 初始化 buildin
+        _device->_createNotify  =   [&](FEDevice& device)
+        {
+            initializeBuildin(device);
+        };
+        assert(_device != nullptr);
+        if (_device == nullptr)
+        {
+            LOG_INF("_renderSys->createDevice() failed!");
+            return  false;
+        }
+        {
+            FEDevice::CreateInfo    infor   =   {};
+            infor.deviceId  =   gpuList[1].gpuId;
+            _device->create(infor);
+        }
+        {
+            _renderPass     =   _device->createRenderPass();
+            FERenderPass::CreateInfo infor   =   {};
+            infor._colorFmt =   FMT_R8G8B8A8_UNORM;
+            _renderPass->create(infor);
+            LOG_INF("FE::_device::createRenderPass cost %lf",timestamp.milliSec());
+            timestamp.update();
+        }
+        {
+            _cmdPool    =   _device->graphicCmdPool();
+        }
+        _camera     =   new FECamera(_ctx,real3(0,0,0),real3(0,0,-2.5),real3(1,0,0));
+        _camera->setUp(real3(0,1,0));
+        _camera->perspective(DEG2RAD(45), float(app->cInfo()._width) / float(app->cInfo()._height), 0.05f, 256.0f);
+        _camera->update();
+
+        /// 建立一个方向光
+        auto    light   =   new FELightDir(_ctx);
+        /// 加入到系统
+        _device->lights().add("main",light);
+
+        resize({_app->cInfo()._width,_app->cInfo()._height});
+        /// 初始化默认更新队列
+        initializeQueue();
+        /// 加载配置管线
+        loadPipelines();
+        LOG_EVT("start cost:%lf ms",timestamp.milliSec());
+
+        {
+            /// 绘制锚点对象
+            Node        node    =   new FENode(_ctx);
+            Mesh        mesh    =   FEMeshBuilder::makePointMesh(_ctx,{float3(0,0,0)},{Rgba8(uint8x4(255,0,0,255))});
+            node->setMesh(mesh);
+
+            Material    mat     =   new FEMaterialPoint(_ctx);
+            node->setMaterial(mat);
+            _mousePoint         =   node;
+            addNodesToFactory({node});
+        }
+        return  true;
+    }
+
+    void    FEScene::test()
+    {
+        Material    material    =   new FEMaterialV3C4(_ctx);
+        Material    matLine     =   new FEMaterialV3C4(_ctx);
+        auto    nodes  =   loadNode(material);
+        for (auto& node : nodes)
+        {
+            _roots.push_back(node);
+        }
+        {
+            auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodes);
+            for (auto& var : factorys)
+            {
+                _factoryMap[var->key()] =   var;
+            }
+        }
+        {
+            auto    node        =   createGrid(matLine);
+            auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{node});
+            for (auto& var : factorys)
+            {
+                _factoryMap[var->key()] =   var;
+            }
+        }
+    }
+
+    void    FEScene::addNodesToTree(const Nodes& nodeList)
+    {
+        for (auto node : nodeList)
+        {
+            if (node->parent() != nullptr)
+                continue;
+            else
+                _roots.push_back(node);
+        }
+    }
+   
+    RFactorys   FEScene::addNodesToFactory(const Nodes& nodeList)
+    {
+        auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodeList);
+        for (auto& var : results)
+        {
+            _factoryMap[var->key()] =   var;
+        }
+        return  results;
+    }
+
+    void    FEScene::onFrameStart()
+    {
+        auto&   frame   =   _frames[currentFrame()];
+        frame._cmd->reset();
+        frame._cmd->begin();
+    }
+    void    FEScene::onFrameUpdate()
+    {
+        auto&   frame   =   _frames[currentFrame()];
+       
+        _factorys.clear();
+        _factorys.reserve(_factoryMap.size());
+        for (auto& var : _factoryMap)
+        {
+            _factorys.push_back(var.second);
+        }
+        std::sort(_factorys.begin(),_factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
+        {
+            auto    prioLeft    =   left->priority(FEFactory::PT_Update);
+            auto    prioRight   =   right->priority(FEFactory::PT_Update);
+            if(prioLeft.priority() == prioRight.priority())
+                return  prioLeft.order() < prioRight.order();
+            else
+                return  prioLeft.priority() <  prioRight.priority();
+        });
+        aabb3dr aabb;
+        for (auto& var : _factorys)
+        {
+            var->update(frame._cmd);
+            aabb.merge(var->aabb());
+        }
+        auto    diff    =   _camera->getEye() - aabb.center();
+        auto    vSize   =   (std::max)(aabb.getSize().x,aabb.getSize().y);
+                vSize   =   (std::max)(vSize,aabb.getSize().z);
+        auto    length  =   FE::length(diff) + vSize;
+        _camera->setFar(length);
+        _camera->update();
+
+        _updateQueue.update(frame._cmd);
+    }
+    void    FEScene::onFrameRender()
+    {
+        auto&   frame       =   _frames[currentFrame()];
+
+        frame._fenceWait->wait(UINT64_MAX);
+        frame._fenceWait->reset();
+        
+        _swapchain->acquireNextImage(UINT64_MAX,frame._semPresentComplete,nullptr,_curImgIdx);
+
+        uint    width       =   _app->cInfo()._width;
+        uint    height      =   _app->cInfo()._height;
+        FECmdBuffer::BeginInfo  rsInfo  =   {};
+        rsInfo._frameBuffer =   _frameBuffers[_curImgIdx];
+        rsInfo._renderPass  =   _renderPass;
+        rsInfo._rect.set(0,0,width,height);
+
+        frame._cmd->beginRenderPass(rsInfo);
+
+        FECmdBuffer::Viewport   viewPort    =   
+        {
+            0.0f,0.0f,(float)width,(float)height,0.0f,1.0f
+        };
+        RectU32     rect(0,0,width,height);
+        frame._cmd->setViewport(0,  1,  &viewPort);
+        frame._cmd->setScissor(0,   1,  &rect);
+        {
+            _factorys.clear();
+            _factorys.reserve(_factoryMap.size());
+            for (auto& var : _factoryMap)
+            {
+                _factorys.push_back(var.second);
+            }
+            std::sort(_factorys.begin(),_factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
+            {
+                auto    prioLeft    =   left->priority(FEFactory::PT_Render);
+                auto    prioRight   =   right->priority(FEFactory::PT_Render);
+                if(prioLeft.priority() == prioRight.priority())
+                    return  prioLeft.order() < prioRight.order();
+                else
+                    return  prioLeft.priority() <  prioRight.priority();
+            });
+            for (auto& var : _factorys)
+            {
+                var->render(frame._cmd);
+            }
+        }
+        frame._cmd->endRenderPass();
+        
+    }
+    void    FEScene::onFrameEnd()
+    {
+        /// 清除所有更新标记
+
+        /// for (auto& var : _factoryMap)
+        /// {
+        ///     var.second->resetFlags();
+        /// }
+        auto&   frame   =   _frames[currentFrame()];
+        frame._cmd->end();
+
+        auto    queue   =   _device->queueGraphic();
+
+        FEQueue::SubmitInfo smInfo;
+        smInfo._cmds                =   {frame._cmd};
+        smInfo._presentCompleteSems =   {frame._semPresentComplete};
+        smInfo._renderCompleteSems  =   {frame._semRenderComplete};
+
+        queue->submit(1,&smInfo,    frame._fenceWait);
+        FESwapchain::PresentInfo    info    =   {};
+
+        info._imageIndex    =   _curImgIdx;
+        info._queue         =   queue;
+        info._sem           =   frame._semRenderComplete;
+
+        _swapchain->queuePresent(info);
+
+        nextFrame();
+    }
+
+    void    FEScene::onMessage(const FEMessage& msgIn)
+    {
+        switch(msgIn.msgId())
+        {
+        case MSG_CLOSE  :
+            onClose();
+            break;
+        case MSG_RESIZE :
+            {
+                auto&   msg     =   (MsgResize&)msgIn;
+                resize(msg._info._size);
+            }
+            break;
+        case MSG_LBUTTON_DOWN:
+            {
+                auto&       msg     =   (MsgMouseWheel&)msgIn;
+                auto        ray     =   _camera->createRayFromScreen(msg._info._mouse.x,msg._info._mouse.y);
+                _ptMouse            =   msg._info._mouse;
+                _lbtnDown           =   true;
+                Pickups     results;
+                for (auto& node: _roots)
+                {
+                    node->intersect(ray,results);
+                }
+                std::sort(results.begin(),results.end(),[](const FEPickup& left,const FEPickup& right)
+                {
+                    return  left.time < right.time;
+                });
+                if (!results.empty())
+                {
+                    _pickPoint  =       results.front().point;
+                    if (_mousePoint)
+                    {
+                        _mousePoint->setLocalTranslation(_pickPoint);
+                        _mousePoint->update();
+                        _mousePoint->fireChanged();
+                    }
+                    _pickupNode =   results.front().object->as<FENode>();
+                }
+            }
+            break;
+       
+        case MSG_RBUTTON_DOWN:
+            {
+                auto&       msg     =   (MsgRButtonDown&)msgIn;
+                _ptMouse            =   msg._info._mouse;
+                _rbtnDown           =   true;
+            }
+            break;
+        case MSG_LBUTTON_UP:
+            {
+                _lbtnDown           =   false;
+            }
+            break;
+        case MSG_RBUTTON_UP:
+            {
+                _rbtnDown           =   false;
+            }
+            break;
+        case MSG_MOUSE_WHEEL:
+            {
+                auto&   msg     =   (MsgMouseWheel&)msgIn;
+                _camera->scaleCameraByPos(_pickPoint,msg._info._zDelta > 0 ? 1.2 : 0.8);
+            }
+            break;
+        case MSG_MOUSE_MOVE:
+            {
+                if (_lbtnDown)
+                {
+                    auto&   msg     =   (MsgMouseMove&)msgIn;
+                    int2    offset  =   msg._info._mouse - _ptMouse;
+                    _ptMouse        =   msg._info._mouse;
+                    _camera->rotateViewZByCenter(offset.x * 0.2, _pickPoint);
+                    _camera->rotateViewXByCenter(offset.y * 0.2, _pickPoint);
+                }
+                if (_rbtnDown)
+                {
+                    auto&   msg     =   (MsgMouseMove&)msgIn;
+                    int2    offset  =   _ptMouse - msg._info._mouse;
+                    _ptMouse        =   msg._info._mouse;
+
+                    real3   right           =   _camera->getRight();
+                    real3   up              =   _camera->getUp();
+                    real3   eye             =   _camera->getEye();
+                    real2   deltaD          =   _camera->calcWowrldPScreen(_pickPoint) * real2(offset);
+                    real3   eyeDelta        =   ((right * (double)deltaD.x) + (up * (double)deltaD.y));
+                            eye             +=  eyeDelta;
+
+                    _camera->setEye(eye);
+                    _camera->setTarget(_camera->getTarget() + eyeDelta);
+                    _camera->update();
+                }
+            }
+            break;
+        case MSG_KEYDOWN:
+            {
+                #define VK_LEFT           0x25
+                #define VK_UP             0x26
+                #define VK_RIGHT          0x27
+                #define VK_DOWN           0x28
+                auto&   msg     =   (MsgKeyDown&)msgIn;
+                switch(msg._info._key)
+                {
+                case VK_LEFT:
+                    if (_pickupNode)
+                    {
+                        _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(-1,0,0));
+                        _pickupNode->update();
+                        _pickupNode->fireChanged();
+                    }
+                    break;
+                case VK_RIGHT:
+                    if (_pickupNode)
+                    {
+                        _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(+1,0,0));
+                        _pickupNode->update();
+                        _pickupNode->fireChanged();
+                    }
+                    break;
+                case VK_UP:
+                    if (_pickupNode)
+                    {
+                        _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(0,0,1));
+                        _pickupNode->update();
+                        _pickupNode->fireChanged();
+                    }
+                    break;
+                case VK_DOWN:
+                    if (_pickupNode)
+                    {
+                        _pickupNode->setLocalRotation(_pickupNode->localTranslation() + real3(0,0,-1));
+                        _pickupNode->update();
+                        _pickupNode->fireChanged();
+                    }
+                    break;
+                }
+            }
+            break;
+        case MSG_UPDATE :
+            onFrameStart();
+            onFrameUpdate();
+            break;
+        case MSG_RENDER:
+            onFrameRender();
+            onFrameEnd();
+            break;
+        }
+    }
+
+    void    FEScene::onNodePropChanged(FENode* node)
+    {
+        
+        auto    mesh    =   node->mesh();
+        auto&   pris    =   mesh->primitives();
+        auto    slot    =   mesh->slotBits();
+        for (auto& var : pris)
+        {
+            MeshKey mkey;
+            mkey._drawType  =   var->type();
+            mkey._primitive =   var->primitive();
+            mkey._slotBits  =   slot;
+            auto    key     =   mkey.key();
+            /// 查找工厂
+            auto    itr     =   _factoryMap.find(key);
+            if (itr == _factoryMap.end())
+                continue;
+            auto    factory =   itr->second;
+            factory->nodePropChanged(node);
+        }
+    }
+
+    void    FEScene::onClose()
+    {
+        if (_device)
+        {
+            _device->waitIdle();
+        }
+        _swapchain  =   nullptr;
+        _renderPass =   nullptr;
+        _updateQueue.queue().clear();
+
+        _mousePoint =   nullptr;
+        _pickupNode =   nullptr;
+
+        _cmdPool    =   nullptr;
+        _frames.clear();
+        _frameBuffers.clear();
+        _curIndex   =   0;
+        _imgDepth   =   nullptr;
+        _depthView  =   nullptr;
+        
+        for (auto& var : _factoryMap)
+        {
+            var.second->destroy();
+        }
+        _factoryMap.clear();
+        _factorys.clear();
+        for (auto& node: _roots)
+        {
+            node->removeAllChild();
+        }
+        _roots.clear();
+        if (_device)
+        {
+            _device->destroy();
+        }
+        _ctx._device    =   nullptr;
+        _device         =   nullptr;
+        _renderSys      =   nullptr;
+    }
+
+    void    FEScene::loadPipelines()
+    {
+        /// 管线目录
+        auto    plDir       =   _ctx.resourcePath() + "/data/pipeline/";
+        auto    fileList    =   FEFileSystem::entryList(plDir,".xml");
+        LOG_DBG("loadPipelines()");
+
+        for (auto& var : fileList)
+        {   
+            auto    fullPath    =   plDir + var;
+            auto    pipelines   =   FEPipelineHelper::create(_ctx,*_device,_renderPass,fullPath.c_str());
+
+            LOG_DBG("loading pipeline:%s",fullPath.c_str());
+
+            for (auto& var : pipelines)
+            {
+                if (_device->pipelines().isExist(var->name().c_str()))
+                {
+                    LOG_DBG("pipeline:%s is exist",var->name().c_str());
+                    continue;
+                }
+                _device->pipelines().add(var->name(),var);
+            }
+        }
+    }
+
+    uint    FEScene::currentFrame() const
+    {
+        return  _curIndex;
+    }
+    uint    FEScene::nextFrame()
+    {
+        ++_curIndex;
+        _curIndex   %=  MAX_FRAME_BUFFER;
+        return  _curIndex;
+    }
+
+    void    FEScene::initializeBuildin(FEDevice& device)
+    {
+        auto    cameraUBO   =   device.createUBO();
+        cameraUBO->create({sizeof(CameraData),      MemoryUsage::DEVICE_DEFAULT_BIT});
+        cameraUBO->setObjectId(FEConstUuid::CameraUBOId);
+        device.cacheObject(cameraUBO.get());
+        /// 默认分配灯光对象的最大数量
+        /// 当系统灯光对象数量超过128,会充分分配
+        auto    lightSBO    =   device.createSBO();
+        lightSBO->create({sizeof(LightData) * 128,  MemoryUsage::DEVICE_DEFAULT_BIT});
+        lightSBO->setObjectId(FEConstUuid::LightsId);
+        device.cacheObject(lightSBO.get());
+
+        auto    clipUBO     =   device.createUBO();
+        clipUBO->create({sizeof(ClipData),       MemoryUsage::DEVICE_DEFAULT_BIT});
+        clipUBO->setObjectId(FEConstUuid::ClipUBOId);
+        device.cacheObject(clipUBO.get());
+
+        auto    skyUBO      =   device.createUBO();
+        skyUBO->create({sizeof(skyUBO),         MemoryUsage::DEVICE_DEFAULT_BIT});
+        skyUBO->setObjectId(FEConstUuid::SkyUBOId);
+        device.cacheObject(skyUBO.get());
+    }
+
+    void    FEScene::initializeQueue()
+    {
+        /// 相机添加到更新队列
+        /// 数据有更新,则会同步到UBO上
+        updateQueue().addObject(_camera.get(),[&](CMDPtr cmd,FEUpdateObject& uData)
+        {
+            if (uData._gpu == nullptr)
+            {
+                uData._gpu  =   _device->queryCache(FEConstUuid::CameraUBOId)->as<FEGPUBuffer>();
+            }
+            if (uData._cpu == nullptr)
+            {
+                uData._cpu  =   _device->createUBO();
+                uData._cpu->create({sizeof(CameraData),HOST_VISIBLE_BIT});
+            }
+            auto    pData   =   (CameraData*)uData._cpu->lock(sizeof(CameraData),0);
+            if (pData)
+            {
+                pData->_v             =   _camera->getView();
+                pData->_p             =   _camera->getProject();
+                pData->_position      =   float4(float3(_camera->getEye()),   0.0f);
+                pData->_upDir         =   float4(float3(_camera->getUp()),    0.0f);  
+                pData->_rightDir      =   float4(float3(_camera->getRight()), 0.0f); 
+                uData._cpu->unlock();
+            }
+            if (uData._gpu && uData._cpu)
+            {
+                cmd->copyBuffer(uData._cpu,uData._gpu,sizeof(CameraData),0,0);
+            }
+        });
+
+        updateQueue().addObject(&_device->lights(),[&](CMDPtr cmd,FEUpdateObject& uData)
+        {
+
+            if (uData._gpu == nullptr)
+            {
+                uData._gpu  =   _device->queryCache(FEConstUuid::LightsId)->as<FEGPUBuffer>();
+            }
+            if (uData._cpu == nullptr)
+            {
+                uData._cpu  =   _device->createSBO();
+                uData._cpu->create({uData._gpu->cInfo()._length,HOST_VISIBLE_BIT});
+            }
+
+            LightMgr    pLight  =   uData._object->as<FELightMgr>();
+            size_t      length  =   sizeof(LightData) * pLight->count();
+            if(length > uData._gpu->cInfo()._length)
+            {
+                uData._gpu->resize(uData._gpu->cInfo()._length + sizeof(CameraData) * 16);
+                uData._cpu->resize(uData._gpu->cInfo()._length + sizeof(CameraData) * 16);
+                /// 取保创建了通知对象
+                /// 通知使用者，更新绑定，否则会出错误
+                uData._gpu->flags().addFlag(FLAG_UPDATE);
+                uData._gpu->as<FENotify>()->fireNotify();
+            }
+            LightData*  pData   =   (LightData*)uData._cpu->lock(length,0);
+            if (pData)
+            {   
+                auto&   lightData   =   pLight->data();
+                uint    iIndex      =   0;
+                for (auto& var : lightData)
+                {
+                    if (!var.second->flags().hasFlag(FLAG_VISIBLE))
+                        continue;
+                    switch(var.second->type())
+                    {
+                    case FELight::LT_Dir  :
+                        {
+                            auto    dirLight        =   var.second->as<FELightDir>();
+                            pData[iIndex].lightType =   var.second->type();
+                            pData[iIndex].r         =   dirLight->_color.r;
+                            pData[iIndex].g         =   dirLight->_color.g;
+                            pData[iIndex].b         =   dirLight->_color.b;
+
+                            pData[iIndex].x         =   dirLight->_dir.x;
+                            pData[iIndex].y         =   dirLight->_dir.y;
+                            pData[iIndex].z         =   dirLight->_dir.z;
+                        }
+                        break;
+                    case FELight::LT_Point:
+                        {
+                            auto    dirLight        =   var.second->as<FELightPoint>();
+                            pData[iIndex].lightType =   var.second->type();
+                            pData[iIndex].r         =   dirLight->_color.r;
+                            pData[iIndex].g         =   dirLight->_color.g;
+                            pData[iIndex].b         =   dirLight->_color.b;
+
+                            pData[iIndex].x         =   dirLight->_pos.x;
+                            pData[iIndex].y         =   dirLight->_pos.y;
+                            pData[iIndex].z         =   dirLight->_pos.z;
+                        }
+                        break;
+                    case FELight::LT_Spot :
+                        break;
+                    }
+                    ++iIndex;
+                }
+                uData._cpu->unlock();
+            }
+            if (uData._gpu && uData._cpu)
+            {
+                cmd->copyBuffer(uData._cpu,uData._gpu,length,0,0);
+            }
+        });
+    }
+
+    void    FEScene::resize(const uint2& size)
+    {
+        if (_device == nullptr)
+            return;
+        _device->waitIdle();
+
+        uint    width   =   size.x;
+        uint    height  =   size.y;
+
+        if (_app)
+        {
+            _swapchain      =   _device->createSwapchain();
+            FESwapchain::CreateInfo infor   =   {};
+            infor._width    =   width;
+            infor._height   =   height;
+            infor._appInst  =   _app ? _app->cInfo()._appInst : nullptr;
+            infor._window   =   _app ?  _app->cInfo()._window : nullptr;
+            _swapchain->create(infor);
+        }
+
+        _imgDepth       =   nullptr;
+        _depthView      =   nullptr;
+        _imgDepth       =   _device->createGImage();
+        _depthView      =   nullptr;
+        {
+            FEGImage::CreateInfo    info;
+            {
+                info._width     =   _app->cInfo()._width;
+                info._height    =   _app->cInfo()._height;
+                info._depth     =   1;
+                info._format    =   FMT_D32_UNORM;
+                info._aspect    =   ASPECT_DEPTH_BIT;
+            }
+            _imgDepth->create(info);
+            _depthView  =   _imgDepth->createView();
+        }
+        if (_swapchain)
+        {
+            auto    views   =   _swapchain->imageViews();
+            _frameBuffers.clear();
+            for (auto& color : views)
+            {
+                FrameBuffer fbo     =   _device->createFrameBuffer();
+                FEFrameBuffer::CreateInfo infor   =   {};
+                infor._renderPass   =   _renderPass;
+                infor._colors       =   {color};
+                infor._depth        =   _depthView;
+                infor._width        =   _app->cInfo()._width;
+                infor._height       =   _app->cInfo()._height;
+                fbo->create(infor);
+                _frameBuffers.push_back(fbo);
+            }
+        }
+        _frames.clear();
+
+        for (size_t i = 0; i < MAX_FRAME_BUFFER; i++)
+        {
+            Frame   frame;
+            frame._cmd                  =   _cmdPool->createCmd();
+            frame._fenceWait            =   _device->createFence();
+            frame._fenceWait->create({});
+            frame._semPresentComplete   =   _device->createSemaphore();
+            frame._semPresentComplete->create({});
+            frame._semRenderComplete    =   _device->createSemaphore();
+            frame._semRenderComplete->create({});
+            _frames.emplace_back(frame);
+        }
+        assert(_camera != nullptr);
+
+        if (_camera)
+        {
+            _camera->setViewSize(width,height);
+            _camera->update();
+        }
+        
+        _device->waitIdle();
+        _curIndex   =   0;
+    }
+
+    Nodes   FEScene::loadNode(Material mat)
+    {
+        float3s     vertex   =   
+        {
+            {  1.0f,  1.0f, 0.0f },
+            { -1.0f,  1.0f, 0.0f },
+            {  0.0f, -1.0f, 0.0f },
+        };
+        Rgba8s     colors  =   
+        {
+            { 255,  0,      0,  255 } ,
+            { 0,    255,    0,  255 } ,
+            { 0,    0,      255,255 } ,
+        };
+
+        Node        root    =   new FENode(_ctx);
+        Mesh        mesh    =   FEMeshBuilder::makeMesh(_ctx,vertex,colors);
+        auto        aabb    =   mesh->updateAabb();
+
+        for (size_t i = 0; i < 10; i++)
+        {
+            Node    child   =   new FENode(_ctx);
+            child->setLocalTranslation(real3(0.1 * i,3,0.1 * i));
+            child->setMaterial(mat);
+            child->setMesh(mesh);
+            root->addChild(child.get());
+        }
+        root->makeDirty();
+        root->update();
+        return  {root};
+    }
+
+    Node    FEScene::createGrid(Material mat)
+    {
+        Node    node    =   new FENode(_ctx);
+        FEGeometryGrid  geo(_ctx);
+
+        geo.param()._size      =   100;
+        geo.param()._divs      =   100;
+        geo.param()._color1    =   Rgba8(212,  96, 112,255);
+        geo.param()._color2    =   Rgba8(155,  209,79, 255);
+        geo.param()._color3    =   Rgba8(0,    0,  255,255);
+        geo.param()._color4    =   Rgba8(128,  128,128,255);
+
+        auto    mesh    =   geo.triangular({{IS_VERTEX_POS,FMT_R32G32B32_FLOAT},{IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM}});
+        node->setMesh(mesh);
+        node->setMaterial(mat);
+
+        node->makeDirty();
+        node->update();
+
+        return  node;
+    }
+}

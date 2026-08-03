@@ -14,10 +14,12 @@ add_executable(${TARGET_NAME}
 )
 
 if(UNIX)
-    target_compile_definitions(${TARGET_NAME} PUBLIC -D_PR_LINUX_ -DWIZ_UNUSE_SIMD)
+    target_compile_definitions(${TARGET_NAME} PUBLIC -D_LINUX_ -D_UNUSE_SIMD)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DPOSIX -DLINUX)
 endif()
 
-target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE)
+
+
+target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "sample/basic/window")
 target_link_libraries(${TARGET_NAME} core)
