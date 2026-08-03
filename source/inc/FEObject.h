@@ -143,9 +143,9 @@ namespace   FE
         return  new class_name(ctx);                                \
         })                                                          \
 
-    #define USING_PLUGIN(name,ctx)                                      \
-    extern          uint    loadPlugin_##name(FEContext&);              \
-    static const    uint    PLUGIN_##name   =   loadPlugin_##name(ctx)  \
+    #define USING_PLUGIN(name)                                      \
+    extern          uint    loadPlugin_##name();                    \
+    static const    uint    PLUGIN_##name   =  loadPlugin_##name()  \
 
 
     DEFINE_CLASS_UUID(FEObject,"{00000000-1111-2222-3333-0123456789AB}");

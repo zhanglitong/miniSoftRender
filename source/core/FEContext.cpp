@@ -21,7 +21,6 @@
 
 #include    "../inc/FEFileFormatLibrary.hpp"
 
-#include    "../renderSystem/rs.vulkan/VKRenderSystem.h"
 #include    "../inc/graphic/FEScene.h"
 
 #include    "FEImageHelper.hpp"
@@ -46,7 +45,6 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEBuffer);
         DEFINE_CLASS_CREATOR(FENode);
 
-        DEFINE_CLASS_CREATOR(VKRenderSystem);
 
         DEFINE_CLASS_CREATOR(FEFormatFepjReader);
         DEFINE_CLASS_CREATOR(FEFormatFepjWriter);

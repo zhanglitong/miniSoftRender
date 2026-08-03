@@ -4,11 +4,8 @@
 #include    "VKRenderSystem.h"
 #include    <vulkan/vulkan.h>
 
-namespace  FE
+uint    loadPlugin_rs_vulkan()
 {
-    uint    loadPlugin_rs_vulkan(FEContext&)
-    {
-        //DEFINE_CLASS_CREATOR(VKRenderSystem);
-        return  0;
-    }
+    DEFINE_CLASS_CREATOR(VKRenderSystem);
+    return  0;
 }
