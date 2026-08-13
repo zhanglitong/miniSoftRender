@@ -22,18 +22,19 @@ namespace   FE
 
         _cInfo              =   info;
 
-        auto&   vkDevice    =   (VKDevice&)_ctx.device();
-        auto    device      =   vkDevice.logicalDevice();
+        auto&   vkDevice        =   (VKDevice&)_ctx.device();
+        auto    device          =   vkDevice.logicalDevice();
     
-        imageCI.sType       =  VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imageCI.imageType   =  VK_IMAGE_TYPE_2D;
-        imageCI.format      =  system2Native(info._format);
-        imageCI.extent      =  { info._width,info._height, info._depth };
-        imageCI.mipLevels   =  info._mips;
-        imageCI.arrayLayers =  info._layer;
-        imageCI.samples     =  VK_SAMPLE_COUNT_1_BIT;
-        imageCI.tiling      =  VK_IMAGE_TILING_OPTIMAL;
-        imageCI.usage       =  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        imageCI.sType           =   VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCI.imageType       =   system2Native(info._type);
+        imageCI.format          =   system2Native(info._format);
+        imageCI.extent          =   { info._width,info._height, info._depth };
+        imageCI.mipLevels       =   info._mips;
+        imageCI.arrayLayers     =   info._layer;
+        imageCI.samples         =   VK_SAMPLE_COUNT_1_BIT;
+        imageCI.tiling          =   VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage           =   system2Native(info._usage);
+        imageCI.initialLayout   =   system2Native(info._layout); 
     
         VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &_native));
         VkMemoryRequirements    memReqs{};
@@ -49,6 +50,20 @@ namespace   FE
         VK_CHECK_RESULT(vkBindImageMemory(device,_native, _memory, 0));
 
         return  _native != nullptr;
+    }
+
+
+    void    VKGImage::destroy()
+    {
+        if(!_ref && _native != nullptr)
+        {
+            auto&   vkDevice    =   (VKDevice&)_ctx.device();
+            auto    device      =   vkDevice.logicalDevice();
+            vkDestroyImage(device,  _native,    nullptr);
+            vkFreeMemory(device,    _memory,    nullptr);
+            _native =   nullptr;
+            _memory =   nullptr;
+        }
     }
 
     GImgView    VKGImage::createView()

@@ -2,6 +2,9 @@
 #include    <vulkan/vulkan.h>
 #include    "FEFormat.hpp"
 #include    "FEAspect.hpp"
+#include    "FEImageLayout.hpp"
+#include    "FEImageUsage.hpp"
+#include    "FEImageType.hpp"
 #include    "graphic/FEShaderType.hpp"
 #include    "graphic/FEGraphicEnums.h"
 #include    "mesh/FEPrimitive.hpp"
@@ -34,16 +37,83 @@ namespace   FE
         return  VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
     }
 
-    inline  static  auto  system2Native(FEFormat fmt)
+    inline  static  auto    system2Native(FEFormat fmt)
     {
         switch(fmt)
         {
-        case FMT_R8G8B8A8_UNORM:        return  VK_FORMAT_R8G8B8A8_UNORM;
-        case FMT_B8G8R8A8_UNORM:        return  VK_FORMAT_B8G8R8A8_UNORM;
-        case FMT_D32_UNORM:             return  VK_FORMAT_D32_SFLOAT;
-        case FMT_R32G32B32_FLOAT:       return  VK_FORMAT_R32G32B32_SFLOAT;
-        case FMT_R32G32B32A32_FLOAT:    return  VK_FORMAT_R32G32B32A32_SFLOAT;
-        default:                        return  VK_FORMAT_R8G8B8A8_UNORM;
+        case FMT_R8_UNORM           :   return  VK_FORMAT_R8_UNORM;
+        case FMT_R8G8_UNORM         :   return  VK_FORMAT_R8G8_UNORM;
+        case FMT_R8G8B8_UNORM       :   return  VK_FORMAT_R8G8B8_UNORM;
+        case FMT_R8G8B8A8_UNORM     :   return  VK_FORMAT_R8G8B8A8_UNORM;
+
+
+        case FMT_R8_UINT            :   return  VK_FORMAT_R8_UINT;
+        case FMT_R8G8_UINT          :   return  VK_FORMAT_R8G8_UINT;
+        case FMT_R8G8B8_UINT        :   return  VK_FORMAT_R8G8B8_UINT;
+        case FMT_R8G8B8A8_UINT      :   return  VK_FORMAT_R8G8B8A8_UINT;
+
+        case FMT_R8_SINT            :   return  VK_FORMAT_R8_SINT;
+        case FMT_R8G8_SINT          :   return  VK_FORMAT_R8G8_SINT;
+        case FMT_R8G8B8_SINT        :   return  VK_FORMAT_R8G8B8_SINT;
+        case FMT_R8G8B8A8_SINT      :   return  VK_FORMAT_R8G8B8A8_SINT;
+
+
+        case FMT_R8_SSCALED         :   return  VK_FORMAT_R8_SSCALED;
+        case FMT_R8G8_SSCALED       :   return  VK_FORMAT_R8G8_SSCALED;
+        case FMT_R8G8B8_SSCALED     :   return  VK_FORMAT_R8G8B8_SSCALED;
+        case FMT_R8G8B8A8_SSCALED   :   return  VK_FORMAT_R8G8B8A8_SSCALED;
+
+        case FMT_R8_USCALED         :   return  VK_FORMAT_R8_USCALED;
+        case FMT_R8G8_USCALED       :   return  VK_FORMAT_R8G8_USCALED;
+        case FMT_R8G8B8_USCALED     :   return  VK_FORMAT_R8G8B8_USCALED;
+        case FMT_R8G8B8A8_USCALED   :   return  VK_FORMAT_R8G8B8A8_USCALED;
+
+        case FMT_B8G8R8A8_UNORM     :   return  VK_FORMAT_B8G8R8A8_UNORM;
+
+        
+        case FMT_R32_FLOAT          :   return  VK_FORMAT_R32_SFLOAT;
+        case FMT_R32G32_FLOAT       :   return  VK_FORMAT_R32G32_SFLOAT;
+        case FMT_R32G32B32_FLOAT    :   return  VK_FORMAT_R32G32B32_SFLOAT;
+        case FMT_R32G32B32A32_FLOAT :   return  VK_FORMAT_R32G32B32A32_SFLOAT;
+
+        case FMT_R16_FLOAT          :   return  VK_FORMAT_R16_SFLOAT;
+        case FMT_R16G16_FLOAT       :   return  VK_FORMAT_R16G16_SFLOAT;
+        case FMT_R16G16B16_FLOAT    :   return  VK_FORMAT_R16G16B16_SFLOAT;
+        case FMT_R16G16B16A16_FLOAT :   return  VK_FORMAT_R16G16B16A16_SFLOAT;
+
+        case FMT_R4G4B4A4_UNORM     :   return  VK_FORMAT_R4G4B4A4_UNORM_PACK16 ;
+        case FMT_B4G4R4A4_UNORM     :   return  VK_FORMAT_B4G4R4A4_UNORM_PACK16 ;
+        case FMT_R5G6B5_UNORM       :   return  VK_FORMAT_R5G6B5_UNORM_PACK16   ;
+        case FMT_B5G6R5_UNORM       :   return  VK_FORMAT_B5G6R5_UNORM_PACK16   ;
+        case FMT_R5G5B5A1_UNORM     :   return  VK_FORMAT_R5G5B5A1_UNORM_PACK16 ;
+        case FMT_B5G5R5A1_UNORM     :   return  VK_FORMAT_B5G5R5A1_UNORM_PACK16 ;
+        case FMT_A1R5G5B5_UNORM     :   return  VK_FORMAT_A1R5G5B5_UNORM_PACK16 ;
+
+
+        case FMT_A2B10G10R10_UNORM  :   return  VK_FORMAT_A2B10G10R10_UNORM_PACK32  ; 
+        case FMT_A2B10G10R10_SNORM  :   return  VK_FORMAT_A2B10G10R10_SNORM_PACK32  ; 
+        case FMT_A2B10G10R10_USCALED:   return  VK_FORMAT_A2B10G10R10_USCALED_PACK32; 
+        case FMT_A2B10G10R10_SSCALED:   return  VK_FORMAT_A2B10G10R10_SSCALED_PACK32; 
+        case FMT_A2B10G10R10_UINT   :   return  VK_FORMAT_A2B10G10R10_UINT_PACK32   ; 
+        case FMT_A2B10G10R10_SINT   :   return  VK_FORMAT_A2B10G10R10_SINT_PACK32   ; 
+
+        case FMT_R32_UINT           :   return  VK_FORMAT_R32_UINT;
+        case FMT_R32_SINT           :   return  VK_FORMAT_R32_SINT;
+        case FMT_R32G32_UINT        :   return  VK_FORMAT_R32G32_UINT;
+        case FMT_R32G32_SINT        :   return  VK_FORMAT_R32G32_SINT;
+       
+        case FMT_R32G32B32_UINT     :   return  VK_FORMAT_R32G32B32_UINT;
+        case FMT_R32G32B32_SINT     :   return  VK_FORMAT_R32G32B32_SINT;
+        
+        case FMT_R32G32B32A32_UINT  :   return  VK_FORMAT_R32G32B32A32_UINT;
+        case FMT_R32G32B32A32_SINT  :   return  VK_FORMAT_R32G32B32A32_SINT;
+
+        case FMT_D32_UNORM          :   return  VK_FORMAT_D32_SFLOAT;
+        case FMT_D32_S8_UNORM       :   return  VK_FORMAT_D32_SFLOAT_S8_UINT;
+
+        default:
+            assert(0!=0);
+            return  VK_FORMAT_R8G8B8A8_UNORM;
         }
     }
 
@@ -247,6 +317,110 @@ namespace   FE
         return  VK_DYNAMIC_STATE_VIEWPORT;
     }
 
+    static  auto    system2Native(FEImageLayout layout)
+    {
+        switch(layout)
+        {
+        case IL_UNDEFINED:                                    return  VK_IMAGE_LAYOUT_UNDEFINED;
+        case IL_GENERAL:                                      return  VK_IMAGE_LAYOUT_GENERAL;
+        case IL_PREINITIALIZED:                               return  VK_IMAGE_LAYOUT_PREINITIALIZED;
+        case IL_TRANSFER_SRC_OPTIMAL:                         return  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        case IL_TRANSFER_DST_OPTIMAL:                         return  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        case IL_COLOR_ATTACHMENT_OPTIMAL:                     return  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        case IL_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:             return  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        case IL_DEPTH_STENCIL_READ_ONLY_OPTIMAL:              return  VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+        case IL_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:   return  VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+        case IL_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:   return  VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+        case IL_DEPTH_ATTACHMENT_OPTIMAL:                     return  VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        case IL_DEPTH_READ_ONLY_OPTIMAL:                      return  VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+        case IL_STENCIL_ATTACHMENT_OPTIMAL:                   return  VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+        case IL_STENCIL_READ_ONLY_OPTIMAL:                    return  VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+        case IL_SHADER_READ_ONLY_OPTIMAL:                     return  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        case IL_READ_ONLY_OPTIMAL:                            return  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+        case IL_ATTACHMENT_OPTIMAL:                           return  VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+        case IL_PRESENT_SRC:                                  return  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        case IL_VIDEO_DECODE_DST:                             return  VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR;
+        case IL_VIDEO_DECODE_SRC:                             return  VK_IMAGE_LAYOUT_VIDEO_DECODE_SRC_KHR;
+        case IL_VIDEO_DECODE_DPB:                             return  VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR;
+        case IL_SHARED_PRESENT:                               return  VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
+        case IL_FRAGMENT_DENSITY_MAP_OPTIMAL:                 return  VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+        case IL_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL:     return  VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+        default:
+            assert(0!=0);
+            return  VK_IMAGE_LAYOUT_UNDEFINED;
+        }
+    }
+
+    static  auto    system2Native(ImageUsageBits ubits)
+    {
+        VkFlags flags   =   0;
+        if(ubits.hasFlag(USAGE_TRANSFER_SRC))                   flags    |=  VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        if(ubits.hasFlag(USAGE_TRANSFER_DST))                   flags    |=  VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        if(ubits.hasFlag(USAGE_SAMPLED))                        flags    |=  VK_IMAGE_USAGE_SAMPLED_BIT;
+        if(ubits.hasFlag(USAGE_STORAGE))                        flags    |=  VK_IMAGE_USAGE_STORAGE_BIT;
+        if(ubits.hasFlag(USAGE_COLOR_ATTACHMENT))               flags    |=  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        if(ubits.hasFlag(USAGE_DEPTH_STENCIL_ATTACHMENT))       flags    |=  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        if(ubits.hasFlag(USAGE_TRANSIENT_ATTACHMENT))           flags    |=  VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+        if(ubits.hasFlag(USAGE_INPUT_ATTACHMENT))               flags    |=  VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+        if(ubits.hasFlag(USAGE_VIDEO_DECODE_DST))               flags    |=  VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR;
+        if(ubits.hasFlag(USAGE_VIDEO_DECODE_SRC))               flags    |=  VK_IMAGE_USAGE_VIDEO_DECODE_SRC_BIT_KHR;
+        if(ubits.hasFlag(USAGE_VIDEO_DECODE_DPB))               flags    |=  VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR;
+        if(ubits.hasFlag(USAGE_FRAGMENT_DENSITY_MAP))           flags    |=  VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;
+        if(ubits.hasFlag(USAGE_HOST_TRANSFER))                  flags    |=  VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT;
+        if(ubits.hasFlag(USAGE_ATTACHMENT_FEEDBACK_LOOP))       flags    |=  VK_IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+        if(ubits.hasFlag(USAGE_SAMPLE_WEIGHT_QCOM))             flags    |=  VK_IMAGE_USAGE_SAMPLE_WEIGHT_BIT_QCOM;
+        if(ubits.hasFlag(USAGE_SAMPLE_BLOCK_MATCH_QCOM))        flags    |=  VK_IMAGE_USAGE_SAMPLE_BLOCK_MATCH_BIT_QCOM;
+        return flags;
+    }
+    static  auto    system2Native(FEImageType type)
+    {
+        switch(type)
+        {
+        case IT_1D:     return  VK_IMAGE_TYPE_1D;
+        case IT_2D:     return  VK_IMAGE_TYPE_2D;
+        case IT_3D:     return  VK_IMAGE_TYPE_3D;
+        default:
+            assert(0!=0);
+            return  VK_IMAGE_TYPE_2D;
+        }
+    }
+    
+    inline VkImageMemoryBarrier createImageMemoryBarrier()
+    {
+        VkImageMemoryBarrier imBarrier {};
+        imBarrier.sType                 =   VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        imBarrier.srcQueueFamilyIndex   =   VK_QUEUE_FAMILY_IGNORED;
+        imBarrier.dstQueueFamilyIndex   =   VK_QUEUE_FAMILY_IGNORED;
+        return imBarrier;
+    }
+
+    inline  void    insertImageMemoryBarrier(   VkCommandBuffer cmdbuffer,
+                                                VkImage image,
+                                                VkAccessFlags srcAccessMask,
+                                                VkAccessFlags dstAccessMask,
+                                                VkImageLayout oldImageLayout,
+                                                VkImageLayout newImageLayout,
+                                                VkPipelineStageFlags srcStageMask,
+                                                VkPipelineStageFlags dstStageMask,
+                                                VkImageSubresourceRange subresourceRange)
+    {
+        VkImageMemoryBarrier imBarrier  =   createImageMemoryBarrier();
+        imBarrier.srcAccessMask         =   srcAccessMask;
+        imBarrier.dstAccessMask         =   dstAccessMask;
+        imBarrier.oldLayout             =   oldImageLayout;
+        imBarrier.newLayout             =   newImageLayout;
+        imBarrier.image                 =   image;
+        imBarrier.subresourceRange      =   subresourceRange;
+
+        vkCmdPipelineBarrier(
+            cmdbuffer,
+            srcStageMask,
+            dstStageMask,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &imBarrier);
+    }
 }
 
 

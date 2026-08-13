@@ -5,6 +5,8 @@
 #include    "FEAllocator.hpp"
 #include    "FEObject.h"
 #include    "FENotify.hpp"
+#include    "FEWindow.hpp"
+#include    "FEAnchor.hpp"
 
 
 namespace FE
@@ -30,8 +32,10 @@ namespace FE
 
     class   FEDevice;
     class   FEScene;
+    class   FEWindow;
     using   Device  =   SharedPtr<FEDevice>;
     using   Scene   =   SharedPtr<FEScene>;
+    using   Window  =   SharedPtr<FEWindow>;
     class   FEContext
     {
     public:
@@ -95,6 +99,28 @@ namespace FE
         {
             return  _scene.get();
         }
+
+        FEAnchor&   anchor()
+        {
+            return  *_anchor;
+        }
+        const FEAnchor&   anchor() const
+        {
+            return  *_anchor;
+        }
+        /// <summary>
+        /// 如果有窗口系统，返回窗口的宽度和高度
+        /// 如果没有返回UintMax32
+        /// </summary>
+        /// <returns></returns>
+        uint32      windowsWidth()  const
+        {
+            return  _window ? _window->width() : MaxUint32;
+        }
+        uint32      windowsHeight() const
+        {
+            return  _window ? _window->height() : MaxUint32;
+        }
     public:
         static  FFReader&   readers();
         static  FFWriter&   writers();
@@ -102,6 +128,8 @@ namespace FE
     protected:
         LogPtr      _log;
         Device      _device;
+        Anchor      _anchor;
+        Window      _window;    
         Scene       _scene;
         String      _workPath;
         String      _resourcePath;

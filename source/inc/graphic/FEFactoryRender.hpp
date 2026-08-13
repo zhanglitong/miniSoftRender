@@ -145,6 +145,14 @@ namespace   FE
                 grp->resetFlags();
             }
         }
+        const   auto&   usages() const
+        {
+            return  _usages;
+        }
+        inline  auto&   usages()
+        {
+            return  _usages;
+        }
     public:
         virtual size_t  addNode(Node  node);
         virtual size_t  addNodes(Nodes&  nodes);
@@ -241,6 +249,7 @@ namespace   FE
         IBO             _ibo;
         ITO             _indirect;
         Counts          _counts;
+        ViewerUsages    _usages =   ViewerUsage::USAGE_Classic;
     };
     using   RFactory            =   SharedPtr<FEFactoryRender>;
     using   RFactorys           =   std::vector<RFactory>;

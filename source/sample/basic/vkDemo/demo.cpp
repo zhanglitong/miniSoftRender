@@ -41,7 +41,6 @@ namespace   FE
             _scene->addNodesToFactory(nodes);
             _scene->addNodesToTree(nodes);
         }
-
         _prepared   =   true;
     }
 
@@ -86,22 +85,5 @@ namespace   FE
             break;
         }
         _scene->onMessage(msgIn);
-    }
-
-    Node    Demo::createGrid()
-    {
-        Node            node    =   new FENode(_ctx);
-        FEGeometryGrid  geo (_ctx);
-
-        geo.param()._size      =   100;
-        geo.param()._divs      =   100;
-        geo.param()._color1    =   Rgba8(212,  96, 112,255);
-        geo.param()._color2    =   Rgba8(155,  209,79, 255);
-        geo.param()._color3    =   Rgba8(0,    0,  255,255);
-        geo.param()._color4    =   Rgba8(128,  128,128,255);
-
-        auto    mesh    =   geo.triangular({{IS_VERTEX_POS,FMT_R32G32B32_FLOAT},{IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM}});
-        node->setMesh(mesh);
-        return  node;
     }
 }

@@ -129,6 +129,9 @@ namespace   FE
                 return  1 * sizeof(float16);
             case FMT_D32_UNORM :
                 return  1 * sizeof(float32);
+            /// 按32位深度 + 8位模板，按8字节对齐
+            case FMT_D32_S8_UNORM :
+                return  2 * sizeof(float32);
             }
             return  1;
         }
@@ -250,6 +253,8 @@ namespace   FE
                 return  1;
             case FMT_D32_UNORM :
                 return  1;
+            case FMT_D32_S8_UNORM:
+                return  2;
             }
             return  1;
         }
@@ -358,6 +363,7 @@ namespace   FE
 
             case FMT_D16_UNORM              :  return  "D16_UNORM";
             case FMT_D32_UNORM              :  return  "D32_UNORM";
+            case FMT_D32_S8_UNORM           :  return  "D32_S8_UNORM";
             }
             assert(0!=0);
             return  "NONE";
@@ -449,6 +455,7 @@ namespace   FE
             else if (_stricmp(enumName( FMT_R32G32B32A32_FLOAT  ),    name) == 0)   return  FMT_R32G32B32A32_FLOAT  ;
             else if (_stricmp(enumName( FMT_D16_UNORM           ),    name) == 0)   return  FMT_D16_UNORM           ;
             else if (_stricmp(enumName( FMT_D32_UNORM           ),    name) == 0)   return  FMT_D32_UNORM           ;
+            else if (_stricmp(enumName( FMT_D32_S8_UNORM        ),    name) == 0)   return  FMT_D32_S8_UNORM        ;
             assert(0!=0);
             return  FMT_NONE                ;
         }
@@ -597,5 +604,6 @@ namespace   FE
 
     template<>  struct TypeOfFormat<FMT_D16_UNORM           >   { using type    =   float16;    };
     template<>  struct TypeOfFormat<FMT_D32_UNORM           >   { using type    =   float;      };
+    template<>  struct TypeOfFormat<FMT_D32_S8_UNORM        >   { using type    =   float2;     };
 
 }

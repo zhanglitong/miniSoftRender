@@ -43,13 +43,13 @@ namespace   FE
         return  FEResult::ER_SUCCESS;
     }
 
-    FEResult    SWCmdBuffer::beginRenderPass(BeginInfo& info)
+    FEResult    SWCmdBuffer::beginRender(const RenderInfo& rs)
     {
-        (void)info;
+        (void)rs;
         return  FEResult::ER_SUCCESS;
     }
 
-    FEResult    SWCmdBuffer::endRenderPass()
+    FEResult    SWCmdBuffer::endRender(const RenderInfo& )
     {
         return  FEResult::ER_SUCCESS;
     }

@@ -13,7 +13,7 @@ namespace   FE
         struct  CreateInfo
         {
             FEFormat    _colorFmt   =   FMT_R8G8B8A8_UNORM;
-            FEFormat    _depthFmt   =   FMT_D32_UNORM;
+            FEFormat    _depthFmt   =   FMT_D32_S8_UNORM;
         };
     protected:
         CreateInfo  _cInfo;

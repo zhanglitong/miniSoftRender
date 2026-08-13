@@ -1,6 +1,7 @@
 #pragma     once
 #include    <functional>
 #include    "FEMathUtil.hpp"
+#include    "FEFlags.hpp"
 namespace   FE
 {
     
@@ -38,6 +39,33 @@ namespace   FE
         MSG_RENDER          ,
         MSG_MAX             ,
     };
+    /// <summary>
+    /// 
+    /// </summary>
+    enum   ViewerUsage
+    {     
+        USAGE_Background =   (1<<0),
+        USAGE_Shadow     =   (USAGE_Background)<<1,
+        /// 水面
+        USAGE_Water      =   (USAGE_Shadow)<< 1,
+        /// bloom 
+        USAGE_Bloom      =   (USAGE_Water)<< 1,
+        /// 延迟渲染图层
+        USAGE_Defferd    =   (USAGE_Bloom <<1),    
+        /// 场景层
+        USAGE_Scene      =   (USAGE_Defferd<<1),
+        /// 贴画流程，在场景完成之后
+        USAGE_Decal      =   (USAGE_Scene<<1),
+        /// GUI
+        USAGE_GUI        =   (USAGE_Decal << 1),
+        /// 最上层
+        USAGE_Overlay    =   (USAGE_GUI <<1),
+
+        USAGE_Classic   =   USAGE_Background | USAGE_Scene | USAGE_Overlay | USAGE_GUI,
+    };
+
+    using   ViewerUsages =  FEFlags<ViewerUsage, uint32_t>;
+
     class   FEMessage
     {
     public:
@@ -63,10 +91,55 @@ namespace   FE
     class   FEMouseInfo
     {
     public:
-        FEMouseInfo(const int2& mouse = int2())
+        enum    MouseState
+        {
+            LButtonPressed  =   1,
+            MButtonPressed  =   2,
+            RButtonPressed  =   4,
+            XButton1Pressed =   8,
+            XButton2Pressed =   16,
+            CtrlPressed     =   32,
+            AltPressed      =   64,
+            ShiftPressed    =   128,
+        };
+        using   MouseStates     =   FEFlags<MouseState,uint32_t>;
+    public:
+        FEMouseInfo(const int2& mouse = int2(),MouseStates state = 0)
             :_mouse(mouse)
+            ,_states(state)
         {}
-        int2   _mouse;
+        /// <summary>
+        /// 如果是鼠标移动消息:
+        /// _mouse 是当前消息
+        /// _old: 是上一次鼠标位置
+        /// </summary>
+        int2        _mouse;
+        int2        _old;
+        MouseStates _states; 
+        bool    lButtonPressed() const
+        {
+            return  _states.hasFlag(LButtonPressed);
+        }
+        bool    mButtonPressed() const
+        {
+            return  _states.hasFlag(MButtonPressed);
+        }
+        bool    rButtonPressed() const
+        {
+            return  _states.hasFlag(RButtonPressed);
+        }
+    };
+
+    class   FECmdBuffer;
+    class   FEFramInfo
+    {
+    public:
+        FEFramInfo(ViewerUsages usages = 0,FECmdBuffer* cmdBuffer = nullptr)
+            :_usages(usages)
+            ,_cmdBuffer(cmdBuffer)
+        {}
+        ViewerUsages    _usages;
+        FECmdBuffer*    _cmdBuffer = nullptr;  
     };
 
     class   FEKeyInfo
@@ -81,6 +154,8 @@ namespace   FE
     };
     class   FEMouseWheel
     {
+    public:
+        
     public:
         FEMouseWheel(const int2& mouse = int2(),int zDelta = 0)
             :_mouse(mouse)
@@ -132,8 +207,8 @@ namespace   FE
     using   MsgTouchpadUp       =   TFEMessage<MSG_TOUCHPAD_UP      ,FEMouseInfo>;
     using   MsgTask             =   TFEMessage<MSG_TASK             ,FEMouseInfo>;
 
-    using   MsgUpdate           =   TFEMessage<MSG_UPDATE           ,FEMouseInfo>;
-    using   MsgRender           =   TFEMessage<MSG_RENDER           ,FEMouseInfo>;
+    using   MsgUpdate           =   TFEMessage<MSG_UPDATE           ,FEFramInfo>;
+    using   MsgRender           =   TFEMessage<MSG_RENDER           ,FEFramInfo>;
 
 
 

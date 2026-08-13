@@ -6,9 +6,15 @@ namespace   FE
     {
     }
 
-    bool WGFrameBuffer::create(const CreateInfo& cInf)
+    bool    WGFrameBuffer::create(const CreateInfo& cInf)
     {
         _cInfo =   cInf;
         return true;
+    }
+
+    bool    WGFrameBuffer::resize(const uint3& dims)
+    {
+        UNUSED(dims);
+        return  false;
     }
 }

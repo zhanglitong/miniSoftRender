@@ -1,6 +1,7 @@
 #pragma     once
 
 #include    "graphic/FEGImage.h"
+#include    "FEWebgpu.hpp"
 #include    "wgpu.h"
 
 namespace   FE
@@ -19,7 +20,7 @@ namespace   FE
         {}
         virtual ~WGGImage();
 
-        virtual bool    create(const CreateInfo& info) override;
+        virtual bool        create(const CreateInfo& info) override;
         virtual GImgView    createView() override;
 
     protected:

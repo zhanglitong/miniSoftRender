@@ -114,7 +114,7 @@ namespace   FE
         VkGraphicsPipelineCreateInfo pipelineCI{};
         pipelineCI.sType                =   VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineCI.layout               =  _layout;
-        pipelineCI.renderPass           =   (VkRenderPass)info._renderPass->native();
+        pipelineCI.renderPass           =   (VkRenderPass)(info._renderPass ? info._renderPass->native():nullptr);
 
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
         inputAssemblyStateCI.sType      =   VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -228,6 +228,18 @@ namespace   FE
         pipelineCI.pViewportState       =   &viewportStateCI;
         pipelineCI.pDepthStencilState   =   &depthStencilStateCI;
         pipelineCI.pDynamicState        =   &dynamicStateCI;
+
+        // New create info to define color, depth and stencil attachments at pipeline create time
+        VkPipelineRenderingCreateInfoKHR    pRenderingCreateInfo    =   {};
+        VkFormat    colorAttrFormats[]                  =   {VK_FORMAT_R8G8B8A8_UNORM};
+        pRenderingCreateInfo.sType                      =   VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+        pRenderingCreateInfo.colorAttachmentCount       =   1;
+        pRenderingCreateInfo.pColorAttachmentFormats    =   colorAttrFormats;
+        pRenderingCreateInfo.depthAttachmentFormat      =   VK_FORMAT_D32_SFLOAT_S8_UINT;
+        pRenderingCreateInfo.stencilAttachmentFormat    =   VK_FORMAT_D32_SFLOAT_S8_UINT;
+
+        pipelineCI.pNext    =   &pRenderingCreateInfo;
+        
 
         // Create rendering pipeline using the specified states
         (void)vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCI, nullptr, &_native);

@@ -20,5 +20,7 @@ namespace   FE
         virtual ~VKFrameBuffer();
 
         virtual bool    create(const CreateInfo& info)  override;
+
+        virtual bool    resize(const uint3& dims) override;
     };
 }

@@ -44,7 +44,8 @@ namespace   FE
         DSetLayout    createLayoutFromReflect();
 
     protected:
-        void    reflectShader(const CreateInfo& info);
+        WGPUShaderModule    createShaderModule(WGPUDevice device, const uint32_t* source, uint32_t sourceSize);
+        void    reflectShaderSPIRV(const CreateInfo& info);
         ReflectData    _reflectData;
     };
 }

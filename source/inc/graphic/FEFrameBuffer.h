@@ -16,12 +16,11 @@ namespace   FE
     class   FEFrameBuffer :public RSObject
     {
     public:
-        using   Colors  =   TSmallVector<FEGImageView,8>;
         struct  CreateInfo 
         {
             RenderPassPtr   _renderPass     =   nullptr;
-            GImgViews       _colors;
             GImgView        _depth          =   nullptr;
+            GImgViews       _colors;
             /// <summary>
             /// width  必须不能大于 pColors / pDepth : width;
             /// height 必须不能大于 pColors / pDepth : height;
@@ -43,6 +42,7 @@ namespace   FE
             return  _cInfo;
         }
         virtual bool    create(const CreateInfo& info)  =   0;
+        virtual bool    resize(const uint3& dims) = 0;
     protected:
         CreateInfo  _cInfo;
     };

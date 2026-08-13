@@ -23,5 +23,6 @@ namespace   FE
 
         virtual bool        create(const CreateInfo& info)  override;
         virtual GImgView    createView() override;
+        virtual void        destroy() override;
     };
 }

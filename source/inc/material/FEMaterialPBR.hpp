@@ -29,7 +29,7 @@ namespace   FE
             bind(0,SB_Material, {_pbr._gpu.get()});
             
             /// µÆ¹â¶ÔÏó
-            lightSBO->as<FENotify>()->addFlagChangedNotify(this,[this](Object object)
+            lightSBO->as<FENotify>()->addNotify(this,[this](Object object)
             {
                 if (object->flags().hasFlag(FLAG_UPDATE))
                 {

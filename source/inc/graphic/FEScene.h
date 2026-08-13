@@ -4,6 +4,7 @@
 #include    "../FECamera.hpp"
 #include    "../FETimestamp.hpp"
 #include    "../FEApp.hpp"
+#include    "../node/FENodeTree.hpp"
 #include    "FEFactoryRender.hpp"
 #include    "FEUpdateQueue.hpp"
 #include    "FERenderSystem.h"
@@ -18,6 +19,8 @@
 #include    "FEDSet.h"
 #include    "FEDSetPool.h"
 #include    "FEDSetLayout.h"
+#include    "FEFactoryMgr.hpp"
+#include    "FEViewerMgr.hpp"
 
 namespace   FE
 {
@@ -44,9 +47,15 @@ namespace   FE
     public:
         FEScene(FEContext& ctx)
             :FEObject(ctx)
+            ,_nodeTree(ctx)
+            ,_factorys(ctx)
+            ,_viewerMgr(ctx)
         {}
         FEScene(const FEScene& other)
             :FEObject(other)
+            ,_nodeTree(other._nodeTree)
+            ,_factorys(other._factorys)
+            ,_viewerMgr(other._viewerMgr)
         {}
         inline  auto&   updateQueue()
         {
@@ -61,6 +70,38 @@ namespace   FE
             return  _device;
         }
 
+        inline  auto    camera() const
+        {
+            return  _camera;
+        }
+        inline auto&   nodeTree()
+        {
+            return  _nodeTree;
+        }
+        inline auto&   nodeTree() const
+        {
+            return  _nodeTree;
+        }
+        inline  auto&   factoryMgr()
+        {
+            return  _factorys;
+        }
+        inline  auto&   factoryMgr() const
+        {
+            return  _factorys;
+        }
+        inline  auto&   viewerMgr()
+        {
+            return  _viewerMgr;
+        }
+        inline  auto&   viewerMgr() const
+        {
+            return  _viewerMgr;
+        }
+        inline  FBOPtr  currentFBO() const
+        {
+            return  _frameBuffers[_curImgIdx];
+        }
         virtual bool    setup(App app);
         virtual void    test();
         /// <summary>
@@ -111,12 +152,15 @@ namespace   FE
         /// </summary>
         void    initializeBuildin(FEDevice& device);
         void    initializeQueue();
-        void    resize(const uint2& size);
+        void    resize(const MsgResize& evt);
 
         Nodes   loadNode(Material mat);
         Node    createGrid(Material mat);
     protected:
         App                 _app;   
+        FENodeTree          _nodeTree;
+        FEFactoryMgr        _factorys;
+        FEViewerMgr         _viewerMgr;
         /// <summary>
         /// 目前系统有两个队列，前台与后台
         /// </summary>
@@ -136,19 +180,9 @@ namespace   FE
         FrameBuffers        _frameBuffers;
         GImage              _imgDepth   =   nullptr;
         GImgView            _depthView  =   nullptr;
-        /// <summary>
-        /// 根节点
-        /// </summary>
-        Nodes               _roots;
+
         Node                _mousePoint;
-        Node                _pickupNode;
         aabb3dr             _aabb;
-        RFactoryMap         _factoryMap; 
-        RFactorys           _factorys;
-        real3               _pickPoint;
-        int2                _ptMouse;
-        bool                _lbtnDown   =   false;
-        bool                _rbtnDown   =   false;
     };
 
     using   Scene =   SharedPtr<FEScene>;

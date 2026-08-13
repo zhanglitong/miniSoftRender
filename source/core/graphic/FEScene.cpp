@@ -2,6 +2,8 @@
 #include    "../inc/FELog.hpp"
 #include    "../inc/FEPickup.hpp"
 #include    "../inc/FEFileSystem.hpp"
+#include    "../inc/FEImageUsage.hpp"
+#include    "../inc/FEImageType.hpp"
 #include    "../inc/geometry/FEGeometryGrid.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
 #include    "../inc/graphic/FEScene.h"
@@ -11,7 +13,6 @@
 #include    "../inc/graphic/FELightMgr.h"
 
 
-constexpr   uint32_t    MAX_FRAME_BUFFER    =   2;
 
 namespace   FE
 {
@@ -21,7 +22,7 @@ namespace   FE
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
         _app        =   app;
-        _renderSys  =   FERenderSystem::create(_ctx,RS_WEBGPU);
+        _renderSys  =   FERenderSystem::create(_ctx,RS_VULKAN);
         assert(_renderSys != nullptr);
         if (_renderSys == nullptr)
             return  false;
@@ -42,22 +43,23 @@ namespace   FE
             return  false;
         }
         _device         =   _renderSys->createDevice();
-        _ctx._device    =   _device;
-        _ctx._scene     =   this;
-        /// ³õÊ¼»¯ buildin
-        _device->_createNotify  =   [&](FEDevice& device)
-        {
-            initializeBuildin(device);
-        };
         assert(_device != nullptr);
         if (_device == nullptr)
         {
             LOG_INF("_renderSys->createDevice() failed!");
             return  false;
         }
+
+        _ctx._device    =   _device;
+        _ctx._scene     =   this;
+        /// 
+        _device->_createNotify  =   [&](FEDevice& device)
+        {
+            initializeBuildin(device);
+        };
         {
             FEDevice::CreateInfo    infor   =   {};
-            infor.deviceId  =   gpuList[1].gpuId;
+            infor.deviceId  =   gpuList[0].gpuId;
             _device->create(infor);
         }
         {
@@ -75,21 +77,19 @@ namespace   FE
         _camera->setUp(real3(0,1,0));
         _camera->perspective(DEG2RAD(45), float(app->cInfo()._width) / float(app->cInfo()._height), 0.05f, 256.0f);
         _camera->update();
-
-        /// ½¨Á¢Ò»¸ö·½Ïò¹â
+        /// 
         auto    light   =   new FELightDir(_ctx);
-        /// ¼ÓÈëµ½ÏµÍ³
+        /// 
         _device->lights().add("main",light);
-
-        resize({_app->cInfo()._width,_app->cInfo()._height});
-        /// ³õÊ¼»¯Ä¬ÈÏ¸üÐÂ¶ÓÁÐ
+        /// 
+        resize(MsgResize({{_app->cInfo()._width,_app->cInfo()._height}}));
+        /// 
         initializeQueue();
-        /// ¼ÓÔØÅäÖÃ¹ÜÏß
+        /// 
         loadPipelines();
         LOG_EVT("start cost:%lf ms",timestamp.milliSec());
 
         {
-            /// »æÖÆÃªµã¶ÔÏó
             Node        node    =   new FENode(_ctx);
             Mesh        mesh    =   FEMeshBuilder::makePointMesh(_ctx,{float3(0,0,0)},{Rgba8(uint8x4(255,0,0,255))});
             node->setMesh(mesh);
@@ -99,6 +99,24 @@ namespace   FE
             _mousePoint         =   node;
             addNodesToFactory({node});
         }
+
+        /// åˆ›å»º viewer,vieweræ˜¯ä¸€ä¸ªæ¸²æŸ“å™¨ï¼Œè´Ÿè´£ç®¡ç†åœºæ™¯ä¸­çš„æ‰€æœ‰å¯¹è±¡ï¼Œå¤„ç†è¾“å…¥äº‹ä»¶ï¼Œå¹¶ä¸Žæ¸²æŸ“ç³»ç»Ÿè¿›è¡Œäº¤äº’
+        {
+            auto    viewer = new FEViewer(_ctx,_camera,nullptr,ViewerUsage::USAGE_Classic);
+            _viewerMgr.addObject(viewer);
+            _viewerMgr.setActiveViewer(viewer);
+        }
+        /// å…³è”anchor
+        /// anchor å‘ç”Ÿå˜åŒ–åŽï¼Œç»˜åˆ¶åŒæ­¥æ›´æ–°
+        _ctx.anchor().addNotify(this,[this](Object object)
+            {
+                if (_mousePoint)
+                {
+                    _mousePoint->setLocalTranslation(_ctx.anchor().point());
+                    _mousePoint->update();
+                    _mousePoint->fireChanged();
+                }
+            });
         return  true;
     }
 
@@ -106,16 +124,16 @@ namespace   FE
     {
         Material    material    =   new FEMaterialV3C4(_ctx);
         Material    matLine     =   new FEMaterialV3C4(_ctx);
-        auto    nodes  =   loadNode(material);
+        auto        nodes       =   loadNode(material);
         for (auto& node : nodes)
         {
-            _roots.push_back(node);
+            _nodeTree.addToplevelNode(node);
         }
         {
             auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodes);
             for (auto& var : factorys)
             {
-                _factoryMap[var->key()] =   var;
+                _factorys.addObject(var);
             }
         }
         {
@@ -123,7 +141,7 @@ namespace   FE
             auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{node});
             for (auto& var : factorys)
             {
-                _factoryMap[var->key()] =   var;
+                _factorys.addObject(var);
             }
         }
     }
@@ -135,7 +153,7 @@ namespace   FE
             if (node->parent() != nullptr)
                 continue;
             else
-                _roots.push_back(node);
+                _nodeTree.addToplevelNode(node);
         }
     }
    
@@ -144,7 +162,7 @@ namespace   FE
         auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodeList);
         for (auto& var : results)
         {
-            _factoryMap[var->key()] =   var;
+            _factorys.addObject(var);
         }
         return  results;
     }
@@ -157,15 +175,10 @@ namespace   FE
     }
     void    FEScene::onFrameUpdate()
     {
-        auto&   frame   =   _frames[currentFrame()];
+        auto&   frame       =   _frames[currentFrame()];
+        auto    factorys    =   _factorys.objects();
        
-        _factorys.clear();
-        _factorys.reserve(_factoryMap.size());
-        for (auto& var : _factoryMap)
-        {
-            _factorys.push_back(var.second);
-        }
-        std::sort(_factorys.begin(),_factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
+        std::sort(factorys.begin(),factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
         {
             auto    prioLeft    =   left->priority(FEFactory::PT_Update);
             auto    prioRight   =   right->priority(FEFactory::PT_Update);
@@ -175,7 +188,7 @@ namespace   FE
                 return  prioLeft.priority() <  prioRight.priority();
         });
         aabb3dr aabb;
-        for (auto& var : _factorys)
+        for (auto& var : factorys)
         {
             var->update(frame._cmd);
             aabb.merge(var->aabb());
@@ -200,28 +213,24 @@ namespace   FE
 
         uint    width       =   _app->cInfo()._width;
         uint    height      =   _app->cInfo()._height;
-        FECmdBuffer::BeginInfo  rsInfo  =   {};
+        FECmdBuffer::RenderInfo  rsInfo  =   {};
         rsInfo._frameBuffer =   _frameBuffers[_curImgIdx];
-        rsInfo._renderPass  =   _renderPass;
         rsInfo._rect.set(0,0,width,height);
 
-        frame._cmd->beginRenderPass(rsInfo);
+        frame._cmd->beginRender(rsInfo);
 
         FECmdBuffer::Viewport   viewPort    =   
         {
             0.0f,0.0f,(float)width,(float)height,0.0f,1.0f
         };
         RectU32     rect(0,0,width,height);
+        
         frame._cmd->setViewport(0,  1,  &viewPort);
         frame._cmd->setScissor(0,   1,  &rect);
+
+        RFactorys   factorys    =   _factorys.objects();
         {
-            _factorys.clear();
-            _factorys.reserve(_factoryMap.size());
-            for (auto& var : _factoryMap)
-            {
-                _factorys.push_back(var.second);
-            }
-            std::sort(_factorys.begin(),_factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
+            std::sort(factorys.begin(),factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
             {
                 auto    prioLeft    =   left->priority(FEFactory::PT_Render);
                 auto    prioRight   =   right->priority(FEFactory::PT_Render);
@@ -230,22 +239,18 @@ namespace   FE
                 else
                     return  prioLeft.priority() <  prioRight.priority();
             });
-            for (auto& var : _factorys)
-            {
-                var->render(frame._cmd);
-            }
         }
-        frame._cmd->endRenderPass();
+
+        for (auto viewer : _viewerMgr.objects())
+        {
+            FEFramInfo  info    =  {0,frame._cmd};
+            viewer->onMessage(MsgRender(info));
+        }
+        frame._cmd->endRender(rsInfo);
         
     }
     void    FEScene::onFrameEnd()
     {
-        /// Çå³ýËùÓÐ¸üÐÂ±ê¼Ç
-
-        /// for (auto& var : _factoryMap)
-        /// {
-        ///     var.second->resetFlags();
-        /// }
         auto&   frame   =   _frames[currentFrame()];
         frame._cmd->end();
 
@@ -276,135 +281,18 @@ namespace   FE
             onClose();
             break;
         case MSG_RESIZE :
-            {
-                auto&   msg     =   (MsgResize&)msgIn;
-                resize(msg._info._size);
-            }
+            resize(static_cast<const MsgResize&>(msgIn));
             break;
         case MSG_LBUTTON_DOWN:
-            {
-                auto&       msg     =   (MsgMouseWheel&)msgIn;
-                auto        ray     =   _camera->createRayFromScreen(msg._info._mouse.x,msg._info._mouse.y);
-                _ptMouse            =   msg._info._mouse;
-                _lbtnDown           =   true;
-                Pickups     results;
-                for (auto& node: _roots)
-                {
-                    node->intersect(ray,results);
-                }
-                std::sort(results.begin(),results.end(),[](const FEPickup& left,const FEPickup& right)
-                {
-                    return  left.time < right.time;
-                });
-                if (!results.empty())
-                {
-                    _pickPoint  =       results.front().point;
-                    if (_mousePoint)
-                    {
-                        _mousePoint->setLocalTranslation(_pickPoint);
-                        _mousePoint->update();
-                        _mousePoint->fireChanged();
-                    }
-                    _pickupNode =   results.front().object->as<FENode>();
-                }
-            }
-            break;
-       
         case MSG_RBUTTON_DOWN:
-            {
-                auto&       msg     =   (MsgRButtonDown&)msgIn;
-                _ptMouse            =   msg._info._mouse;
-                _rbtnDown           =   true;
-            }
-            break;
         case MSG_LBUTTON_UP:
-            {
-                _lbtnDown           =   false;
-            }
-            break;
         case MSG_RBUTTON_UP:
-            {
-                _rbtnDown           =   false;
-            }
-            break;
         case MSG_MOUSE_WHEEL:
-            {
-                auto&   msg     =   (MsgMouseWheel&)msgIn;
-                _camera->scaleCameraByPos(_pickPoint,msg._info._zDelta > 0 ? 1.2 : 0.8);
-            }
-            break;
         case MSG_MOUSE_MOVE:
-            {
-                if (_lbtnDown)
-                {
-                    auto&   msg     =   (MsgMouseMove&)msgIn;
-                    int2    offset  =   msg._info._mouse - _ptMouse;
-                    _ptMouse        =   msg._info._mouse;
-                    _camera->rotateViewZByCenter(offset.x * 0.2, _pickPoint);
-                    _camera->rotateViewXByCenter(offset.y * 0.2, _pickPoint);
-                }
-                if (_rbtnDown)
-                {
-                    auto&   msg     =   (MsgMouseMove&)msgIn;
-                    int2    offset  =   _ptMouse - msg._info._mouse;
-                    _ptMouse        =   msg._info._mouse;
-
-                    real3   right           =   _camera->getRight();
-                    real3   up              =   _camera->getUp();
-                    real3   eye             =   _camera->getEye();
-                    real2   deltaD          =   _camera->calcWowrldPScreen(_pickPoint) * real2(offset);
-                    real3   eyeDelta        =   ((right * (double)deltaD.x) + (up * (double)deltaD.y));
-                            eye             +=  eyeDelta;
-
-                    _camera->setEye(eye);
-                    _camera->setTarget(_camera->getTarget() + eyeDelta);
-                    _camera->update();
-                }
-            }
-            break;
         case MSG_KEYDOWN:
-            {
-                #define VK_LEFT           0x25
-                #define VK_UP             0x26
-                #define VK_RIGHT          0x27
-                #define VK_DOWN           0x28
-                auto&   msg     =   (MsgKeyDown&)msgIn;
-                switch(msg._info._key)
-                {
-                case VK_LEFT:
-                    if (_pickupNode)
-                    {
-                        _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(-1,0,0));
-                        _pickupNode->update();
-                        _pickupNode->fireChanged();
-                    }
-                    break;
-                case VK_RIGHT:
-                    if (_pickupNode)
-                    {
-                        _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(+1,0,0));
-                        _pickupNode->update();
-                        _pickupNode->fireChanged();
-                    }
-                    break;
-                case VK_UP:
-                    if (_pickupNode)
-                    {
-                        _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(0,0,1));
-                        _pickupNode->update();
-                        _pickupNode->fireChanged();
-                    }
-                    break;
-                case VK_DOWN:
-                    if (_pickupNode)
-                    {
-                        _pickupNode->setLocalRotation(_pickupNode->localTranslation() + real3(0,0,-1));
-                        _pickupNode->update();
-                        _pickupNode->fireChanged();
-                    }
-                    break;
-                }
-            }
+        case MSG_KEYUP:
+            if (_viewerMgr.activeViewer())
+                _viewerMgr.activeViewer()->onMessage(msgIn);
             break;
         case MSG_UPDATE :
             onFrameStart();
@@ -419,7 +307,6 @@ namespace   FE
 
     void    FEScene::onNodePropChanged(FENode* node)
     {
-        
         auto    mesh    =   node->mesh();
         auto&   pris    =   mesh->primitives();
         auto    slot    =   mesh->slotBits();
@@ -430,11 +317,10 @@ namespace   FE
             mkey._primitive =   var->primitive();
             mkey._slotBits  =   slot;
             auto    key     =   mkey.key();
-            /// ²éÕÒ¹¤³§
-            auto    itr     =   _factoryMap.find(key);
-            if (itr == _factoryMap.end())
+            /// æŸ¥æ‰¾å·¥åŽ‚å¯¹è±¡
+            auto    factory =   _factorys.findObject(key);
+            if (!factory)
                 continue;
-            auto    factory =   itr->second;
             factory->nodePropChanged(node);
         }
     }
@@ -450,7 +336,6 @@ namespace   FE
         _updateQueue.queue().clear();
 
         _mousePoint =   nullptr;
-        _pickupNode =   nullptr;
 
         _cmdPool    =   nullptr;
         _frames.clear();
@@ -459,17 +344,18 @@ namespace   FE
         _imgDepth   =   nullptr;
         _depthView  =   nullptr;
         
-        for (auto& var : _factoryMap)
+        for (auto  var : _factorys.objects())
         {
-            var.second->destroy();
+            var->destroy();
         }
-        _factoryMap.clear();
-        _factorys.clear();
-        for (auto& node: _roots)
+        _factorys.clearObjects();
+
+        for (auto node: _nodeTree.topLevelNodes())
         {
             node->removeAllChild();
         }
-        _roots.clear();
+        _nodeTree.clear();
+
         if (_device)
         {
             _device->destroy();
@@ -481,7 +367,7 @@ namespace   FE
 
     void    FEScene::loadPipelines()
     {
-        /// ¹ÜÏßÄ¿Â¼
+        /// 
         auto    plDir       =   _ctx.resourcePath() + "/data/pipeline/";
         auto    fileList    =   FEFileSystem::entryList(plDir,".xml");
         LOG_DBG("loadPipelines()");
@@ -489,7 +375,7 @@ namespace   FE
         for (auto& file : fileList)
         {   
             auto    fullPath    =   plDir + file;
-            auto    pipelines   =   FEPipelineHelper::create(_ctx,*_device,_renderPass,fullPath.c_str());
+            auto    pipelines   =   FEPipelineHelper::create(_ctx,*_device,nullptr,fullPath.c_str());
 
             LOG_DBG("loading pipeline:%s",fullPath.c_str());
 
@@ -512,7 +398,7 @@ namespace   FE
     uint    FEScene::nextFrame()
     {
         ++_curIndex;
-        _curIndex   %=  MAX_FRAME_BUFFER;
+        _curIndex   %=  (uint)_frameBuffers.size();
         return  _curIndex;
     }
 
@@ -522,8 +408,8 @@ namespace   FE
         cameraUBO->create({sizeof(CameraData),      MemoryUsage::DEVICE_DEFAULT_BIT});
         cameraUBO->setObjectId(FEConstUuid::CameraUBOId);
         device.cacheObject(cameraUBO.get());
-        /// Ä¬ÈÏ·ÖÅäµÆ¹â¶ÔÏóµÄ×î´óÊýÁ¿
-        /// µ±ÏµÍ³µÆ¹â¶ÔÏóÊýÁ¿³¬¹ý128,»á³ä·Ö·ÖÅä
+        /// Ä¬ï¿½Ï·ï¿½ï¿½ï¿½Æ¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½ÏµÍ³ï¿½Æ¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½128,ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
         auto    lightSBO    =   device.createSBO();
         lightSBO->create({sizeof(LightData) * 128,  MemoryUsage::DEVICE_DEFAULT_BIT});
         lightSBO->setObjectId(FEConstUuid::LightsId);
@@ -542,8 +428,8 @@ namespace   FE
 
     void    FEScene::initializeQueue()
     {
-        /// Ïà»úÌí¼Óµ½¸üÐÂ¶ÓÁÐ
-        /// Êý¾ÝÓÐ¸üÐÂ,Ôò»áÍ¬²½µ½UBOÉÏ
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½Â¶ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ð¸ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½UBOï¿½ï¿½
         updateQueue().addObject(_camera.get(),[&](CMDPtr cmd,FEUpdateObject& uData)
         {
             if (uData._gpu == nullptr)
@@ -590,8 +476,8 @@ namespace   FE
             {
                 uData._gpu->resize(uData._gpu->cInfo()._length + sizeof(CameraData) * 16);
                 uData._cpu->resize(uData._gpu->cInfo()._length + sizeof(CameraData) * 16);
-                /// È¡±£´´½¨ÁËÍ¨Öª¶ÔÏó
-                /// Í¨ÖªÊ¹ÓÃÕß£¬¸üÐÂ°ó¶¨£¬·ñÔò»á³ö´íÎó
+                /// È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½
+                /// Í¨ÖªÊ¹ï¿½ï¿½ï¿½ß£ï¿½ï¿½ï¿½ï¿½Â°ó¶¨£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 uData._gpu->flags().addFlag(FLAG_UPDATE);
                 uData._gpu->as<FENotify>()->fireNotify();
             }
@@ -646,14 +532,14 @@ namespace   FE
         });
     }
 
-    void    FEScene::resize(const uint2& size)
+    void    FEScene::resize(const MsgResize& evt)
     {
         if (_device == nullptr)
             return;
         _device->waitIdle();
 
-        uint    width   =   size.x;
-        uint    height  =   size.y;
+        uint    width   =   evt._info._size.x;
+        uint    height  =   evt._info._size.y;
 
         if (_app)
         {
@@ -676,8 +562,11 @@ namespace   FE
                 info._width     =   _app->cInfo()._width;
                 info._height    =   _app->cInfo()._height;
                 info._depth     =   1;
-                info._format    =   FMT_D32_UNORM;
+                info._usage     =   USAGE_DEPTH_STENCIL_ATTACHMENT | USAGE_SAMPLED;
+                info._type      =   IT_2D;
+                info._format    =   FMT_D32_S8_UNORM;
                 info._aspect    =   ASPECT_DEPTH_BIT;
+                info._layout    =   IL_UNDEFINED;
             }
             _imgDepth->create(info);
             _depthView  =   _imgDepth->createView();
@@ -701,7 +590,7 @@ namespace   FE
         }
         _frames.clear();
 
-        for (size_t i = 0; i < MAX_FRAME_BUFFER; i++)
+        for (size_t i = 0; i < _frameBuffers.size(); i++)
         {
             Frame   frame;
             frame._cmd                  =   _cmdPool->createCmd();
@@ -720,7 +609,10 @@ namespace   FE
             _camera->setViewSize(width,height);
             _camera->update();
         }
-        
+        for (auto viewer : _viewerMgr.objects())
+        {
+            viewer->onMessage(evt);
+        }
         _device->waitIdle();
         _curIndex   =   0;
     }

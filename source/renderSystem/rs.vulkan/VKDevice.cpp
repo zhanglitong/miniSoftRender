@@ -28,6 +28,10 @@ namespace   FE
     {
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
         VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+        /// <summary>
+        /// 使用动态渲染
+        /// </summary>
+        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
     };
 
     VKDevice::~VKDevice()
@@ -430,7 +434,10 @@ namespace   FE
         deviceCreateInfo.pEnabledFeatures       =   &enabledFeatures;
 
         // If a pNext(Chain) has been passed, we need to add it to the device creation info
-        VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
+        VkPhysicalDeviceFeatures2                           physicalDeviceFeatures2     =   {};
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT    dynamicState3Features       =   {};
+        VkPhysicalDeviceDynamicRenderingFeatures            dynamicRenderingFeatures    =   {};
+
         if (pNextChain) 
         {
             physicalDeviceFeatures2.sType       =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -441,7 +448,7 @@ namespace   FE
         }
         else
         {
-            VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamicState3Features = {};
+            
             dynamicState3Features.sType =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
             dynamicState3Features.pNext =   nullptr;
 
@@ -450,6 +457,13 @@ namespace   FE
             /// 对应 vkCmdSetPolygonModeEXT[reference:9]
             dynamicState3Features.extendedDynamicState3RasterizationSamples =   VK_TRUE; 
             deviceCreateInfo.pNext      =   &dynamicState3Features;
+
+            
+            dynamicRenderingFeatures.sType              =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+            dynamicRenderingFeatures.pNext              =   nullptr;
+            dynamicRenderingFeatures.dynamicRendering   =   VK_TRUE;
+
+            dynamicState3Features.pNext                 =   &dynamicRenderingFeatures;
         }
 
 

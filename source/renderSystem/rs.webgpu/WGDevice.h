@@ -71,6 +71,7 @@ namespace   FE
         virtual GPUBuffer    createFromBuffer(const void*,uint64 length) override;
 
         WGPUTextureFormat    getWGPUTextureFormat(FEFormat format) const;
+        bool    hasPassthroughShaders() const { return _hasPassthroughShaders; }
 
     protected:
         WGPUDevice    _nativeDevice    =   nullptr;
@@ -79,5 +80,6 @@ namespace   FE
         Queue         _queueGraphic    =   nullptr;
         Queue         _queueCompute    =   nullptr;
         Queue         _queueTransfer   =   nullptr;
+        bool          _hasPassthroughShaders = false;
     };
 }

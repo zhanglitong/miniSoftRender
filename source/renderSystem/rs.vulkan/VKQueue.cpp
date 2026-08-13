@@ -45,9 +45,9 @@ namespace   FE
         submitInfo.pSignalSemaphores    =    signSem;
         submitInfo.signalSemaphoreCount =    signCnt;
 
-        auto&           vkDevice    =   (VKDevice&)_ctx.device();
-        auto            device      =   vkDevice.logicalDevice();
-        auto    result  =   vkQueueSubmit(_native, 1, &submitInfo, nativeFence);
+        auto&   vkDevice    =   (VKDevice&)_ctx.device();
+        auto    device      =   vkDevice.logicalDevice();
+        auto    result      =   vkQueueSubmit(_native, 1, &submitInfo, nativeFence);
         if (result == VK_SUCCESS && nativeFence != nullptr)
         {
             vkWaitForFences(device, 1, &nativeFence, VK_TRUE, UINT64_MAX);

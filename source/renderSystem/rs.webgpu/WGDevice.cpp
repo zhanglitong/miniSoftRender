@@ -55,11 +55,18 @@ namespace   FE
         if (!adapter)
             return FEResult::ER_FAILED;
 
+        // Query adapter features to enable PassthroughShaders for SPIR-V passthrough
+        // Also request Depth32FloatStencil8 feature for depth-stencil textures
+        WGPUFeatureName requiredFeatures[] = {
+            (WGPUFeatureName)0x00030036,  // PassthroughShaders
+            WGPUFeatureName_Depth32FloatStencil8
+        };
+
         WGPUDeviceDescriptor deviceDesc = {};
         deviceDesc.nextInChain =   nullptr;
         deviceDesc.label = { "Device",6 };
-        deviceDesc.requiredFeatureCount =   0;
-        deviceDesc.requiredFeatures =   nullptr;
+        deviceDesc.requiredFeatureCount =   2;
+        deviceDesc.requiredFeatures =   requiredFeatures;
         deviceDesc.requiredLimits =   nullptr;
         deviceDesc.defaultQueue = {};
         deviceDesc.defaultQueue.nextInChain =   nullptr;
@@ -92,6 +99,31 @@ namespace   FE
         wgpuAdapterRequestDevice(adapter,&deviceDesc,callbackInfo);
 
         _nativeDevice =   deviceResult.device;
+
+        // Check device features
+        if (_nativeDevice)
+        {
+            WGPUSupportedFeatures supportedFeatures = {};
+            wgpuDeviceGetFeatures(_nativeDevice, &supportedFeatures);
+            _hasPassthroughShaders = false;
+            bool hasDepth32Stencil = false;
+            printf("wgpu device features count=%zu\n", supportedFeatures.featureCount);
+            for (size_t i = 0; i < supportedFeatures.featureCount; i++)
+            {
+                printf("  feature[%zu] = 0x%08X\n", i, (unsigned)supportedFeatures.features[i]);
+                if (supportedFeatures.features[i] == (WGPUFeatureName)0x00030036)
+                {
+                    _hasPassthroughShaders = true;
+                }
+                if (supportedFeatures.features[i] == WGPUFeatureName_Depth32FloatStencil8)
+                {
+                    hasDepth32Stencil = true;
+                }
+            }
+            printf("wgpu device has PassthroughShaders(0x00030036): %s\n", _hasPassthroughShaders ? "YES" : "NO");
+            printf("wgpu device has Depth32FloatStencil8: %s\n", hasDepth32Stencil ? "YES" : "NO");
+            fflush(stdout);
+        }
         if (!_nativeDevice)
             return FEResult::ER_FAILED;
 
@@ -323,14 +355,41 @@ namespace   FE
     {
         switch (format)
         {
+        case FMT_R8_UNORM:              return WGPUTextureFormat_R8Unorm;
+        case FMT_R8_UINT:               return WGPUTextureFormat_R8Uint;
+        case FMT_R8_SINT:               return WGPUTextureFormat_R8Sint;
+        case FMT_R16_FLOAT:             return WGPUTextureFormat_R16Float;
+        case FMT_R16_UINT:              return WGPUTextureFormat_R16Uint;
+        case FMT_R16_SINT:              return WGPUTextureFormat_R16Sint;
+        case FMT_R32_FLOAT:             return WGPUTextureFormat_R32Float;
+        case FMT_R32_UINT:              return WGPUTextureFormat_R32Uint;
+        case FMT_R32_SINT:              return WGPUTextureFormat_R32Sint;
+
+        case FMT_R8G8_UNORM:            return WGPUTextureFormat_RG8Unorm;
+        case FMT_R8G8_UINT:             return WGPUTextureFormat_RG8Uint;
+        case FMT_R8G8_SINT:             return WGPUTextureFormat_RG8Sint;
+        case FMT_R16G16_FLOAT:          return WGPUTextureFormat_RG16Float;
+        case FMT_R32G32_FLOAT:          return WGPUTextureFormat_RG32Float;
+        case FMT_R32G32_UINT:           return WGPUTextureFormat_RG32Uint;
+        case FMT_R32G32_SINT:           return WGPUTextureFormat_RG32Sint;
+
         case FMT_R8G8B8A8_UNORM:        return WGPUTextureFormat_RGBA8Unorm;
         case FMT_R8G8B8A8_UINT:         return WGPUTextureFormat_RGBA8Uint;
         case FMT_R8G8B8A8_SINT:         return WGPUTextureFormat_RGBA8Sint;
         case FMT_R16G16B16A16_FLOAT:    return WGPUTextureFormat_RGBA16Float;
         case FMT_R32G32B32A32_FLOAT:    return WGPUTextureFormat_RGBA32Float;
+        case FMT_R32G32B32A32_UINT:     return WGPUTextureFormat_RGBA32Uint;
+        case FMT_R32G32B32A32_SINT:     return WGPUTextureFormat_RGBA32Sint;
+
+        case FMT_B8G8R8A8_UNORM:        return WGPUTextureFormat_BGRA8Unorm;
+
+        case FMT_A2B10G10R10_UNORM:     return WGPUTextureFormat_RGB10A2Unorm;
+        case FMT_A2B10G10R10_UINT:      return WGPUTextureFormat_RGB10A2Uint;
+
+        case FMT_D16_UNORM:             return WGPUTextureFormat_Depth16Unorm;
         case FMT_D32_UNORM:             return WGPUTextureFormat_Depth32Float;
-        case FMT_R8_UNORM:              return WGPUTextureFormat_R8Unorm;
-        case FMT_R8G8_UNORM:            return WGPUTextureFormat_RG8Unorm;
+        case FMT_D32_S8_UNORM:          return WGPUTextureFormat_Depth32FloatStencil8;
+
         default:                        return WGPUTextureFormat_Undefined;
         }
     }

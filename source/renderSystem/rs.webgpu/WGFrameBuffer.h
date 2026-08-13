@@ -18,5 +18,6 @@ namespace   FE
         virtual ~WGFrameBuffer();
 
         virtual bool    create(const CreateInfo& cInf) override;
+        virtual bool    resize(const uint3& dims) override;
     };
 }

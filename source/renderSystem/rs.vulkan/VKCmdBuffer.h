@@ -24,8 +24,11 @@ namespace   FE
         virtual FEResult    setViewport(uint first,uint cnt,const Viewport*)    override;
         virtual FEResult    setScissor(uint first,uint cnt,const RectU32*)      override;
          
-        virtual FEResult    beginRenderPass(BeginInfo& rs)  override;
-        virtual FEResult    endRenderPass()                 override;
+        virtual FEResult    beginRenderPass(BeginInfo& rs)  ;
+        virtual FEResult    endRenderPass()                 ;
+
+        virtual FEResult    beginRender(const RenderInfo& rs)   override;
+        virtual FEResult    endRender(const RenderInfo& rs) override;
          
         virtual FEResult    bindPipeline(Pipeline  pl)      override;
         virtual FEResult    bindDescriptors(const DSetBind&)override;
@@ -82,5 +85,7 @@ namespace   FE
 
         virtual FEResult    end() override;
         virtual FEResult    submit(Queue) override;
+    protected:
+        VkImage     _colorImage =   nullptr;
     };
 }

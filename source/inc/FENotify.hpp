@@ -8,8 +8,8 @@ namespace   FE
     /// <summary>
     /// 标记状态发生变化通知
     /// </summary>
-    using   NFlagChange     =   std::function<void(Object sender)>;
-    using   NFlagChangeMap  =   std::map<void*,NFlagChange>;
+    using   NChange     =   std::function<void(Object sender)>;
+    using   NChangeMap  =   std::map<void*,NChange>;
 
     DEFINE_CLASS_UUID(FENotify,"{AD26120E-AF65-4426-BC73-9047217D55EE}");
 
@@ -23,27 +23,28 @@ namespace   FE
         {}
         FENotify(const FENotify& other)
             :FEObject(other)
-        {}
-        void    addFlagChangedNotify(void* pKey,const NFlagChange& notify)
         {
-            _NFlagChanges[pKey] =   notify;
+            _NChanges   =   other._NChanges;
         }
-        void    removeFlagChangedNotify(void* pKey,const NFlagChange& notify)
+        void    addNotify(void* pKey,const NChange& notify)
+        {
+            _NChanges[pKey] =   notify;
+        }
+        void    removeNotify(void* pKey,const NChange& notify)
         {
 
             (void)pKey;
             (void)notify;
-            _NFlagChanges.erase(pKey);
+            _NChanges.erase(pKey);
         }
-
         void    fireNotify()
         {
-            onFlagChanged(this);
+            onChanged(this);
         }
     protected:
-        void    onFlagChanged(Object sender) const
+        void    onChanged(Object sender) const
         {
-            for (auto& var : _NFlagChanges)
+            for (auto& var : _NChanges)
             {
                 if (!var.second)    
                     continue;
@@ -51,7 +52,7 @@ namespace   FE
             }
         }
     public:
-        NFlagChangeMap  _NFlagChanges;
+        NChangeMap  _NChanges;
     };
 
     using   Notify      =   SharedPtr<FENotify>;

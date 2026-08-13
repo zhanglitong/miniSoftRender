@@ -384,9 +384,6 @@ static SpvReflectResult ReadU32(
   uint32_t             word_offset,
   uint32_t*            p_value)
 {
-  assert(IsNotNull(p_parser));
-  assert(IsNotNull(p_parser->spirv_code));
-  assert(InRange(p_parser, word_offset));
   SpvReflectResult result = SPV_REFLECT_RESULT_ERROR_SPIRV_UNEXPECTED_EOF;
   if (IsNotNull(p_parser) && IsNotNull(p_parser->spirv_code) && InRange(p_parser, word_offset)) {
     *p_value = *(p_parser->spirv_code + word_offset);

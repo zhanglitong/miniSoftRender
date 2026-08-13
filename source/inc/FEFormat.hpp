@@ -116,6 +116,7 @@ namespace   FE
         
         FMT_D16_UNORM           ,
         FMT_D32_UNORM           ,
+        FMT_D32_S8_UNORM        ,
         FMT_MAX                 ,
     };
 

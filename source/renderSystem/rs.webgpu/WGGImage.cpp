@@ -2,6 +2,7 @@
 #include    "WGDevice.h"
 #include    "WGGImageView.h"
 
+
 namespace   FE
 {
     WGGImage::~WGGImage()
@@ -18,19 +19,36 @@ namespace   FE
         _cInfo =   info;
         auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
 
-        WGPUTextureDescriptor textureDesc = {};
-        textureDesc.nextInChain =   nullptr;
-        textureDesc.size = { info._width,info._height,info._depth };
-        textureDesc.mipLevelCount =   info._mips;
-        textureDesc.sampleCount =   1;
-        textureDesc.dimension =   WGPUTextureDimension_2D;
-        textureDesc.format =   wgDevice.getWGPUTextureFormat(info._format);
-        textureDesc.usage =   WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_RenderAttachment;
-        textureDesc.viewFormatCount =   0;
-        textureDesc.viewFormats =   nullptr;
+        WGPUTextureFormat wgpuFormat = system2Native(info._format);
+        if (wgpuFormat == WGPUTextureFormat_Undefined)
+        {
+            wgpuFormat = wgDevice.getWGPUTextureFormat(info._format);
+        }
 
-        _native =   wgpuDeviceCreateTexture(wgDevice.device(),&textureDesc);
-        return _native != nullptr;
+        if (wgpuFormat == WGPUTextureFormat_Undefined)
+        {
+            LOG_ERR("WGGImage::create: unsupported format %d", (int)info._format);
+            return false;
+        }
+
+        WGPUTextureDescriptor textureDesc = {};
+        textureDesc.nextInChain     =   nullptr;
+        textureDesc.size            =   { info._width,info._height,info._depth };
+        textureDesc.mipLevelCount   =   info._mips;
+        textureDesc.sampleCount     =   1;
+        textureDesc.dimension       =   WGPUTextureDimension_2D;
+        textureDesc.format          =   wgpuFormat;
+        textureDesc.usage           =   WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_RenderAttachment;
+        textureDesc.viewFormatCount =   0;
+        textureDesc.viewFormats     =   nullptr;
+        _native                     =   wgpuDeviceCreateTexture(wgDevice.device(),&textureDesc);
+        if (!_native)
+        {
+            LOG_ERR("WGGImage::create: wgpuDeviceCreateTexture failed (format=%d, size=%ux%ux%u)",
+                (int)wgpuFormat, info._width, info._height, info._depth);
+            return false;
+        }
+        return true;
     }
 
     GImgView WGGImage::createView()

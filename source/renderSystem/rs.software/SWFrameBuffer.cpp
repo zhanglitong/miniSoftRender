@@ -12,4 +12,9 @@ namespace   FE
         _cInfo  =   info;
         return  true;
     }
+
+    bool    SWFrameBuffer::resize(const uint3& )
+    {
+        return  true;
+    }
 }

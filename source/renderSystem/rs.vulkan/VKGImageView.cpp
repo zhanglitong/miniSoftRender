@@ -12,6 +12,7 @@ namespace   FE
 
     bool    VKGImageView::create(const VKGImageView::CreateInfo& info)
     {
+        _cInfo              =   info;
         auto&   vkDevice    =   (VKDevice&)_ctx.device();
         auto    device      =   vkDevice.logicalDevice();
         

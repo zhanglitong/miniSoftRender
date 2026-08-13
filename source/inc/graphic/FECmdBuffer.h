@@ -34,6 +34,15 @@ namespace   FE
             float       _clearDepth     =   1.0f;
             uint        _clearStencil   =   0;
         };
+
+        struct  RenderInfo
+        {
+            FrameBuffer _frameBuffer;
+            RectU32     _rect;    
+            float4      _clearColor     =   float4(0,0,0,1);
+            float       _clearDepth     =   1.0f;
+            uint        _clearStencil   =   0;
+        };
         struct  Viewport
         {
             float    x;
@@ -78,8 +87,8 @@ namespace   FE
         virtual FEResult    setViewport(uint first,uint cnt,const Viewport*)    =   0;
         virtual FEResult    setScissor(uint first,uint cnt,const RectU32*)      =   0;
          
-        virtual FEResult    beginRenderPass(BeginInfo&)         =   0;
-        virtual FEResult    endRenderPass()                     =   0;
+        virtual FEResult    beginRender(const RenderInfo& rs)   =   0;
+        virtual FEResult    endRender(const RenderInfo& rs)     =   0;
          
         virtual FEResult    bindPipeline(Pipeline  pl)          =   0;
         virtual FEResult    bindDescriptors(const DSetBind& dss)=   0;

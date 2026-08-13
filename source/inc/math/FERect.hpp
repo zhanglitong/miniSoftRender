@@ -23,6 +23,7 @@ namespace   FE
             _right  =   right;
             _bottom =   bottom;
         }
+
         /// <summary>
         /// ππ‘Ï
         /// </summary>
@@ -38,7 +39,7 @@ namespace   FE
             _right      =   T(right);
             _bottom     =   T(bottom);
         }
-        explicit TRect(const TRect& right )
+        TRect(const TRect& right )
         {
             _left       =   T(right._left);
             _top        =   T(right._top);

@@ -68,7 +68,7 @@ namespace   FE
         return FEResult::ER_SUCCESS;
     }
 
-    FEResult WGCmdBuffer::beginRenderPass(BeginInfo& rs)
+    FEResult WGCmdBuffer::beginRender(const RenderInfo& rs)
     {
         if (!_encoder)
             return FEResult::ER_FAILED;
@@ -107,7 +107,7 @@ namespace   FE
         return FEResult::ER_SUCCESS;
     }
 
-    FEResult WGCmdBuffer::endRenderPass()
+    FEResult WGCmdBuffer::endRender(const RenderInfo& )
     {
         if (_renderPassEncoder)
         {

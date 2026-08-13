@@ -68,6 +68,9 @@ namespace   FE
         }
     };
 
+
+    #define UNUSED(x) (void)(x)
+
     #define UUIDOF(CLASS)       FE::UUIDTraits<CLASS>::property().classId()
 
     #define CLS_PROPERTY(CLASS) FE::UUIDTraits<CLASS>::property().property()
@@ -195,6 +198,8 @@ namespace   FE
     };
 
     using   Flags       =   FEFlags<FlagBit,int32_t>;
+
+
    
     class   FE_API  FEObject :public FEReference<Flags>
     {
@@ -273,7 +278,16 @@ namespace   FE
         {
             return  _flags;
         }
-        
+        template<typename TFlag>
+        const  TFlag&       flagsAs() const
+        {
+            return  (TFlag&)_flags;
+        }
+        template<typename TFlag>
+        inline  TFlag&      flagsAs() 
+        {
+            return  (TFlag&)_flags;
+        }
         /// <summary>
         /// 写入,返回写入的字节数
         /// 基类中实现数据头的写入，以及自身的数据写入

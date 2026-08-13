@@ -31,7 +31,7 @@ namespace   FE
         
             // Depth attachment
             VkAttachmentDescription&    depth   =    attachments[1];
-            depth.format            =   VK_FORMAT_D32_SFLOAT;
+            depth.format            =   system2Native(cInfo._depthFmt);;
             depth.samples           =   VK_SAMPLE_COUNT_1_BIT;
             depth.loadOp            =   VK_ATTACHMENT_LOAD_OP_CLEAR;
             depth.storeOp           =   VK_ATTACHMENT_STORE_OP_STORE;

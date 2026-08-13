@@ -107,6 +107,8 @@ namespace   FE
     FEContext::FEContext()
     {
         _log    =   new FELog(*this,"log.txt");
+        _anchor =   new FEAnchor(*this);
+
         systemInitialize(*this);
     }
     FEContext::~FEContext()

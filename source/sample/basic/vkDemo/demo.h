@@ -17,7 +17,5 @@ namespace   FE
     public:
         void    messageNotify(const FEMessage& msgIn);
         void    main();
-    protected:
-        Node    createGrid();
     };
 }

@@ -25,9 +25,13 @@ namespace   FE
         uint32      instVersion =   0;
         vkEnumerateInstanceVersion(&instVersion);
 
-        /// uint32_t    major       =   VK_VERSION_MAJOR(instVersion);
-        /// uint32_t    minor       =   VK_VERSION_MINOR(instVersion);
-        /// uint32_t    patch       =   VK_VERSION_PATCH(instVersion);
+        uint32_t    major       =   VK_VERSION_MAJOR(instVersion);
+        uint32_t    minor       =   VK_VERSION_MINOR(instVersion);
+        uint32_t    patch       =   VK_VERSION_PATCH(instVersion);
+
+        (void)major;
+        (void)minor;
+        (void)patch;    
 
         VkApplicationInfo   appInfo{};
         appInfo.sType                   =   VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -77,12 +81,12 @@ namespace   FE
             debugCreateInfo.sType           =   VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
             debugCreateInfo.messageSeverity =   VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+                                                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                                                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
             debugCreateInfo.messageType     =   VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+                                                | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                                                | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
             debugCreateInfo.pfnUserCallback =   VKRenderSystem::debugCallback;
             debugCreateInfo.pUserData       =   this;

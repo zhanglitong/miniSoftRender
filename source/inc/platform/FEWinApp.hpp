@@ -23,6 +23,7 @@ namespace   FE
         {}
     protected:
         bool        _resizing   =   false;
+        int2        _mouse      =   int2(0,0);
     public:
         /// 
         /// </summary>
@@ -229,28 +230,98 @@ namespace   FE
                 onMessage(MsgKeyUp((uint)wParam));
                 break;
             case WM_LBUTTONDOWN:
-                onMessage(MsgLButtonDown(int2(LOWORD(lParam), HIWORD(lParam))));
+                {
+                    FEMouseInfo info;
+                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._states.addFlag(FEMouseInfo::LButtonPressed);
+
+                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
+                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
+                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    onMessage(MsgLButtonDown(info));
+                }
                 break;
             case WM_RBUTTONDOWN:
-                onMessage(MsgRButtonDown(int2(LOWORD(lParam), HIWORD(lParam))));
+                {
+                    FEMouseInfo info;
+                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._states.addFlag(FEMouseInfo::RButtonPressed);
+
+                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
+                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
+                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    onMessage(MsgRButtonDown(info));
+                }
                 break;
             case WM_MBUTTONDOWN:
-                onMessage(MsgMButtonDown(int2(LOWORD(lParam), HIWORD(lParam))));
+                {
+                    FEMouseInfo info;
+                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._states.addFlag(FEMouseInfo::MButtonPressed);
+
+                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
+                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
+                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    onMessage(MsgMButtonDown(info));
+                }
                 break;
             case WM_LBUTTONUP:
-                onMessage(MsgLButtonUp(int2(LOWORD(lParam), HIWORD(lParam))));
+                {
+                    FEMouseInfo info;
+                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+
+                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
+                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
+                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    onMessage(MsgLButtonUp(info));
+                }
                 break;
             case WM_RBUTTONUP:
-                onMessage(MsgRButtonUp(int2(LOWORD(lParam), HIWORD(lParam))));
+                {
+                    FEMouseInfo info;
+                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+
+                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
+                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
+                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    onMessage(MsgRButtonUp(info));
+                }
                 break;
             case WM_MBUTTONUP:
-                onMessage(MsgMButtonUp(int2(LOWORD(lParam), HIWORD(lParam))));
+                {
+                    FEMouseInfo info;
+                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+
+                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
+                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
+                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    onMessage(MsgMButtonUp(info));
+                }
                 break;
             case WM_MOUSEWHEEL:
                 onMessage(MsgMouseWheel(FEMouseWheel(int2(LOWORD(lParam), HIWORD(lParam)),GET_WHEEL_DELTA_WPARAM(wParam))));
                 break;
             case WM_MOUSEMOVE:
-                onMessage(MsgMouseMove(int2(LOWORD(lParam), HIWORD(lParam))));
+                {
+                    FEMouseInfo info;
+                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._old   =   _mouse;
+                    _mouse      =   info._mouse;
+
+                    if (wParam & MK_LBUTTON)    info._states.addFlag(FEMouseInfo::LButtonPressed);
+                    if (wParam & MK_MBUTTON)    info._states.addFlag(FEMouseInfo::MButtonPressed);
+                    if (wParam & MK_RBUTTON)    info._states.addFlag(FEMouseInfo::RButtonPressed);
+
+                    if (wParam & MK_XBUTTON1)   info._states.addFlag(FEMouseInfo::XButton1Pressed);
+                    if (wParam & MK_XBUTTON2)   info._states.addFlag(FEMouseInfo::XButton2Pressed);
+
+                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
+                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
+                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    
+                    onMessage(MsgMouseMove(info));
+                }
+                
                 break;
             case WM_SIZE:
                 if (wParam != SIZE_MINIMIZED)

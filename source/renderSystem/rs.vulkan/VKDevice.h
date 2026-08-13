@@ -89,7 +89,7 @@ namespace   FE
 
 		VkFormat	getSupportedDepthFormat(bool checkSamplingSupport);
         /// <summary>
-        /// ��ѯ�Ƿ�֧�ָ�������չ
+        /// 
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>

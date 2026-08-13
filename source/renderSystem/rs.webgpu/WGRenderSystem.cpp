@@ -37,14 +37,18 @@ namespace   FE
     WGRenderSystem::WGRenderSystem(FEContext& ctx)
         :FERenderSystem(ctx)
     {
+        WGPUInstanceFeatureName instanceFeatures[] = { WGPUInstanceFeatureName_ShaderSourceSPIRV };
+
         WGPUInstanceDescriptor instanceDesc = {};
-        instanceDesc.nextInChain =   nullptr;
+        instanceDesc.nextInChain            =   nullptr;
+        instanceDesc.requiredFeatureCount   =   1;
+        instanceDesc.requiredFeatures       =   instanceFeatures;
 
         _native =   wgpuCreateInstance(&instanceDesc);
         if (_native)
         {
             wgpuSetLogCallback(log_callback,this);
-            wgpuSetLogLevel(WGPULogLevel_Warn);
+            wgpuSetLogLevel(WGPULogLevel_Debug);
         }
     }
 
@@ -88,55 +92,25 @@ namespace   FE
         }
     }
 
-    struct WGPUAdapterResult
-    {
-        WGPUAdapter _adapter;
-    };
-
-    static void handle_request_adapter(WGPURequestAdapterStatus status,WGPUAdapter adapter,WGPUStringView message,void* userdata1,void* userdata2)
-    {
-        (void)userdata2;
-        if (status == WGPURequestAdapterStatus_Success)
-        {
-            WGPUAdapterResult* pAResult = (WGPUAdapterResult*)userdata1;
-            pAResult->_adapter = adapter;
-        }
-        else
-        {
-            printf(" request_adapter status=%#.8x message=%.*s\n",status,(int)message.length,message.data);
-        }
-    }
 
     GPUs WGRenderSystem::gpuListImpl() const
     {
         if (!_native)
             return {};
 
-        GPUs gpus;
+        GPUs    gpus;
 
-        WGPURequestAdapterOptions adapterOpts = {};
-        adapterOpts.nextInChain =   nullptr;
-        adapterOpts.compatibleSurface =   nullptr;
-        adapterOpts.powerPreference =   WGPUPowerPreference_HighPerformance;
-        adapterOpts.forceFallbackAdapter =   false;
+        size_t  adapterCnt  =   wgpuInstanceEnumerateAdapters(_native, nullptr, nullptr);
+        auto    adapters    =   new WGPUAdapter[adapterCnt];
+        assert(adapters);
+        wgpuInstanceEnumerateAdapters(_native, nullptr, adapters);
 
-        WGPURequestAdapterCallbackInfo callbackInfo = {};
-        callbackInfo.nextInChain =   nullptr;
-        callbackInfo.callback =   handle_request_adapter;
-
-        WGPUAdapterResult result;
-        callbackInfo.userdata1 =   &result;
-        callbackInfo.userdata2 =   nullptr;
-
-        wgpuInstanceRequestAdapter(_native,&adapterOpts,callbackInfo);
-
-        if (result._adapter)
+        for (size_t i = 0; i < adapterCnt; i++) 
         {
-            _adapter =   result._adapter;
-
-            GPU gpuInf = {};
-            WGPUAdapterInfo info = {};
-            wgpuAdapterGetInfo(result._adapter,&info);
+            GPU             gpuInf  =   {};
+            WGPUAdapter     adapter =   adapters[i];
+            WGPUAdapterInfo info    =   {0};
+            wgpuAdapterGetInfo(adapter, &info);
 
             switch (info.adapterType)
             {
@@ -158,12 +132,16 @@ namespace   FE
             gpuInf.gpuId._32[1] =   info.deviceID;
             gpuInf.gpuId._32[2] =   info.backendType;
             gpuInf.gpuId._32[3] =   info.subgroupMaxSize;
-            gpuInf.gpu =   result._adapter;
+            gpuInf.gpu          =   adapter;
 
             wgpuAdapterInfoFreeMembers(info);
 
             gpus.push_back(gpuInf);
+
+            wgpuAdapterRelease(adapter);
         }
+
+        delete  []adapters;
 
         return gpus;
     }
