@@ -207,27 +207,29 @@ namespace   FE
         }
     }
     
-    bool        VKSwapchain::acquireNextImage(uint64 timeout, Semaphore sem, Fence fence,uint& imageIndex)
+    Frame        VKSwapchain::acquireNextFrame(uint64 timeout)
     {
         if (!isValid())
-            return  false;
+            return  nullptr;
+        size_t  index           =   (_curFrame ++ )%_frames.size();
+        Frame   frame           =   _frames[index];
+
         auto&   vkDevice        =   (VKDevice&)(_ctx.device());
-        //auto    physicalDevice  =   vkDevice.physicalDevice();
         auto    device          =   vkDevice.logicalDevice();
-        //auto    instance        =   (VkInstance)vkDevice.renderSystem().native();
-        auto    nativeSem       =   sem ? (VkSemaphore)sem->native() : nullptr;
-        auto    nativeFence     =   fence ? (VkFence)fence->native() : nullptr;
-        auto    result          =   vkAcquireNextImageKHR(device, _native, timeout, nativeSem, nativeFence, &imageIndex);
+        auto    nativeSem       =   frame->_semPresentComplete ? (VkSemaphore)frame->_semPresentComplete->native() : nullptr;
+        auto    result          =   vkAcquireNextImageKHR(device, _native, timeout, nativeSem, nullptr, &frame->_imageIdx);
         assert (result == VK_SUCCESS);
         if (result == VK_SUCCESS)
-            return  true;
+            return  frame;
         else
-            return    false;
+            return  frame;
     }
-    GImgViews   VKSwapchain::imageViews() const
+
+    Frames      VKSwapchain::frames() const 
     {
-        return  _imageViews;
+        return  _frames;
     }
+    
     bool        VKSwapchain::create(const VKSwapchain::CreateInfo& info)
     {
         _cInfo =   info;
@@ -241,10 +243,8 @@ namespace   FE
 
     bool        VKSwapchain::queuePresent(const PresentInfo& pInfo)
     {
-        //auto        physicalDevice  =   vkDevice.physicalDevice();
-
         VkSemaphore         nativeSems[1]   =   {};
-                            nativeSems[0]   =   pInfo._sem   ? (VkSemaphore)(pInfo._sem->native()) : nullptr;
+                            nativeSems[0]   =   pInfo._frame->_semRenderComplete   ? (VkSemaphore)(pInfo._frame->_semRenderComplete->native()) : nullptr;
         VkQueue             nativeQueue     =   pInfo._queue ? (VkQueue)(pInfo._queue->native()) : nullptr;
         VkPresentInfoKHR    presentInfo{};
         presentInfo.sType               =   VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -252,10 +252,12 @@ namespace   FE
         presentInfo.pWaitSemaphores     =   nativeSems;
         presentInfo.swapchainCount      =   1;
         presentInfo.pSwapchains         =   &_native;
-        presentInfo.pImageIndices       =   &pInfo._imageIndex;
+        presentInfo.pImageIndices       =   &pInfo._frame->_imageIdx;
         auto    result  =   vkQueuePresentKHR(nativeQueue, &presentInfo);
         return  result == VK_SUCCESS;
     }
+
+
     void        VKSwapchain::create(uint32_t& width, uint32_t& height, bool vsync, bool /*fullscreen*/)
     {
         auto&       vkDevice        =   (VKDevice&)(_ctx.device());
@@ -391,10 +393,17 @@ namespace   FE
 
         _images.clear();
         _images.resize(imageCount);
-        _imageViews.resize(imageCount);
+        _frames.resize(imageCount);
         for (uint i = 0; i < imageCount; i++)
         {
             _images[i]  =   new VKGImage(_ctx,images[i],true);
+            _frames[i]  =   new FEFrame(_ctx);
+            _frames[i]->_fenceWait            =   _ctx.device().createFence();
+            _frames[i]->_fenceWait->create({});
+            _frames[i]->_semPresentComplete   =   _ctx.device().createSemaphore();
+            _frames[i]->_semPresentComplete->create({});
+            _frames[i]->_semRenderComplete    =   _ctx.device().createSemaphore();
+            _frames[i]->_semRenderComplete->create({});
         }
         for (size_t i = 0; i < images.size(); i++)
         {
@@ -415,8 +424,8 @@ namespace   FE
             VK_CHECK_RESULT(vkCreateImageView(device, &colorAttachmentView, nullptr, &vkImgView));
             if (vkImgView)
             {
-                auto    vkView  =   new VKGImageView(_ctx,vkImgView,false);
-                _imageViews[i]  =   vkView;
+                auto    vkView              =   new VKGImageView(_ctx,vkImgView,false);
+                _frames[i]->_imageViewer    =   vkView;
                 vkView->setImage(_images[i]);
             }
         }
@@ -439,6 +448,8 @@ namespace   FE
         }
         surface     =    VK_NULL_HANDLE;
         _native     =    VK_NULL_HANDLE;
+
+        _frames.clear();
     }
     
 }

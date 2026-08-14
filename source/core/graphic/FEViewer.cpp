@@ -106,14 +106,8 @@ namespace   FE
     }
     void    FEViewer::onRender(const MsgRender& msg)
     {
-        /// 如果没有指定FBO，则使用当前场景的FBO
-        auto    fbo     =   _fbo;
-        if (fbo == nullptr)
-        {
-            fbo = _ctx.scene()->currentFBO();
-        }
-        uint    width   =   fbo->cInfo()._width;  
-        uint    height  =   fbo->cInfo()._height;
+        uint    width   =   _fbo ? _fbo->cInfo()._width : _ctx.windowsWidth();  
+        uint    height  =   _fbo ? _fbo->cInfo()._height: _ctx.windowsHeight();  
         auto    cmd     =   msg._info._cmdBuffer;
         FECmdBuffer::Viewport   viewPort    =   
         {

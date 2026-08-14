@@ -3,12 +3,11 @@
 #include    "FEPlatform.h"
 #include    "FEInput.hpp"
 #include    "FEMessage.hpp"
+#include    "FEWindow.hpp"
 
 namespace   FE
 {
-    class   FEApp
-        :public FEObject
-        ,public FEInput
+    class   FEApp :public FEWindow
     {
     public:
         struct  CreateInfo
@@ -24,10 +23,10 @@ namespace   FE
         CreateInfo  _cInfo;
     public:
         FEApp(FEContext& ctx)
-            :FEObject(ctx)
+            :FEWindow(ctx)
         {}
         FEApp(const FEApp& other)
-            :FEObject(other)
+            :FEWindow(other)
         {
         }
         virtual ~FEApp()
@@ -36,6 +35,7 @@ namespace   FE
         {
             return  _cInfo;
         }
+        virtual RectU32 rect() const override   =   0;
         /// <summary>
         /// 
         /// </summary>
@@ -52,16 +52,18 @@ namespace   FE
         virtual String  filePathName()  =   0;
         virtual String  path()  =   0;
         /// <summary>
-        /// 
+        /// Ïú»Ù
         /// </summary>
         virtual void    destroy()   =   0;
+        /// <summary>
+        /// »æÖÆÒ»Ö¡
+        /// </summary>
         virtual void    renderOneFrame()    =   0;
         virtual void    onMessage(const FEMessage& msg) override 
         {
             if (_cInfo._notify)
                 _cInfo._notify(msg);
         }
-
     };
     using   App      =   SharedPtr<FEApp>;
 }

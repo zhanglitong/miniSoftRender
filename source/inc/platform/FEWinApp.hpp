@@ -25,6 +25,14 @@ namespace   FE
         bool        _resizing   =   false;
         int2        _mouse      =   int2(0,0);
     public:
+        virtual RectU32 rect() const override 
+        {
+            RECT    rect    =   {};
+            GetClientRect((HWND)_cInfo._window,&rect);
+
+            RectU32 result(rect.left,rect.top,rect.right,rect.bottom);
+            return  result;
+        }
         /// 
         /// </summary>
         /// <param name="cInf"></param>
@@ -192,7 +200,8 @@ namespace   FE
         virtual String  filePathName() override
         {
             char    szTemp[2048]    =   {};
-            GetModuleFileNameA(nullptr,szTemp,sizeof(szTemp));
+            auto    result  =   GetModuleFileNameA(nullptr,szTemp,sizeof(szTemp));
+            assert(result < sizeof(szTemp));
             return  szTemp;
         }
         virtual String  path() override

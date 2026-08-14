@@ -20,7 +20,7 @@ namespace   FE
             _native =   nullptr;
         }
         _images.clear();
-        _imageViews.clear();
+        _frames.clear();
     }
 
     void WGSwapchain::initSurface(void* platformHandle,void* platformWindow)
@@ -30,14 +30,14 @@ namespace   FE
 
         WGPUSurfaceSourceWindowsHWND windowsDesc = {};
         windowsDesc.chain.sType =   WGPUSType_SurfaceSourceWindowsHWND;
-        windowsDesc.hinstance =   (HINSTANCE)platformHandle;
-        windowsDesc.hwnd =   (HWND)platformWindow;
+        windowsDesc.hinstance   =   (HINSTANCE)platformHandle;
+        windowsDesc.hwnd        =   (HWND)platformWindow;
 
         surfaceDesc.nextInChain =   &windowsDesc.chain;
 
-        auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
-        auto& renderSys = wgDevice.renderSystem();
-        _native =   wgpuInstanceCreateSurface(renderSys.instance(),&surfaceDesc);
+        auto& wgDevice  =   const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
+        auto& renderSys =   wgDevice.renderSystem();
+        _native         =   wgpuInstanceCreateSurface(renderSys.instance(),&surfaceDesc);
     }
 
     bool WGSwapchain::create(const CreateInfo& info)
@@ -56,27 +56,25 @@ namespace   FE
 
         WGPUSurfaceConfiguration config = {};
         config.nextInChain =   nullptr;
-        config.device =   wgDevice.device();
-        config.format =   _colorFormat;
-        config.usage =   WGPUTextureUsage_RenderAttachment;
-        config.width =   info._width;
-        config.height =   info._height;
-        config.viewFormatCount =   0;
-        config.viewFormats =   nullptr;
-        config.alphaMode =   WGPUCompositeAlphaMode_Opaque;
-        config.presentMode =   WGPUPresentMode_Fifo;
+        config.device           =   wgDevice.device();
+        config.format           =   _colorFormat;
+        config.usage            =   WGPUTextureUsage_RenderAttachment;
+        config.width            =   info._width;
+        config.height           =   info._height;
+        config.viewFormatCount  =   0;
+        config.viewFormats      =   nullptr;
+        config.alphaMode        =   WGPUCompositeAlphaMode_Opaque;
+        config.presentMode      =   WGPUPresentMode_Fifo;
 
         wgpuSurfaceConfigure(_native,&config);
         return true;
     }
 
-    bool WGSwapchain::acquireNextImage(uint64 timeout,Semaphore sem,Fence fence,uint& imageIndex)
+    Frame   WGSwapchain::acquireNextFrame(uint64 timeout)
     {
         (void)timeout;
-        (void)sem;
-        (void)fence;
         if (!_native)
-            return false;
+            return nullptr;
 
         if (_currentTexture)
         {
@@ -90,18 +88,17 @@ namespace   FE
         if (surfaceTexture.status == WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal ||
             surfaceTexture.status == WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal)
         {
-            _currentTexture =   surfaceTexture.texture;
-            _currentImageIndex =   0;
-            imageIndex =   _currentImageIndex;
-            return true;
+            _currentTexture     =   surfaceTexture.texture;
+            _currentImageIndex  =   0;
+            return nullptr;
         }
 
-        return false;
+        return nullptr;
     }
 
-    GImgViews WGSwapchain::imageViews() const
+    Frames  WGSwapchain::frames() const
     {
-        return _imageViews;
+        return _frames;
     }
 
     bool WGSwapchain::queuePresent(const PresentInfo& pInfo)

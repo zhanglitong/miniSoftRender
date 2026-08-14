@@ -23,8 +23,8 @@ namespace   FE
         {}
         virtual ~VKSwapchain();
     public:
-        virtual bool        acquireNextImage(uint64 timeout, Semaphore sem, Fence fence,uint& imageIndex)  override;
-        virtual GImgViews   imageViews() const override;
+        virtual Frame       acquireNextFrame(uint64 timeout)  override;
+        virtual Frames      frames() const override;
         virtual bool        create(const CreateInfo& info)  override;
         virtual bool        queuePresent(const PresentInfo& pInfo) override;
         virtual FEFormat    colorFormat() const 
@@ -66,6 +66,8 @@ namespace   FE
         VkColorSpaceKHR     _colorSpace         {};
         VkSurfaceKHR        surface             { VK_NULL_HANDLE };
         GImages             _images             {};  
+        Frames              _frames             {};
+        size_t              _curFrame           {};
         GImgViews           _imageViews         {};
 
     };

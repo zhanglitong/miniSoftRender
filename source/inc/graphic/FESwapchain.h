@@ -5,6 +5,7 @@
 #include    "FEFence.h"
 #include    "FESemaphore.h"
 #include    "FEQueue.h"
+#include    "FEFrame.h"
 
 namespace   FE
 {
@@ -24,9 +25,8 @@ namespace   FE
         };
         struct  PresentInfo
         {
-            Semaphore   _sem;
-            uint        _imageIndex;
             Queue       _queue;
+            Frame       _frame;
         };
         CreateInfo  _cInfo;
     public:
@@ -41,8 +41,8 @@ namespace   FE
             return  _cInfo;
         }
     public:
-        virtual bool        acquireNextImage(uint64 timeout, Semaphore sem, Fence fence,uint& imageIndex)   =   0;
-        virtual GImgViews   imageViews() const  =   0;
+        virtual Frame       acquireNextFrame(uint64 timeout)   =   0;
+        virtual Frames      frames() const = 0;
         virtual bool        create(const CreateInfo& info)  =   0;
 
         virtual bool        queuePresent(const PresentInfo& pInfo)    =   0;

@@ -169,13 +169,26 @@ namespace   FE
 
     void    FEScene::onFrameStart()
     {
-        auto&   frame   =   _frames[currentFrame()];
-        frame._cmd->reset();
-        frame._cmd->begin();
+        if (_swapchain == nullptr)
+            return;
+        _frame  =   _swapchain->acquireNextFrame(UINT64_MAX);
+
+        if (_frame == nullptr)
+            return;
+        if (_frame->_cmd == nullptr)
+        {
+            _frame->_cmd    =   _cmdPool->createCmd();
+        }
+        if (_frame->_cmd)
+        {
+            _frame->_cmd->reset();
+            _frame->_cmd->begin();
+            _frame->reset();
+        }
+        
     }
     void    FEScene::onFrameUpdate()
     {
-        auto&   frame       =   _frames[currentFrame()];
         auto    factorys    =   _factorys.objects();
        
         std::sort(factorys.begin(),factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
@@ -190,7 +203,7 @@ namespace   FE
         aabb3dr aabb;
         for (auto& var : factorys)
         {
-            var->update(frame._cmd);
+            var->update(_frame->_cmd);
             aabb.merge(var->aabb());
         }
         auto    diff    =   _camera->getEye() - aabb.center();
@@ -200,24 +213,21 @@ namespace   FE
         _camera->setFar(length);
         _camera->update();
 
-        _updateQueue.update(frame._cmd);
+        _updateQueue.update(_frame->_cmd);
     }
     void    FEScene::onFrameRender()
     {
-        auto&   frame       =   _frames[currentFrame()];
-
-        frame._fenceWait->wait(UINT64_MAX);
-        frame._fenceWait->reset();
-        
-        _swapchain->acquireNextImage(UINT64_MAX,frame._semPresentComplete,nullptr,_curImgIdx);
+        if (_frame == nullptr)
+            return;
 
         uint    width       =   _app->cInfo()._width;
         uint    height      =   _app->cInfo()._height;
         FECmdBuffer::RenderInfo  rsInfo  =   {};
-        rsInfo._frameBuffer =   _frameBuffers[_curImgIdx];
+        rsInfo._depth       =   _depthView;
+        rsInfo._colors      =   {_frame->_imageViewer};
         rsInfo._rect.set(0,0,width,height);
 
-        frame._cmd->beginRender(rsInfo);
+        _frame->_cmd->beginRender(rsInfo);
 
         FECmdBuffer::Viewport   viewPort    =   
         {
@@ -225,8 +235,8 @@ namespace   FE
         };
         RectU32     rect(0,0,width,height);
         
-        frame._cmd->setViewport(0,  1,  &viewPort);
-        frame._cmd->setScissor(0,   1,  &rect);
+        _frame->_cmd->setViewport(0,  1,  &viewPort);
+        _frame->_cmd->setScissor(0,   1,  &rect);
 
         RFactorys   factorys    =   _factorys.objects();
         {
@@ -243,34 +253,30 @@ namespace   FE
 
         for (auto viewer : _viewerMgr.objects())
         {
-            FEFramInfo  info    =  {0,frame._cmd};
+            FEFramInfo  info    =  {0,_frame->_cmd};
             viewer->onMessage(MsgRender(info));
         }
-        frame._cmd->endRender(rsInfo);
+        _frame->_cmd->endRender(rsInfo);
         
     }
     void    FEScene::onFrameEnd()
     {
-        auto&   frame   =   _frames[currentFrame()];
-        frame._cmd->end();
+        if (_frame && _frame->_cmd )
+        {
+            _frame->_cmd->end();
+        }
 
         auto    queue   =   _device->queueGraphic();
 
         FEQueue::SubmitInfo smInfo;
-        smInfo._cmds                =   {frame._cmd};
-        smInfo._presentCompleteSems =   {frame._semPresentComplete};
-        smInfo._renderCompleteSems  =   {frame._semRenderComplete};
+        smInfo._frame   =   _frame;
 
-        queue->submit(1,&smInfo,    frame._fenceWait);
+        queue->submit(1,&smInfo);
         FESwapchain::PresentInfo    info    =   {};
 
-        info._imageIndex    =   _curImgIdx;
-        info._queue         =   queue;
-        info._sem           =   frame._semRenderComplete;
-
+        info._frame     =   _frame;
+        info._queue     =   queue;
         _swapchain->queuePresent(info);
-
-        nextFrame();
     }
 
     void    FEScene::onMessage(const FEMessage& msgIn)
@@ -338,9 +344,8 @@ namespace   FE
         _mousePoint =   nullptr;
 
         _cmdPool    =   nullptr;
-        _frames.clear();
-        _frameBuffers.clear();
-        _curIndex   =   0;
+        _frame      =   nullptr;
+        _frame      =   nullptr;
         _imgDepth   =   nullptr;
         _depthView  =   nullptr;
         
@@ -391,16 +396,6 @@ namespace   FE
         }
     }
 
-    uint    FEScene::currentFrame() const
-    {
-        return  _curIndex;
-    }
-    uint    FEScene::nextFrame()
-    {
-        ++_curIndex;
-        _curIndex   %=  (uint)_frameBuffers.size();
-        return  _curIndex;
-    }
 
     void    FEScene::initializeBuildin(FEDevice& device)
     {
@@ -428,8 +423,7 @@ namespace   FE
 
     void    FEScene::initializeQueue()
     {
-        /// ������ӵ����¶���
-        /// �����и���,���ͬ����UBO��
+        /// 
         updateQueue().addObject(_camera.get(),[&](CMDPtr cmd,FEUpdateObject& uData)
         {
             if (uData._gpu == nullptr)
@@ -476,8 +470,7 @@ namespace   FE
             {
                 uData._gpu->resize(uData._gpu->cInfo()._length + sizeof(CameraData) * 16);
                 uData._cpu->resize(uData._gpu->cInfo()._length + sizeof(CameraData) * 16);
-                /// ȡ��������֪ͨ����
-                /// ֪ͨʹ���ߣ����°󶨣�����������
+                /// 
                 uData._gpu->flags().addFlag(FLAG_UPDATE);
                 uData._gpu->as<FENotify>()->fireNotify();
             }
@@ -571,37 +564,7 @@ namespace   FE
             _imgDepth->create(info);
             _depthView  =   _imgDepth->createView();
         }
-        if (_swapchain)
-        {
-            auto    views   =   _swapchain->imageViews();
-            _frameBuffers.clear();
-            for (auto& color : views)
-            {
-                FrameBuffer fbo     =   _device->createFrameBuffer();
-                FEFrameBuffer::CreateInfo infor   =   {};
-                infor._renderPass   =   _renderPass;
-                infor._colors       =   {color};
-                infor._depth        =   _depthView;
-                infor._width        =   _app->cInfo()._width;
-                infor._height       =   _app->cInfo()._height;
-                fbo->create(infor);
-                _frameBuffers.push_back(fbo);
-            }
-        }
-        _frames.clear();
-
-        for (size_t i = 0; i < _frameBuffers.size(); i++)
-        {
-            Frame   frame;
-            frame._cmd                  =   _cmdPool->createCmd();
-            frame._fenceWait            =   _device->createFence();
-            frame._fenceWait->create({});
-            frame._semPresentComplete   =   _device->createSemaphore();
-            frame._semPresentComplete->create({});
-            frame._semRenderComplete    =   _device->createSemaphore();
-            frame._semRenderComplete->create({});
-            _frames.emplace_back(frame);
-        }
+        
         assert(_camera != nullptr);
 
         if (_camera)
@@ -614,7 +577,6 @@ namespace   FE
             viewer->onMessage(evt);
         }
         _device->waitIdle();
-        _curIndex   =   0;
     }
 
     Nodes   FEScene::loadNode(Material mat)

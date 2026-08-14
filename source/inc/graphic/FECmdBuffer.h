@@ -37,7 +37,8 @@ namespace   FE
 
         struct  RenderInfo
         {
-            FrameBuffer _frameBuffer;
+            GImgView    _depth          =   nullptr;
+            GImgViews   _colors;
             RectU32     _rect;    
             float4      _clearColor     =   float4(0,0,0,1);
             float       _clearDepth     =   1.0f;

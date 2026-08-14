@@ -16,6 +16,6 @@ namespace   FE
         {}
         virtual ~SWQueue();
 
-        virtual bool    submit(uint cnt,const SubmitInfo* pInfo, Fence fence) override;
+        virtual bool    submit(uint cnt,const SubmitInfo* pInfo) override;
     };
 }

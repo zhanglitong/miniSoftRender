@@ -17,7 +17,10 @@
 
 layout  (location = 0)  in  vec3    aPos;
 layout  (location = 1)  in  vec3    aNormal;
-layout  (location = 2)  in  mat4    aModel;
+layout  (location = 2)  in  vec4    aModelC0;
+layout  (location = 3)  in  vec4    aModelC1;
+layout  (location = 4)  in  vec4    aModelC2;
+layout  (location = 5)  in  vec4    aModelC3;
 
 
 
@@ -62,14 +65,19 @@ layout (location = 1) out vec3 outNormal;
 
 out gl_PerVertex 
 {
-    vec4 gl_Position;   
+    vec4    gl_Position; 
+    float   gl_PointSize;
 };
 
 
 void main() 
 {
+	mat4    aModel = mat4(aModelC0, aModelC1, aModelC2, aModelC3);
 	vec4    world   =   aModel * vec4(aPos, 1.0);
-    outNormal       =   mat3(transpose(inverse(aModel))) * aNormal;  
+    // Use normal matrix as transpose of inverse (assuming uniform scale)
+    outNormal       =   (aModel * vec4(aNormal, 0.0)).xyz;  
     outWorld        =   world.xyz;
 	gl_Position     =   _camera._p * _camera._v  * world;
+    /// 
+    gl_PointSize    =   1.0;
 }

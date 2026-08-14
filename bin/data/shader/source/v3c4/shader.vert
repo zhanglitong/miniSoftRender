@@ -8,7 +8,10 @@ layout  (location = 1) in vec4  inColor;
 layout  (location = 2) in vec4  instanceColor;
 layout  (location = 3) in uint  instanceFlagBits;
 
-layout  (location = 4) in mat4 matLocal;
+layout  (location = 4) in vec4  matLocalC0;
+layout  (location = 5) in vec4  matLocalC1;
+layout  (location = 6) in vec4  matLocalC2;
+layout  (location = 7) in vec4  matLocalC3;
 
 
 layout (binding = SB_Camera) uniform CameraBlock
@@ -26,8 +29,11 @@ vec4   instColor()
 
 void main() 
 {
+    mat4 matLocal = mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
     
     outColor            =   inColor  * instColor() ;
     flagBits            =   instanceFlagBits;
     gl_Position         =   _camera._p * _camera._v  * matLocal * vec4(inPos.xyz, 1.0);
+    /// 
+    gl_PointSize        =   1.0;
 }

@@ -109,35 +109,40 @@ namespace   FE
 
     FEResult    VKCmdBuffer::beginRender(const RenderInfo& rs)
     {
-        // New structures are used to define the attachments used in dynamic rendering
-        if (rs._frameBuffer == nullptr)
-            return  FEResult::ER_FAILED;
-        RectU32     rect    =   rs._rect;
-        auto&       cInfo   =   rs._frameBuffer->cInfo();
-        VkImageView cView   =   cInfo._colors.empty() ? nullptr  : (VkImageView)cInfo._colors.front()->native();
-        VkImageView dView   =   cInfo._depth == nullptr ? nullptr: (VkImageView)cInfo._depth->native();
+        constexpr   size_t  nMax    =   32;
+        RectU32     rect            =   rs._rect;
+        VkImageView cViews[nMax]    =   {};
+        size_t      nCnt            =   (std::min<size_t>)(nMax,rs._colors.size());
 
-        auto        colorImage =   cInfo._colors.front()->cInfo()._image;
-        auto        depthImage =   cInfo._depth->cInfo()._image;
-
+        for (size_t i = 0; i < nCnt; i++)
+        {
+            cViews[i]   =   (VkImageView)rs._colors[i]->native();
+        }
+        VkImageView dView       =   rs._depth == nullptr ? nullptr: (VkImageView)rs._depth->native();
+        auto        depthImage  =   rs._depth->cInfo()._image;
 
         /// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
         /// This set of barriers prepares the color and depth images for output
-        if (colorImage && colorImage->cInfo()._layout != IL_COLOR_ATTACHMENT_OPTIMAL)
+        for (size_t i = 0; i < nCnt; i++)
         {
-            auto    cImage  =   (VkImage)(colorImage->native());
-            insertImageMemoryBarrier(
-                _native,
-                cImage,
-                0,
-                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                system2Native(colorImage->cInfo()._layout),
-                system2Native(IL_COLOR_ATTACHMENT_OPTIMAL),
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
-            colorImage->setLayout(IL_COLOR_ATTACHMENT_OPTIMAL);
+            auto    colorImage =   rs._colors[i]->cInfo()._image;
+            if (colorImage && colorImage->cInfo()._layout != IL_COLOR_ATTACHMENT_OPTIMAL)
+            {
+                auto    cImage  =   (VkImage)(colorImage->native());
+                insertImageMemoryBarrier(
+                    _native,
+                    cImage,
+                    0,
+                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    system2Native(colorImage->cInfo()._layout),
+                    system2Native(IL_COLOR_ATTACHMENT_OPTIMAL),
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+                colorImage->setLayout(IL_COLOR_ATTACHMENT_OPTIMAL);
+            }
         }
+        
         if (depthImage &&  depthImage->cInfo()._layout != IL_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
         {
             auto    dImage  =   (VkImage)(depthImage->native());
@@ -154,14 +159,15 @@ namespace   FE
             depthImage->setLayout(IL_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
         }
 
-        VkRenderingAttachmentInfoKHR cAttachment    =   {};
+        VkRenderingAttachmentInfoKHR cAttachments[nMax] =   {};
+        for (size_t i = 0; i < nCnt; i++)
         {
-            cAttachment.sType               =   VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-            cAttachment.imageView           =   cView;
-            cAttachment.imageLayout         =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            cAttachment.loadOp              =   VK_ATTACHMENT_LOAD_OP_CLEAR;
-            cAttachment.storeOp             =   VK_ATTACHMENT_STORE_OP_STORE;
-            cAttachment.clearValue.color    =   {0.0f,0.0f,0.0f,0.0f};
+            cAttachments[i].sType               =   VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+            cAttachments[i].imageView           =   cViews[i];
+            cAttachments[i].imageLayout         =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            cAttachments[i].loadOp              =   VK_ATTACHMENT_LOAD_OP_CLEAR;
+            cAttachments[i].storeOp             =   VK_ATTACHMENT_STORE_OP_STORE;
+            cAttachments[i].clearValue.color    =   {0.0f,0.0f,0.0f,0.0f};
         }
 			
         VkRenderingAttachmentInfoKHR dsAttachment   =   {};
@@ -179,8 +185,8 @@ namespace   FE
             rInfo.sType                 =   VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
             rInfo.renderArea            =   {(int)rect.left(), (int)rect.top(), rect.width(), rect.height() };
             rInfo.layerCount            =   1;
-            rInfo.colorAttachmentCount  =   1;
-            rInfo.pColorAttachments     =   &cAttachment;
+            rInfo.colorAttachmentCount  =   nCnt;
+            rInfo.pColorAttachments     =   cAttachments;
             rInfo.pDepthAttachment      =   &dsAttachment;
             rInfo.pStencilAttachment    =   &dsAttachment;
         };
@@ -199,29 +205,27 @@ namespace   FE
             vkCmdEndRendering(_native);
 
         /// ²¼¾Ö×ª»»
-        // New structures are used to define the attachments used in dynamic rendering
-        if (rs._frameBuffer == nullptr)
-            return  FEResult::ER_FAILED;
-        auto&       cInfo       =   rs._frameBuffer->cInfo();
-        auto        colorImage  =   cInfo._colors.front()->cInfo()._image;
+        constexpr   size_t  nMax    =   32;
+        size_t      nCnt            =   (std::min<size_t>)(nMax,rs._colors.size());
 
-
-        /// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
-        /// This set of barriers prepares the color and depth images for output
-        if (colorImage && colorImage->cInfo()._layout != IL_PRESENT_SRC)
+        for (size_t i = 0; i < nCnt; i++)
         {
-            auto    cImage  =   (VkImage)(colorImage->native());
-            insertImageMemoryBarrier(
-                _native,
-                cImage,
-                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_MEMORY_READ_BIT,
-                system2Native(colorImage->cInfo()._layout),
-                system2Native(IL_PRESENT_SRC),
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
-            colorImage->setLayout(IL_PRESENT_SRC);
+            auto    colorImage =   rs._colors[i]->cInfo()._image;
+            if (colorImage && colorImage->cInfo()._layout != IL_PRESENT_SRC)
+            {
+                auto    cImage  =   (VkImage)(colorImage->native());
+                insertImageMemoryBarrier(
+                    _native,
+                    cImage,
+                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_MEMORY_READ_BIT,
+                    system2Native(colorImage->cInfo()._layout),
+                    system2Native(IL_PRESENT_SRC),
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+                colorImage->setLayout(IL_PRESENT_SRC);
+            }
         }
         return  FEResult::ER_SUCCESS;
     }

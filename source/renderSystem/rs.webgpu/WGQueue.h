@@ -18,6 +18,6 @@ namespace   FE
         {}
         virtual ~WGQueue();
 
-        virtual bool    submit(uint cnt,const SubmitInfo* pInfo,Fence fence) override;
+        virtual bool    submit(uint cnt,const SubmitInfo* pInfo) override;
     };
 }

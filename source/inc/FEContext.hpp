@@ -121,6 +121,10 @@ namespace FE
         {
             return  _window ? _window->height() : MaxUint32;
         }
+        void        setWindow(Window window)
+        {
+            _window =   window;
+        }
     public:
         static  FFReader&   readers();
         static  FFWriter&   writers();

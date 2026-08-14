@@ -4,6 +4,7 @@
 #include    "FEFence.h"
 #include    "FECmdBuffer.h"
 #include    "FESemaphore.h"
+#include    "FEFrame.h"
 
 namespace   FE
 {
@@ -17,9 +18,7 @@ namespace   FE
         {};
         struct  SubmitInfo
         {
-            CMDPtrs     _cmds;
-            Semaphores  _presentCompleteSems;
-            Semaphores  _renderCompleteSems;
+            Frame       _frame;
             uint        _mask   =   0;
         };
     public:
@@ -29,7 +28,7 @@ namespace   FE
         FEQueue(const FEQueue& other)
             :RSObject(other)
         {}
-        virtual bool    submit(uint cnt,const SubmitInfo* pInfo, Fence fence) =   0;
+        virtual bool    submit(uint cnt,const SubmitInfo* pInfo) =   0;
     };
     using   QCreateInfo =   FEQueue::CreateInfo;
     using   Queue       =   SharedPtr<FEQueue>;

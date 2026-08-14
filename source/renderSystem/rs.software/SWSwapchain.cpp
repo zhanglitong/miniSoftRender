@@ -9,18 +9,15 @@ namespace   FE
         cleanup();
     }
 
-    bool    SWSwapchain::acquireNextImage(uint64 timeout, Semaphore sem, Fence fence,uint& imageIndex)
+    Frame    SWSwapchain::acquireNextFrame(uint64 timeout)
     {
         (void)timeout;
-        (void)sem;
-        (void)fence;
-        (void)imageIndex;
-        return  true;
+        return  nullptr;
     }
 
-    GImgViews   SWSwapchain::imageViews() const
+    Frames  SWSwapchain::frames() const
     {
-        return  _imageViews;
+        return  {};
     }
 
     bool    SWSwapchain::create(const SWSwapchain::CreateInfo& info)

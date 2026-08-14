@@ -23,9 +23,9 @@ namespace   FE
         virtual ~FEWindow()
         {
         }
-        virtual RectU32 rect() const = 0;
+        virtual RectU32     rect() const = 0;
 
-        inline uint32_t    width() const
+        inline uint32_t     width() const
         {
             return  rect().width();
         }

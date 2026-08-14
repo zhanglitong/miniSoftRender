@@ -18,8 +18,8 @@ namespace   FE
         {}
         virtual ~WGSwapchain();
 
-        virtual bool    acquireNextImage(uint64 timeout,Semaphore sem,Fence fence,uint& imageIndex) override;
-        virtual GImgViews    imageViews() const override;
+        virtual Frame   acquireNextFrame(uint64 timeout) override;
+        virtual Frames  frames() const override;
         virtual bool    create(const CreateInfo& info) override;
         virtual bool    queuePresent(const PresentInfo& pInfo) override;
         virtual FEFormat    colorFormat() const override;
@@ -27,10 +27,10 @@ namespace   FE
         void    initSurface(void* platformHandle,void* platformWindow);
 
     protected:
-        GImages        _images;
-        GImgViews      _imageViews;
-        uint32_t       _currentImageIndex    =   0;
-        WGPUTexture    _currentTexture       =   nullptr;
+        GImages         _images;
+        Frames          _frames;
+        uint32_t        _currentImageIndex    =   0;
+        WGPUTexture     _currentTexture       =   nullptr;
         WGPUTextureFormat    _colorFormat    =   WGPUTextureFormat_BGRA8Unorm;
     };
 }

@@ -15,6 +15,7 @@ namespace   FE
         _app    =   FE::FEAppHelper::create(_ctx,info);
         if (_app == nullptr)
             return;
+        _ctx.setWindow(_app.get());
         _ctx.setWorkPath(_app->path());
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);

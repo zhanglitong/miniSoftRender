@@ -7,11 +7,10 @@ namespace   FE
     {
     }
 
-    bool    SWQueue::submit(uint cnt,const FEQueue::SubmitInfo* pInfo, Fence fence)
+    bool    SWQueue::submit(uint cnt,const FEQueue::SubmitInfo* pInfo)
     {
         (void)cnt;
         (void)pInfo;
-        (void)fence;
         return  true;
     }
 }

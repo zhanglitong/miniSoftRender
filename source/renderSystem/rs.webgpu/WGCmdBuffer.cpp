@@ -334,7 +334,7 @@ namespace   FE
             return FEResult::ER_FAILED;
 
         FEQueue::SubmitInfo submitInfo;
-        submitInfo._cmds.push_back(this);
-        return queue->submit(1,&submitInfo,nullptr) ? FEResult::ER_SUCCESS : FEResult::ER_FAILED;
+        submitInfo._frame   =   nullptr;
+        return queue->submit(1,&submitInfo) ? FEResult::ER_SUCCESS : FEResult::ER_FAILED;
     }
 }

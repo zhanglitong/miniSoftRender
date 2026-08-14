@@ -7,30 +7,30 @@ namespace   FE
     VKQueue::~VKQueue()
     {
     }
-    bool    VKQueue::submit(uint cnt,const FEQueue::SubmitInfo* pInfo, Fence fence)
+    bool    VKQueue::submit(uint cnt,const FEQueue::SubmitInfo* pInfo)
     {
         if (!isValid() || cnt == 0 || pInfo == nullptr)
             return  false;
        
-        VkCommandBuffer vkCmds[8]   =    {};
-        uint            cmdCnt      =    (std::min<uint>)(8,    (uint)pInfo->_cmds.size());
-        for (size_t i = 0; i < cmdCnt; i++)
+        VkCommandBuffer vkCmds[4]   =    {};
+        uint            cmdCnt      =    pInfo ? 1:0;
+        if (pInfo && pInfo->_frame->_cmd)
         {
-            vkCmds[i]    =    (VkCommandBuffer)pInfo->_cmds[i]->native();
+            vkCmds[0]    =    (VkCommandBuffer)pInfo->_frame->_cmd->native();
         }
-        VkFence         nativeFence =   fence ? (VkFence)fence->native() : nullptr;
-        VkSemaphore     waitSem[8]  =   {};
-        VkSemaphore     signSem[8]  =   {};
-        uint            waitCnt     =   (std::min<uint>)(8, (uint)pInfo->_presentCompleteSems.size());
-        uint            signCnt     =   (std::min<uint>)(8, (uint)pInfo->_renderCompleteSems.size());
+        VkFence         nativeFence =   (pInfo && pInfo->_frame && pInfo->_frame->_fenceWait) ? (VkFence)pInfo->_frame->_fenceWait->native() : nullptr;
+        VkSemaphore     waitSem[4]  =   {};
+        VkSemaphore     signSem[4]  =   {};
+        uint            waitCnt     =  (pInfo && pInfo->_frame && pInfo->_frame->_semPresentComplete) ? 1:0;
+        uint            signCnt     =  (pInfo && pInfo->_frame && pInfo->_frame->_semRenderComplete)  ? 1:0;
 
-        for (size_t i = 0; i < waitCnt; i++)
+        if(waitCnt != 0)
         {
-            waitSem[i]    =    (VkSemaphore)pInfo->_presentCompleteSems[i]->native();
+            waitSem[0]    =    (VkSemaphore)pInfo->_frame->_semPresentComplete->native();
         }
-        for (size_t i = 0; i < signCnt; i++)
+        if(signCnt)
         {
-            signSem[i]    =    (VkSemaphore)pInfo->_renderCompleteSems[i]->native();
+            signSem[0]    =    (VkSemaphore)pInfo->_frame->_semRenderComplete->native();
         }
 
         VkPipelineStageFlags    waitStageMask   =    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;

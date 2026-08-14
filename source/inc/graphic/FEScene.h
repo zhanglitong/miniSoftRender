@@ -21,6 +21,7 @@
 #include    "FEDSetLayout.h"
 #include    "FEFactoryMgr.hpp"
 #include    "FEViewerMgr.hpp"
+#include    "FEFrame.h"
 
 namespace   FE
 {
@@ -30,15 +31,6 @@ namespace   FE
     {
     public:
         friend  class   FEContext;
-    public:
-        struct  Frame
-        {
-            CMDPtr      _cmd;
-            Fence       _fenceWait;
-            Semaphore   _semRenderComplete;
-            Semaphore   _semPresentComplete;
-        };
-        
         using   Frames          =   std::vector<Frame>;
     public:
         using   NotifyUpdate    =   std::function<void()>;   
@@ -98,9 +90,9 @@ namespace   FE
         {
             return  _viewerMgr;
         }
-        inline  FBOPtr  currentFBO() const
+        inline  Frame  currentFrame() const
         {
-            return  _frameBuffers[_curImgIdx];
+            return  _frame;
         }
         virtual bool    setup(App app);
         virtual void    test();
@@ -138,16 +130,6 @@ namespace   FE
         /// </summary>
         void    loadPipelines();
         /// <summary>
-        /// 获取当前帧索引
-        /// </summary>
-        /// <returns></returns>
-        uint    currentFrame() const;
-        /// <summary>
-        /// 切换到下一帧
-        /// </summary>
-        /// <returns></returns>
-        uint    nextFrame();
-        /// <summary>
         /// 初始化内置的数据
         /// </summary>
         void    initializeBuildin(FEDevice& device);
@@ -161,14 +143,6 @@ namespace   FE
         FENodeTree          _nodeTree;
         FEFactoryMgr        _factorys;
         FEViewerMgr         _viewerMgr;
-        /// <summary>
-        /// 目前系统有两个队列，前台与后台
-        /// </summary>
-        uint                _curIndex   =   0;
-        /// <summary>
-        /// fbo的索引，fbo的数量可能多于对列数量
-        /// </summary>
-        uint                _curImgIdx  =   0;
         FEUpdateQueue       _updateQueue;
         Camera              _camera;
         RenderSys           _renderSys;
@@ -176,11 +150,9 @@ namespace   FE
         Swapchain           _swapchain;
         RenderPass          _renderPass;
         CMDPool             _cmdPool;
-        Frames              _frames;
-        FrameBuffers        _frameBuffers;
         GImage              _imgDepth   =   nullptr;
         GImgView            _depthView  =   nullptr;
-
+        Frame               _frame;
         Node                _mousePoint;
         aabb3dr             _aabb;
     };
