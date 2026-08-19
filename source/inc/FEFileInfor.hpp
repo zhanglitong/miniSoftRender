@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMath.hpp"
 #include    "FEDefine.h"
 #include    <filesystem>
@@ -10,7 +10,7 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// »ñÈ¡ÎÄ¼ş´óĞ¡
+        /// è·å–æ–‡ä»¶å¤§å°
         /// </summary>
         /// <param name="filePathName"></param>
         /// <returns></returns>
@@ -28,12 +28,12 @@ namespace   FE
             }
         }
         /// <summary>
-        /// »ñÈ¡ÎÄ¼şÃû³Æ£¬²»´øÀ©Õ¹Ãû
+        /// è·å–æ–‡ä»¶åç§°ï¼Œä¸å¸¦æ‰©å±•å
         /// c:/xx/yy/tt.x
         /// return tt
         /// </summary>
-        /// <param name="fullPath">È«Â·¾¶</param>
-        /// <returns>·µ»ØÎÄ¼şÃû³Æ£¬²»´øÀ©Õ¹Ãû²¿·Ö</returns>
+        /// <param name="fullPath">å…¨è·¯å¾„</param>
+        /// <returns>è¿”å›æ–‡ä»¶åç§°ï¼Œä¸å¸¦æ‰©å±•åéƒ¨åˆ†</returns>
         static  String  fileStem(const char* fullPath)
         {
             fs::path filePath(fullPath);

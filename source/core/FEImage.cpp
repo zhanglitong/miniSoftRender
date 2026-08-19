@@ -1,4 +1,4 @@
-
+﻿
 #include    "../inc/FEImage.h"
 #include    "../inc/FEReaderHelper.hpp"
 #include    "../inc/FEWriterHelper.hpp"
@@ -14,6 +14,7 @@ namespace   FE
             info._extent    =   uint3(w,h,1);
             info._format    =   fmt;
             auto    result  =   create(info);
+            UNUSED(result);
             assert(result);
         }
     }

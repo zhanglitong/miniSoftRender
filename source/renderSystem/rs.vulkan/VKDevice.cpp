@@ -1,4 +1,4 @@
-
+ï»¿
 #include    "VKDevice.h"
 #include    "VKRenderSystem.h"
 
@@ -29,7 +29,7 @@ namespace   FE
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
         VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
         /// <summary>
-        /// Ê¹ÓÃ¶¯Ì¬äÖÈ¾
+        /// ä½¿ç”¨åŠ¨æ€æ¸²æŸ“
         /// </summary>
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
     };
@@ -452,9 +452,9 @@ namespace   FE
             dynamicState3Features.sType =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
             dynamicState3Features.pNext =   nullptr;
 
-            /// ¸ù¾İĞèÇóÆôÓÃ¹¦ÄÜ£¬ÀıÈçÆôÓÃ¶¯Ì¬ÉèÖÃ¶à±ßĞÎÄ£Ê½ºÍ¹âÕ¤»¯²ÉÑùÊı
+            /// æ ¹æ®éœ€æ±‚å¯ç”¨åŠŸèƒ½ï¼Œä¾‹å¦‚å¯ç”¨åŠ¨æ€è®¾ç½®å¤šè¾¹å½¢æ¨¡å¼å’Œå…‰æ …åŒ–é‡‡æ ·æ•°
             dynamicState3Features.extendedDynamicState3PolygonMode          =   VK_TRUE;          
-            /// ¶ÔÓ¦ vkCmdSetPolygonModeEXT[reference:9]
+            /// å¯¹åº” vkCmdSetPolygonModeEXT[reference:9]
             dynamicState3Features.extendedDynamicState3RasterizationSamples =   VK_TRUE; 
             deviceCreateInfo.pNext      =   &dynamicState3Features;
 

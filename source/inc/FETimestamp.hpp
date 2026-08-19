@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEDateTime.hpp"
 
@@ -20,7 +20,7 @@ namespace   FE
             _nano   =   FEDateTime::now().nanoSeconds();
         }
         /// <summary>
-        /// ·µ»ØÏûºÄÊ±¼ä£¬µ¥Î»Ãë
+        /// è¿”å›æ¶ˆè€—æ—¶é—´ï¼Œå•ä½ç§’
         /// </summary>
         /// <returns></returns>
         inline  double  second() const
@@ -28,7 +28,7 @@ namespace   FE
             return  nano() * 0.000000001;
         }
         /// <summary>
-        /// ·µ»ØÏûºÄÊ±¼ä£¬µ¥Î»ºÁÃë
+        /// è¿”å›æ¶ˆè€—æ—¶é—´ï¼Œå•ä½æ¯«ç§’
         /// </summary>
         /// <returns></returns>
         inline  double  milliSec() const
@@ -36,7 +36,7 @@ namespace   FE
             return  nano() * 0.000001;
         }
         /// <summary>
-        /// ·µ»ØÏûºÄÊ±¼ä£¬µ¥Î»Î¢Ãë
+        /// è¿”å›æ¶ˆè€—æ—¶é—´ï¼Œå•ä½å¾®ç§’
         /// </summary>
         /// <returns></returns>
         inline  double  microSec() const
@@ -44,7 +44,7 @@ namespace   FE
             return  nano() * 0.001;
         }
         /// <summary>
-        /// ·µ»ØÏûºÄÊ±¼ä£¬µ¥Î»ÄÉÃë
+        /// è¿”å›æ¶ˆè€—æ—¶é—´ï¼Œå•ä½çº³ç§’
         /// </summary>
         /// <returns></returns>
         inline  double  nano() const

@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    "FEShaderRT.h"
 #include    "../inc/FEMath.hpp"
 

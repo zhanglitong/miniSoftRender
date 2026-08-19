@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <type_traits>
 #include    <functional>
@@ -21,16 +21,16 @@
 namespace   FE
 {
     /// <summary>
-    /// ¸ù¾İ mesh ĞÅÏ¢ Éú³ÉµÄÎ¨Ò»ÀàĞÍkey
+    /// æ ¹æ® mesh ä¿¡æ¯ ç”Ÿæˆçš„å”¯ä¸€ç±»å‹key
     /// </summary>
     struct  MeshKey 
     {
         /// <summary>
-        /// Í¼ÔªÀàĞÍ _primitive + _drawType + _slotBits ¾ö¶¨ÀàĞÍ
+        /// å›¾å…ƒç±»å‹ _primitive + _drawType + _slotBits å†³å®šç±»å‹
         /// </summary>
         EPrimitive      _primitive  =   PRI_POINTS;
         /// <summary>
-        /// »æÖÆÀàĞÍ 
+        /// ç»˜åˆ¶ç±»å‹ 
         /// </summary>
         EDrawType       _drawType   =   DRAW_ARRAY;
         /// <summary>
@@ -38,11 +38,11 @@ namespace   FE
         /// </summary>
         uint32          _sn         =   0;
         /// <summary>
-        /// ÓĞÄÄĞ©²Û
+        /// æœ‰å“ªäº›æ§½
         /// </summary>
         InputSlotBits   _slotBits   =   InputSlotBits();
         /// <summary>
-        /// Éú³ÉKey
+        /// ç”ŸæˆKey
         /// </summary>
         /// <returns></returns>
         uint64  key() const
@@ -53,7 +53,7 @@ namespace   FE
             return  value;
         }
         /// <summary>
-        /// ´ÓÒ»¸ö keyÖĞİÍÈ¡¶ÔÓ¦Öµ
+        /// ä»ä¸€ä¸ª keyä¸­èƒå–å¯¹åº”å€¼
         /// </summary>
         /// <param name="value"></param>
         void    setValue(uint64 value)
@@ -64,9 +64,9 @@ namespace   FE
     };
 
     /// <summary>
-    /// Ò»¸öÊôĞÔ¶ÔÓ¦Ò»¸ö»º³åÇø£¬ÀıÈçÎ»ÖÃÊôĞÔ£¬¶ÔÓ¦Ò»¸öFEMeshBuffer
-    /// ²ÉÓÃ¶ÀÁ¢ÊôĞÔ»º³åÇø·½Ê½
-    /// Ò²Ö§³Ö½»´í»º³åÇø·½Ê½(¼´¸øÊôĞÔÒ»¸ö·ûºÏÖµ)
+    /// ä¸€ä¸ªå±æ€§å¯¹åº”ä¸€ä¸ªç¼“å†²åŒºï¼Œä¾‹å¦‚ä½ç½®å±æ€§ï¼Œå¯¹åº”ä¸€ä¸ªFEMeshBuffer
+    /// é‡‡ç”¨ç‹¬ç«‹å±æ€§ç¼“å†²åŒºæ–¹å¼
+    /// ä¹Ÿæ”¯æŒäº¤é”™ç¼“å†²åŒºæ–¹å¼(å³ç»™å±æ€§ä¸€ä¸ªç¬¦åˆå€¼)
     /// </summary>
     DEFINE_CLASS_UUID(FEMesh,"{5D2E9492-6AE3-451F-9539-E44CF817C351}");
     class   FEMesh :public FEObject
@@ -86,7 +86,7 @@ namespace   FE
         virtual ~FEMesh()
         {}
         /// <summary>
-        /// »ñÈ¡ËùÓĞÍ¼ÔªÊı¾İ
+        /// è·å–æ‰€æœ‰å›¾å…ƒæ•°æ®
         /// </summary>
         /// <returns></returns>
         const   auto&   primitives() const
@@ -94,7 +94,7 @@ namespace   FE
             return  _primitives;
         }
         /// <summary>
-        /// ÉèÖÃÍ¼ÔªÊı¾İ
+        /// è®¾ç½®å›¾å…ƒæ•°æ®
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
@@ -119,7 +119,7 @@ namespace   FE
             return  _buffers;
         }
         /// <summary>
-        /// »ñÈ¡£¬ÓĞ¿ÉÄÜ·µ»Ønullptr
+        /// è·å–ï¼Œæœ‰å¯èƒ½è¿”å›nullptr
         /// </summary>
         /// <param name="attrId"></param>
         /// <returns></returns>
@@ -133,7 +133,7 @@ namespace   FE
             return  (FEMeshBuffer*)nullptr;
         }
         /// <summary>
-        /// »ñÈ¡»òÕß²åÈë
+        /// è·å–æˆ–è€…æ’å…¥
         /// </summary>
         /// <param name="attrId"></param>
         /// <returns></returns>
@@ -148,7 +148,7 @@ namespace   FE
         }
         
         /// <summary>
-        /// Çå³ıËùÓĞÊı¾İ
+        /// æ¸…é™¤æ‰€æœ‰æ•°æ®
         /// </summary>
         /// <returns></returns>
         inline  auto&   clearBuffers()
@@ -157,7 +157,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// °üÎ§ºĞĞÅÏ¢
+        /// åŒ…å›´ç›’ä¿¡æ¯
         /// </summary>
         /// <returns></returns>
         const   aabb3f& aabb() const
@@ -165,7 +165,7 @@ namespace   FE
             return  _aabb;
         }
         /// <summary>
-        /// »á¸üĞÂ°üÎ§ºĞĞÅÏ¢²¢·µ»Ø
+        /// ä¼šæ›´æ–°åŒ…å›´ç›’ä¿¡æ¯å¹¶è¿”å›
         /// </summary>
         /// <returns></returns>
         const   aabb3f& updateAabb()
@@ -176,7 +176,7 @@ namespace   FE
             return  _aabb;
         }
         /// <summary>
-        /// »ñÈ¡meshµÄËùÓĞÊôĞÔ×é
+        /// è·å–meshçš„æ‰€æœ‰å±æ€§ç»„
         /// </summary>
         /// <returns></returns>
         inline  Attrs   inputs() const
@@ -189,7 +189,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ¼ÆËãkey
+        /// è®¡ç®—key
         /// </summary>
         /// <returns></returns>
         inline  uint64  key(Primitive pri)   const
@@ -203,7 +203,7 @@ namespace   FE
             return  key.key();
         }
         /// <summary>
-        /// Ê°È¡º¯Êı
+        /// æ‹¾å–å‡½æ•°
         /// </summary>
         /// <param name="ray"></param>
         /// <param name="result"></param>
@@ -227,33 +227,33 @@ namespace   FE
         bool    intersect(const Ray& ray, const FEDrawElementUint32*,  const mat4r& mat, FEPickup& result);
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="chunk">Êı¾İÍ·£¬×ÓÀà¿É¸ù¾İÇé¿öĞŞ¸Ä(flags×Ö¶Î)£¬ÊµÏÖÒ»Ğ©ÓÅ»¯´¦Àí</param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="chunk">æ•°æ®å¤´ï¼Œå­ç±»å¯æ ¹æ®æƒ…å†µä¿®æ”¹(flagså­—æ®µ)ï¼Œå®ç°ä¸€äº›ä¼˜åŒ–å¤„ç†</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
-        /// <param name="chk">Êı¾İÍ·£¬×ÓÀà¿É¸ù¾İchk._flags×Ö¶Î¶ÁÈ¡¿ØÖÆ</param>
+        /// <param name="chk">æ•°æ®å¤´ï¼Œå­ç±»å¯æ ¹æ®chk._flagså­—æ®µè¯»å–æ§åˆ¶</param>
         /// <param name="ctx"></param>
         /// <returns></returns>
         virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chk,uint version,FESerializeCtx& ctx) override;
     protected:
         /// <summary>
-        /// °üÎ§ºĞĞÅÏ¢,Í¨¹ı¶¥µãÊôĞÔ²Û¼ÆËãµÃµ½
+        /// åŒ…å›´ç›’ä¿¡æ¯,é€šè¿‡é¡¶ç‚¹å±æ€§æ§½è®¡ç®—å¾—åˆ°
         /// </summary>
         aabb3f          _aabb;
         /// <summary>
-        /// Í¼ÔªÁĞ±í
+        /// å›¾å…ƒåˆ—è¡¨
         /// </summary>
         Primitives      _primitives;
         /// <summary>
-        /// »º³åÇøÊı¾İ
+        /// ç¼“å†²åŒºæ•°æ®
         /// </summary>
         MeshBuffers     _buffers;
        

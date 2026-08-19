@@ -1,4 +1,4 @@
-
+﻿
 #include    <iostream>
 #include    <stdio.h>
 #include    <unordered_set>
@@ -51,7 +51,7 @@ int     main(int argc,char** argv)
         /// child->_trans   =   real3(i,i,i);
         root->addChild(child);
     }
-    /// ͨ��ϵͳ��ȡ���
+    /// 通过系统获取插件
     FEFileFormat    fmt(".fepj","1.0.0.0","FE Buildin Format!");
     fmt._type       =   FEFileFormat::DT_Model;
     fmt._mode       =   FEFileFormat::SM_FILE|FEFileFormat::SM_MEMORY;

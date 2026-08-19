@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEGeometryParam.hpp"
 #include    "detail/FEBoxImpl.hpp"
@@ -11,11 +11,11 @@ namespace   FE
     struct  FEParamBox
     {
         /// <summary>
-        /// Á¢·½ÌåµÄ´óĞ¡
+        /// ç«‹æ–¹ä½“çš„å¤§å°
         /// </summary>
         float3  _size   =   float3(1,1,1);
         /// <summary>
-        /// ·Ö¶ÎÊıÁ¿
+        /// åˆ†æ®µæ•°é‡
         /// </summary>
         uint3   _segs   =   uint3(1,1,1);
     };
@@ -34,7 +34,7 @@ namespace   FE
         virtual ~FEGeometryBox()
         {}
         /// <summary>
-        /// ¸ù¾İÊôĞÔÉú³Émesh
+        /// æ ¹æ®å±æ€§ç”Ÿæˆmesh
         /// </summary>
         /// <param name="attr"></param>
         /// <returns></returns>
@@ -44,7 +44,7 @@ namespace   FE
             bool            attrPos =   false;
             bool            attrNor =   false;
             bool            attrUV  =   false;
-            /// »ñÈ¡²Û¶ÔÓ¦µÄÊµ¼ÊÊôĞÔ¶ÔÏó
+            /// è·å–æ§½å¯¹åº”çš„å®é™…å±æ€§å¯¹è±¡
             for (auto& var : inputs)
             {
                 if (var.slot() & (IS_VERTEX_POS) )         attrPos =    true; 

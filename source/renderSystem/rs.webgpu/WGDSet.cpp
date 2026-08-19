@@ -1,4 +1,4 @@
-#include    "WGDSet.h"
+﻿#include    "WGDSet.h"
 #include    "WGDevice.h"
 #include    "WGDSetLayout.h"
 #include    "WGDSetPool.h"

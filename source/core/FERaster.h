@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FERasterState.h"
 #include    "../inc/graphic/FEPBuffer.h"
@@ -8,8 +8,8 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FERaster,"{C47EFE5F-93E0-4CC6-846D-54BF42246088}");
     /// <summary>
-    /// ¸ÃÀà¸ºÔğ´«Í³¹âÕ¤»¯»æÖÆ
-    /// ½Ó¿Ú¿ÉÒÔ±»ÖØĞ´£¬ÀıÈçGPU»æÖÆ£¬¹âÏß×·×ÙµÈ
+    /// è¯¥ç±»è´Ÿè´£ä¼ ç»Ÿå…‰æ …åŒ–ç»˜åˆ¶
+    /// æ¥å£å¯ä»¥è¢«é‡å†™ï¼Œä¾‹å¦‚GPUç»˜åˆ¶ï¼Œå…‰çº¿è¿½è¸ªç­‰
     /// </summary>
     class   FE_API  FERaster :public FEObject
     {

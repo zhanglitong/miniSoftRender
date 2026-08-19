@@ -1,4 +1,4 @@
-#include    "WGSwapchain.h"
+﻿#include    "WGSwapchain.h"
 #include    "WGDevice.h"
 #include    "WGRenderSystem.h"
 #include    "WGGImage.h"

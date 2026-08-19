@@ -1,11 +1,11 @@
-#pragma     once
+﻿#pragma     once
 
 #include    <stdint.h>
 #include    "FEDefine.h"
 namespace   FE
 {
     /// <summary>
-    /// �ýӿ���ز�Ҫ�����޸�����Ӱ���ļ����л�
+    /// 该接口务必不要擅自修复，会影响文件序列化
     /// </summary>
     class   FEChunkInf
     {
@@ -17,23 +17,23 @@ namespace   FE
             struct 
             {
                 /// <summary>
-                ///  ����  0 - 8bit
+                ///  类型  0 - 8bit
                 /// </summary>
                 uint64_t    _type:8;
                 /// <summary>
-                /// �Ƿ���Ҫд��汾��,���û�б仯���������һ�£�����Բ�д�룬�������
+                /// 是否需要写入版本号,如果没有变化过，与基类一致，则可以不写入，减少体积
                 /// </summary>
                 uint64_t    _hasVersion:1;
                 /// <summary>
-                /// ����Ƿ����Ӷ���
+                /// 标记是否有子对象
                 /// </summary>
                 uint64_t    _hasChild:1;
                 /// <summary>
-                /// ����ʹ�ã�����!!!!��Ĭ��ֵ����1
+                /// 子类使用，慎重!!!!，默认值都是1
                 /// </summary>
                 uint64_t    _flags:14;
                 /// <summary>
-                /// �鳤����Ϣ,������ FEChunkInf ����
+                /// 块长度信息,包含了 FEChunkInf 长度
                 /// </summary>
                 uint64_t    _length:40;
             };

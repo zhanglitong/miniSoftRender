@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEDefine.h"
 #include    "FEVec2.hpp"
@@ -10,12 +10,12 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// ¹¹Ôì
+        /// æ„é€ 
         /// </summary>
-        /// <param name="l">×ó</param>
-        /// <param name="t">ÉÏ</param>
-        /// <param name="r">ÓÒ</param>
-        /// <param name="b">ÏÂ</param>
+        /// <param name="l">å·¦</param>
+        /// <param name="t">ä¸Š</param>
+        /// <param name="r">å³</param>
+        /// <param name="b">ä¸‹</param>
         TRect(T left = 0, T top = 0, T right = 0, T bottom = 0)
         {
             _left   =   left;
@@ -25,12 +25,12 @@ namespace   FE
         }
 
         /// <summary>
-        /// ¹¹Ôì
+        /// æ„é€ 
         /// </summary>
-        /// <param name="l">×ó</param>
-        /// <param name="t">ÉÏ</param>
-        /// <param name="r">ÓÒ</param>
-        /// <param name="b">ÏÂ</param>
+        /// <param name="l">å·¦</param>
+        /// <param name="t">ä¸Š</param>
+        /// <param name="r">å³</param>
+        /// <param name="b">ä¸‹</param>
         template<class U>
         TRect(U left, U top , U right , U bottom )
         {
@@ -55,7 +55,7 @@ namespace   FE
             _bottom     =   T(right._bottom);
         }
         /// <summary>
-        /// Í¨¹ıtvec2<T> ¹¹Ôì
+        /// é€šè¿‡tvec2<T> æ„é€ 
         /// </summary>
         /// <param name="points"></param>
         TRect(std::initializer_list<tvec2<T>> points)
@@ -70,7 +70,7 @@ namespace   FE
             else
             {
                 auto it    =   points.begin();
-                /// ÓÃµÚÒ»¸öµã³õÊ¼»¯±ß½ç
+                /// ç”¨ç¬¬ä¸€ä¸ªç‚¹åˆå§‹åŒ–è¾¹ç•Œ
                 _left   =   it->x;
                 _top    =   it->x;
                 _right  =   it->y;
@@ -96,7 +96,7 @@ namespace   FE
                 && _bottom == 0;
         }
         /// <summary>
-        /// ÊÇ·ñÓĞĞ§
+        /// æ˜¯å¦æœ‰æ•ˆ
         /// </summary>
         /// <returns></returns>
         bool    isValid() const
@@ -184,7 +184,7 @@ namespace   FE
             _bottom +=  val;
         }
         /// <summary>
-        /// ¿í¶È
+        /// å®½åº¦
         /// </summary>
         /// <returns></returns>
         T       width() const
@@ -192,7 +192,7 @@ namespace   FE
             return  _right - _left;
         }
         /// <summary>
-        /// ¸ß¶È
+        /// é«˜åº¦
         /// </summary>
         /// <returns></returns>
         T       height() const
@@ -200,12 +200,12 @@ namespace   FE
             return  _bottom - _top;
         }
         /// <summary>
-        /// ÉèÖÃº¯Êı
+        /// è®¾ç½®å‡½æ•°
         /// </summary>
-        /// <param name="l">×ó</param>
-        /// <param name="t">ÉÏ</param>
-        /// <param name="r">ÓÒ</param>
-        /// <param name="b">ÏÂ</param>
+        /// <param name="l">å·¦</param>
+        /// <param name="t">ä¸Š</param>
+        /// <param name="r">å³</param>
+        /// <param name="b">ä¸‹</param>
         auto&   set(T l,T t,T r,T b)
         {
             _left   =   l;
@@ -230,7 +230,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ´óĞ¡º¯Êı,Ó°Ïìright,bottom
+        /// è®¾ç½®å¤§å°å‡½æ•°,å½±å“right,bottom
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="w"></param>
@@ -246,7 +246,7 @@ namespace   FE
             return  tvec2<T>(_right - _left,_bottom - _top);
         }
         /// <summary>
-        /// ÉèÖÃleftTop£¬²»ĞŞ¸Ä´óĞ¡
+        /// è®¾ç½®leftTopï¼Œä¸ä¿®æ”¹å¤§å°
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="x"></param>
@@ -270,7 +270,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ĞŞ¸ÄÖĞĞÄµã,ÕûÌåÒÆ¶¯
+        /// ä¿®æ”¹ä¸­å¿ƒç‚¹,æ•´ä½“ç§»åŠ¨
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="x"></param>
@@ -289,20 +289,20 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡ÖĞĞÄµã
+        /// è·å–ä¸­å¿ƒç‚¹
         /// </summary>
         /// <returns></returns>
         auto    center() const
         {
-            /// 1. Ê¹ÓÃ x1 + (delta / 2) ·ÀÖ¹ (x1 + x2) ³¬¹ı int ×î´óÖµµ¼ÖÂÒç³ö
-            /// 2. ±àÒëÆ÷»á×Ô¶¯½« / 2 ÓÅ»¯ÎªÎ»ÒÆÖ¸Áî£¬ÎŞĞèÊÖ¶¯Ğ´ >> 1
+            /// 1. ä½¿ç”¨ x1 + (delta / 2) é˜²æ­¢ (x1 + x2) è¶…è¿‡ int æœ€å¤§å€¼å¯¼è‡´æº¢å‡º
+            /// 2. ç¼–è¯‘å™¨ä¼šè‡ªåŠ¨å°† / 2 ä¼˜åŒ–ä¸ºä½ç§»æŒ‡ä»¤ï¼Œæ— éœ€æ‰‹åŠ¨å†™ >> 1
             if constexpr(std::is_integral_v<T>)
                 return  tvec2<T>(_left + (_right - _left)/2, _top + (_bottom - _top)/2);
             else
                 return  tvec2<T>((_left + _right) * 0.5f, (_top + _bottom) * 0.5f);
         }
         /// <summary>
-        /// ÖĞĞÄµã¼Ó°ë¾¶Ä£Ê½,Õı·½ĞÎ
+        /// ä¸­å¿ƒç‚¹åŠ åŠå¾„æ¨¡å¼,æ­£æ–¹å½¢
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -329,7 +329,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÖĞĞÄµã¼ÓË«°ë¾¶Ä£Ê½,³¤·½ĞÎ
+        /// ä¸­å¿ƒç‚¹åŠ åŒåŠå¾„æ¨¡å¼,é•¿æ–¹å½¢
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -361,7 +361,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// µãÔÚ¾ØĞÎÄÚ x->[left,right],y->[top,bottom]
+        /// ç‚¹åœ¨çŸ©å½¢å†… x->[left,right],y->[top,bottom]
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -371,7 +371,7 @@ namespace   FE
             return  x >= _left && x <= _right && y >= _top && y <= _bottom;
         }
         /// <summary>
-        /// ÑÏ¸ñ²»ÖØµş£¨ÓÃÓÚäÖÈ¾²Ã¼ô£¬±ßÔµ½Ó´¥²»Ëã£©
+        /// ä¸¥æ ¼ä¸é‡å ï¼ˆç”¨äºæ¸²æŸ“è£å‰ªï¼Œè¾¹ç¼˜æ¥è§¦ä¸ç®—ï¼‰
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -381,7 +381,7 @@ namespace   FE
                 _bottom <= other._top  || _top  >= other._bottom );
         }
         /// <summary>
-        /// ½Ó´¥¼´Ïà½»(ÓÃÓÚÅö×²¼ì²â£¬±ßÔµ½Ó´¥ËãÏà½»)
+        /// æ¥è§¦å³ç›¸äº¤(ç”¨äºç¢°æ’æ£€æµ‹ï¼Œè¾¹ç¼˜æ¥è§¦ç®—ç›¸äº¤)
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -391,7 +391,7 @@ namespace   FE
                 _bottom < other._top  || _top  > other._bottom );
         }
         /// <summary>
-        /// ·µ»Ø½»¼¯
+        /// è¿”å›äº¤é›†
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -402,8 +402,8 @@ namespace   FE
             T   ix2 =   (std::min)(_right,    other._right);
             T   iy2 =   (std::min)(_bottom,   other._bottom);
 
-            // ÅĞ¶ÏÊÇ·ñÓĞÖØµşÇøÓò
-            // ²»Ïà½»·µ»Ø¡°¿Õ¾ØĞÎ¡±
+            // åˆ¤æ–­æ˜¯å¦æœ‰é‡å åŒºåŸŸ
+            // ä¸ç›¸äº¤è¿”å›â€œç©ºçŸ©å½¢â€
             if (ix1 < ix2 && iy1 < iy2)
                 return TRect<T>{ix1, iy1, ix2, iy2};
             else

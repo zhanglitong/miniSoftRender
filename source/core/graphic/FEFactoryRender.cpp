@@ -1,4 +1,4 @@
-
+ï»¿
 #include    "../inc/graphic/FEFactoryRender.hpp"
 #include    "../inc/graphic/FEGPUBuffer.h"
 #include    "../inc/graphic/FECmdBuffer.h"
@@ -26,18 +26,18 @@ namespace   FE
     }
     size_t  GroupNode::addNodes(Nodes::iterator nBegin, Nodes::iterator eEnd)
     {
-        /// 1. ¼ÇÂ¼Ô­Êı×é´óĞ¡
+        /// 1. è®°å½•åŸæ•°ç»„å¤§å°
         size_t  oldSize =   _objects.size();
 
-        /// 2. ½«ĞÂÔªËØ×·¼Óµ½Ä©Î²£¨»á´¥·¢À©Èİ£¬µ«Ö»À©ÈİÒ»´Î£©
+        /// 2. å°†æ–°å…ƒç´ è¿½åŠ åˆ°æœ«å°¾ï¼ˆä¼šè§¦å‘æ‰©å®¹ï¼Œä½†åªæ‰©å®¹ä¸€æ¬¡ï¼‰
         _objects.insert(_objects.end(), nBegin, eEnd);
 
-        /// 3. ¶ÔĞÂ×·¼ÓµÄ²¿·Ö½øĞĞÅÅĞò£¨O(M log M)£©
+        /// 3. å¯¹æ–°è¿½åŠ çš„éƒ¨åˆ†è¿›è¡Œæ’åºï¼ˆO(M log M)ï¼‰
         auto    oldEnd  =   _objects.begin() + oldSize;
         std::sort(oldEnd, _objects.end());
 
-        /// 4. Ô­µØ¹é²¢Á½¸öÓĞĞò¶Î£º[begin, old_end) ºÍ [old_end, end)
-        ///    ÕâÊÇ¹Ø¼ü£¬Ö±½ÓÀûÓÃÔ­Êı×é¿Õ¼ä£¬²»¶îÍâ´´½¨ĞÂ vector
+        /// 4. åŸåœ°å½’å¹¶ä¸¤ä¸ªæœ‰åºæ®µï¼š[begin, old_end) å’Œ [old_end, end)
+        ///    è¿™æ˜¯å…³é”®ï¼Œç›´æ¥åˆ©ç”¨åŸæ•°ç»„ç©ºé—´ï¼Œä¸é¢å¤–åˆ›å»ºæ–° vector
         std::inplace_merge(_objects.begin(), oldEnd, _objects.end());
         for (auto itr = nBegin; itr != eEnd; ++ itr )
         {
@@ -57,7 +57,7 @@ namespace   FE
     size_t  GroupNode::removeNode(Node obj)
     {
         size_t  nOld    =   _objects.size();
-        /// É¾³ıÂß¼­£ºÈç¹ûµ±Ç°ÖµÔÚ deletes ÀïÄÜÕÒµ½£¬¾ÍÉ¾³ı(·µ»Ø true)
+        /// åˆ é™¤é€»è¾‘ï¼šå¦‚æœå½“å‰å€¼åœ¨ deletes é‡Œèƒ½æ‰¾åˆ°ï¼Œå°±åˆ é™¤(è¿”å› true)
         auto    newEnd  =   std::remove_if(_objects.begin(), _objects.end(), [&](const Node& value) 
         {
             return  obj == value;
@@ -76,9 +76,9 @@ namespace   FE
     size_t  GroupNode::removeNodes(Nodes& deletes)
     {
         size_t  nOld    =   _objects.size();
-        /// ÏÈÅÅĞò£¬ºóĞø²éÕÒËÙ¶È¿ì
+        /// å…ˆæ’åºï¼Œåç»­æŸ¥æ‰¾é€Ÿåº¦å¿«
         std::sort(deletes.begin(),deletes.end());
-        /// É¾³ıÂß¼­£ºÈç¹ûµ±Ç°ÖµÔÚ deletes ÀïÄÜÕÒµ½£¬¾ÍÉ¾³ı(·µ»Ø true)
+        /// åˆ é™¤é€»è¾‘ï¼šå¦‚æœå½“å‰å€¼åœ¨ deletes é‡Œèƒ½æ‰¾åˆ°ï¼Œå°±åˆ é™¤(è¿”å› true)
         auto    newEnd  =   std::remove_if(_objects.begin(), _objects.end(), [&](const Node& object) 
         {
             return  std::binary_search(deletes.begin(), deletes.end(), object);
@@ -164,9 +164,9 @@ namespace   FE
     size_t  FEFactoryRender::addNodesImpl(Nodes& nodes)
     {
         size_t  result  =   0;
-        /// °´ÕÕ²ÄÖÊÅÅĞò
-        /// Í¬Ò»¸ö²ÄÖÊµÄ½Úµã¿ÉÒÔ°´ÕÕÅú´ÎÖ±½Ó¼ÓÈëµ½¶ÔÏàÓ¦µÄ½Úµã×éÖĞ
-        /// ĞÔÄÜ±Èµ¥¸ö²åÈëºÃºÜ¶à
+        /// æŒ‰ç…§æè´¨æ’åº
+        /// åŒä¸€ä¸ªæè´¨çš„èŠ‚ç‚¹å¯ä»¥æŒ‰ç…§æ‰¹æ¬¡ç›´æ¥åŠ å…¥åˆ°å¯¹ç›¸åº”çš„èŠ‚ç‚¹ç»„ä¸­
+        /// æ€§èƒ½æ¯”å•ä¸ªæ’å…¥å¥½å¾ˆå¤š
         std::sort(nodes.begin(),nodes.end(),[](const Node& left,const Node& right)
         {
             return  left->material().get() < right->material().get();
@@ -180,11 +180,11 @@ namespace   FE
             assert(node->material() != nullptr);
             if (node->material() != mat)
             {
-                /// ËµÃ÷ÇĞ»»ÁË²ÄÖÊ
-                /// Ôò°ÑÏàÍ¬²ÄÖÊµÄÊı¾İ¼ÓÈëµ½Ò»¸ö×éÖĞ
+                /// è¯´æ˜åˆ‡æ¢äº†æè´¨
+                /// åˆ™æŠŠç›¸åŒæè´¨çš„æ•°æ®åŠ å…¥åˆ°ä¸€ä¸ªç»„ä¸­
                 if ( mat!= nullptr && pGroup)
                     pGroup->addNodes(itrStart,itr);
-                /// ¸üĞÂÓÎ±ê¼ÇÂ¼µÚÒ»¸ö·¢Éú±ä»¯µÄÎ»ÖÃ
+                /// æ›´æ–°æ¸¸æ ‡è®°å½•ç¬¬ä¸€ä¸ªå‘ç”Ÿå˜åŒ–çš„ä½ç½®
                 itrStart    =   itr;
                 mat         =   node->material();
                 pGroup      =   queryOrCreateGroup(mat);
@@ -359,7 +359,7 @@ namespace   FE
             _vboVertexs     =   buildVertexVBOs(meshSet);
             _ibo            =   buildVertexIBO(meshSet);
         }
-        /// Ö»ÊÇ¸üĞÂinstance,ÓÅ»¯´¦Àí
+        /// åªæ˜¯æ›´æ–°instance,ä¼˜åŒ–å¤„ç†
         if (needUpdateITO && needUpdateVBO && needUpdateInst)
         {
             _vboInstances   =   buildInstanceVBOs();
@@ -372,7 +372,7 @@ namespace   FE
         {
             _indirect       =   buildIndirect();
         }
-        /// Çå³ı±ê¼Ç
+        /// æ¸…é™¤æ ‡è®°
         for (auto& var : _groupNode)
         {
             var->flags().removeFlag(FLAG_ADD_CHILD)
@@ -434,7 +434,7 @@ namespace   FE
                 vboGPUs[i]._vbos.emplace_back(gpu);
             }
         }
-        /// ¸üĞÂÃ¿Ò»¸ömeshÊı¾İÔÚÕû¸ö´ó»º³åÇøÖĞµÄÆ«ÒÆ
+        /// æ›´æ–°æ¯ä¸€ä¸ªmeshæ•°æ®åœ¨æ•´ä¸ªå¤§ç¼“å†²åŒºä¸­çš„åç§»
         uint    nCount  =   0;
         for (auto var : meshSet)
         {
@@ -450,10 +450,10 @@ namespace   FE
                     pri->setVertexOffset(nCount);
                 }
             }
-            /// ÉèÖÃmesh ËùÊô¹¤³§
+            /// è®¾ç½®mesh æ‰€å±å·¥å‚
             nCount  +=  buffer.count();
         }
-        /// ¿½±´Êı¾İµ½ÏÔ¿¨
+        /// æ‹·è´æ•°æ®åˆ°æ˜¾å¡
         copyVBinds(vboCPUs,vboGPUs);
         return  vboGPUs;
     }
@@ -561,7 +561,7 @@ namespace   FE
         auto&       binds   =   pl->cInfo()._binds;
         if (binds.empty())
             return  {};
-        /// instanceÊıÁ¿
+        /// instanceæ•°é‡
         uint32      count   =   0;
         for (auto& var : _groupNode)
         {
@@ -574,9 +574,9 @@ namespace   FE
             if (bind.inputRate == V_INPUT_VERTEX)
                 continue;
             VBind       vBind       =   {};
-            /// ÕÒµ½ĞèÒª¸üĞÂÊôĞÔµÄ²ÛË÷ÒıÊı×é
+            /// æ‰¾åˆ°éœ€è¦æ›´æ–°å±æ€§çš„æ§½ç´¢å¼•æ•°ç»„
             uints       indexs  =   offfetIndex(bind.inputs);
-            /// Ò»¸öÔªËØ(¶¥µã½á¹¹)µÄ´óĞ¡
+            /// ä¸€ä¸ªå…ƒç´ (é¡¶ç‚¹ç»“æ„)çš„å¤§å°
             uint        stride  =   0;
             for (auto index : indexs)
             {
@@ -638,9 +638,9 @@ namespace   FE
         auto&       binds   =   pl->cInfo()._binds;
         if (binds.empty())
             return;
-        /// instanceÊıÁ¿
+        /// instanceæ•°é‡
         uint32  count   =   0;
-        /// Í³¼ÆÓĞ¶àÉÙ¸öinstance ĞèÒª¸üĞÂ
+        /// ç»Ÿè®¡æœ‰å¤šå°‘ä¸ªinstance éœ€è¦æ›´æ–°
         auto    flags   =   FENode::FLAG_PROP_TRANS | FENode::FLAG_PROP_SCALE | FENode::FLAG_PROP_ROT;
         for (auto& var : _groupNode)
         {
@@ -655,9 +655,9 @@ namespace   FE
             if (bind.inputRate == V_INPUT_VERTEX)
                 continue;
             VBind       vBind       =   {};
-            /// ÕÒµ½ĞèÒª¸üĞÂÊôĞÔµÄ²ÛË÷ÒıÊı×é
+            /// æ‰¾åˆ°éœ€è¦æ›´æ–°å±æ€§çš„æ§½ç´¢å¼•æ•°ç»„
             uints       indexs  =   offfetIndex(bind.inputs);
-            /// Ò»¸öÔªËØ(¶¥µã½á¹¹)µÄ´óĞ¡
+            /// ä¸€ä¸ªå…ƒç´ (é¡¶ç‚¹ç»“æ„)çš„å¤§å°
             uint        stride  =   0;
             for (auto index : indexs)
             {
@@ -681,10 +681,10 @@ namespace   FE
                 uint    instId  =   var->start();
                 for (auto& node: var->_objects)
                 {   
-                    /// ¼ì²â±ê¼Ç
-                    /// Ê¹ÓÃÍê³Éºó£¬ĞèÒªÇå³ı±ê¼Ç
-                    /// ½ÚµãÓĞ¿ÉÄÜ±»ÆäËû¹¤³§ÒıÓÃ£¬Çå³ı±ê¼Ç»áÒıÆğ´íÎó
-                    /// ÔİÊ±Ã»ÓĞ¿¼ÂÇºÃ
+                    /// æ£€æµ‹æ ‡è®°
+                    /// ä½¿ç”¨å®Œæˆåï¼Œéœ€è¦æ¸…é™¤æ ‡è®°
+                    /// èŠ‚ç‚¹æœ‰å¯èƒ½è¢«å…¶ä»–å·¥å‚å¼•ç”¨ï¼Œæ¸…é™¤æ ‡è®°ä¼šå¼•èµ·é”™è¯¯
+                    /// æš‚æ—¶æ²¡æœ‰è€ƒè™‘å¥½
                     if (node->flags().containFlag(flags))
                     {
                         inst._color         =   node->color();
@@ -693,7 +693,7 @@ namespace   FE
                         inst.setTransform(node->globalTransform());
                         inst.setAabb(node->globalAabb());
                         inst.setInstance(instId);
-                        /// ±£´æÒª¿½±´µÄÄ¿±êÎ»ÖÃ
+                        /// ä¿å­˜è¦æ‹·è´çš„ç›®æ ‡ä½ç½®
                         BufferCopy  copy;
                         copy.srcOffset  =   pDst - pStart;
                         copy.dstOffset  =   (instId * stride);
@@ -803,7 +803,7 @@ namespace   FE
             return  nullptr;
         auto&       temp    =   *meshSet.begin();
         auto&       buffers =   temp->buffers();
-        /// Êä³öÃ¿Ò»¸öbuffer¶ÔÓ¦µÄÊôĞÔ
+        /// è¾“å‡ºæ¯ä¸€ä¸ªbufferå¯¹åº”çš„å±æ€§
         size_t      index   =   size_t(-1);
         for (size_t i = 0; i < buffers.size(); i++)
         {
@@ -814,20 +814,20 @@ namespace   FE
         }
         if (index == size_t(-1))
             return  nullptr;
-        /// Í³¼Æ»º³åËùÓĞmeshÊôĞÔ»º³åÇøµÄ³¤¶È
+        /// ç»Ÿè®¡ç¼“å†²æ‰€æœ‰meshå±æ€§ç¼“å†²åŒºçš„é•¿åº¦
         size_t      length  =   0;
         for (auto& mesh : meshSet)
         {
             auto&   buffer  =    mesh->buffers()[index];
             length  +=  buffer.length();
         }
-        /// ´´½¨host »º³åÇø
+        /// åˆ›å»ºhost ç¼“å†²åŒº
         VBO     vboCPU  =   _device.createVBO();
         auto    result  =   vboCPU->create({length,HOST_VISIBLE_BIT});
         assert(result);
         if(!result)
             return  nullptr;
-        /// ÊôĞÔÊı¾İ¿½±´µ½´ó»º³åÇøÖĞ
+        /// å±æ€§æ•°æ®æ‹·è´åˆ°å¤§ç¼“å†²åŒºä¸­
         uint8*  pData   =   (uint8*)vboCPU->lock(length,0);
         for (auto& mesh : meshSet)
         {
@@ -843,7 +843,7 @@ namespace   FE
     {
         if (meshSet.empty())    
             return  nullptr;
-        /// Í³¼Æ»º³åËùÓĞmeshÊôĞÔ»º³åÇøµÄ³¤¶È
+        /// ç»Ÿè®¡ç¼“å†²æ‰€æœ‰meshå±æ€§ç¼“å†²åŒºçš„é•¿åº¦
         size_t      length  =   0;
         for (auto& mesh : meshSet)
         {
@@ -853,13 +853,13 @@ namespace   FE
                 length  +=  buffer.length();
             }
         }
-        /// ´´½¨host »º³åÇø
+        /// åˆ›å»ºhost ç¼“å†²åŒº
         VBO     vboCPU  =   _device.createVBO();
         auto    result  =   vboCPU->create({length,HOST_VISIBLE_BIT});
         assert(result);
         if(!result)
             return  nullptr;
-        /// ÊôĞÔÊı¾İ¿½±´µ½´ó»º³åÇøÖĞ
+        /// å±æ€§æ•°æ®æ‹·è´åˆ°å¤§ç¼“å†²åŒºä¸­
         uint8*  pData   =   (uint8*)vboCPU->lock(length,0);
         for (auto& mesh : meshSet)
         {
@@ -895,7 +895,7 @@ namespace   FE
 
     void    FEFactoryRender::copyVBinds(VBinds& vboCPUs,VBinds& vboGPUs)
     {
-        /// ¿½±´Êı¾İµ½ÏÔ¿¨
+        /// æ‹·è´æ•°æ®åˆ°æ˜¾å¡
         auto    cmdPool =   _device.transferCmdPool();
         assert(cmdPool != nullptr);
         if (cmdPool != nullptr)
@@ -916,7 +916,7 @@ namespace   FE
 
     void    FEFactoryRender::copyVBindsRegions(VBinds& vboCPUs,VBinds& vboGPUs)
     {
-        /// ¿½±´Êı¾İµ½ÏÔ¿¨
+        /// æ‹·è´æ•°æ®åˆ°æ˜¾å¡
         auto    cmdPool =   _device.transferCmdPool();
         assert(cmdPool != nullptr);
         if (cmdPool != nullptr)
@@ -938,7 +938,7 @@ namespace   FE
     }
     
     /// <summary>
-    /// »ñÈ¡ËùÓĞµÄindex ¸öÊı / °²×Ö½Ú¼ÆËã´óĞ¡
+    /// è·å–æ‰€æœ‰çš„index ä¸ªæ•° / å®‰å­—èŠ‚è®¡ç®—å¤§å°
     /// </summary>
     /// <param name="meshSet"></param>
     /// <returns></returns>
@@ -1044,7 +1044,7 @@ namespace   FE
     }
     RFactorys   FEFactoryRender::addNodesToFactory(FEContext& ctx,FEScene& scene,const Nodes& nodeList)
     {
-        /// 1. ÅÅĞò£¬°´ÕÕ pri, drawtype, Attr
+        /// 1. æ’åºï¼ŒæŒ‰ç…§ pri, drawtype, Attr
         uint    nCount  =   0;
         for (auto node : nodeList)
         {
@@ -1053,7 +1053,7 @@ namespace   FE
         if (nCount == 0)
             return  {};
         Nodes   nodes;
-        /// ÉêÇë¿Õ¼ä
+        /// ç”³è¯·ç©ºé—´
         nodes.reserve(nCount);
         for (auto node : nodeList)
         {
@@ -1062,7 +1062,7 @@ namespace   FE
         FactoryRenders  result;
         MeshKeyMap      priGroup;
         MeshKeyCount    priCnts;
-        /// °´ÕÕkey Í³¼Æ½Úµã
+        /// æŒ‰ç…§key ç»Ÿè®¡èŠ‚ç‚¹
         for (auto& node: nodes)
         {
             auto    mesh    =   node->mesh();
@@ -1073,8 +1073,8 @@ namespace   FE
                 priCnts[key] ++;
             }
         }
-        /// ÉêÇë¿Õ¼ä
-        /// ½Úµã°´ÕÕkey½øĞĞ·Ö×é
+        /// ç”³è¯·ç©ºé—´
+        /// èŠ‚ç‚¹æŒ‰ç…§keyè¿›è¡Œåˆ†ç»„
         for (auto& var : priCnts)
         {
             priGroup[var.first].reserve(var.second);

@@ -1,4 +1,4 @@
-
+ï»¿
 #include    "../inc/node/FENode.hpp"
 #include    "../inc/graphic/FEScene.h"
 
@@ -12,7 +12,7 @@ namespace   FE
         _scale      =   float3(1,1,1);
         _trans      =   real3(0,0,0);
         _rotate     =   quatf(1,0,0,0);
-        /// Ä¬ÈÏÇé¿öÏÂÑÕÉ«»á color x fragment 
+        /// é»˜è®¤æƒ…å†µä¸‹é¢œè‰²ä¼š color x fragment 
         _color      =   Rgba8(255,255,255,255);
         _transform  =   FE::makeTransform<real>(_trans,_scale,_rotate);
     }
@@ -43,7 +43,7 @@ namespace   FE
         updateAabb(true);
         for (auto& var: _coms)
         {
-
+            UNUSED(var);
         }
     }
     void   FENode::fireChanged()
@@ -72,7 +72,7 @@ namespace   FE
 
         aabb3dr tmp;
         auto&   chs =   children();
-        /// ÏÈ¼ÆËãËùÓĞ×Ó½ÚµãµÄ°üÎ§ºĞ
+        /// å…ˆè®¡ç®—æ‰€æœ‰å­èŠ‚ç‚¹çš„åŒ…å›´ç›’
         for(auto& child : chs)
         {
             auto    node    =   child->as<FENode>();
@@ -121,7 +121,7 @@ namespace   FE
             }
         }
             
-        /// µİ¹éËùÓĞ×ÓËï½Úµã
+        /// é€’å½’æ‰€æœ‰å­å­™èŠ‚ç‚¹
         auto&   chs  =   children();
         for (auto& child: chs)
         {
@@ -142,7 +142,7 @@ namespace   FE
         {
             _mesh->intersect(ray,_transform,result);
         }
-        /// µİ¹éËùÓĞ×ÓËï½Úµã
+        /// é€’å½’æ‰€æœ‰å­å­™èŠ‚ç‚¹
         auto&   chs  =   children();
         for (auto& child: chs)
         {

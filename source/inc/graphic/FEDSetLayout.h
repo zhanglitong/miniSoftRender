@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "RSObject.h"
 #include    "FEGraphicEnums.h"
@@ -13,20 +13,20 @@ namespace   FE
         uint16_t        _binding;
         uint16_t        _descriptorCount;
         /// <summary>
-        /// ÃèÊöUBO´óĞ¡
+        /// æè¿°UBOå¤§å°
         /// </summary>
         uint32_t        _size;
         /// <summary>
-        /// ÀàĞÍ
+        /// ç±»å‹
         /// </summary>
         FEDescType      _descriptorType;
         ShaderTypes     _stageFlags;
         /// <summary>
-        /// ÊµÀıÃû³Æ
+        /// å®ä¾‹åç§°
         /// </summary>
         String          _name;
         /// <summary>
-        /// ÀàĞÍÃû³Æ,Î¨Ò»±êÊ¶,²ÄÖÊÖĞÊ¹ÓÃËü½¨Á¢¶ÔÓ¦¹ØÏµ
+        /// ç±»å‹åç§°,å”¯ä¸€æ ‡è¯†,æè´¨ä¸­ä½¿ç”¨å®ƒå»ºç«‹å¯¹åº”å…³ç³»
         /// </summary>
         String          _typeName;
     };

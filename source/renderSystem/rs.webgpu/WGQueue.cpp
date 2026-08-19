@@ -1,4 +1,4 @@
-#include    "WGQueue.h"
+﻿#include    "WGQueue.h"
 #include    "WGDevice.h"
 #include    "WGCmdBuffer.h"
 #include    "WGFence.h"

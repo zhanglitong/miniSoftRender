@@ -1,4 +1,4 @@
-#include    "WGRenderSystem.h"
+﻿#include    "WGRenderSystem.h"
 #include    "WGDevice.h"
 
 namespace   FE
@@ -159,8 +159,7 @@ namespace   FE
 
             gpus.push_back(gpuInf);
 
-            // 优先选择独立显卡作为默认 adapter，否则选第一个
-            if (!foundDiscrete)
+            // 浼樺厛閫夋嫨鐙珛鏄惧崱浣滀负榛樿 adapter锛屽惁鍒欓€夌涓€涓?            if (!foundDiscrete)
             {
                 if (gpuInf.type == DEV_TYPE_DISCRETE_GPU)
                 {

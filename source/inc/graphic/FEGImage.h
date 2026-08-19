@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEFormat.hpp"
 #include    "../FEAspect.hpp"
@@ -65,9 +65,9 @@ namespace   FE
             info._depth         =   dims.z;
             info._layer         =   layer == 0 ? _cInfo._layer : layer;
             info._mips          =   mips == 0  ? _cInfo._mips : mips;
-            /// Ïú»Ùµ±Ç°µÄ×ÊÔ´
+            /// é”€æ¯å½“å‰çš„èµ„æº
             destroy();
-            /// ´´½¨ĞÂµÄ×ÊÔ´
+            /// åˆ›å»ºæ–°çš„èµ„æº
             bool    result     =   create(info);
             if (result)
                 fireNotify();

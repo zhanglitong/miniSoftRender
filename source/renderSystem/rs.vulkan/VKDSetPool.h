@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 
 #include    "graphic/FEDSetPool.h"
 
@@ -34,7 +34,7 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// �Ѿ�����
+        /// 锟窖撅拷锟斤拷锟斤拷
         /// </summary>
         uint32_t    _hasAlloc       =   0;
     };

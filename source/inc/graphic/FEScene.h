@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEInput.hpp"
 #include    "../FECamera.hpp"
@@ -101,11 +101,11 @@ namespace   FE
         virtual bool    setup(App app);
         virtual void    test();
         /// <summary>
-        /// ½Úµã¼ÓÈëµ½ÏµÍ³ÏÂ£¬Ö»ÊÇ¹ÒÔÚ½ÚµãÉÏ£¬²¢²»×öäÖÈ¾
+        /// èŠ‚ç‚¹åŠ å…¥åˆ°ç³»ç»Ÿä¸‹ï¼Œåªæ˜¯æŒ‚åœ¨èŠ‚ç‚¹ä¸Šï¼Œå¹¶ä¸åšæ¸²æŸ“
         /// </summary>
         virtual void    addNodesToTree(const Nodes& nodeList);
         /// <summary>
-        /// ½Úµã¼ÓÈëµ½ÏµÍ³ÖĞ,º¯Êı»á°Ñ¸ù¾ø¹æÔò°Ñ½Úµã·ÖÅäµ½²»Í¬µÄ¹¤³§ÖĞ
+        /// èŠ‚ç‚¹åŠ å…¥åˆ°ç³»ç»Ÿä¸­,å‡½æ•°ä¼šæŠŠæ ¹ç»è§„åˆ™æŠŠèŠ‚ç‚¹åˆ†é…åˆ°ä¸åŒçš„å·¥å‚ä¸­
         /// </summary>
         /// <param name="nodeList"></param>
         /// <returns></returns>
@@ -117,12 +117,12 @@ namespace   FE
         virtual void    onFrameRender();
         virtual void    onFrameEnd();
         /// <summary>
-        /// ÏûÏ¢´¦Àí
+        /// æ¶ˆæ¯å¤„ç†
         /// </summary>
         /// <param name="msg"></param>
         virtual void    onMessage(const FEMessage& msg) override;
         /// <summary>
-        /// ½Úµã»ù±¾ÊôĞÔÊı¾İ·¢Éú±ä»¯,Î»ÖÃ£¬Ğı×ª£¬Æ½ÒÆ£¬ÑÕÉ«µÈ
+        /// èŠ‚ç‚¹åŸºæœ¬å±æ€§æ•°æ®å‘ç”Ÿå˜åŒ–,ä½ç½®ï¼Œæ—‹è½¬ï¼Œå¹³ç§»ï¼Œé¢œè‰²ç­‰
         /// </summary>
         /// <param name="node"></param>
         virtual void    onNodePropChanged(FENode* node);
@@ -130,11 +130,11 @@ namespace   FE
         virtual void    onClose();
     protected:
         /// <summary>
-        /// Ä¬ÈÏ¼ÓÔØ¹ÜÏß
+        /// é»˜è®¤åŠ è½½ç®¡çº¿
         /// </summary>
         void    loadPipelines();
         /// <summary>
-        /// ³õÊ¼»¯ÄÚÖÃµÄÊı¾İ
+        /// åˆå§‹åŒ–å†…ç½®çš„æ•°æ®
         /// </summary>
         void    initializeBuildin(FEDevice& device);
         void    initializeQueue();

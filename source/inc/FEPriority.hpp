@@ -1,19 +1,19 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <stdint.h>
 namespace   FE
 {
     enum    EPriority : uint16_t
     {
-        /// ÏÈ»æÖÆ
+        /// å…ˆç»˜åˆ¶
         EP_Fist,
-        /// Æä´Î
+        /// å…¶æ¬¡
         EP_Second,
-        /// ×îºó
+        /// æœ€å
         EP_Last,
     };
     /// <summary>
-    /// EPriority Í¬Ò»¸öÓÅÏÈ¼¶ÓĞºÜ¶à¸ö£¬ÔòÒÀÀµorder½øĞĞÅÅĞò
-    /// ¼´ÏÈ°´ÕÕ EPriorityÅÅĞò£¬ÔÚ°´ÕÕorderÅÅĞò
+    /// EPriority åŒä¸€ä¸ªä¼˜å…ˆçº§æœ‰å¾ˆå¤šä¸ªï¼Œåˆ™ä¾èµ–orderè¿›è¡Œæ’åº
+    /// å³å…ˆæŒ‰ç…§ EPriorityæ’åºï¼Œåœ¨æŒ‰ç…§orderæ’åº
     /// </summary>
     class   FEPriority
     {
@@ -24,7 +24,7 @@ namespace   FE
             _order      =   order;
         }
         /// <summary>
-        /// »ñÈ¡ÓÅÏÈ¼¶·ÖÀà
+        /// è·å–ä¼˜å…ˆçº§åˆ†ç±»
         /// </summary>
         /// <returns></returns>
         auto    priority() const
@@ -32,7 +32,7 @@ namespace   FE
             return  _priority;
         }
         /// <summary>
-        /// ÉèÖÃÓÅÏÈ¼¶
+        /// è®¾ç½®ä¼˜å…ˆçº§
         /// </summary>
         /// <param name="pri"></param>
         /// <returns></returns>
@@ -42,7 +42,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡Ë³ĞòºÅ
+        /// è·å–é¡ºåºå·
         /// </summary>
         /// <returns></returns>
         auto    order() const
@@ -50,7 +50,7 @@ namespace   FE
             return  _order;
         }
         /// <summary>
-        /// ÉèÖÃË³ĞòºÅ
+        /// è®¾ç½®é¡ºåºå·
         /// </summary>
         /// <param name="order"></param>
         /// <returns></returns>
@@ -61,11 +61,11 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ÓÅÏÈ¼¶Àà±ğ
+        /// ä¼˜å…ˆçº§ç±»åˆ«
         /// </summary>
         EPriority   _priority   =   EP_Fist;
         /// <summary>
-        /// ¼¶±ğ SHORT_MIN ~ SHORT_MAX
+        /// çº§åˆ« SHORT_MIN ~ SHORT_MAX
         /// </summary>
         int16_t     _order      =   0;
     };

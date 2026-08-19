@@ -1,4 +1,4 @@
-
+﻿
 #include    "VKQueue.h"
 #include    "VKDevice.h"
 

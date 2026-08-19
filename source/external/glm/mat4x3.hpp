@@ -1,4 +1,4 @@
-/// @ref core
+﻿/// @ref core
 /// @file glm/mat4x3.hpp
 
 #include "detail/setup.hpp"

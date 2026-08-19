@@ -1,9 +1,9 @@
-#pragma     once
+﻿#pragma     once
 #include    "FEObject.h"
 namespace FE
 {
     /// <summary>
-    /// �ڴ����
+    /// 内存管理
     /// </summary>
     struct  FEPickup
     {
@@ -15,24 +15,24 @@ namespace FE
             PR_Triangle     =   2,
         };
         /// <summary>
-        /// �Ƿ���ʰȡ����box,�������ǵ�����
-        /// 1: ��Χ��,2,ʵ��
+        /// 是否是拾取到了box,其他的是点线面
+        /// 1: 包围盒,2,实体
         /// </summary>
         Result      pickup      =   PR_None;
         /// <summary>
-        /// ��ʰȡ����,���== null û��ʰȡ��
+        /// 被拾取对象,如果== null 没有拾取到
         /// </summary>
         Object      object;
         /// <summary>
-        /// ��������㵽ʰȡ��ľ���
+        /// 从射线起点到拾取点的距离
         /// </summary>
         real        distance    =   FLT_MAX;
         /// <summary>
-        /// ʰȡ�������������
+        /// 拾取到的世界坐标点
         /// </summary>
         real3       point;
         /// <summary>
-        /// ���ߵ�ʱ��T
+        /// 射线的时间T
         /// </summary>
         real        time        =   FLT_MAX;
         

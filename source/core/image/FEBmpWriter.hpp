@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <fstream>
 #include    <vector>
@@ -10,31 +10,31 @@ namespace   FE
 {
 #pragma pack(push, 1)
     /// <summary>
-    /// BMP ÎÄ¼şÍ· (14 ×Ö½Ú)
+    /// BMP æ–‡ä»¶å¤´ (14 å­—èŠ‚)
     /// </summary>
     struct  BmpFileHeader 
     {
-        uint16_t bfType;            /// ¹Ì¶¨Îª 'BM' (0x4D42)
-        uint32_t bfSize;            /// Õû¸öÎÄ¼ş´óĞ¡
-        uint16_t bfReserved1;       /// ±£Áô£¬±ØĞëÎª 0
-        uint16_t bfReserved2;       /// ±£Áô£¬±ØĞëÎª 0
-        uint32_t bfOffBits;         /// ´ÓÎÄ¼şÍ·µ½ÏñËØÊı¾İµÄÆ«ÒÆÁ¿
+        uint16_t bfType;            /// å›ºå®šä¸º 'BM' (0x4D42)
+        uint32_t bfSize;            /// æ•´ä¸ªæ–‡ä»¶å¤§å°
+        uint16_t bfReserved1;       /// ä¿ç•™ï¼Œå¿…é¡»ä¸º 0
+        uint16_t bfReserved2;       /// ä¿ç•™ï¼Œå¿…é¡»ä¸º 0
+        uint32_t bfOffBits;         /// ä»æ–‡ä»¶å¤´åˆ°åƒç´ æ•°æ®çš„åç§»é‡
     };
 
-    /// BMP ĞÅÏ¢Í· (40 ×Ö½Ú)
+    /// BMP ä¿¡æ¯å¤´ (40 å­—èŠ‚)
     struct  BmpInfoHeader 
     {
-        uint32_t biSize;            /// ±¾½á¹¹´óĞ¡£¬¹Ì¶¨Îª 40
-        int32_t  biWidth;           /// Í¼Ïñ¿í¶È (ÏñËØ)
-        int32_t  biHeight;          /// Í¼Ïñ¸ß¶È (ÏñËØ)£¬ÕıÊı±íÊ¾×Ôµ×ÏòÉÏ
-        uint16_t biPlanes;          /// Æ½ÃæÊı£¬±ØĞëÎª 1
-        uint16_t biBitCount;        /// Î»Éî¶È£¬24 ±íÊ¾Õæ²ÊÉ«
-        uint32_t biCompression;     /// Ñ¹Ëõ·½Ê½£¬0 ±íÊ¾²»Ñ¹Ëõ (BI_RGB)
-        uint32_t biSizeImage;       /// Í¼ÏñÊı¾İ´óĞ¡ (×Ö½Ú)£¬¿ÉÎª 0
-        int32_t  biXPelsPerMeter;   /// Ë®Æ½·Ö±æÂÊ (ÏñËØ/Ã×)
-        int32_t  biYPelsPerMeter;   /// ´¹Ö±·Ö±æÂÊ (ÏñËØ/Ã×)
-        uint32_t biClrUsed;         /// Êµ¼ÊÊ¹ÓÃµÄÑÕÉ«Êı£¬0 ±íÊ¾ 2^biBitCount
-        uint32_t biClrImportant;    /// ÖØÒªÑÕÉ«Êı£¬0 ±íÊ¾¶¼ÖØÒª
+        uint32_t biSize;            /// æœ¬ç»“æ„å¤§å°ï¼Œå›ºå®šä¸º 40
+        int32_t  biWidth;           /// å›¾åƒå®½åº¦ (åƒç´ )
+        int32_t  biHeight;          /// å›¾åƒé«˜åº¦ (åƒç´ )ï¼Œæ­£æ•°è¡¨ç¤ºè‡ªåº•å‘ä¸Š
+        uint16_t biPlanes;          /// å¹³é¢æ•°ï¼Œå¿…é¡»ä¸º 1
+        uint16_t biBitCount;        /// ä½æ·±åº¦ï¼Œ24 è¡¨ç¤ºçœŸå½©è‰²
+        uint32_t biCompression;     /// å‹ç¼©æ–¹å¼ï¼Œ0 è¡¨ç¤ºä¸å‹ç¼© (BI_RGB)
+        uint32_t biSizeImage;       /// å›¾åƒæ•°æ®å¤§å° (å­—èŠ‚)ï¼Œå¯ä¸º 0
+        int32_t  biXPelsPerMeter;   /// æ°´å¹³åˆ†è¾¨ç‡ (åƒç´ /ç±³)
+        int32_t  biYPelsPerMeter;   /// å‚ç›´åˆ†è¾¨ç‡ (åƒç´ /ç±³)
+        uint32_t biClrUsed;         /// å®é™…ä½¿ç”¨çš„é¢œè‰²æ•°ï¼Œ0 è¡¨ç¤º 2^biBitCount
+        uint32_t biClrImportant;    /// é‡è¦é¢œè‰²æ•°ï¼Œ0 è¡¨ç¤ºéƒ½é‡è¦
     };
 
     typedef struct tagRGBQUAD {
@@ -49,9 +49,9 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// ½« iamge »º³åÇø±£´æÎª BMP ÎÄ¼ş
+        /// å°† iamge ç¼“å†²åŒºä¿å­˜ä¸º BMP æ–‡ä»¶
         /// </summary>
-        /// <param name="fileName">Êä³öÎÄ¼şÃû</param>
+        /// <param name="fileName">è¾“å‡ºæ–‡ä»¶å</param>
         /// <param name="image"></param>
         /// <returns></returns>
         static bool     save(const char* fileName,const FEImage& image) 
@@ -60,25 +60,25 @@ namespace   FE
             uint32_t    nMul            =   FEFormatHelper::sizeOf(image.cInfo()._format);
             int32_t     width           =   image.cInfo()._extent.x;
             int32_t     height          =   image.cInfo()._extent.y;
-            /// ¼ÆËãÃ¿ĞĞĞèÒªµÄÌî³ä×Ö½ÚÊı (Ê¹ĞĞ×Ö½ÚÊıÎª 4 µÄ±¶Êı)
-            /// Ã¿ĞĞÊµ¼Ê RGB ×Ö½ÚÊı
-            /// Ìî³ä×Ö½ÚÊı
+            /// è®¡ç®—æ¯è¡Œéœ€è¦çš„å¡«å……å­—èŠ‚æ•° (ä½¿è¡Œå­—èŠ‚æ•°ä¸º 4 çš„å€æ•°)
+            /// æ¯è¡Œå®é™… RGB å­—èŠ‚æ•°
+            /// å¡«å……å­—èŠ‚æ•°
             auto        rowSize         =   (uint32_t)plane.bytesOfRow();               
             auto        padding         =   (4 - (rowSize % 4)) % 4; 
             auto        dataSize        =   (rowSize + padding) * height;
 
-            // 2. ¹¹½¨µ÷É«°å (256¸ö»Ò¶ÈÉ«)
+            // 2. æ„å»ºè°ƒè‰²æ¿ (256ä¸ªç°åº¦è‰²)
             RGBQUAD palette[256];
             for (uint32_t i = 0; i < 256; i++) 
             {
-                palette[i].rgbRed       = i;   // R = »Ò½×Öµ
-                palette[i].rgbGreen     = i;   // G = »Ò½×Öµ
-                palette[i].rgbBlue      = i;   // B = »Ò½×Öµ
+                palette[i].rgbRed       = i;   // R = ç°é˜¶å€¼
+                palette[i].rgbGreen     = i;   // G = ç°é˜¶å€¼
+                palette[i].rgbBlue      = i;   // B = ç°é˜¶å€¼
                 palette[i].rgbReserved  = 0;
             }
 
             uint32_t    paSize          =   (nMul == 1) ? sizeof(palette) : 0;
-            /// Ìî³äÎÄ¼şÍ·
+            /// å¡«å……æ–‡ä»¶å¤´
             BmpFileHeader fileHeader;
             fileHeader.bfType           =   0x4D42;  // 'BM'
             fileHeader.bfSize           =   sizeof(BmpFileHeader) + sizeof(BmpInfoHeader) +  paSize + dataSize;
@@ -86,28 +86,28 @@ namespace   FE
             fileHeader.bfReserved2      =   0;
             fileHeader.bfOffBits        =   sizeof(BmpFileHeader) + sizeof(BmpInfoHeader) +  paSize;
 
-            /// Ìî³äĞÅÏ¢Í·
+            /// å¡«å……ä¿¡æ¯å¤´
             BmpInfoHeader infoHeader;
             infoHeader.biSize           =   sizeof(BmpInfoHeader);
             infoHeader.biWidth          =   width;
-            infoHeader.biHeight         =   height;         /// ÕıÊı±íÊ¾´Óµ×ÏòÉÏ£¬´ó¶àÊı²é¿´Æ÷¶¼Ö§³Ö
+            infoHeader.biHeight         =   height;         /// æ­£æ•°è¡¨ç¤ºä»åº•å‘ä¸Šï¼Œå¤§å¤šæ•°æŸ¥çœ‹å™¨éƒ½æ”¯æŒ
             infoHeader.biPlanes         =   1;
             infoHeader.biBitCount       =   nMul * 8;
             infoHeader.biCompression    =   0;              /// BI_RGB
             infoHeader.biSizeImage      =   dataSize;
-            infoHeader.biXPelsPerMeter  =   0;              /// ¿ÉÉèÎªÄ¬ÈÏÖµ 0
+            infoHeader.biXPelsPerMeter  =   0;              /// å¯è®¾ä¸ºé»˜è®¤å€¼ 0
             infoHeader.biYPelsPerMeter  =   0;
             infoHeader.biClrUsed        =   nMul == 1 ? 256:0;
             infoHeader.biClrImportant   =   0;
 
-            /// ´ò¿ªÎÄ¼ş (¶ş½øÖÆÄ£Ê½)
+            /// æ‰“å¼€æ–‡ä»¶ (äºŒè¿›åˆ¶æ¨¡å¼)
             std::ofstream file(fileName, std::ios::binary);
             if (!file) 
             {
                 return  false;
             }
 
-            /// Ğ´ÈëÎÄ¼şÍ·
+            /// å†™å…¥æ–‡ä»¶å¤´
             file.write((const char*)(&fileHeader),  sizeof(fileHeader));
             file.write((const char*)(&infoHeader),  sizeof(infoHeader));
             if (paSize)
@@ -117,12 +117,12 @@ namespace   FE
             
             for (int y = 0; y < height; ++y) 
             {
-                /// ×¢Òâ: BMP ´æ´¢Ë³ĞòÎª´Ó×îºóÒ»ĞĞ¿ªÊ¼ (µ×²¿) µ½µÚÒ»ĞĞ (¶¥²¿)
-                /// ¶øÎÒÃÇµÄ buffer Í¨³£ÊÇ´Ó¶¥ÏòÏÂ´æ´¢¡£ÏÂÃæÁ½ÖÖ·½Ê½¶¼¿É£º
-                /// ·½Ê½1: ½«¸ß¶ÈÉèÎª¸ºÖµ±íÊ¾´ÓÉÏµ½ÏÂ£¬µ«Îª¼ò»¯£¬ÎÒÃÇÏÔÊ½µØ·´×ªĞĞË³Ğò¡£
-                /// ÎªÁËÈÃÉú³ÉµÄ BMP ÄÜ±»´ó¶àÊıÈí¼şÕıÈ·ÏÔÊ¾£¬ÕâÀï½«Êı¾İ°´´Óµ×µ½¶¥Ğ´Èë¡£
+                /// æ³¨æ„: BMP å­˜å‚¨é¡ºåºä¸ºä»æœ€åä¸€è¡Œå¼€å§‹ (åº•éƒ¨) åˆ°ç¬¬ä¸€è¡Œ (é¡¶éƒ¨)
+                /// è€Œæˆ‘ä»¬çš„ buffer é€šå¸¸æ˜¯ä»é¡¶å‘ä¸‹å­˜å‚¨ã€‚ä¸‹é¢ä¸¤ç§æ–¹å¼éƒ½å¯ï¼š
+                /// æ–¹å¼1: å°†é«˜åº¦è®¾ä¸ºè´Ÿå€¼è¡¨ç¤ºä»ä¸Šåˆ°ä¸‹ï¼Œä½†ä¸ºç®€åŒ–ï¼Œæˆ‘ä»¬æ˜¾å¼åœ°åè½¬è¡Œé¡ºåºã€‚
+                /// ä¸ºäº†è®©ç”Ÿæˆçš„ BMP èƒ½è¢«å¤§å¤šæ•°è½¯ä»¶æ­£ç¡®æ˜¾ç¤ºï¼Œè¿™é‡Œå°†æ•°æ®æŒ‰ä»åº•åˆ°é¡¶å†™å…¥ã€‚
                 auto    srcRow = plane.rowAt<char>(height - 1 - y);
-                // Ìî³ä×Ö½ÚÒÑÔÚ¹¹ÔìÊ±ÖÃ 0£¬ÎŞĞè¶îÍâ´¦Àí
+                // å¡«å……å­—èŠ‚å·²åœ¨æ„é€ æ—¶ç½® 0ï¼Œæ— éœ€é¢å¤–å¤„ç†
                 file.write(srcRow,  rowSize);
                 if (padding)
                     file.write(pad, padding);

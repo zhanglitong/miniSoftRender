@@ -1,9 +1,9 @@
-#pragma     once
+﻿#pragma     once
 
 namespace FE
 {
     /// <summary>
-    /// 内存管理
+    /// 鍐呭瓨绠＄悊
     /// </summary>
     class   FEAllocator
     {};

@@ -1,4 +1,4 @@
-
+﻿
 #include    "VKGPipeline.h"
 #include    "VKDevice.h"
 #include    "VKShader.h"
@@ -108,7 +108,7 @@ namespace   FE
         pipelineLayoutCI.pPushConstantRanges    =    pushConsts.data();
         VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &_layout));
 
-        /// �ⲿ��ѯʹ��
+        /// 锟解部锟斤拷询使锟斤拷
         _cInfo._pushConstant   =   !pushConsts.empty();
 
         VkGraphicsPipelineCreateInfo pipelineCI{};

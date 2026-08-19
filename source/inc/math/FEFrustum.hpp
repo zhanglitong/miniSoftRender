@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEPlane.hpp"
 
@@ -19,8 +19,8 @@ namespace   FE
         };
     public:
         /// <summary>
-        /// ¸ù¾İvp¼ÆËãÊÓ×¶
-        /// Gribb-Hartmann ·½·¨£¬ÓÃÓÚ´ÓÊÓÍ¼-Í¶Ó°¾ØÕó£¨View-Projection Matrix£©ÖĞÌáÈ¡ÊÓ×¶ÌåÆ½Ãæ
+        /// æ ¹æ®vpè®¡ç®—è§†é”¥
+        /// Gribb-Hartmann æ–¹æ³•ï¼Œç”¨äºä»è§†å›¾-æŠ•å½±çŸ©é˜µï¼ˆView-Projection Matrixï¼‰ä¸­æå–è§†é”¥ä½“å¹³é¢
         /// </summary>
         /// <param name="mvp"></param>
         inline  void    loadFrustum(const tmat4<T> &vp)
@@ -37,7 +37,7 @@ namespace   FE
 
         }
         /// <summary>
-        /// ÅĞ¶ÏÒ»¸öµãÔÚÊÓ×¶ÄÚ
+        /// åˆ¤æ–­ä¸€ä¸ªç‚¹åœ¨è§†é”¥å†…
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
@@ -51,7 +51,7 @@ namespace   FE
             return true;
         }
         /// <summary>
-        /// ÅĞ¶ÏÇòÓëÊÓ×¶ÊÇ·ñÏà½»
+        /// åˆ¤æ–­çƒä¸è§†é”¥æ˜¯å¦ç›¸äº¤
         /// </summary>
         /// <param name="pos"></param>
         /// <param name="radius"></param>
@@ -66,7 +66,7 @@ namespace   FE
             return true;
         }
         /// <summary>
-        /// ÅĞ¶ÏÖáÏò°üÎ§ºĞÊÇ·ñÓëÊÓ×¶Ïà½»
+        /// åˆ¤æ–­è½´å‘åŒ…å›´ç›’æ˜¯å¦ä¸è§†é”¥ç›¸äº¤
         /// </summary>
         /// <param name="vMin"></param>
         /// <param name="vMax"></param>
@@ -89,18 +89,18 @@ namespace   FE
             return true;
 #else
             /// 
-            /// Ô­ÀíËµÃ÷:
-            /// ÎªÁË¿ìËÙÅĞ¶Ï£¬²»ĞèÒª²âÊÔ AABB µÄËùÓĞ 8 ¸ö¶¥µã¡£
-            /// Ö»ĞèÒªÕÒµ½ÔÚ·¨Ïß·½ÏòÉÏÆ«ÒÆ×î´óµÄ¶¥µã(¼´ positive µã)
-            /// Èç¹û·¨ÏßµÄ x ·ÖÁ¿ÊÇÕıµÄ£¬ËµÃ÷ÑØ×Å x ÖáÕı·½Ïò×ß£¬µã»áÔ½À´Ô½¿¿½üÆ½ÃæÕıÃæ¡£ËùÒÔÑ¡ vMax.x¡£
-            /// ·´Ö®£¬Èç¹û x ·ÖÁ¿ÊÇ¸ºµÄ£¬ËµÃ÷ÑØ×Å x Öá¸º·½Ïò×ß£¬µã·´¶ø¸ü¿¿½üÆ½ÃæÕıÃæ¡£ËùÒÔÑ¡ vMin.x¡£
-            /// ¶Ô y ºÍ z ÖáÍ¬Àí
-            /// Í¨¹ıÕâÖÖ·½Ê½Ñ¡³öµÄ positive ¶¥µã£¬ÊÇÕû¸ö AABB ÖĞÑØ×Å·¨Ïß·½Ïò×ßµÃ×îÔ¶¡¢×îÉîÈëÆ½ÃæÄÚ²¿µÄµã
-            /// Âß¼­£ºÈç¹ûÁ¬Õâ¸ö¡°×î¿¿½üÄÚ²¿¡±µÄµã¶¼ÔÚÆ½ÃæµÄ±³Ãæ(¼´¾àÀë < 0 )£¬ÄÇÃ´°üÎ§ºĞµÄÆäËû 7 ¸öµã±ØÈ»Ò²ÔÚ±³Ãæ¡£
+            /// åŸç†è¯´æ˜:
+            /// ä¸ºäº†å¿«é€Ÿåˆ¤æ–­ï¼Œä¸éœ€è¦æµ‹è¯• AABB çš„æ‰€æœ‰ 8 ä¸ªé¡¶ç‚¹ã€‚
+            /// åªéœ€è¦æ‰¾åˆ°åœ¨æ³•çº¿æ–¹å‘ä¸Šåç§»æœ€å¤§çš„é¡¶ç‚¹(å³ positive ç‚¹)
+            /// å¦‚æœæ³•çº¿çš„ x åˆ†é‡æ˜¯æ­£çš„ï¼Œè¯´æ˜æ²¿ç€ x è½´æ­£æ–¹å‘èµ°ï¼Œç‚¹ä¼šè¶Šæ¥è¶Šé è¿‘å¹³é¢æ­£é¢ã€‚æ‰€ä»¥é€‰ vMax.xã€‚
+            /// åä¹‹ï¼Œå¦‚æœ x åˆ†é‡æ˜¯è´Ÿçš„ï¼Œè¯´æ˜æ²¿ç€ x è½´è´Ÿæ–¹å‘èµ°ï¼Œç‚¹åè€Œæ›´é è¿‘å¹³é¢æ­£é¢ã€‚æ‰€ä»¥é€‰ vMin.xã€‚
+            /// å¯¹ y å’Œ z è½´åŒç†
+            /// é€šè¿‡è¿™ç§æ–¹å¼é€‰å‡ºçš„ positive é¡¶ç‚¹ï¼Œæ˜¯æ•´ä¸ª AABB ä¸­æ²¿ç€æ³•çº¿æ–¹å‘èµ°å¾—æœ€è¿œã€æœ€æ·±å…¥å¹³é¢å†…éƒ¨çš„ç‚¹
+            /// é€»è¾‘ï¼šå¦‚æœè¿è¿™ä¸ªâ€œæœ€é è¿‘å†…éƒ¨â€çš„ç‚¹éƒ½åœ¨å¹³é¢çš„èƒŒé¢(å³è·ç¦» < 0 )ï¼Œé‚£ä¹ˆåŒ…å›´ç›’çš„å…¶ä»– 7 ä¸ªç‚¹å¿…ç„¶ä¹Ÿåœ¨èƒŒé¢ã€‚
             /// 
             for (const auto& plane : _planes)
             {
-                /// ²âÊÔ°üÎ§ºĞ×î¿¿½üÆ½ÃæÕı·½ÏòµÄµã
+                /// æµ‹è¯•åŒ…å›´ç›’æœ€é è¿‘å¹³é¢æ­£æ–¹å‘çš„ç‚¹
                 auto  positive  = vMin;
                 if (plane._normal.x >= 0) positive.x = vMax.x;
                 if (plane._normal.y >= 0) positive.y = vMax.y;
@@ -113,7 +113,7 @@ namespace   FE
 #endif
         }
         /// <summary>
-        /// Í¬ÉÏ
+        /// åŒä¸Š
         /// </summary>
         /// <param name="minX"></param>
         /// <param name="maxX"></param>
@@ -150,7 +150,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// »ñÈ¡Ãæ
+        /// è·å–é¢
         /// </summary>
         /// <param name="plane"></param>
         /// <returns></returns>
@@ -159,77 +159,77 @@ namespace   FE
             return _planes[plane];
         }
         /// <summary>
-        /// ´Ó±ä»»¾ØÕóÌáÈ¡ÊÓ×¶Ìå 8 ¸ö¶¥µã
+        /// ä»å˜æ¢çŸ©é˜µæå–è§†é”¥ä½“ 8 ä¸ªé¡¶ç‚¹
         /// </summary>
-        /// <param name="invVP">ÊÓÍ¼-Í¶Ó°¾ØÕóµÄÄæ¾ØÕó (inverse(Projection * View)</param>
-        /// <param name="outCorners">Êä³öµÄÊÀ½ç¿Õ¼ä 8 ¸ö¶¥µã</param>
+        /// <param name="invVP">è§†å›¾-æŠ•å½±çŸ©é˜µçš„é€†çŸ©é˜µ (inverse(Projection * View)</param>
+        /// <param name="outCorners">è¾“å‡ºçš„ä¸–ç•Œç©ºé—´ 8 ä¸ªé¡¶ç‚¹</param>
         inline  void    extractCorners(const tmat4<T>& invVP, tvec3<T> outCorners[8]) const
         {
-            /// 1. ¶¨Òå NDC ¿Õ¼äÖĞµÄ 8 ¸öÁ¢·½Ìå¶¥µã (×¢Òâ Z µÄ·¶Î§)
-            /// Ë³ĞòÍ¨³£Îª£º½üÆ½Ãæ 4 µã -> Ô¶Æ½Ãæ 4 µã
+            /// 1. å®šä¹‰ NDC ç©ºé—´ä¸­çš„ 8 ä¸ªç«‹æ–¹ä½“é¡¶ç‚¹ (æ³¨æ„ Z çš„èŒƒå›´)
+            /// é¡ºåºé€šå¸¸ä¸ºï¼šè¿‘å¹³é¢ 4 ç‚¹ -> è¿œå¹³é¢ 4 ç‚¹
             tvec4<T> ndcCorners[8] =
             {
-                {-1, -1, -1, 1}, { 1, -1, -1, 1}, { 1,  1, -1, 1}, {-1,  1, -1, 1}, /// ½üÆ½Ãæ (Z = -1)
-                {-1, -1,  1, 1}, { 1, -1,  1, 1}, { 1,  1,  1, 1}, {-1,  1,  1, 1}  /// Ô¶Æ½Ãæ (Z = +1)
+                {-1, -1, -1, 1}, { 1, -1, -1, 1}, { 1,  1, -1, 1}, {-1,  1, -1, 1}, /// è¿‘å¹³é¢ (Z = -1)
+                {-1, -1,  1, 1}, { 1, -1,  1, 1}, { 1,  1,  1, 1}, {-1,  1,  1, 1}  /// è¿œå¹³é¢ (Z = +1)
             };
             for (int i = 0; i < 8; ++i)
             {
-                /// 2. ±ä»»µ½²Ã¼ô¿Õ¼ä/ÊÀ½ç¿Õ¼ä
+                /// 2. å˜æ¢åˆ°è£å‰ªç©ºé—´/ä¸–ç•Œç©ºé—´
                 const tvec4<T>  worldPt =   invVP * ndcCorners[i];
                 const T         wInv    =   T(1)/worldPt.w;
-                /// 3. ±ØĞë½øĞĞÍ¸ÊÓ³ı·¨ (Perspective Divide)
-                /// ÕâÊÇ½«Æë´Î×ø±ê×ª»ØÈıÎ¬¿Õ¼ä×ø±êµÄ¹Ø¼ü
+                /// 3. å¿…é¡»è¿›è¡Œé€è§†é™¤æ³• (Perspective Divide)
+                /// è¿™æ˜¯å°†é½æ¬¡åæ ‡è½¬å›ä¸‰ç»´ç©ºé—´åæ ‡çš„å…³é”®
                 outCorners[i]           =   worldPt.xyz() * wInv;
             }
         }
         /// <summary>
-        /// »ñÈ¡±ßµÄË÷ÒıÊı¾İ
+        /// è·å–è¾¹çš„ç´¢å¼•æ•°æ®
         /// </summary>
         /// <param name="edges"></param>
         inline  void    extractEdgeIndex(uint8 edges[]) const
         {
             byte    datas[]  =
             {
-                1 ,0, // ½ü
-                2 ,1, // ½ü
-                3 ,2, // ½ü
-                0 ,3, // ½ü
+                1 ,0, // è¿‘
+                2 ,1, // è¿‘
+                3 ,2, // è¿‘
+                0 ,3, // è¿‘
 
-                5 ,4, // Ô¶
-                6 ,5, // Ô¶
-                7 ,6, // Ô¶
-                4 ,7, // Ô¶
+                5 ,4, // è¿œ
+                6 ,5, // è¿œ
+                7 ,6, // è¿œ
+                4 ,7, // è¿œ
 
-                4 ,0, // ²àÀâ1
-                5 ,1, // ²àÀâ2
-                6 ,2, // ²àÀâ3
-                7 ,3  // ²àÀâ4
+                4 ,0, // ä¾§æ£±1
+                5 ,1, // ä¾§æ£±2
+                6 ,2, // ä¾§æ£±3
+                7 ,3  // ä¾§æ£±4
             };
             memcpy(edges,datas,sizeof(datas));
         }
         /// <summary>
-        /// ¸ù¾İÊÓ×¶µÄ°Ë¸ö½Çµã»ñÈ¡±ßµÄ£¬Ä¿µÄÊÇ×ö·ÖÀëÖáËã·¨
+        /// æ ¹æ®è§†é”¥çš„å…«ä¸ªè§’ç‚¹è·å–è¾¹çš„ï¼Œç›®çš„æ˜¯åšåˆ†ç¦»è½´ç®—æ³•
         /// </summary>
-        /// <param name="corners">ÊÓ×¶ÌåµÄ°Ë¸öµã</param>
-        /// <param name="edgeDirs">Êä³ö12¸ö±ß(24¸ö¶¥µã)</param>
+        /// <param name="corners">è§†é”¥ä½“çš„å…«ä¸ªç‚¹</param>
+        /// <param name="edgeDirs">è¾“å‡º12ä¸ªè¾¹(24ä¸ªé¡¶ç‚¹)</param>
         inline  void    extractEdges(const tvec3<T> corners[8],tvec3<T> edges[24]) const
         {
             tvec3<T>    datas[] =
             {
-                corners[1]  ,corners[0], // ½ü
-                corners[2]  ,corners[1], // ½ü
-                corners[3]  ,corners[2], // ½ü
-                corners[0]  ,corners[3], // ½ü
+                corners[1]  ,corners[0], // è¿‘
+                corners[2]  ,corners[1], // è¿‘
+                corners[3]  ,corners[2], // è¿‘
+                corners[0]  ,corners[3], // è¿‘
 
-                corners[5]  ,corners[4], // Ô¶
-                corners[6]  ,corners[5], // Ô¶
-                corners[7]  ,corners[6], // Ô¶
-                corners[4]  ,corners[7], // Ô¶
+                corners[5]  ,corners[4], // è¿œ
+                corners[6]  ,corners[5], // è¿œ
+                corners[7]  ,corners[6], // è¿œ
+                corners[4]  ,corners[7], // è¿œ
 
-                corners[4]  ,corners[0], // ²àÀâ1
-                corners[5]  ,corners[1], // ²àÀâ2
-                corners[6]  ,corners[2], // ²àÀâ3
-                corners[7]  ,corners[3]  // ²àÀâ4
+                corners[4]  ,corners[0], // ä¾§æ£±1
+                corners[5]  ,corners[1], // ä¾§æ£±2
+                corners[6]  ,corners[2], // ä¾§æ£±3
+                corners[7]  ,corners[3]  // ä¾§æ£±4
             };
             memcpy(edges,datas,sizeof(datas));
         }

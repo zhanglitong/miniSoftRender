@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FELight.h"
 #include    "FELightPoint.h"
 #include    "FELightDir.h"
@@ -17,7 +17,7 @@ namespace   FE
             :FEObject(other)
         {}
         /// <summary>
-        /// »ñÈ¡ËùÓĞ¿É¼ûµÆ¹â¶ÔÏóÊıÁ¿
+        /// è·å–æ‰€æœ‰å¯è§ç¯å…‰å¯¹è±¡æ•°é‡
         /// </summary>
         /// <returns></returns>
         size_t  count() const
@@ -30,7 +30,7 @@ namespace   FE
             return  cnt;
         }
         /// <summary>
-        /// »ñÈ¡µÆ¹âÊı¾İÊµ¼ÊÕ¼ÓÃµÄÄÚ´æ´óĞ¡
+        /// è·å–ç¯å…‰æ•°æ®å®é™…å ç”¨çš„å†…å­˜å¤§å°
         /// </summary>
         /// <returns></returns>
         size_t  bytes() const

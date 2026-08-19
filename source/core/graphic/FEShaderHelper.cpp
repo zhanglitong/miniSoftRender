@@ -1,4 +1,4 @@
-#include    <iostream>
+ï»¿#include    <iostream>
 #include    <vector>
 #include    "../inc/graphic/FEShaderHelper.h"
 #include    "shaderc/shaderc.hpp"
@@ -28,16 +28,16 @@ namespace   FE
     }
     Shader  FEShaderHelper::buildFromMemory(FEContext& ctx,FEDevice& dev,const char* pSource,FEShaderType type,const char* entryPoint)
     {
-        /// 1. ´´½¨±àÒëÆ÷ÊµÀı
+        /// 1. åˆ›å»ºç¼–è¯‘å™¨å®ä¾‹
         shaderc::Compiler           compiler;
-        /// 2. ´´½¨±àÒëÑ¡Ïî£¨¿ÉÑ¡£©
+        /// 2. åˆ›å»ºç¼–è¯‘é€‰é¡¹ï¼ˆå¯é€‰ï¼‰
         shaderc::CompileOptions     options;
         auto    kind    =   system2Native(type);
         String  source  =   pSource;
-        /// 3. Ö´ĞĞ±àÒë
+        /// 3. æ‰§è¡Œç¼–è¯‘
         auto    result  =   compiler.CompileGlslToSpv(source, kind, nullptr, entryPoint, options);
 
-        // 4. ¼ì²é±àÒë×´Ì¬
+        // 4. æ£€æŸ¥ç¼–è¯‘çŠ¶æ€
         if (result.GetCompilationStatus() != shaderc_compilation_status_success) 
         {
             std::cerr << "Shader compilation failed: " << result.GetErrorMessage() << std::endl;

@@ -1,4 +1,4 @@
-#include    <new> 
+ï»¿#include    <new> 
 #include    <memory> 
 
 #include    "../inc/FEObject.h"
@@ -50,9 +50,9 @@ namespace   FE
             writer.write(infor);
             writer.seek(nCur);
         });
-        /// Êä³ö°æ±¾ºÅ£¬µ÷ÓÃÕß»áÓÃµ½
+        /// è¾“å‡ºç‰ˆæœ¬å·ï¼Œè°ƒç”¨è€…ä¼šç”¨åˆ°
         vVersion    =   version();
-        /// ¼ì²âÊÇ·ñĞèÒªĞ´Èë°æ±¾ºÅ£¬Èç¹ûÊÇÄ¬ÈÏÖµ£¬²»Ğ´Èë
+        /// æ£€æµ‹æ˜¯å¦éœ€è¦å†™å…¥ç‰ˆæœ¬å·ï¼Œå¦‚æœæ˜¯é»˜è®¤å€¼ï¼Œä¸å†™å…¥
         infor._hasVersion == (vVersion == FEObject::version()) ? 0 : 1;
         
         writer.write(infor);
@@ -70,7 +70,7 @@ namespace   FE
         case 3: writer.write(cnt);              break;
         }
         
-        /// ¸üĞÂ½ø¶È
+        /// æ›´æ–°è¿›åº¦
         if (sCtx.query)
             sCtx.query(FEUuid::zero(),&writer,FESerializeCtx::O_UpdateProgress);
 
@@ -85,13 +85,13 @@ namespace   FE
 
         reader.read(_id);
         reader.read(flags());
-        /// ¸³ÖµÄ¬ÈÏ°æ±¾
+        /// èµ‹å€¼é»˜è®¤ç‰ˆæœ¬
         version =   FEObject::version();
-        /// Èç¹ûÓĞ°æ±¾ºÅ£¬¶ÁÈ¡
+        /// å¦‚æœæœ‰ç‰ˆæœ¬å·ï¼Œè¯»å–
         if (infor._hasVersion)  reader.read(version);
-        /// ×ÓÀàÄÚÈİ¶ÁÈ¡
+        /// å­ç±»å†…å®¹è¯»å–
         deserializeTraits(reader,infor,version,sCtx);
-        /// ¸üĞÂ½ø¶È
+        /// æ›´æ–°è¿›åº¦
         if (sCtx.query)
             sCtx.query(FEUuid::zero(),&reader,FESerializeCtx::O_UpdateProgress);
 

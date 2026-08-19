@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEObject.h"
 
 namespace   FE
@@ -9,7 +9,7 @@ namespace   FE
         Object  _userObject;
     public:
         /// <summary>
-        /// »ñÈ¡×Ô¶¨Òå¹ØÁªµÄ¶ÔÏó
+        /// è·å–è‡ªå®šä¹‰å…³è”çš„å¯¹è±¡
         /// </summary>
         /// <returns></returns>
         inline  Object  userObject() const
@@ -21,7 +21,7 @@ namespace   FE
             return  _userObject;
         }
         /// <summary>
-        /// ÉèÖÃ×Ô¶¨Òå¶ÔÏó(ÓëÒµÎñÎŞ¹Ø£¬¸¨ÖúÒµÎñÊµÏÖÊ¹ÓÃ)
+        /// è®¾ç½®è‡ªå®šä¹‰å¯¹è±¡(ä¸ä¸šåŠ¡æ— å…³ï¼Œè¾…åŠ©ä¸šåŠ¡å®ç°ä½¿ç”¨)
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
@@ -31,7 +31,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ×Ô¶¨Òå¶ÔÏó(ÓëÒµÎñÎŞ¹Ø£¬¸¨ÖúÒµÎñÊµÏÖÊ¹ÓÃ)
+        /// è®¾ç½®è‡ªå®šä¹‰å¯¹è±¡(ä¸ä¸šåŠ¡æ— å…³ï¼Œè¾…åŠ©ä¸šåŠ¡å®ç°ä½¿ç”¨)
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>

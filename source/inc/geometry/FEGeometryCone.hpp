@@ -1,16 +1,16 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEGeometryCylinder.hpp"
 
 namespace   FE
 {
     DEFINE_CLASS_UUID(FEGeometryCone,"{80CD6245-3FC9-4FBC-A390-F8E1507B22E5}");
     /// <summary>
-    /// Ä¿±êĞÎ×´	radiusTop	radiusBottom	radialSegments
-    /// ±ê×¼Ô²×¶	0	1	32 (»ò¸ü¸ß)
-    /// ÈıÀâ×¶	    0	1	3
-    /// ËÄÀâ×¶     (½ğ×ÖËş)	0	1	4
-    /// ÎåÀâ×¶	    0	1	5
-    /// ÁùÀâ×¶	    0	1	6
+    /// ç›®æ ‡å½¢çŠ¶	radiusTop	radiusBottom	radialSegments
+    /// æ ‡å‡†åœ†é”¥	0	1	32 (æˆ–æ›´é«˜)
+    /// ä¸‰æ£±é”¥	    0	1	3
+    /// å››æ£±é”¥     (é‡‘å­—å¡”)	0	1	4
+    /// äº”æ£±é”¥	    0	1	5
+    /// å…­æ£±é”¥	    0	1	6
     /// </summary>
     class   FEGeometryCone : public FEGeometryCylinder
     {
@@ -19,7 +19,7 @@ namespace   FE
        
     public:
 		/// <summary>
-        /// ¹¹ÔìÉèÖÃÊäÈë¶¥µãµÄÊôĞÔÊı¾İ
+        /// æ„é€ è®¾ç½®è¾“å…¥é¡¶ç‚¹çš„å±æ€§æ•°æ®
         /// </summary>
         FEGeometryCone(FEContext& ctx)
             : FEGeometryCylinder(ctx)

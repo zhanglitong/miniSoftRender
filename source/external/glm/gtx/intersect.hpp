@@ -1,4 +1,4 @@
-/// @ref gtx_intersect
+﻿/// @ref gtx_intersect
 /// @file glm/gtx/intersect.hpp
 ///
 /// @see core (dependence)
@@ -44,7 +44,7 @@ namespace glm
 		typename genType::value_type & intersectionDistance);
 
 	//! Compute the intersection of a ray and a triangle.
-	/// Based om Tomas M�ller implementation http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/raytri/
+	/// Based om Tomas M鰈ler implementation http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/raytri/
 	//! From GLM_GTX_intersect extension.
 	template<typename T, precision P>
 	GLM_FUNC_DECL bool intersectRayTriangle(

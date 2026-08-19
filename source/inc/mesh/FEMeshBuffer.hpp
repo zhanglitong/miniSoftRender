@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEObject.h"
 #include    "../FEBuffer.hpp"
@@ -25,7 +25,7 @@ namespace   FE
             _attrId     =   other._attrId;
         }
         /// <summary>
-        /// ·µ»Ø×Ö½ÚÊıÁ¿
+        /// è¿”å›å­—èŠ‚æ•°é‡
         /// </summary>
         /// <returns></returns>
         inline  uint64  length() const
@@ -37,7 +37,7 @@ namespace   FE
                 return  0;
         }
         /// <summary>
-        /// »ñÈ¡ÔªËØ¸ñÊ½
+        /// è·å–å…ƒç´ æ ¼å¼
         /// </summary>
         /// <returns></returns>
         inline  uint    count() const
@@ -71,7 +71,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ»º³åÇø
+        /// è®¾ç½®ç¼“å†²åŒº
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="notify"></param>
@@ -84,7 +84,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ»º³åÇø
+        /// è®¾ç½®ç¼“å†²åŒº
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="notify"></param>
@@ -113,7 +113,7 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// »á¸üĞÂ°üÎ§ºĞĞÅÏ¢²¢·µ»Ø
+        /// ä¼šæ›´æ–°åŒ…å›´ç›’ä¿¡æ¯å¹¶è¿”å›
         /// </summary>
         /// <returns></returns>
         inline  aabb3f  calcAabb() const

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../graphic/FEConstUuid.h"
 #include    "../graphic/FEDevice.h"
@@ -28,7 +28,7 @@ namespace   FE
             bind(0,SB_Light,    {lightSBO},{lights.count() * sizeof(LightData)});
             bind(0,SB_Material, {_pbr._gpu.get()});
             
-            /// µÆ¹â¶ÔÏó
+            /// ç¯å…‰å¯¹è±¡
             lightSBO->as<FENotify>()->addNotify(this,[this](Object object)
             {
                 if (object->flags().hasFlag(FLAG_UPDATE))
@@ -36,7 +36,7 @@ namespace   FE
                     bind(0,SB_Light,{object});
                 }
             });
-            /// Í¬²½Êı¾İµ½ÏÔ¿¨
+            /// åŒæ­¥æ•°æ®åˆ°æ˜¾å¡
             update();
         }
 
@@ -47,7 +47,7 @@ namespace   FE
         virtual ~FEMaterialPBR()
         {}
         /// <summary>
-        /// »ñÈ¡²ÄÖÊÊı¾İ
+        /// è·å–æè´¨æ•°æ®
         /// </summary>
         /// <returns></returns>
         inline  auto&   data() 

@@ -1,4 +1,4 @@
-#include    "SWQueue.h"
+﻿#include    "SWQueue.h"
 #include    "SWDevice.h"
 
 namespace   FE

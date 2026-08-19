@@ -1,4 +1,4 @@
-#include    "demo.h"
+﻿#include    "demo.h"
 #include    "../../../inc/FEAppHelper.hpp"
 #include    "../../../inc/geometry/FEGeometryGrid.hpp"
 #include    "../../../inc/FEFileFormatHelper.hpp"
@@ -20,7 +20,7 @@ namespace   FE
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
         _scene->setup(_app);
-        /// _scene->test();
+        _scene->test();
 
         //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
         /// String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\AnimatedTriangle\glTF-Embedded/AnimatedTriangle.gltf)";

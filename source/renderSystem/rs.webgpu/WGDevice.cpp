@@ -1,4 +1,4 @@
-#include    "WGDevice.h"
+﻿#include    "WGDevice.h"
 #include    "WGRenderSystem.h"
 #include    "WGCmdBuffer.h"
 #include    "WGQueue.h"
@@ -19,7 +19,7 @@
 
 namespace   FE
 {
-    // WebGPU validation/device-lost 回调，把错误信息打到 stdout
+    // WebGPU validation/device-lost 鍥炶皟锛屾妸閿欒淇℃伅鎵撳埌 stdout
     static void wgUncapturedErrorCb(WGPUDevice const* device,WGPUErrorType type,WGPUStringView msg,void* ud1,void* ud2)
     {
         (void)device; (void)ud1; (void)ud2;
@@ -98,7 +98,7 @@ namespace   FE
         deviceDesc.defaultQueue.nextInChain =   nullptr;
         deviceDesc.defaultQueue.label       =   { "Default Queue",13 };
 
-        // 在 DeviceDescriptor 里注册 validation/device-lost 回调
+        // 鍦?DeviceDescriptor 閲屾敞鍐?validation/device-lost 鍥炶皟
         deviceDesc.deviceLostCallbackInfo.nextInChain =   nullptr;
         deviceDesc.deviceLostCallbackInfo.mode        =   WGPUCallbackMode_AllowProcessEvents;
         deviceDesc.deviceLostCallbackInfo.callback     =   wgDeviceLostCb;

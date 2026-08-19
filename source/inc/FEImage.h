@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <string>
 #include    "FEObject.h"
 #include    "FEMath.hpp"
@@ -15,43 +15,43 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEImage,"{CACB6053-A4DB-4479-9BBD-D9D4433263AD}");
 
-    class   FE_API  FEImage:public FEObject
+    class   FEImage:public FEObject
     {
         IMPLEMENT_CLASS_REFLECT(FEImage)
     public:
         struct  CreateInfo
         {
             /// <summary>
-            /// _extent.x : ¿í¶È
-            /// _extent.y : ¸ß¶È
-            /// _extent.z : Éî¶È
+            /// _extent.x : å®½åº¦
+            /// _extent.y : é«˜åº¦
+            /// _extent.z : æ·±åº¦
             /// </summary>
             uint3           _extent;
             /// <summary>
-            /// Êı¾İ¸ñÊ½
+            /// æ•°æ®æ ¼å¼
             /// </summary>
             FEFormat        _format     =   FMT_NONE;
             /// <summary>
-            /// ÃèÊöÊı×é´óĞ¡
+            /// æè¿°æ•°ç»„å¤§å°
             /// </summary>
             uint16_t        _layers     =   1;
             /// <summary>
-            /// mip¼¶±ğ
+            /// mipçº§åˆ«
             /// </summary>
             uint16_t        _levels     =   1;
             /// <summary>
-            /// ÓÃÀ´¶ÔÆäÊ¹ÓÃ
+            /// ç”¨æ¥å¯¹å…¶ä½¿ç”¨
             /// </summary>
             uint16_t        _align      =   4;
             /// <summary>
-            /// Ò»¸ölayer ¶ÔÓ¦Ò»¸öFEBuffer£¬±ÜÃâÉêÇë½Ï´óµÄÁ¬ĞøÄÚ´æ£¬Ôì³ÉÉêÇë²»µ½ÄÚ´æµÄÇé¿ö
-            /// Í¬Ê±Èç¹û¶¯Ì¬ĞŞ¸ÄlayerµÄ´óĞ¡£¬Ò²²»»áÔì³ÉÈ«²¿Êı¾İÊ§Ğ§µÄÇé¿ö
+            /// ä¸€ä¸ªlayer å¯¹åº”ä¸€ä¸ªFEBufferï¼Œé¿å…ç”³è¯·è¾ƒå¤§çš„è¿ç»­å†…å­˜ï¼Œé€ æˆç”³è¯·ä¸åˆ°å†…å­˜çš„æƒ…å†µ
+            /// åŒæ—¶å¦‚æœåŠ¨æ€ä¿®æ”¹layerçš„å¤§å°ï¼Œä¹Ÿä¸ä¼šé€ æˆå…¨éƒ¨æ•°æ®å¤±æ•ˆçš„æƒ…å†µ
             /// </summary>
             Buffers         _buffers;
         };
         /// <summary>
-        /// Í¼ÏñµÄ×î»ù±¾µ¥Ôª: [x*y*z*fmt]
-        /// Êı×é[layers] * ( [x*y*z*fmt] + [x>>1*y>>1*z>>1*fmt] + ...]
+        /// å›¾åƒçš„æœ€åŸºæœ¬å•å…ƒ: [x*y*z*fmt]
+        /// æ•°ç»„[layers] * ( [x*y*z*fmt] + [x>>1*y>>1*z>>1*fmt] + ...]
         /// </summary>
         using  ImgSource    =   FEImageSource;
     public:
@@ -60,7 +60,7 @@ namespace   FE
         FEImage(const FEImage& other);
         virtual ~FEImage();
         /// <summary>
-        /// »ñÈ¡´´½¨ĞÅÏ¢
+        /// è·å–åˆ›å»ºä¿¡æ¯
         /// </summary>
         /// <returns></returns>
         const   auto&   cInfo() const
@@ -72,18 +72,18 @@ namespace   FE
             return  _cInfo;
         }
         /// <summary>
-        /// ´´½¨Í¼Æ¬
+        /// åˆ›å»ºå›¾ç‰‡
         /// </summary>
         /// <param name="info"></param>
         /// <returns></returns>
-        inline  bool    create(const FEImage::CreateInfo& info);
+        bool        create(const FEImage::CreateInfo& info);
         template<class T>
-        inline  T*      dataAs()
+        inline  T*  dataAs()
         {
             return  (T*)_cInfo._buffer;
         }
         template<class T>
-        const   T*      dataAs() const
+        const   T*  dataAs() const
         {
             return  (T*)_cInfo._buffer;
         }
@@ -92,7 +92,7 @@ namespace   FE
         /// </summary>
         /// <param name="level">0-mips</param>
         /// <param name="layer">0-layers</param>
-        /// <returns>ÏñËØÊı¾İµÄÄÚ´æÎ»ÖÃ</returns>
+        /// <returns>åƒç´ æ•°æ®çš„å†…å­˜ä½ç½®</returns>
         inline  auto    pixel(uint32 layer,uint32 level = 0)
         {
             auto    pixel   =   _cInfo._buffers[layer]->cInfo().dataPtr();
@@ -106,7 +106,7 @@ namespace   FE
             return  pixel + nByte;
         }
         /// <summary>
-        /// »ñÈ¡Í¼Æ¬µÄÒ»¸ö×îĞ¡Í¼Ïñµ¥Ôª
+        /// è·å–å›¾ç‰‡çš„ä¸€ä¸ªæœ€å°å›¾åƒå•å…ƒ
         /// </summary>
         /// <param name="level">0-mips</param>
         /// <param name="layer">0-levels</param>
@@ -126,7 +126,7 @@ namespace   FE
             return  data;
         }
         /// <summary>
-        /// ¼ÆËãµ¥ÕÅÍ¼µÄ´óĞ¡(µ¥Î»×Ö½Ú£¬°üº¬ÁËmipmap)
+        /// è®¡ç®—å•å¼ å›¾çš„å¤§å°(å•ä½å­—èŠ‚ï¼ŒåŒ…å«äº†mipmap)
         /// </summary>
         /// <returns></returns>
         inline  auto    bytesOfLayer() const
@@ -134,7 +134,7 @@ namespace   FE
             return  bytesOfLayer(_cInfo._extent,_cInfo._levels,_cInfo._align,_cInfo._format);
         }
         /// <summary>
-        /// ¼ÆËãÖ¸¶¨¼¶±ğÊı¾İµÄ´óĞ¡(µ¥Î»×Ö½Ú)
+        /// è®¡ç®—æŒ‡å®šçº§åˆ«æ•°æ®çš„å¤§å°(å•ä½å­—èŠ‚)
         /// </summary>
         /// <param name="level"></param>
         /// <returns></returns>
@@ -146,7 +146,7 @@ namespace   FE
             return  pitch(w,_cInfo._align,_cInfo._format) * h * d;
         }
         /// <summary>
-        /// ·µ»ØÖ¸¶¨¼¶±ğÊı¾İÔÚÕû¸ölayerÖĞµÄÆ«ÒÆÁ¿
+        /// è¿”å›æŒ‡å®šçº§åˆ«æ•°æ®åœ¨æ•´ä¸ªlayerä¸­çš„åç§»é‡
         /// </summary>
         /// <param name="level">0 ~ mips - 1</param>
         /// <returns></returns>
@@ -158,7 +158,7 @@ namespace   FE
             return  offset;
         }
         /// <summary>
-        /// »ñÈ¡Í¼ĞÎÕ¼ÓÃ¿Õ¼äµÄ´óĞ¡(µ¥Î»×Ö½Ú)
+        /// è·å–å›¾å½¢å ç”¨ç©ºé—´çš„å¤§å°(å•ä½å­—èŠ‚)
         /// </summary>
         /// <returns></returns>
         inline  uint64  size() const
@@ -382,15 +382,15 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>
@@ -399,7 +399,7 @@ namespace   FE
     protected:
 
         /// <summary>
-        /// ÊµÏÖÇé¿ö»º³åÇøµÄ×÷ÓÃ(ÓÃÖ¸¶¨µÄÖµÌî³ä)
+        /// å®ç°æƒ…å†µç¼“å†²åŒºçš„ä½œç”¨(ç”¨æŒ‡å®šçš„å€¼å¡«å……)
         /// </summary>
         /// <typeparam name="TFrom"></typeparam>
         /// <typeparam name="TTo"></typeparam>
@@ -413,19 +413,19 @@ namespace   FE
             uint32      mips        =   (std::max<uint32>)(1,_cInfo._levels);
             uint32      layer       =   (std::max<uint32>)(1,_cInfo._layers);
             TTo         tSrc        =   castTo<TFrom,TTo>(src);
-            /// Ò»¸öÏñËØµÄ×Ö½ÚÊı
+            /// ä¸€ä¸ªåƒç´ çš„å­—èŠ‚æ•°
             const auto  pixelSize   =   FEFormatHelper::sizeOf(_cInfo._format);
             const auto  align       =   _cInfo._align;
             for (uint32 l = 0; l < layer; ++l)
             {
-                /// Êı¾İµÄÊ×µØÖ·
+                /// æ•°æ®çš„é¦–åœ°å€
                 auto        pStart      =   _cInfo._buffers[l]->cInfo().dataPtr();
                 for (uint32 m = 0; m < mips; ++m)
                 {
                     const auto  width   =   (std::max<uint32>)(_cInfo._extent.x >> m,1);
                     const auto  height  =   (std::max<uint32>)(_cInfo._extent.y >> m,1);
                     const auto  depth   =   (std::max<uint32>)(_cInfo._extent.z >> m,1);
-                    /// Ò»ĞĞÊı¾İ´óĞ¡
+                    /// ä¸€è¡Œæ•°æ®å¤§å°
                     const auto  nPitch  =   pitch(width,align,pixelSize) ;
                     for (uint32 d = 0; d < depth;  ++d)
                     {
@@ -441,8 +441,8 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// TPBuffer Ò»°ã²ÉÓÃÁËtiled £¬¶ø²»ÊÇ°´ĞĞÏßĞÔ´æ´¢µÄ
-        /// º¯ÊıµÄ×÷ÓÃÊµÏÖ×ª»»¹ı³Ì
+        /// TPBuffer ä¸€èˆ¬é‡‡ç”¨äº†tiled ï¼Œè€Œä¸æ˜¯æŒ‰è¡Œçº¿æ€§å­˜å‚¨çš„
+        /// å‡½æ•°çš„ä½œç”¨å®ç°è½¬æ¢è¿‡ç¨‹
         /// </summary>
         /// <typeparam name="TFrom"></typeparam>
         /// <typeparam name="TTo"></typeparam>
@@ -468,7 +468,7 @@ namespace   FE
                     }
                     else
                     {
-                        /// ±ÜÃâÆµ·±ÇĞ»»ÄÚ´æµØÖ·,ÒıÆğcacheÊ§Ğ§
+                        /// é¿å…é¢‘ç¹åˆ‡æ¢å†…å­˜åœ°å€,å¼•èµ·cacheå¤±æ•ˆ
                         TTo tmp[_TileW];
                         for (uint16_t x = 0; x < w; ++x)
                         {
@@ -483,7 +483,7 @@ namespace   FE
     protected:
         static  bool    allocMemory(FEContext& ctx,FEImage::CreateInfo& info);
         /// <summary>
-        /// ÍêÕûÍ¼ÏñÕ¼ÓÃ¿Õ¼äµÄ´óĞ¡(µ¥Î»×Ö½Ú)
+        /// å®Œæ•´å›¾åƒå ç”¨ç©ºé—´çš„å¤§å°(å•ä½å­—èŠ‚)
         /// </summary>
         /// <param name="info"></param>
         /// <returns></returns>
@@ -494,35 +494,35 @@ namespace   FE
             return  layers * bytesOfLayer(info._extent,levels,info._align,info._format);
         }
         /// <summary>
-        /// ¼ÆËãÒ»ĞĞÊı¾İ(w¸öÏñËØ)Õ¼ÓÃµÄÄÚ´æ¿Õ¼ä´óĞ¡(µ¥Î»×Ö½Ú)
+        /// è®¡ç®—ä¸€è¡Œæ•°æ®(wä¸ªåƒç´ )å ç”¨çš„å†…å­˜ç©ºé—´å¤§å°(å•ä½å­—èŠ‚)
         /// </summary>
-        /// <param name="w">¿í¶È</param>
-        /// <param name="align">¶ÔÆë×Ö½ÚÊı1,2,4,8,16,32,64...</param>
-        /// <param name="fmt">ÏñËØ¸ñÊ½</param>
-        /// <returns>ËùĞè¿Õ¼ä´óĞ¡£¬µ¥Î»×Ö½Ú</returns>
+        /// <param name="w">å®½åº¦</param>
+        /// <param name="align">å¯¹é½å­—èŠ‚æ•°1,2,4,8,16,32,64...</param>
+        /// <param name="fmt">åƒç´ æ ¼å¼</param>
+        /// <returns>æ‰€éœ€ç©ºé—´å¤§å°ï¼Œå•ä½å­—èŠ‚</returns>
         static  uint32  pitch(uint32 w,uint16_t align,FEFormat fmt)
         {
             return  FEFormatHelper::pitch(w,align,fmt);
         }
         /// <summary>
-        /// ¼ÆËãÒ»ĞĞÊı¾İ(w¸öÏñËØ)Õ¼ÓÃµÄÄÚ´æ¿Õ¼ä´óĞ¡(µ¥Î»×Ö½Ú)
+        /// è®¡ç®—ä¸€è¡Œæ•°æ®(wä¸ªåƒç´ )å ç”¨çš„å†…å­˜ç©ºé—´å¤§å°(å•ä½å­—èŠ‚)
         /// </summary>
         /// <param name="w"></param>
-        /// <param name="align">¶ÔÆë×Ö½ÚÊı1,2,4,8,16,32,64...</param>
-        /// <param name="pixelByte">Ã¿¸öÏñËØµÄ×Ö½ÚÊı</param>
-        /// <returns>ËùĞè¿Õ¼ä´óĞ¡£¬µ¥Î»×Ö½Ú</returns>
+        /// <param name="align">å¯¹é½å­—èŠ‚æ•°1,2,4,8,16,32,64...</param>
+        /// <param name="pixelByte">æ¯ä¸ªåƒç´ çš„å­—èŠ‚æ•°</param>
+        /// <returns>æ‰€éœ€ç©ºé—´å¤§å°ï¼Œå•ä½å­—èŠ‚</returns>
         static  uint32  pitch(uint32 w,uint16_t align,uint16_t pixelByte)
         {
             return  FEFormatHelper::pitch(w,align,pixelByte);
         }
         /// <summary>
-        /// ¸ù¾İÍ¼ÏñµÄ´óĞ¡,mipmap,¶ÔÆë·½Ê½,Êı¾İ¸ñÊ½,¼ÆËãĞèÒªµÄ¿Õ¼ä×Ö½ÚÊı
+        /// æ ¹æ®å›¾åƒçš„å¤§å°,mipmap,å¯¹é½æ–¹å¼,æ•°æ®æ ¼å¼,è®¡ç®—éœ€è¦çš„ç©ºé—´å­—èŠ‚æ•°
         /// </summary>
-        /// <param name="extent">³¤¿í¸ß</param>
+        /// <param name="extent">é•¿å®½é«˜</param>
         /// <param name="levels">mipmap</param>
-        /// <param name="align">¶ÔÆë1,2,4,8,16,32,64...</param>
-        /// <param name="fmt">¸ñÊ½</param>
-        /// <returns>ËùĞè¿Õ¼ä´óĞ¡£¬µ¥Î»×Ö½Ú</returns>
+        /// <param name="align">å¯¹é½1,2,4,8,16,32,64...</param>
+        /// <param name="fmt">æ ¼å¼</param>
+        /// <returns>æ‰€éœ€ç©ºé—´å¤§å°ï¼Œå•ä½å­—èŠ‚</returns>
         static  uint32  bytesOfLayer(const uint3& extent,uint32 levels,uint32 align,FEFormat fmt)
         {
             return  FEFormatHelper::bytesOfLayer(extent,levels,align,fmt);

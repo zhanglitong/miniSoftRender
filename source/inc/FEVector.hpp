@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <memory>
 #include    <algorithm>
 #include    <initializer_list>
@@ -7,8 +7,8 @@
 namespace   FE
 {
     /// <summary>
-    /// ¸ÃÀà²»Í¨ÓÃ,ÊôÓÚ×¨ÓÃÀà
-    /// ÄÚ²¿Ê¹ÓÃ£¬Ö÷ÒªÄ¿µÄ½â¾öÄÚÊı¾İ¹ÜÀíÈ¨±ä¸ü,µ«²»ÊÍ·ÅÄÚ´æ
+    /// è¯¥ç±»ä¸é€šç”¨,å±äºä¸“ç”¨ç±»
+    /// å†…éƒ¨ä½¿ç”¨ï¼Œä¸»è¦ç›®çš„è§£å†³å†…æ•°æ®ç®¡ç†æƒå˜æ›´,ä½†ä¸é‡Šæ”¾å†…å­˜
     /// </summary>
     /// <typeparam name="T"></typeparam>
     template<typename T,typename TSize = uint64_t>
@@ -25,7 +25,7 @@ namespace   FE
         using const_iterator    =   const_pointer;
     public:
         /// <summary>
-        /// ¹¹Ôìº¯Êı
+        /// æ„é€ å‡½æ•°
         /// </summary>
         FEVector() noexcept 
             : _data(nullptr)
@@ -91,7 +91,7 @@ namespace   FE
                 push_back(T(val));
         }
         /// <summary>
-        /// ¿½±´¹¹Ôì
+        /// æ‹·è´æ„é€ 
         /// </summary>
         /// <param name="other"></param>
         FEVector(const FEVector& other) 
@@ -105,7 +105,7 @@ namespace   FE
             _size   =   other._size;
         }
         /// <summary>
-        /// ÒÆ¶¯¹¹Ôì
+        /// ç§»åŠ¨æ„é€ 
         /// </summary>
         /// <param name="other"></param>
         FEVector(FEVector&& other) noexcept
@@ -118,14 +118,14 @@ namespace   FE
             other._cap      =   0;
         }
         /// <summary>
-        /// Îö¹¹
+        /// ææ„
         /// </summary>
         ~FEVector() 
         {
             destroy();
         }
         /// <summary>
-        /// ¿½±´¸³Öµ
+        /// æ‹·è´èµ‹å€¼
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -139,7 +139,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ÒÆ¶¯¸³Öµ
+        /// ç§»åŠ¨èµ‹å€¼
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -181,7 +181,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ±ÈÈç°ÑÒ»¸ö½á¹¹Ìå¸øÊı×é¸³Öµ
+        /// æ¯”å¦‚æŠŠä¸€ä¸ªç»“æ„ä½“ç»™æ•°ç»„èµ‹å€¼
         /// struct  UBO
         /// {
         ///     mat4    mpv;
@@ -233,8 +233,8 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// Ê¹ÓÃ¸Ã·½·¨£¬ÄÚ´æ´ÓÒ»¸ö¶ÔÏóÒÆ¶¯µ½ÁíÒ»¸ö¶ÔÏó£¬Êı¾İ²»»á·¢Éú±ä»¯£¬µ«ÊÇ¹ÜÀíÈ¨·¢Éú±ä»¯
-        /// ²»»áµ÷ÓÃÊÍ·Å¶¯×÷
+        /// ä½¿ç”¨è¯¥æ–¹æ³•ï¼Œå†…å­˜ä»ä¸€ä¸ªå¯¹è±¡ç§»åŠ¨åˆ°å¦ä¸€ä¸ªå¯¹è±¡ï¼Œæ•°æ®ä¸ä¼šå‘ç”Ÿå˜åŒ–ï¼Œä½†æ˜¯ç®¡ç†æƒå‘ç”Ÿå˜åŒ–
+        /// ä¸ä¼šè°ƒç”¨é‡Šæ”¾åŠ¨ä½œ
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="other"></param>
@@ -295,12 +295,12 @@ namespace   FE
         pointer         data() noexcept         { return _data; }
         const_pointer   data() const noexcept   { return _data; }
         /// <summary>
-        /// °´×Ö½Ú½áËã
+        /// æŒ‰å­—èŠ‚ç»“ç®—
         /// </summary>
         /// <returns></returns>
         inline  TSize   bytes()const noexcept   { return _size * sizeof(T); }
         /// <summary>
-        /// °´ÔªËØ¸öÊı¼ÆËã
+        /// æŒ‰å…ƒç´ ä¸ªæ•°è®¡ç®—
         /// </summary>
         /// <returns></returns>
         inline  TSize   size() const noexcept       { return _size; }
@@ -324,7 +324,7 @@ namespace   FE
             destroyAnddeallocate();
             _data   =   pNew;
             _cap    =   newCap;
-            // ×¢Òâ sz_ ²»±ä
+            // æ³¨æ„ sz_ ä¸å˜
         }
         inline  void    shrink_to_fit() 
         {
@@ -346,7 +346,7 @@ namespace   FE
             _cap    =   _size;
         }
         /// <summary>
-        /// ÖØĞÂ·ÖÅäÊı×é´óĞ¡
+        /// é‡æ–°åˆ†é…æ•°ç»„å¤§å°
         /// </summary>
         /// <param name="count"></param>
         inline  void    resize(TSize count) 
@@ -366,7 +366,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// ÖØĞÂ·ÖÅäÊı×é´óĞ¡
+        /// é‡æ–°åˆ†é…æ•°ç»„å¤§å°
         /// </summary>
         /// <param name="count"></param>
         /// <param name="value"></param>
@@ -387,7 +387,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// ÔªËØ·ÃÎÊ
+        /// å…ƒç´ è®¿é—®
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
@@ -410,7 +410,7 @@ namespace   FE
         reference       back()          { return _data[_size - 1]; }
         const_reference back() const    { return _data[_size - 1]; }
         /// <summary>
-        /// ĞŞ¸ÄÆ÷
+        /// ä¿®æ”¹å™¨
         /// </summary>
         /// <param name="value"></param>
         inline  void    push_back(const T& value) 
@@ -418,7 +418,7 @@ namespace   FE
             emplace_back(value);
         }
         /// <summary>
-        /// Ìí¼ÓÔªËØ
+        /// æ·»åŠ å…ƒç´ 
         /// </summary>
         /// <param name="value"></param>
         inline  void    push_back(T&& value) 
@@ -426,7 +426,7 @@ namespace   FE
             emplace_back(std::move(value));
         }
         /// <summary>
-        /// push ÔªËØ
+        /// push å…ƒç´ 
         /// </summary>
         /// <typeparam name="...Args"></typeparam>
         /// <param name="...args"></param>
@@ -443,7 +443,7 @@ namespace   FE
             return back();
         }
         /// <summary>
-        /// µ¯³öÔªËØ
+        /// å¼¹å‡ºå…ƒç´ 
         /// </summary>
         inline  void    pop_back() 
         {
@@ -454,11 +454,11 @@ namespace   FE
             }
         }
         /// <summary>
-        /// Çå¿Õ£¬²»ÊÍ·ÅÄÚ´æ£¬µ«µ÷ÓÃÎö¹¹
+        /// æ¸…ç©ºï¼Œä¸é‡Šæ”¾å†…å­˜ï¼Œä½†è°ƒç”¨ææ„
         /// </summary>
         inline  void    clear() noexcept 
         {
-            /// Ö»ÓĞ·ÇÆ½·²Îö¹¹Ê±²ÅÕæÕıµ÷ÓÃ
+            /// åªæœ‰éå¹³å‡¡ææ„æ—¶æ‰çœŸæ­£è°ƒç”¨
             if constexpr (!std::is_trivially_destructible_v<T>) 
             {
                 for (TSize i = 0; i < _size; ++i)
@@ -467,7 +467,7 @@ namespace   FE
             _size   =   0;
         }
         /// <summary>
-        /// ½»»»¶ÔÏó
+        /// äº¤æ¢å¯¹è±¡
         /// </summary>
         /// <param name="other"></param>
         inline  void    swap(FEVector& other) noexcept 
@@ -477,7 +477,7 @@ namespace   FE
             std::swap(_cap,     other._cap);
         }
         /// <summary>
-        /// ²åÈëÔªËØ
+        /// æ’å…¥å…ƒç´ 
         /// </summary>
         /// <param name="pos"></param>
         /// <param name="value"></param>
@@ -490,7 +490,7 @@ namespace   FE
             pointer p = _data + index;
             if (_size > index) 
             {
-                /// ´ÓºóÍùÇ°ÒÆ¶¯ÔªËØ
+                /// ä»åå¾€å‰ç§»åŠ¨å…ƒç´ 
                 new (_data + _size) T(std::move(_data[_size - 1]));
                 for (TSize i = _size - 1; i > index; --i)
                     _data[i] = std::move(_data[i - 1]);
@@ -504,7 +504,7 @@ namespace   FE
             return iterator(p);
         }
         /// <summary>
-        /// ²åÈëÔªËØ
+        /// æ’å…¥å…ƒç´ 
         /// </summary>
         /// <param name="pos"></param>
         /// <param name="value"></param>
@@ -530,7 +530,7 @@ namespace   FE
             return  iterator(p);
         }
         /// <summary>
-        /// ²åÈë³õÊ¼»¯ÁĞ±í
+        /// æ’å…¥åˆå§‹åŒ–åˆ—è¡¨
         /// </summary>
         /// <param name="pos"></param>
         /// <param name="iList"></param>
@@ -544,7 +544,7 @@ namespace   FE
             return  (iterator)pos;
         }
         /// <summary>
-        /// É¾³ıÔªËØ
+        /// åˆ é™¤å…ƒç´ 
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
@@ -560,7 +560,7 @@ namespace   FE
             return iterator(_data + index);
         }
         /// <summary>
-        /// É¾³ıÔªËØ
+        /// åˆ é™¤å…ƒç´ 
         /// </summary>
         /// <param name="first"></param>
         /// <param name="last"></param>
@@ -579,20 +579,20 @@ namespace   FE
             return iterator(_data + first_idx);
         }
         /// <summary>
-        /// Í¨¹ıÍâ²¿½Ó¿Ú¹ØÁªÄÚ´æ
-        /// ¸Ã½Ó¿ÚÓë detach Ö÷ÒªÊÇÎªÁË½â¾öÍâ²¿ÏµÍ³ÄÚ´æ¸´ÓÃ£¬½÷É÷Ê¹ÓÃ
+        /// é€šè¿‡å¤–éƒ¨æ¥å£å…³è”å†…å­˜
+        /// è¯¥æ¥å£ä¸ detach ä¸»è¦æ˜¯ä¸ºäº†è§£å†³å¤–éƒ¨ç³»ç»Ÿå†…å­˜å¤ç”¨ï¼Œè°¨æ…ä½¿ç”¨
         /// </summary>
-        /// <param name="data">Êı¾İ»º³åÇø</param>
-        /// <param name="len">ÔªËØ¸öÊı</param>
-        /// <param name="bFree">ÊÇ·ñ¿ÉÒÔ±»ÏµÍ³ÊÍ·Å</param>
+        /// <param name="data">æ•°æ®ç¼“å†²åŒº</param>
+        /// <param name="len">å…ƒç´ ä¸ªæ•°</param>
+        /// <param name="bFree">æ˜¯å¦å¯ä»¥è¢«ç³»ç»Ÿé‡Šæ”¾</param>
         /// <returns></returns>
         inline  auto&   attach(T* data,size_t len,bool bFree)
         {
-            /// °²È«¼ì²â
+            /// å®‰å…¨æ£€æµ‹
             assert(data != _data);
             if (data == _data)
                 return  *this;
-            /// ÊÍ·ÅÀÏÊı¾İ
+            /// é‡Šæ”¾è€æ•°æ®
             destroy();
             _data   =   data;
             _size   =   len;
@@ -601,8 +601,8 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// È¡ÏûÊı¾İ¹ÜÀí,²»µ÷ÓÃÊÍ·ÅÄÚ´æ£¬ÄÚ´æĞèÒªÍâ²¿×ÔĞĞ¹ÜÀí£¬·ñÔò»á³öÏÖÄÚ´æĞ¹Â¶
-        /// ¸Ã½Ó¿ÚÓë attach Ö÷ÒªÊÇÎªÁË½â¾öÍâ²¿ÏµÍ³ÄÚ´æ¸´ÓÃÉè¼Æ£¬½÷É÷Ê¹ÓÃ
+        /// å–æ¶ˆæ•°æ®ç®¡ç†,ä¸è°ƒç”¨é‡Šæ”¾å†…å­˜ï¼Œå†…å­˜éœ€è¦å¤–éƒ¨è‡ªè¡Œç®¡ç†ï¼Œå¦åˆ™ä¼šå‡ºç°å†…å­˜æ³„éœ²
+        /// è¯¥æ¥å£ä¸ attach ä¸»è¦æ˜¯ä¸ºäº†è§£å†³å¤–éƒ¨ç³»ç»Ÿå†…å­˜å¤ç”¨è®¾è®¡ï¼Œè°¨æ…ä½¿ç”¨
         /// </summary>
         /// <returns></returns>
         inline  auto&   detach()
@@ -631,7 +631,7 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// Ïú»ÙÊı¾İ,ÊÍ·ÅÄÚ´æ
+        /// é”€æ¯æ•°æ®,é‡Šæ”¾å†…å­˜
         /// </summary>
         void        destroy()
         {
@@ -640,13 +640,13 @@ namespace   FE
                 delete[] reinterpret_cast<char*>(_data);
         }
         /// <summary>
-        /// µ÷ÓÃÎö¹¹º¯Êı,Ïú»ÙÊı¾İ,ÊÍ·ÅÄÚ´æ
+        /// è°ƒç”¨ææ„å‡½æ•°,é”€æ¯æ•°æ®,é‡Šæ”¾å†…å­˜
         /// </summary>
         void        destroyAnddeallocate() noexcept 
         {
             if (_data == nullptr) 
                 return;
-            /// Ö»ÓĞ·ÇÆ½·²Îö¹¹Ê±²ÅÕæÕıµ÷ÓÃ
+            /// åªæœ‰éå¹³å‡¡ææ„æ—¶æ‰çœŸæ­£è°ƒç”¨
             if constexpr (!std::is_trivially_destructible_v<T>) 
             {
                 for (TSize i = 0; i < _size; ++i)
@@ -668,7 +668,7 @@ namespace   FE
         };
     private:
         /// <summary>
-        /// ·ÖÅäÄÚ´æ
+        /// åˆ†é…å†…å­˜
         /// </summary>
         /// <param name="n"></param>
         /// <returns></returns>
@@ -678,7 +678,7 @@ namespace   FE
             return static_cast<pointer>(::operator new(n * sizeof(T)));
         }
         /// <summary>
-        /// ÊÍ·ÅÄÚ´æ
+        /// é‡Šæ”¾å†…å­˜
         /// </summary>
         /// <param name="p"></param>
         /// <param name="n"></param>
@@ -688,7 +688,7 @@ namespace   FE
             if (p) ::operator delete(p);
         }
         /// <summary>
-        /// ½»»»¶ÔÏóÊı¾İ
+        /// äº¤æ¢å¯¹è±¡æ•°æ®
         /// </summary>
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
@@ -699,7 +699,7 @@ namespace   FE
     };
 
     /// <summary>
-    /// Ç¿ÖÆ±àÒëÆ÷±àÒëÄ£°å£¬±ÜÃâ´íÎó
+    /// å¼ºåˆ¶ç¼–è¯‘å™¨ç¼–è¯‘æ¨¡æ¿ï¼Œé¿å…é”™è¯¯
     /// </summary>
     template class FEVector<float>;
 }

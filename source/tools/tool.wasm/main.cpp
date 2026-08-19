@@ -1,4 +1,4 @@
-
+ï»¿
 #ifdef     IS_EMSCRIPTEN
     #include    <emscripten.h>
     #include    <emscripten/bind.h>
@@ -118,7 +118,7 @@ EMSCRIPTEN_BINDINGS(my_module)
     emscripten::function("greet", &greet);
     emscripten::function("get_numbers", &get_numbers);
 
-    // ×¢²á vector<int> ÀàĞÍ£¨Embind ×Ô¶¯´¦Àí£©
+    // æ³¨å†Œ vector<int> ç±»å‹ï¼ˆEmbind è‡ªåŠ¨å¤„ç†ï¼‰
     emscripten::register_vector<int>("VectorInt");
 }
 

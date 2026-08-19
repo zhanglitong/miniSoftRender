@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMath.hpp"
 #include    "FEObject.h"
 namespace   FE
@@ -13,7 +13,7 @@ namespace   FE
             :FEObject(other)
         {}
         /// <summary>
-        /// »ñÈ¡½ø¶È
+        /// è·å–è¿›åº¦
         /// </summary>
         /// <returns></returns>
         real    progress() const

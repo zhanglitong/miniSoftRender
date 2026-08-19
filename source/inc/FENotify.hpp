@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 
 #include    "FEObject.h"
 
@@ -6,7 +6,7 @@ namespace   FE
 {
     
     /// <summary>
-    /// ���״̬�����仯֪ͨ
+    /// 标记状态发生变化通知
     /// </summary>
     using   NChange     =   std::function<void(Object sender)>;
     using   NChangeMap  =   std::map<void*,NChange>;

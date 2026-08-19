@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <iostream>
 #include    <stdio.h>
 #include    <vector>
@@ -12,7 +12,7 @@
 #include    "../inc/FEMath.hpp"
 
 /// <summary>
-/// shader Óë äÖÈ¾ÏµÍ³Ö®¼äµÄ½Ó¿ÚÕ³ºÏ¼Á
+/// shader ä¸ æ¸²æŸ“ç³»ç»Ÿä¹‹é—´çš„æ¥å£ç²˜åˆå‰‚
 /// </summary>
 /// 
 namespace   FE
@@ -202,10 +202,10 @@ namespace   FE
     };
     
     /// <summary>
-    /// shader ½Ó¿Ú²¿·Ö
+    /// shader æ¥å£éƒ¨åˆ†
     /// </summary>
-    /// <typeparam name="TImplement">¾ßÌåshaderÊµÏÖ c++ °æ±¾ </typeparam>
-    /// <typeparam name="TResource"> shader×ÊÔ´¶ÔÏó</typeparam>
+    /// <typeparam name="TImplement">å…·ä½“shaderå®ç° c++ ç‰ˆæœ¬ </typeparam>
+    /// <typeparam name="TResource"> shaderèµ„æºå¯¹è±¡</typeparam>
     template <typename TImplement, typename TResource>
     struct  TFragmentShader : TShader<TFragmentShader<TImplement, TResource>>
     {

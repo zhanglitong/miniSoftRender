@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../../FEFileFormat.hpp"
 #include    "../../FEWriterHelper.hpp"
 #include    "../../FEReaderHelper.hpp"
@@ -21,9 +21,9 @@ namespace   FE
 
             (void)cacheFromSystem;
 #ifdef  CLASS_INDEX
-            /// ±éÀú»ñÈ¡ÀàĞÍid
-            /// »º´æÏÂÀ´
-            /// »ñÈ¡ÏµÍ³ËùÓĞ´´½¨Æ÷
+            /// éå†è·å–ç±»å‹id
+            /// ç¼“å­˜ä¸‹æ¥
+            /// è·å–ç³»ç»Ÿæ‰€æœ‰åˆ›å»ºå™¨
             if (cacheFromSystem)
             {
                 auto&   creators    =   FEContext::creators();
@@ -68,10 +68,10 @@ namespace   FE
         }
 
         /// <summary>
-        /// ¸ù¾İ id»ñÈ¡Ë÷Òı
+        /// æ ¹æ® idè·å–ç´¢å¼•
         /// </summary>
         /// <param name="classId"></param>
-        /// <returns>result >= 0 ,ÕÒµ½ÁË£¬·ñÔòÃ»ÓĞÕÒµ½</returns>
+        /// <returns>result >= 0 ,æ‰¾åˆ°äº†ï¼Œå¦åˆ™æ²¡æœ‰æ‰¾åˆ°</returns>
         int16   index(const FEUuid& classId)
         {
             (void)classId;
@@ -94,9 +94,9 @@ namespace   FE
         Header  _header;
 #ifdef  CLASS_INDE
         /// <summary>
-        /// Ğ´Èëµ±µ±Ç°ÎÄ¼şÖĞµÄÀàĞÍid,ÏµÍ³»á¸ù¾İÀàĞÍ½øĞĞÅÅĞò;
-        /// ÖØ¸´µÄ¶ÔÏóÈç¹ûĞ´ÈëÀàĞÍid±È½ÏÏûºÄ´ÅÅÌ¿Õ¼ä
-        /// ËùÒÔÊ¹ÓÃÒ»¸öushort×öÓ³Éä,°ÑÒ»¸öÀàĞÍÓ³³Ä³ÉÒ»¸ö0~SHORT_MAXµÄÖµ£¬¼õÉÙ¿Õ¼äÕ¼ÓÃ
+        /// å†™å…¥å½“å½“å‰æ–‡ä»¶ä¸­çš„ç±»å‹id,ç³»ç»Ÿä¼šæ ¹æ®ç±»å‹è¿›è¡Œæ’åº;
+        /// é‡å¤çš„å¯¹è±¡å¦‚æœå†™å…¥ç±»å‹idæ¯”è¾ƒæ¶ˆè€—ç£ç›˜ç©ºé—´
+        /// æ‰€ä»¥ä½¿ç”¨ä¸€ä¸ªushortåšæ˜ å°„,æŠŠä¸€ä¸ªç±»å‹æ˜ è¡¬æˆä¸€ä¸ª0~SHORT_MAXçš„å€¼ï¼Œå‡å°‘ç©ºé—´å ç”¨
         /// </summary>
         Uuids   _classIds;
 #endif

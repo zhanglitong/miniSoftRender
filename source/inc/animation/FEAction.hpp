@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    <functional>
 #include    "FEClip.hpp"
 #include    "FEAnimation.hpp"
@@ -8,17 +8,17 @@ namespace FE
 {
     DEFINE_CLASS_UUID(FEAction, "{0AFD2EDB-C83A-49F4-ACC6-52E6060D54E4}");
 
-    /// lambda 表达式作为类型别名，确保比较方法
+    /// lambda 琛ㄨ揪寮忎綔涓虹被鍨嬪埆鍚嶏紝纭繚姣旇緝鏂规硶
     constexpr   auto    AnimationLessFunc = [](const Animation& l, const Animation& r)
     {
         return  l < r ;
     };
-    /// 先定义类型别名，确保RFactoryLess是类型名
+    /// 鍏堝畾涔夌被鍨嬪埆鍚嶏紝纭繚RFactoryLess鏄被鍨嬪悕
     using   AnimationLess   =   decltype(AnimationLessFunc);
 
     /// <summary>
-    /// action 用来控制动画的播放与停止
-    /// 一个action 中可以控制多个动画的播放，可以认为是对动画的分组控制
+    /// action 鐢ㄦ潵鎺у埗鍔ㄧ敾鐨勬挱鏀句笌鍋滄
+    /// 涓€涓猘ction 涓彲浠ユ帶鍒跺涓姩鐢荤殑鎾斁锛屽彲浠ヨ涓烘槸瀵瑰姩鐢荤殑鍒嗙粍鎺у埗
     /// </summary>
     class   FEAction 
         : public FEObject
@@ -30,26 +30,26 @@ namespace FE
         enum    PlayMode :uint8_t
         {
             /// <summary>
-            /// 播放一次
+            /// 鎾斁涓€娆?
             /// </summary>
             PT_Once,
             /// <summary>
-            /// 循环播放，可设置循环次数
+            /// 寰幆鎾斁锛屽彲璁剧疆寰幆娆℃暟
             /// </summary>
             PT_Loop,
             /// <summary>
-            /// 乒乓循环模式，可以设置循环次数
+            /// 涔掍箵寰幆妯″紡锛屽彲浠ヨ缃惊鐜鏁?
             /// </summary>
             PT_PingPong
         };
         enum    TimeMode:uint8_t
         {
             /// <summary>
-            /// 正向播放
+            /// 姝ｅ悜鎾斁
             /// </summary>
             TM_Default,
             /// <summary>
-            /// 倒放
+            /// 鍊掓斁
             /// </summary>
             TM_Invert
         };
@@ -95,28 +95,28 @@ namespace FE
         ~FEAction()   =   default;
     public:
         /// <summary>
-        /// 播放动画
+        /// 鎾斁鍔ㄧ敾
         /// </summary>
         void        play()
         {
             _status =   PS_Running;
         }
         /// <summary>
-        /// 停止播放
+        /// 鍋滄鎾斁
         /// </summary>
         void        stop()
         {
             _status =   PS_Stoped;
         }
         /// <summary>
-        /// 暂停播放
+        /// 鏆傚仠鎾斁
         /// </summary>
         void        pause()
         {
             _status =   PS_Pause;
         }
         /// <summary>
-        /// 获取状态
+        /// 鑾峰彇鐘舵€?
         /// </summary>
         /// <returns></returns>
         auto        status() const
@@ -124,7 +124,7 @@ namespace FE
             return  _status;
         }
         /// <summary>
-        /// 更新
+        /// 鏇存柊
         /// </summary>
         /// <param name="frame"></param>
         void        update(const real& delta)
@@ -188,21 +188,21 @@ namespace FE
         }
     protected:
         /// <summary>
-        /// 子类可以重写，添加对象的回调函数
+        /// 瀛愮被鍙互閲嶅啓锛屾坊鍔犲璞＄殑鍥炶皟鍑芥暟
         /// </summary>
         virtual void    onAddObjects()
         {
             _range  =   calcRange();
         }
         /// <summary>
-        /// 移除对象通知，子类重写
+        /// 绉婚櫎瀵硅薄閫氱煡锛屽瓙绫婚噸鍐?
         /// </summary>
         virtual void    onRemoveObjects()
         {
             _range  =   calcRange();
         }
         /// <summary>
-        /// 计算帧范围
+        /// 璁＄畻甯ц寖鍥?
         /// </summary>
         /// <returns></returns>
         uint2       calcRange()
@@ -221,32 +221,32 @@ namespace FE
         TimeMode        _timeMode;
         PlayStatus      _status;
         /// <summary>
-        /// 帧率,每秒播放动画的帧率
+        /// 甯х巼,姣忕鎾斁鍔ㄧ敾鐨勫抚鐜?
         /// </summary>
         uint            _fps    =   30;
         /// <summary>
-        /// 根据 _clipTime 计算出来的实际帧
+        /// 鏍规嵁 _clipTime 璁＄畻鍑烘潵鐨勫疄闄呭抚
         /// </summary>
         real            _clipFrame;
         /// <summary>
-        /// 从什么时间开始播放,当调用了play函数后，开始计算
+        /// 浠庝粈涔堟椂闂村紑濮嬫挱鏀?褰撹皟鐢ㄤ簡play鍑芥暟鍚庯紝寮€濮嬭绠?
         /// </summary>
         real            _startTime;
         /// <summary>
-        /// 从开始播放到停止经过过的所有时间和
+        /// 浠庡紑濮嬫挱鏀惧埌鍋滄缁忚繃杩囩殑鎵€鏈夋椂闂村拰
         /// </summary>
         real            _elapseTime;
         real            _weight;
         /// <summary>
-        /// 时间线缩放，快放，慢放
+        /// 鏃堕棿绾跨缉鏀撅紝蹇斁锛屾參鏀?
         /// </summary>
         real            _timeScale;
         /// <summary>
-        /// 从0开始计算
+        /// 浠?寮€濮嬭绠?
         /// </summary>
         real            _clipTime;
         /// <summary>
-        /// 帧范围
+        /// 甯ц寖鍥?
         /// </summary>
         uint2           _range;
         TrackResults    _result; 

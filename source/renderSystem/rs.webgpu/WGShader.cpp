@@ -1,4 +1,4 @@
-#include    "WGShader.h"
+﻿#include    "WGShader.h"
 #include    "WGDevice.h"
 #include    "WGDSetLayout.h"
 #include    "graphic/spirv-reflect/spirv_reflect.h"

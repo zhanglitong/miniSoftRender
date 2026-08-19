@@ -42,15 +42,15 @@ using   namespace   FE;
 #endif
 
 /// <summary>
-/// ƽ�й�
+/// 平行光
 /// </summary>
 const   int     LightTypeDir    =   0;
 /// <summary>
-/// ���Դ
+/// 点光源
 /// </summary>
 const   int     LightTypePoint  =   1;
 /// <summary>
-/// �۹��
+/// 聚光灯
 /// </summary>
 const   int     LightTypeSpot   =   2;
 
@@ -83,30 +83,30 @@ struct  LightData
 };
 
 // <summary>
-/// KHR_materials_iridescence ��չ���������� glTF ������ģ����ʵ�ĺ�ʣ���Ĥ���棩ЧӦ��Ҳ�������ǳ�˵�Ĳʺ�ɫ��
-/// ����Ч�������ڷ����ݡ���Ĥ��ĳЩ�����������Ϳ����棬��������ǿģ�͵���ʵ�к��Ӿ���������
-/// ��Ȼ���󣺷����ݡ���Ĥ���׳��������
-/// �������壺���⳵�ᡢ�մ����桢�ֻ����ǵ�װ����Ϳ�㡣
-/// ��ѡ������ʹ���� G ͨ������С�������֮����в�ֵ��ʵ�ֱ����ȵĲ����ȱ仯���Ӷ����������ӵĺ��ͼ��
-/// uniform sampler2D u_IridescenceTexture;             ǿ����ͼ (Rͨ��)
-/// uniform sampler2D u_IridescenceThicknessTexture;    �����ͼ (Gͨ��)
+/// KHR_materials_iridescence 扩展的作用是在 glTF 材质中模拟真实的虹彩（薄膜干涉）效应，也就是我们常说的彩虹色。
+/// 这种效果出现在肥皂泡、油膜、某些昆虫翅膀或特殊涂层表面，能显著增强模型的真实感和视觉吸引力。
+/// 自然现象：肥皂泡、油膜、甲虫或蝴蝶翅膀。
+/// 人造物体：特殊车漆、陶瓷釉面、手机背壳等装饰性涂层。
+/// 可选纹理，使用其 G 通道在最小与最大厚度之间进行插值，实现表面厚度的不均匀变化，从而产生更复杂的虹彩图案
+/// uniform sampler2D u_IridescenceTexture;             强度贴图 (R通道)
+/// uniform sampler2D u_IridescenceThicknessTexture;    厚度贴图 (G通道)
 /// </summary>
 struct  KHRMatIridescence
 {
     /// <summary>
-    /// ���ƺ��Ч����ǿ�ȣ���Χ 0.0 (��Ч��) �� 1.0 (��ȫЧ��)����ʹ�� R ͨ����������ͼ���ơ�
+    /// 控制虹彩效果的强度，范围 0.0 (无效果) 到 1.0 (完全效果)。可使用 R 通道的纹理贴图控制。
     /// </summary>
     float   _factor;
     /// <summary>
-    /// ��Ĥ���ʵ������� (IOR)�����ͷ�Χ 1.0 - 2.0��Ӱ��ɫ�ʱ仯�ķ��ȡ�
+    /// 薄膜材质的折射率 (IOR)，典型范围 1.0 - 2.0，影响色彩变化的幅度。
     /// </summary>
     float   _ior;
     /// <summary>
-    /// ��Ĥ����С��ȣ���λ������ nm�������ڶ����ȷ�Χ�����ޡ�
+    /// 薄膜的最小厚度（单位：纳米 nm），用于定义厚度范围的下限。
     /// </summary>
     float   _thicknessMin;
     /// <summary>
-    /// ��Ĥ������ȣ���λ������ nm�������ڶ����ȷ�Χ�����ޡ���δ�ṩ�����������ʹ�ô˹̶�ֵ��
+    /// 薄膜的最大厚度（单位：纳米 nm），用于定义厚度范围的上限。若未提供厚度纹理，则使用此固定值。
     /// </summary>
     float   _thicknessMax;
 #ifdef __cplusplus
@@ -121,11 +121,11 @@ struct  KHRMatIridescence
 };
 
 /// <summary>
-/// �����
-/// ����ǿ��	strength = factor �� texture.r
-/// ����ֲڶ�	roughness = factor �� texture.g
-/// ���ӷ�ʽ	final = base + clearcoat
-/// ������ɫ = ����������ɫ + �����߹�
+/// 清漆层
+/// 清漆强度	strength = factor × texture.r
+/// 清漆粗糙度	roughness = factor × texture.g
+/// 叠加方式	final = base + clearcoat
+/// 最终颜色 = 基础材质颜色 + 清漆层高光
 /// </summary>
 struct  KHRMatClearcoat
 {
@@ -142,15 +142,15 @@ struct  KHRMatClearcoat
 
 /// <summary>
 /// KHR_materials_transmission
-/// �����������ù����ܹ���͸������棬�Ӷ�ģ���������ˮ�����ϵȰ�͸�����ʵ�Ч��
-/// ���Ĺؼ��������ڣ���ʵ�ֵ��ǻ��������ġ�͸�䡱�����������Ǽ򵥵ġ�͸������
-/// ��͸����Alpha ��ϣ�ֻ��������䵭����͸����ģ���˹������������������������
-/// ����͸��	ģ����ߴ�������ʱ����ʵ��Ϊ�����Ǽ򵥵�͸���ȵ���
-/// �����߹�	��ʹ������͸���ģ�������Ȼ�ܳ�����ʵ�������ĸ߹ⷴ��
-/// �ֲڶ�Ӱ��	���ʵĴֲڶȲ�����Ӱ��͸��������ȣ�
-/// - �⻬���� (�ֲڶȡ�0) �� ͸��ͼ������
-/// - ĥɰ���� (�ֲڶ�>0) �� ͸��ͼ����ģ��
-/// ����ģʽ	Ĭ������£�����������Ϊ���ޱ��ı��档����ڴ�������������������౾���ܱ���������˵��Ч���ǳ����롣
+/// 核心作用是让光线能够穿透物体表面，从而模拟出玻璃、水、塑料等半透明材质的效果
+/// 它的关键作用在于，它实现的是基于物理的“透射”，而不仅仅是简单的“透明”。
+/// 简单透明（Alpha 混合）只是让物体变淡，而透射则模拟了光线真正穿过物体的物理过程
+/// 物理透射	模拟光线穿过材质时的真实行为，而非简单的透明度叠加
+/// 保留高光	即使物体是透明的，表面依然能呈现真实、明亮的高光反射
+/// 粗糙度影响	材质的粗糙度参数会影响透射的清晰度：
+/// - 光滑玻璃 (粗糙度≈0) → 透射图像清晰
+/// - 磨砂玻璃 (粗糙度>0) → 透射图像变得模糊
+/// 薄壁模式	默认情况下，它将物体视为无限薄的表面。这对于窗户玻璃、灯泡外壳这类本身很薄的物体来说，效果非常理想。
 /// </summary>
 struct  KHRMatTransmission
 {
@@ -168,17 +168,17 @@ struct  KHRMatTransmission
 struct  KHRMatVolume
 {
     /// <summary>
-    ///  ������ɫ
+    ///  吸收颜色
     /// </summary>
     float   _colorR;
     float   _colorG;
     float   _colorB;
     /// <summary>
-    /// ���
+    /// 厚度
     /// </summary>
     float   _thickness;
     /// <summary>
-    /// ���վ���
+    /// 吸收距离
     /// </summary>
     float   _distance;
 #ifdef __cplusplus
@@ -240,22 +240,22 @@ struct  PointData
 {
     /// point range,min value~ max value
     uint        _point;
-    /// ��ɫ
+    /// 颜色
     uint        _color;
 #ifdef __cplusplus
     PointData()
     {
         _color  =   0;
-        _color  |=  (static_cast<uint32_t>((0xFF))  << 24);  // R �ڸ�8λ
+        _color  |=  (static_cast<uint32_t>((0xFF))  << 24);  // R 在高8位
         _color  |=  (static_cast<uint32_t>((0x00))  << 16);  // G
         _color  |=  (static_cast<uint32_t>((0x00))  << 8 );  // B
-        _color  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // A �ڵ�8λ
+        _color  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // A 在低8位
        
         _point  =   0;
-        _point  |=  (static_cast<uint32_t>((1))     << 24);  // �Ƿ񸲸Ƕ�����ɫ
-        _point  |=  (static_cast<uint32_t>((8))     << 16);  // ���min 8
-        _point  |=  (static_cast<uint32_t>((16))    << 8 );  // ���max 16
-        _point  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // ��0,��ʾ��
+        _point  |=  (static_cast<uint32_t>((1))     << 24);  // 是否覆盖顶点颜色
+        _point  |=  (static_cast<uint32_t>((8))     << 16);  // 点的min 8
+        _point  |=  (static_cast<uint32_t>((16))    << 8 );  // 点的max 16
+        _point  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // 非0,表示点
     }
 #endif
 };

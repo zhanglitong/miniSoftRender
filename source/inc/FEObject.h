@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 
 #include    <type_traits>
 #include    <functional>
@@ -36,7 +36,7 @@ namespace   FE
             _id =   id;                                             
         }  
         /// <summary>
-        /// ��ID
+        /// 类ID
         /// </summary>
         /// <returns></returns>
         const   CLSId&      classId() const
@@ -44,7 +44,7 @@ namespace   FE
             return  _id;
         }
         /// <summary>
-        /// ������
+        /// 类属性
         /// </summary>
         /// <returns></returns>
         inline  CLSProp&    property()
@@ -89,9 +89,9 @@ namespace   FE
     }                                                               \
 
     ///
-    /// ͳһʹ�øú궨��,�̳���FEObject ����ʹ��
-    /// ������clone����,�������Ҫ�Զ���ʵ��clone�����������
-    /// ʹ�øú궨��
+    /// 统一使用该宏定义,继承了FEObject 的类使用
+    /// 不包含clone函数,如果有需要自定义实现clone函数的情况下
+    /// 使用该宏定义
     ///
     #define IMPLEMENT_CLASS_REFLECT_MINI(class_name)                \
     public:                                                         \
@@ -114,7 +114,7 @@ namespace   FE
 
 
     ///
-    /// ͳһʹ�øú궨��,�̳���FEObject ����ʹ��
+    /// 统一使用该宏定义,继承了FEObject 的类使用
     ///
     #define IMPLEMENT_CLASS_REFLECT(class_name)                     \
     public:                                                         \
@@ -156,43 +156,43 @@ namespace   FE
     enum    FlagBit :uint32_t
     {
         /// <summary>
-        /// �Ƿ�ɼ�
+        /// 是否可见
         /// </summary>
         FLAG_VISIBLE        =   (1<<0),
         /// <summary>
-        /// �Ƿ���Ҫ����
+        /// 是否需要更新
         /// </summary>
         FLAG_UPDATE         =   ((FLAG_VISIBLE) <<1 ),
         /// <summary>
-        /// �Ƿ�֧���Ƿ���Ա�ʰȡ
+        /// 是否支持是否可以被拾取
         /// </summary>
         FLAG_PICKUP         =   ((FLAG_UPDATE)  <<1 ),
         /// <summary>
-        /// �Ƿ�ѡ��
+        /// 是否被选中
         /// </summary>
         FLAG_SELECTED       =   ((FLAG_PICKUP)  <<1 ),
         /// <summary>
-        /// �Ƿ�֧�����л�
+        /// 是否支持序列化
         /// </summary>
         FLAG_SERIAL         =   ((FLAG_SELECTED)<<1 ),
         /// <summary>
-        /// ״̬
+        /// 状态
         /// </summary>
         FLAG_EXPAND         =   ((FLAG_SERIAL)<<1 ),
         /// <summary>
-        /// ���Ӷ���
+        /// 添加对象
         /// </summary>
         FLAG_ADD_CHILD      =   ((FLAG_EXPAND)<<1),
         /// <summary>
-        /// �Ƴ�����
+        /// 移除对象
         /// </summary>
         FLAG_REMOVE_CHILD   =   ((FLAG_ADD_CHILD)<<1),
         /// <summary>
-        /// �����޸�
+        /// 对象修改
         /// </summary>
         FLAG_MODIFY_CHILD   =   ((FLAG_REMOVE_CHILD)<<1),
         /// <summary>
-        /// ����������������Ӷ����Ӹ�ֵ��ʼ
+        /// 必须在最后，其他的子定义会从该值开始
         /// </summary>
         FLAG_LAST           =   (FLAG_MODIFY_CHILD<<1)
     };
@@ -213,25 +213,25 @@ namespace   FE
         virtual ~FEObject()   =   default;
     public:
         /// <summary>
-        /// ��Id
+        /// 类Id
         /// </summary>
         /// <returns></returns>
         virtual const CLSId&    classId() const;
         /// <summary>
-        /// ����
+        /// 类名
         /// </summary>
         /// <returns></returns>
         virtual const char*     className() const;
         /// <summary>
-        /// �������ز��Ƕ�������ԣ��Ǹ�������ԣ�ȫ�־�̬����������ʵ������һ������
-        /// ����ҵ��Ӧ�ó���:����������ͼ��...
-        /// ����֮���Բ��Ǿ�̬������Ŀ���Ƿ���ʹ�ã�ʹ���߲���ע��������
+        /// 函数返回不是对象的属性，是该类的属性，全局静态变量，所有实例共享一份数据
+        /// 典型业务应用场景:类别名，类的图标...
+        /// 这里之所以不是静态函数，目的是方便使用，使用者不关注对象类型
         /// </summary>
         /// <returns></returns>
         virtual const CLSProp&  property() const;  
         virtual CLSProp&        property();               
         /// <summary>
-        /// ��¡����
+        /// 克隆对象
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
@@ -239,7 +239,7 @@ namespace   FE
         inline  FEContext&      ctx()       {   return  _ctx;   }
         const   FEContext&      ctx() const {   return  _ctx;   }
         /// <summary>
-        /// �Ƿ�֧�����л�
+        /// 是否支持序列化
         /// </summary>
         /// <returns></returns>
         inline  bool        supportSerial() const
@@ -247,7 +247,7 @@ namespace   FE
             return  flags().hasFlag(FLAG_SERIAL);
         }
         /// <summary>
-        /// ����Id
+        /// 对象Id
         /// </summary>
         /// <returns></returns>
         const   OBJId&      objectId()  const
@@ -255,7 +255,7 @@ namespace   FE
             return  _id;
         }
         /// <summary>
-        /// ���ö���Id
+        /// 设置对象Id
         /// </summary>
         /// <param name="id"></param>
         inline  void        setObjectId(const OBJId& id)
@@ -263,7 +263,7 @@ namespace   FE
             _id =   id;
         }
         /// <summary>
-        /// ���,�����״̬��־(ֻ��),
+        /// 标记,对象的状态标志(只读),
         /// </summary>
         /// <returns></returns>
         const   Flags&      flags()  const
@@ -271,7 +271,7 @@ namespace   FE
             return  _flags;
         }
         /// <summary>
-        /// ���,�����״̬��־(��д)
+        /// 标记,对象的状态标志(读写)
         /// </summary>
         /// <returns></returns>
         inline  Flags&      flags()
@@ -289,65 +289,65 @@ namespace   FE
             return  (TFlag&)_flags;
         }
         /// <summary>
-        /// д��,����д����ֽ���
-        /// ������ʵ������ͷ��д�룬�Լ�����������д��
-        /// ��������: 
-        ///         1.������д��ʵ�ֶ����ݵĶ�ȡ����
-        ///         2.������дserializeTraits,ֻ��ע�Լ���Ҫд������ݣ������ע����
+        /// 写入,返回写入的字节数
+        /// 基类中实现数据头的写入，以及自身的数据写入
+        /// 典型用例: 
+        ///         1.子类重写，实现对数据的读取控制
+        ///         2.子类重写serializeTraits,只关注自己需要写入的数据，无需关注其他
         /// </summary>
-        /// <returns>д����ֽ���</returns>
+        /// <returns>写入的字节数</returns>
         virtual uint64      serialize(FEWriter& writer,uint& version,FESerializeCtx& ctx) const;
         /// <summary>
-        /// ����ʵ��
+        /// 子类实现
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="chunk">����ͷ������ɸ�������޸�(flags�ֶ�)��ʵ��һЩ�Ż�����</param>
-        /// <param name="version">�汾��</param>
-        /// <param name="ctx">�����Ķ���</param>
+        /// <param name="chunk">数据头，子类可根据情况修改(flags字段)，实现一些优化处理</param>
+        /// <param name="version">版本号</param>
+        /// <param name="ctx">上下文对象</param>
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const;
         /// <summary>
-        /// ��ȡ,���ض�ȡ���ֽ���
+        /// 读取,返回读取的字节数
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
         virtual uint64      deserialize(FEReader& reader,uint& version,FESerializeCtx& ctx);
         /// <summary>
-        /// ����ʵ��,ֻ��ע�Լ���Ҫ��ȡ������
+        /// 子类实现,只关注自己需要读取的数据
         /// </summary>
         /// <param name="reader"></param>
-        /// <param name="chunk">����ͷ������ɸ���chunk._flags�ֶο��ƶ�ȡ</param>
+        /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
         /// <param name="ctx"></param>
         /// <returns></returns>
         virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx);
         /// <summary>
-        /// ��������id��ȡ�ӿ���Ϣ
+        /// 根据类型id获取接口信息
         /// </summary>
         /// <param name="classId"></param>
         /// <returns></returns>
         virtual Object      queryInterface(const CLSId& classId);
         /// <summary>
-        /// ����ĳ�ʼ���汾,�������������д,�����ܵ��ڳ�ʼ���汾
+        /// 对象的初始化版本,子类可以升级重写,但不能低于初始化版本
         /// </summary>
         /// <returns></returns>
         virtual uint        version() const;
         /// <summary>
-        /// ��ȡ�����Ķ���,����ʵ��
+        /// 获取依赖的对象,子类实现
         /// </summary>
         /// <param name="uset"></param>
-        /// <returns>���������Ķ������</returns>
+        /// <returns>返回以来的对象个数</returns>
         virtual size_t      queryDepends(ObjectUSet& uSet) const;
         /// <summary>
-        /// ͨ�����ö������Խӿڣ�����ʵ��
+        /// 通用设置对象属性接口，子类实现
         /// </summary>
         virtual void        beginSetProp()
         {}
         /// <summary>
-        /// ��������
+        /// 设置属性
         /// </summary>
-        /// <param name="prop">��������(����)</param>
-        /// <param name="value">����ֵ</param>
-        /// <returns>true,��ʾ�޸ĳɹ�,����û���޸�</returns>
+        /// <param name="prop">属性索引(别名)</param>
+        /// <param name="value">属性值</param>
+        /// <returns>true,表示修改成功,否则没有修改</returns>
         virtual bool        setProperty(int prop,const CLSVar& value)
         {
             UNUSED(prop);
@@ -355,13 +355,15 @@ namespace   FE
             return  false;
         }
         /// <summary>
-        /// @ref setProperty ���ؽ����Ϊ������������������Ƿ���Ҫ���²���
+        /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>
         /// <param name="bModify"></param>
         virtual void        endSetProp(bool bModify)
-        {}
+        {
+            UNUSED(bModify);
+        }
         /// <summary>
-        /// ֱ��ת�����з��գ���ȷ���������ʹ�ã����ܸ���
+        /// 直接转换，有风险，在确定的情况下使用，性能更好
         /// </summary>
         /// <typeparam name="TAsTo"></typeparam>
         /// <returns></returns>
@@ -376,7 +378,7 @@ namespace   FE
             return  (const TAsTo*)(this);
         }
         /// <summary>
-        /// ��̬����ת��
+        /// 动态类型转换
         /// </summary>
         /// <typeparam name="TCastTo"></typeparam>
         /// <returns></returns>
@@ -394,7 +396,7 @@ namespace   FE
     protected:
         FEContext&  _ctx;
         /// <summary>
-        /// �����Id Ωһ
+        /// 对象的Id 惟一
         /// </summary>
         FEUuid      _id;
     };

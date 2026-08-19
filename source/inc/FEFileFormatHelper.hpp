@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEStreamReader.hpp"
 #include    "FEStreamWriter.hpp"
 #include    "FEObjectHelper.hpp"
@@ -12,7 +12,7 @@ namespace   FE
         using   Writer  =   SharedPtr<FEStreamWriter>;
     public:
         /// <summary>
-        /// ´´½¨ÈÎÎñ
+        /// åˆ›å»ºä»»åŠ¡
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="files"></param>
@@ -24,26 +24,26 @@ namespace   FE
 
             if (files.empty())
                 return  nullptr;
-            /// 1. Ê¹ÓÃ²ÎÊıµÄ¸ñÊ½
+            /// 1. ä½¿ç”¨å‚æ•°çš„æ ¼å¼
             Format  fmtIn   =   fmt;
-            /// 2. Èç¹û²»¿ÉÓÃ£¬Ôò¸ù¾İÀ©Õ¹Ãû»ñÈ¡
+            /// 2. å¦‚æœä¸å¯ç”¨ï¼Œåˆ™æ ¹æ®æ‰©å±•åè·å–
             if (!fmtIn.isValid())
             {
                 fs::path    stdFile(files.front());
                 auto        ext     =   stdFile.extension().string();
                 strcpy(fmtIn.ext(),ext.c_str());
             }
-            /// 3. ¸ù¾İ¸ñÊ½»ñÈ¡¼ÓÔØÆ÷
+            /// 3. æ ¹æ®æ ¼å¼è·å–åŠ è½½å™¨
             auto        reader   =   queryReader(ctx,fmtIn);
-            /// 4. Ã»ÓĞ»ñÈ¡µ½
+            /// 4. æ²¡æœ‰è·å–åˆ°
             if (reader == nullptr)
                 return  nullptr;
-            /// 5. »ñÈ¡µ½ÁË
+            /// 5. è·å–åˆ°äº†
             reader->setParam(TBReadFiles,files);
             return  reader.get();
         }
         /// <summary>
-        /// ´´½¨ÈÎÎñ
+        /// åˆ›å»ºä»»åŠ¡
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="buffers"></param>
@@ -53,17 +53,17 @@ namespace   FE
         {
             if (buffers.empty())
                 return  nullptr;
-            /// 1. ¸ù¾İ¸ñÊ½»ñÈ¡¼ÓÔØÆ÷
+            /// 1. æ ¹æ®æ ¼å¼è·å–åŠ è½½å™¨
             auto    reader  =   queryReader(ctx,fmt);
-            /// 2. Ã»ÓĞ»ñÈ¡µ½
+            /// 2. æ²¡æœ‰è·å–åˆ°
             if (reader == nullptr)
                 return  nullptr;
-            /// 3. »ñÈ¡µ½ÁË
+            /// 3. è·å–åˆ°äº†
             reader->setParam(TBReadBuffers,buffers);
             return  reader;
         }
         /// <summary>
-        /// »ñÈ¡¼ÓÔØÆ÷
+        /// è·å–åŠ è½½å™¨
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="fmt"></param>
@@ -77,8 +77,8 @@ namespace   FE
                 LOG_INF("ctx.readers().query(%s) return false",key.c_str());
                 return  nullptr;
             }
-            /// ¼ì²âÄ£Ê½ÊÇ·ñ¼æÈİ,ÀıÈç²å¼şÖ§³ÖÎÄ¼şÄ£Ê½£¬²»Ö§³ÖÄÚ´æÄ£Ê½
-            /// µ«ÊäÈëµÄÊÇÄÚ´æÄ£Ê½
+            /// æ£€æµ‹æ¨¡å¼æ˜¯å¦å…¼å®¹,ä¾‹å¦‚æ’ä»¶æ”¯æŒæ–‡ä»¶æ¨¡å¼ï¼Œä¸æ”¯æŒå†…å­˜æ¨¡å¼
+            /// ä½†è¾“å…¥çš„æ˜¯å†…å­˜æ¨¡å¼
             if (!fFmt._mode.containFlag(fmt._mode.data()))
             {
                 LOG_INF("fFmt._mode.containFlag(%d) return false",fmt._mode.data());
@@ -97,7 +97,7 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ´´½¨ÈÎÎñ
+        /// åˆ›å»ºä»»åŠ¡
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="files"></param>
@@ -109,26 +109,26 @@ namespace   FE
 
             if (file.empty())
                 return  nullptr;
-            /// 1. Ê¹ÓÃ²ÎÊıµÄ¸ñÊ½
+            /// 1. ä½¿ç”¨å‚æ•°çš„æ ¼å¼
             Format  fmtIn   =   fmt;
-            /// 2. Èç¹û²»¿ÉÓÃ£¬Ôò¸ù¾İÀ©Õ¹Ãû»ñÈ¡
+            /// 2. å¦‚æœä¸å¯ç”¨ï¼Œåˆ™æ ¹æ®æ‰©å±•åè·å–
             if (!fmtIn.isValid())
             {
                 fs::path    stdFile(file);
                 auto        ext     =   stdFile.extension().string();
                 strcpy(fmtIn.ext(),ext.c_str());
             }
-            /// 3. ¸ù¾İ¸ñÊ½»ñÈ¡¼ÓÔØÆ÷
+            /// 3. æ ¹æ®æ ¼å¼è·å–åŠ è½½å™¨
             auto    writer   =   queryWriter(ctx,fmtIn);
-            /// 4. Ã»ÓĞ»ñÈ¡µ½
+            /// 4. æ²¡æœ‰è·å–åˆ°
             if (writer == nullptr)
                 return  nullptr;
-            /// 5. »ñÈ¡µ½ÁË
+            /// 5. è·å–åˆ°äº†
             writer->setParam(TBWriteFile,file);
             return  writer;
         }
         /// <summary>
-        /// ´´½¨ÈÎÎñ
+        /// åˆ›å»ºä»»åŠ¡
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="buffers"></param>
@@ -138,17 +138,17 @@ namespace   FE
         {
             if (buffer == nullptr)
                 return  nullptr;
-            /// 1. ¸ù¾İ¸ñÊ½»ñÈ¡¼ÓÔØÆ÷
+            /// 1. æ ¹æ®æ ¼å¼è·å–åŠ è½½å™¨
             auto    writer   =   queryWriter(ctx,fmt);
-            /// 2. Ã»ÓĞ»ñÈ¡µ½
+            /// 2. æ²¡æœ‰è·å–åˆ°
             if (writer == nullptr)
                 return  nullptr;
-            /// 3. »ñÈ¡µ½ÁË
+            /// 3. è·å–åˆ°äº†
             writer->setParam(TBWriteBuffer,buffer);
             return  writer;
         }
         /// <summary>
-        /// »ñÈ¡¼ÓÔØÆ÷
+        /// è·å–åŠ è½½å™¨
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="fmt"></param>
@@ -162,8 +162,8 @@ namespace   FE
                 LOG_INF("ctx.writers().query(%s) return false",key.c_str());
                 return  nullptr;
             }
-            /// ¼ì²âÄ£Ê½ÊÇ·ñ¼æÈİ,ÀıÈç²å¼şÖ§³ÖÎÄ¼şÄ£Ê½£¬²»Ö§³ÖÄÚ´æÄ£Ê½
-            /// µ«ÊäÈëµÄÊÇÄÚ´æÄ£Ê½
+            /// æ£€æµ‹æ¨¡å¼æ˜¯å¦å…¼å®¹,ä¾‹å¦‚æ’ä»¶æ”¯æŒæ–‡ä»¶æ¨¡å¼ï¼Œä¸æ”¯æŒå†…å­˜æ¨¡å¼
+            /// ä½†è¾“å…¥çš„æ˜¯å†…å­˜æ¨¡å¼
             if (!fFmt._mode.containFlag(fmt._mode.data()))
             {
                 LOG_INF("fFmt._mode.containFlag(%d) return false",fmt._mode.data());

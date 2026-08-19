@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEPriority.hpp"
 #include    "../FEKeyValues.hpp"
@@ -11,16 +11,16 @@ namespace   FE
 {
     class   FEScene;
     /// <summary>
-    /// Ò»¸ö¹¤³§¶ÔÓ¦Ò»ÖÖÀàĞÍµÄÊôĞÔ
-    /// ½ÚµãÊı¾İ¸üĞÂÁ÷³Ì£¬µ±ÓĞ½Úµã¸üĞÂ£¬ĞèÒªÍ¨Öª¹¤³§£¬Ö»±ê¼Ç¹¤³ÌĞèÒª¸üĞÂ£¬²»×öÆäËû´¦Àí
-    /// ¹¤³Ì¸ù¾İ±ê¼Ç½øĞĞ¼ì²â¸üĞÂ
-    /// 1. Èç¹ûÊÇÎ»ÖÃÊôĞÔÊı¾İ·¢Éú±ä»¯£¬½Úµã×é»áÑ­»·¼ì²âËùÓĞ½Úµã±ê¼Ç£¬¸üĞÂinstance Êı¾İ
-    /// 2. Èç¹ûÊÇ²ÄÖÊ·¢Éú±ä»¯£¬Íâ²¿ĞèÒªÒÆ³ı/Ìí¼Ó½Úµã
-    /// 3. Èç¹ûÊÇmesh·¢Éú±ä»¯£¬Èç¹ûÊÇmeshÊı¾İ£¬Ôò¸üĞÂvbo,ito
-    /// 4. Èç¹ûÊÇÍ¼Ôª·¢Éú±ä»¯£¬¸üĞÂË÷Òı£¬itoĞÅÏ¢
-    /// Ã»ÓĞ°´ÕÕ²ÄÖÊ ¼ÌĞøÏ¸·Ö: »áÓĞ´óÁ¿µÄmesh ÖØ¸´
-    /// mesh vbo Óë¹¤³§¶ÔÓ¦
-    /// ¹¤³§: ÊôĞÔ(mesh) + »æÖÆÀàĞÍ+ Í¼ÔªÀàĞÍ
+    /// ä¸€ä¸ªå·¥å‚å¯¹åº”ä¸€ç§ç±»å‹çš„å±æ€§
+    /// èŠ‚ç‚¹æ•°æ®æ›´æ–°æµç¨‹ï¼Œå½“æœ‰èŠ‚ç‚¹æ›´æ–°ï¼Œéœ€è¦é€šçŸ¥å·¥å‚ï¼Œåªæ ‡è®°å·¥ç¨‹éœ€è¦æ›´æ–°ï¼Œä¸åšå…¶ä»–å¤„ç†
+    /// å·¥ç¨‹æ ¹æ®æ ‡è®°è¿›è¡Œæ£€æµ‹æ›´æ–°
+    /// 1. å¦‚æœæ˜¯ä½ç½®å±æ€§æ•°æ®å‘ç”Ÿå˜åŒ–ï¼ŒèŠ‚ç‚¹ç»„ä¼šå¾ªç¯æ£€æµ‹æ‰€æœ‰èŠ‚ç‚¹æ ‡è®°ï¼Œæ›´æ–°instance æ•°æ®
+    /// 2. å¦‚æœæ˜¯æè´¨å‘ç”Ÿå˜åŒ–ï¼Œå¤–éƒ¨éœ€è¦ç§»é™¤/æ·»åŠ èŠ‚ç‚¹
+    /// 3. å¦‚æœæ˜¯meshå‘ç”Ÿå˜åŒ–ï¼Œå¦‚æœæ˜¯meshæ•°æ®ï¼Œåˆ™æ›´æ–°vbo,ito
+    /// 4. å¦‚æœæ˜¯å›¾å…ƒå‘ç”Ÿå˜åŒ–ï¼Œæ›´æ–°ç´¢å¼•ï¼Œitoä¿¡æ¯
+    /// æ²¡æœ‰æŒ‰ç…§æè´¨ ç»§ç»­ç»†åˆ†: ä¼šæœ‰å¤§é‡çš„mesh é‡å¤
+    /// mesh vbo ä¸å·¥å‚å¯¹åº”
+    /// å·¥å‚: å±æ€§(mesh) + ç»˜åˆ¶ç±»å‹+ å›¾å…ƒç±»å‹
     /// </summary>
     class   FEFactoryRender :public FEFactory
     {
@@ -64,25 +64,25 @@ namespace   FE
             size_t  removeNode(Node node);
             size_t  removeNodes(Nodes& nodes);
             /// <summary>
-            /// ĞŞ¸Äintance
+            /// ä¿®æ”¹intance
             /// </summary>
             /// <param name="node"></param>
             /// <returns></returns>
             size_t  nodePropChanged(Node node);
             /// <summary>
-            /// ĞŞ¸Ä¶¥µã
+            /// ä¿®æ”¹é¡¶ç‚¹
             /// </summary>
             /// <param name="node"></param>
             /// <returns></returns>
             size_t  nodeMeshChanged(Node node);
             /// <summary>
-            /// Çå³ı¸üĞÂ±ê¼Ç
+            /// æ¸…é™¤æ›´æ–°æ ‡è®°
             /// </summary>
             void    resetFlags();
         };
         using   Group       =   SharedPtr<GroupNode>;
         /// <summary>
-        /// °´ÕÕ²ÄÖÊÅÅĞò
+        /// æŒ‰ç…§æè´¨æ’åº
         /// </summary>
         using   Groups      =   std::vector<Group>;
     public:
@@ -112,7 +112,7 @@ namespace   FE
             _key.setValue(value);
         }
         /// <summary>
-        /// ËùÓĞnodeµÄÊıÁ¿
+        /// æ‰€æœ‰nodeçš„æ•°é‡
         /// </summary>
         /// <returns></returns>
         inline  size_t  nodeCount() const
@@ -125,7 +125,7 @@ namespace   FE
             return  count;
         }
         /// <summary>
-        /// »ñÈ¡°üÎ§ºĞ
+        /// è·å–åŒ…å›´ç›’
         /// </summary>
         /// <returns></returns>
         inline  aabb3dr aabb() const
@@ -136,7 +136,7 @@ namespace   FE
             return  aabb;
         }
         /// <summary>
-        /// Ö÷ÒªÊÇÇå³ı¸üĞÂ±ê¼Ç
+        /// ä¸»è¦æ˜¯æ¸…é™¤æ›´æ–°æ ‡è®°
         /// </summary>
         inline  void    resetFlags()
         {
@@ -165,8 +165,8 @@ namespace   FE
         virtual void    update(CMDPtr cmd);
         virtual void    render(CMDPtr cmd);
         /// <summary>
-        /// Ïú»ÙÇ°Ò»¶¨µ÷ÓÃ¸Ãº¯Êı£¬½â³ıÊı¾İ¶Ô¹¤³§µÄÒıÓÃ¼ÆÊı
-        /// ²ÅÄÜÕıÈ·µÄÊÍ·ÅÊı¾İ
+        /// é”€æ¯å‰ä¸€å®šè°ƒç”¨è¯¥å‡½æ•°ï¼Œè§£é™¤æ•°æ®å¯¹å·¥å‚çš„å¼•ç”¨è®¡æ•°
+        /// æ‰èƒ½æ­£ç¡®çš„é‡Šæ”¾æ•°æ®
         /// </summary>
         virtual void    destroy();
     protected:
@@ -174,24 +174,24 @@ namespace   FE
         virtual void    updateImpl(CMDPtr cmd);
         
         /// <summary>
-        /// ½Úµã¹ØÁªµÄ¼¸ºÎÌåmeshÊı¾İÉú³Évbo /  vertex ·ÇinstanceÊı¾İ
+        /// èŠ‚ç‚¹å…³è”çš„å‡ ä½•ä½“meshæ•°æ®ç”Ÿæˆvbo /  vertex éinstanceæ•°æ®
         /// </summary>
         /// <returns></returns>
         virtual VBinds  buildVertexVBOs(MeshUSet& meshSet);
         virtual IBO     buildVertexIBO(MeshUSet& meshSet);
         /// <summary>
-        /// Éú³Éinstance Êı¾İ
+        /// ç”Ÿæˆinstance æ•°æ®
         /// </summary>
         /// <returns></returns>
         virtual VBinds  buildInstanceVBOs();
         virtual void    updateInstanceVBOs();
         /// <summary>
-        /// ÊÕ¼¯²¢´´½¨ÃüÁî»º³åÇø
+        /// æ”¶é›†å¹¶åˆ›å»ºå‘½ä»¤ç¼“å†²åŒº
         /// </summary>
         /// <returns></returns>
         virtual ITO     buildIndirect();
         /// <summary>
-        /// ¸ù¾İ²ÄÖÊ»ñÈ¡½ÚµãËùÔÚµÄ×é
+        /// æ ¹æ®æè´¨è·å–èŠ‚ç‚¹æ‰€åœ¨çš„ç»„
         /// </summary>
         /// <param name="mat"></param>
         /// <returns></returns>
@@ -207,7 +207,7 @@ namespace   FE
                 return  nullptr;
         }
         /// <summary>
-        /// Èç¹ûÓĞ£¬·µ»Ø£¬Ã»ÓĞ²åÈë
+        /// å¦‚æœæœ‰ï¼Œè¿”å›ï¼Œæ²¡æœ‰æ’å…¥
         /// </summary>
         /// <param name="mat"></param>
         /// <returns></returns>
@@ -215,7 +215,7 @@ namespace   FE
         virtual VBO     buildBuffer(MeshUSet& meshSet,FEInputSlot slot);
         virtual VBO     buildBuffer(MeshUSet& meshSet,const uints& indexs);
         /// <summary>
-        /// CPUÊı¾İÉÏ´«µ½GPUÉÏ 
+        /// CPUæ•°æ®ä¸Šä¼ åˆ°GPUä¸Š 
         /// </summary>
         /// <param name="cpuBinds"></param>
         /// <param name="gpuBinds"></param>
@@ -224,24 +224,24 @@ namespace   FE
     public:
         static  uint2   indexCount(MeshUSet& meshSet,EPrimitive srcPri);
         /// <summary>
-        /// ÊÕ¼¯ÓĞ¶àÉÙ¸önodeÓĞmesh
+        /// æ”¶é›†æœ‰å¤šå°‘ä¸ªnodeæœ‰mesh
         /// </summary>
         /// <param name="nodes"></param>
         /// <returns></returns>
         static  uint    countNode(const Node&  node);
         static  void    collectNode(const Node&  node,Nodes& nodes);
         /// <summary>
-        /// ÊÕ¼¯mesh,Ä¿µÄÊÇ¹ıÂËµôÒ»ÑùµÄmesh£¬È»ºóÉú³É´óµÄ»º³åÇø
+        /// æ”¶é›†mesh,ç›®çš„æ˜¯è¿‡æ»¤æ‰ä¸€æ ·çš„meshï¼Œç„¶åç”Ÿæˆå¤§çš„ç¼“å†²åŒº
         /// </summary>
         /// <param name="meshSet"></param>
-        /// <returns>·µ»ØÓĞ¶àÉÙ¸ønode´øÓĞmeshĞÅÏ¢</returns>
+        /// <returns>è¿”å›æœ‰å¤šå°‘ç»™nodeå¸¦æœ‰meshä¿¡æ¯</returns>
         static  uint        collectMesh(MeshUSet& meshSet,const Groups& grps);
         static  RFactorys   addNodesToFactory(FEContext& ctx,FEScene& scene,const Nodes& nodes);
     protected:
         FEDevice&       _device;
         MeshKey         _key;
         /// <summary>
-        /// ½Úµã°´ÕÕ²ÄÖÊ½øĞĞ·Ö×é
+        /// èŠ‚ç‚¹æŒ‰ç…§æè´¨è¿›è¡Œåˆ†ç»„
         /// </summary>
         Groups          _groupNode;
         VBinds          _vboVertexs;

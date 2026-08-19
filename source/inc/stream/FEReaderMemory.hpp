@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEBuffer.hpp"
 #include    "FEReader.hpp"
@@ -42,7 +42,7 @@ namespace   FE
             return  len;
         }
         /// <summary>
-        /// »ñÈ¡Î»ÖÃ
+        /// è·å–ä½ç½®
         /// </summary>
         /// <returns></returns>
         virtual uint64  tell() const override
@@ -50,7 +50,7 @@ namespace   FE
             return  _cur;
         }
         /// <summary>
-        /// ÉèÖÃÎ»ÖÃ
+        /// è®¾ç½®ä½ç½®
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
@@ -61,7 +61,7 @@ namespace   FE
             return  old;
         }
         /// <summary>
-        /// Ìø¹ı
+        /// è·³è¿‡
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
@@ -70,7 +70,7 @@ namespace   FE
            return   seek(_cur + pos);
         }
         /// <summary>
-        /// »ñÈ¡³¤¶È
+        /// è·å–é•¿åº¦
         /// </summary>
         /// <returns></returns>
         virtual uint64  length() const override
@@ -81,7 +81,7 @@ namespace   FE
                 return  _buffer->length();
         }
         /// <summary>
-        /// ÊÇ·ñÓĞĞ§
+        /// æ˜¯å¦æœ‰æ•ˆ
         /// </summary>
         /// <returns></returns>
         virtual bool    isValid() const override
@@ -89,7 +89,7 @@ namespace   FE
             return  _buffer != nullptr;
         }
         /// <summary>
-        /// ¹Ø±Õ
+        /// å…³é—­
         /// </summary>
         virtual void    close() override
         {

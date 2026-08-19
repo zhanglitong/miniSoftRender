@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 
 #include    "FEMath.hpp"
@@ -90,11 +90,11 @@ namespace   FE
     }
 
     /// <summary>
-    /// ÏòÉÏ¶ÔÆë£¬ÀıÈç alignUp(3,4),·µ»Ø 4;
+    /// å‘ä¸Šå¯¹é½ï¼Œä¾‹å¦‚ alignUp(3,4),è¿”å› 4;
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="n"></param>
-    /// <param name="alignment">¶ÔÆëÖµ4,8,16,32...</param>
+    /// <param name="alignment">å¯¹é½å€¼4,8,16,32...</param>
     /// <returns></returns>
     template<typename T>
     constexpr   T   alignUp(T n, T alignment) 

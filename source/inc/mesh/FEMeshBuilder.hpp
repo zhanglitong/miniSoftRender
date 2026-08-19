@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEMesh.hpp"
 #include    "FEPrimitive.hpp"
@@ -11,13 +11,13 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// ¸¨Öúº¯Êı£¬ÊµÏÖ´´½¨mesh
+        /// è¾…åŠ©å‡½æ•°ï¼Œå®ç°åˆ›å»ºmesh
         /// </summary>
         /// <param name="_ctx"></param>
-        /// <param name="attrs">ÊôĞÔ¼¯</param>
-        /// <param name="poss">Î»ÖÃÊı¾İ£¬¿ÉÒÔÎªempty</param>
-        /// <param name="normals">·¨ÏßÊı¾İ£¬¿ÉÒÔÎªempty</param>
-        /// <param name="uvs">uvÊı¾İ£¬¿ÉÒÔÎªempty</param>
+        /// <param name="attrs">å±æ€§é›†</param>
+        /// <param name="poss">ä½ç½®æ•°æ®ï¼Œå¯ä»¥ä¸ºempty</param>
+        /// <param name="normals">æ³•çº¿æ•°æ®ï¼Œå¯ä»¥ä¸ºempty</param>
+        /// <param name="uvs">uvæ•°æ®ï¼Œå¯ä»¥ä¸ºempty</param>
         /// <param name="indices"></param>
         /// <returns></returns>
         static  Mesh    makeMesh(FEContext& _ctx,const Attrs& inputs,const floats& poss,const floats& normals,const Rgba8s& colors,const floats& uvs,const uints& indices)
@@ -28,12 +28,12 @@ namespace   FE
                 return  nullptr;
 
             MeshPtr mesh        =   new FEMesh(_ctx);
-            /// ±éÀúËùÓĞÊôĞÔ
+            /// éå†æ‰€æœ‰å±æ€§
             for (auto& var : inputs)
             {
                 Buffer  buffer  =   new FEBuffer(_ctx);
                 size_t  stride  =   var.stride();
-                /// »ñÈ¡Êµ¼ÊÔªËØ¸ñÊ½,È·±£²»Îª¿Õ
+                /// è·å–å®é™…å…ƒç´ æ ¼å¼,ç¡®ä¿ä¸ä¸ºç©º
                 size_t  count   =   (std::max)(poss.size(),normals.size());
                         count   =   (std::max)(poss.size(),count);
                 buffer->cInfo()._buffer.resize(stride * uvs.size());
@@ -84,7 +84,7 @@ namespace   FE
             if (poss.empty() && colors.empty())
                 return  nullptr;
             MeshPtr mesh        =   new FEMesh(_ctx);
-            /// ±éÀúËùÓĞÊôĞÔ
+            /// éå†æ‰€æœ‰å±æ€§
             for (auto& atrr : inputs)
             {
                 auto&       subMesh     =   mesh->getOrCreate(atrr);

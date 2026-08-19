@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMaterial.hpp"
 
 namespace   FE
@@ -13,9 +13,9 @@ namespace   FE
             :FEMaterial(ctx)
         {  
             setup("point");
-            /// ×Ô¶¯½«ÏµÍ³Êı¾İÓë²ÄÖÊËùĞèÊı¾İ¹ØÁªÆğÀ´
+            /// è‡ªåŠ¨å°†ç³»ç»Ÿæ•°æ®ä¸æè´¨æ‰€éœ€æ•°æ®å…³è”èµ·æ¥
             autoAttach();
-            /// ¸üĞÂÊı¾İ
+            /// æ›´æ–°æ•°æ®
             update();
         }
         FEMaterialPoint(const FEMaterialPoint& other)
@@ -25,7 +25,7 @@ namespace   FE
         {}
 
         /// <summary>
-        /// ×ÓÀàÖØĞ´£¬»ùÀàÊ¹ÓÃ£¬·µ»Ø0,Ôò²»Ğ´Èë
+        /// å­ç±»é‡å†™ï¼ŒåŸºç±»ä½¿ç”¨ï¼Œè¿”å›0,åˆ™ä¸å†™å…¥
         /// </summary>
         /// <returns></returns>
         virtual uint        pushConstantSize() const override

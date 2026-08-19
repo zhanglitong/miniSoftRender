@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../FEChunkInf.hpp"
 #include    "../FEObject.h"
 #include    "../FEString.hpp"
@@ -8,7 +8,7 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// ±»Ğ´ÈëÆ÷½âÊÍ£¬Ğ­Öú¿ò¼ÜÊµÏÖ£¬ÎŞÒµÎñ¼ÛÖµ
+        /// è¢«å†™å…¥å™¨è§£é‡Šï¼ŒååŠ©æ¡†æ¶å®ç°ï¼Œæ— ä¸šåŠ¡ä»·å€¼
         /// </summary>
         struct  Tag
         {
@@ -22,11 +22,11 @@ namespace   FE
         FEWriter(const FEWriter& other) =   delete;
     public:
         /// <summary>
-        /// Ğ´ÈëÊı¾İÄ£°æ·½·¨
+        /// å†™å…¥æ•°æ®æ¨¡ç‰ˆæ–¹æ³•
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="val"></param>
-        /// <param name="tag">±êÇ©,ÔÚxml,json µÈÎÄ±¾¸ñÊ½ÓĞÒâÒå,ÓÃÀ´ÃèÊöÊı¾İ</param>
+        /// <param name="tag">æ ‡ç­¾,åœ¨xml,json ç­‰æ–‡æœ¬æ ¼å¼æœ‰æ„ä¹‰,ç”¨æ¥æè¿°æ•°æ®</param>
         /// <returns></returns>
         template<class T>
         inline  uint64  write(const T& val,const Tag& tag = {})
@@ -79,20 +79,20 @@ namespace   FE
             return  res;
         }
         /// <summary>
-        /// Ğ´»º³åÇø
+        /// å†™ç¼“å†²åŒº
         /// </summary>
-        /// <param name="data">Êı¾İµØÖ· </param>
-        /// <param name="len">Êı¾İ³¤¶È</param>
-        /// <param name="tag">Êı¾İ±êÇ©</param>
-        /// <returns>Ğ´Èë´óĞ¡,0Ê§°Ü</returns>
+        /// <param name="data">æ•°æ®åœ°å€ </param>
+        /// <param name="len">æ•°æ®é•¿åº¦</param>
+        /// <param name="tag">æ•°æ®æ ‡ç­¾</param>
+        /// <returns>å†™å…¥å¤§å°,0å¤±è´¥</returns>
         virtual uint64  writeBuffer(const void*data,uint64 len,const Tag& tag = {})   =   0;
         /// <summary>
-        /// »ñÈ¡Î»ÖÃ
+        /// è·å–ä½ç½®
         /// </summary>
         /// <returns></returns>
         virtual uint64  tell() const    =   0;
         /// <summary>
-        /// ÉèÖÃÎ»ÖÃ
+        /// è®¾ç½®ä½ç½®
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>

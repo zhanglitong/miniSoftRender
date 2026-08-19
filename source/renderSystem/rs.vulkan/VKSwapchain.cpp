@@ -1,4 +1,4 @@
-
+﻿
 
 #include    "VKSwapchain.h"
 #include    "VKDevice.h"
@@ -183,7 +183,7 @@ namespace   FE
         // Initialize the format to the first one returned by the implementation in case we can't find one of the preffered formats
         VkSurfaceFormatKHR  selectedFormat          =   surfaceFormats[0];
         /// <summary>
-        /// �����ĸ�ʽ����,����˳�����ȼ�����ƥ��
+        /// 锟斤拷锟斤拷锟侥革拷式锟斤拷锟斤拷,锟斤拷锟斤拷顺锟斤拷锟斤拷锟饺硷拷锟斤拷锟斤拷匹锟斤拷
         /// </summary>
         VkFormats           preferredImageFormats   = 
         { 

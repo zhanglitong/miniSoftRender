@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEDefine.h"
 #include    "../FEObject.h"
@@ -58,7 +58,7 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ÔÚ´ó»º³åÇøÉÏµÄ×ø±ê·¶Î§
+        /// åœ¨å¤§ç¼“å†²åŒºä¸Šçš„åæ ‡èŒƒå›´
         /// </summary>
         RectU16                 _rect;
         std::array<T,_W * _H>   _data;
@@ -83,7 +83,7 @@ namespace   FE
         TPBuffer()
         {}
         /// <summary>
-        /// Ò»¸ö¿ìµÄ´óĞ¡
+        /// ä¸€ä¸ªå¿«çš„å¤§å°
         /// </summary>
         /// <returns></returns>
         ushort2     cellSize() const
@@ -91,7 +91,7 @@ namespace   FE
             return  ushort2(_TileW,_TileH);
         }
         /// <summary>
-        /// ºáÏòÓë×İÏò¹²ÓĞ¶àÉÙ¸ö¿é
+        /// æ¨ªå‘ä¸çºµå‘å…±æœ‰å¤šå°‘ä¸ªå—
         /// </summary>
         /// <returns></returns>
         ushort2     gridSize() const

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FELog.hpp"
 #include    "FEKeyValues.hpp"
 #include    "FEFileFormat.hpp"
@@ -53,7 +53,7 @@ namespace FE
             return  *_log;
         }
         /// <summary>
-        /// ÉèÖÃ¹¤×÷Ä¿Â¼£¬Ò»°ãÊÇ¸úexeÍ¬Ò»¸öÄ¿Â¼
+        /// è®¾ç½®å·¥ä½œç›®å½•ï¼Œä¸€èˆ¬æ˜¯è·ŸexeåŒä¸€ä¸ªç›®å½•
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
@@ -64,7 +64,7 @@ namespace FE
             return  *this;
         }
         /// <summary>
-        /// ×ÊÔ´Ä¿Â¼£¬Ò»°ãÊÇexe/../
+        /// èµ„æºç›®å½•ï¼Œä¸€èˆ¬æ˜¯exe/../
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
@@ -75,7 +75,7 @@ namespace FE
             return  *this;
         }
         /// <summary>
-        /// µ±Ç°¹¤×÷Â·¾¶
+        /// å½“å‰å·¥ä½œè·¯å¾„
         /// </summary>
         /// <returns></returns>
         String      workPath() const
@@ -83,7 +83,7 @@ namespace FE
             return  _workPath;
         }
         /// <summary>
-        /// ×ÊÔ´Â·¾¶¸ùÄ¿Â¼
+        /// èµ„æºè·¯å¾„æ ¹ç›®å½•
         /// </summary>
         /// <returns></returns>
         String      resourcePath() const
@@ -109,8 +109,8 @@ namespace FE
             return  *_anchor;
         }
         /// <summary>
-        /// Èç¹ûÓĞ´°¿ÚÏµÍ³£¬·µ»Ø´°¿ÚµÄ¿í¶ÈºÍ¸ß¶È
-        /// Èç¹ûÃ»ÓĞ·µ»ØUintMax32
+        /// å¦‚æœæœ‰çª—å£ç³»ç»Ÿï¼Œè¿”å›çª—å£çš„å®½åº¦å’Œé«˜åº¦
+        /// å¦‚æœæ²¡æœ‰è¿”å›UintMax32
         /// </summary>
         /// <returns></returns>
         uint32      windowsWidth()  const

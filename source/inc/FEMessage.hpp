@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <functional>
 #include    "FEMathUtil.hpp"
 #include    "FEFlags.hpp"
@@ -46,19 +46,19 @@ namespace   FE
     {     
         USAGE_Background =   (1<<0),
         USAGE_Shadow     =   (USAGE_Background)<<1,
-        /// Ë®Ãæ
+        /// æ°´é¢
         USAGE_Water      =   (USAGE_Shadow)<< 1,
         /// bloom 
         USAGE_Bloom      =   (USAGE_Water)<< 1,
-        /// ÑÓ³ÙäÖÈ¾Í¼²ã
+        /// å»¶è¿Ÿæ¸²æŸ“å›¾å±‚
         USAGE_Defferd    =   (USAGE_Bloom <<1),    
-        /// ³¡¾°²ã
+        /// åœºæ™¯å±‚
         USAGE_Scene      =   (USAGE_Defferd<<1),
-        /// Ìù»­Á÷³Ì£¬ÔÚ³¡¾°Íê³ÉÖ®ºó
+        /// è´´ç”»æµç¨‹ï¼Œåœ¨åœºæ™¯å®Œæˆä¹‹å
         USAGE_Decal      =   (USAGE_Scene<<1),
         /// GUI
         USAGE_GUI        =   (USAGE_Decal << 1),
-        /// ×îÉÏ²ã
+        /// æœ€ä¸Šå±‚
         USAGE_Overlay    =   (USAGE_GUI <<1),
 
         USAGE_Classic   =   USAGE_Background | USAGE_Scene | USAGE_Overlay | USAGE_GUI,
@@ -109,9 +109,9 @@ namespace   FE
             ,_states(state)
         {}
         /// <summary>
-        /// Èç¹ûÊÇÊó±êÒÆ¶¯ÏûÏ¢:
-        /// _mouse ÊÇµ±Ç°ÏûÏ¢
-        /// _old: ÊÇÉÏÒ»´ÎÊó±êÎ»ÖÃ
+        /// å¦‚æœæ˜¯é¼ æ ‡ç§»åŠ¨æ¶ˆæ¯:
+        /// _mouse æ˜¯å½“å‰æ¶ˆæ¯
+        /// _old: æ˜¯ä¸Šä¸€æ¬¡é¼ æ ‡ä½ç½®
         /// </summary>
         int2        _mouse;
         int2        _old;

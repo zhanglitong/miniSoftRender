@@ -1,15 +1,15 @@
-
+ï»¿
 #include    "FECamera.hpp"
 
 
 namespace FE
 {
     /// <summary>
-    /// ÈÆÈÎÒâÖáµÄĞı×ª¾ØÕó
+    /// ç»•ä»»æ„è½´çš„æ—‹è½¬çŸ©é˜µ
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <param name="angle">½Ç¶È</param>
-    /// <param name="v">Öá</param>
+    /// <param name="angle">è§’åº¦</param>
+    /// <param name="v">è½´</param>
     /// <returns></returns>
     template<typename T>
     static tmat3<T> makeRotation(T angle, const tvec3<T>& v)
@@ -194,7 +194,7 @@ namespace FE
         {
             return;
         }
-        //! ¼ÆËãÑÛ¾¦µ½Êó±êµãµÄ·½Ïò
+        //! è®¡ç®—çœ¼ç›åˆ°é¼ æ ‡ç‚¹çš„æ–¹å‘
         real3   vDir    =   pos - _eye;
         real    len1    =   length(vDir);
         real    len     =   0;
@@ -324,7 +324,7 @@ namespace FE
         real3 front     =   -back;
         real3 left      =   -right;
         real3 bottom    =   -top;
-        ///´Ó¸÷¸ö·½ÏòÈ¥¿´Ê±µÄ ÉãÏñ»údir
+        ///ä»å„ä¸ªæ–¹å‘å»çœ‹æ—¶çš„ æ‘„åƒæœºdir
         real3 frontDir  =   back;
         real3 backDir   =   front;
         real3 leftDir   =   right;
@@ -332,7 +332,7 @@ namespace FE
         real3 topDir    =   bottom;
         real3 bottomDir =   top;
 
-        //Ä¬ÈÏÎªÕıÇ°·½
+        //é»˜è®¤ä¸ºæ­£å‰æ–¹
         real3 dir       =   frontDir;
         real3 up        =   top;
 
@@ -374,7 +374,7 @@ namespace FE
                 up      =   top;
             }
             break;
-        /// Ç° ÓÒ ÉÏ ÈıÃæµÄ½»µã
+        /// å‰ å³ ä¸Š ä¸‰é¢çš„äº¤ç‚¹
         case FrontRightTop:
             {
                 dir =   normalize(frontDir + rightDir + topDir);
@@ -383,49 +383,49 @@ namespace FE
             break;
 #pragma region 
                     
-        /// Ç° ×ó ÉÏ ÈıÃæµÄ½»µã
+        /// å‰ å·¦ ä¸Š ä¸‰é¢çš„äº¤ç‚¹
         case FrontLeftTop:
             {
                 dir =   normalize(frontDir + leftDir + topDir);
                 up  =   normalize(frontDir + leftDir + bottomDir);
             }
             break;
-        /// ºó ÓÒ ÉÏ ÈıÃæµÄ½»µã
+        /// å å³ ä¸Š ä¸‰é¢çš„äº¤ç‚¹
         case BackRightTop:
             {
                 dir =   normalize(backDir + rightDir + topDir);
                 up  =   normalize(backDir + rightDir + bottomDir);
             }
             break;
-        /// ºó ×ó ÉÏ ÈıÃæµÄ½»µã
+        /// å å·¦ ä¸Š ä¸‰é¢çš„äº¤ç‚¹
         case BackLeftTop:
             {
                 dir =   normalize(backDir + leftDir + topDir);
                 up  =   normalize(backDir + leftDir + bottomDir);
             }
             break;
-        /// Ç° ÓÒ ÏÂ ÈıÃæµÄ½»µã
+        /// å‰ å³ ä¸‹ ä¸‰é¢çš„äº¤ç‚¹
         case FrontRightBottom:
             {
                 dir =   normalize(frontDir + rightDir + bottomDir);
                 up  =   normalize(backDir + leftDir + bottomDir);
             }
             break;
-        /// Ç° ×ó ÏÂ ÈıÃæµÄ½»µã
+        /// å‰ å·¦ ä¸‹ ä¸‰é¢çš„äº¤ç‚¹
         case FrontLeftBottom:
             {
                 dir =   normalize(frontDir + leftDir + bottomDir);
                 up  =   normalize(backDir + rightDir + bottomDir);
             }
             break;
-        /// ºó ÓÒ ÏÂ ÈıÃæµÄ½»µã
+        /// å å³ ä¸‹ ä¸‰é¢çš„äº¤ç‚¹
         case BackRightBottom:
             {
                 dir =   normalize(backDir + rightDir + bottomDir);
                 up  =   normalize(frontDir + leftDir +bottomDir);
             }
             break;
-        /// ºó ×ó ÏÂ ÈıÃæµÄ½»µã
+        /// å å·¦ ä¸‹ ä¸‰é¢çš„äº¤ç‚¹
         case BackLeftBottom:
             {
                 dir =   normalize(backDir + leftDir + bottomDir);
@@ -434,84 +434,84 @@ namespace FE
             break;
 #pragma endregion
 #pragma region
-        /// Ç° ÉÏ Á½ÃæµÄ½»Ïß
+        /// å‰ ä¸Š ä¸¤é¢çš„äº¤çº¿
         case FrontTop:
             {
                 dir =   normalize(frontDir + topDir);
                 up  =   normalize(frontDir + bottomDir);
             }
             break;
-        /// ×ó ÉÏ Á½ÃæµÄ½»Ïß
+        /// å·¦ ä¸Š ä¸¤é¢çš„äº¤çº¿
         case LeftTop:
             {
                 dir =   normalize(leftDir + topDir);
                 up  =   normalize(leftDir + bottomDir);
             }
             break;
-        /// ÓÒ ÉÏ Á½ÃæµÄ½»Ïß
+        /// å³ ä¸Š ä¸¤é¢çš„äº¤çº¿
         case RightTop:
             {
                 dir =   normalize(rightDir + topDir);
                 up  =   normalize(rightDir + bottomDir);
             }
             break;
-        /// ºó ÉÏ Á½ÃæµÄ½»Ïß
+        /// å ä¸Š ä¸¤é¢çš„äº¤çº¿
         case BackTop:
             {
                 dir =   normalize(backDir + topDir);
                 up  =   normalize(backDir + bottomDir);
             }
             break;
-        /// Ç° ÏÂ Á½ÃæµÄ½»Ïß
+        /// å‰ ä¸‹ ä¸¤é¢çš„äº¤çº¿
         case FrontBottom:
             {
                 dir =   normalize(frontDir + bottomDir);
                 up  =   normalize(backDir + bottomDir);
             }
             break;
-        /// ×ó ÏÂ Á½ÃæµÄ½»Ïß
+        /// å·¦ ä¸‹ ä¸¤é¢çš„äº¤çº¿
         case LeftBottom:
             {
                 dir =   normalize(leftDir + bottomDir);
                 up  =   normalize(rightDir + bottomDir);
             }
             break;
-        /// ÓÒ ÏÂ Á½ÃæµÄ½»Ïß
+        /// å³ ä¸‹ ä¸¤é¢çš„äº¤çº¿
         case RightBottom:
             {
                 dir =   normalize(rightDir + bottomDir);
                 up  =   normalize(leftDir +bottomDir);
             }
             break;
-        /// ºó ÏÂ Á½ÃæµÄ½»Ïß
+        /// å ä¸‹ ä¸¤é¢çš„äº¤çº¿
         case BackBottom:
             {
                 dir =   normalize(backDir + bottomDir);
                 up  =   normalize(frontDir + bottomDir);
             }
             break;
-        /// Ç° ×ó Á½ÃæµÄ½»Ïß
+        /// å‰ å·¦ ä¸¤é¢çš„äº¤çº¿
         case FrontLeft:
             {
                 dir =   normalize(frontDir + leftDir);
                 up  =   top;
             }
             break;
-        /// Ç° ÓÒ Á½ÃæµÄ½»Ïß
+        /// å‰ å³ ä¸¤é¢çš„äº¤çº¿
         case FrontRight:
             {
                 dir =   normalize(frontDir + rightDir);
                 up  =   top;
             }
             break;
-        /// ºó ×ó Á½ÃæµÄ½»Ïß
+        /// å å·¦ ä¸¤é¢çš„äº¤çº¿
         case BackLeft:
             {
                 dir =   normalize(backDir + leftDir);
                 up  =   top;
             }
             break;
-        /// ºó ÓÒ Á½ÃæµÄ½»Ïß
+        /// å å³ ä¸¤é¢çš„äº¤çº¿
         case BackRight:
             {
                 dir =   normalize(backDir + rightDir);
@@ -519,7 +519,7 @@ namespace FE
             }
             break;
 #pragma endregion
-        /// ÏÂÃæËã·¨À´×ÔÉè¼ÆÆ÷
+        /// ä¸‹é¢ç®—æ³•æ¥è‡ªè®¾è®¡å™¨
         case FECamera::ISO1:
             {
                 real3   axisA       =   real3(+0, -1, +0);
@@ -631,15 +631,15 @@ namespace FE
     FrustumR    FECamera::extract(const real2& vMin,const real2& vMax,real3* vOutCorner)
     {
         FrustumR    result;
-        /// ½«ÆÁÄ»×ø±êÓ³Éä³É0-1
+        /// å°†å±å¹•åæ ‡æ˜ å°„æˆ0-1
         /// real2   vMin    =   real2(screenMin.x,screenMin.y)/_viewSize;
         /// real2   vMax    =   real2(screenMax.x,screenMax.y)/_viewSize;
-        /// ±£Ö¤·¶Î§
+        /// ä¿è¯èŒƒå›´
         /// vMin.clamp(real2(0,0),real2(1,1));
         /// vMax.clamp(real2(0,0),real2(1,1));
 
-        /// 1. ¶¨Òå NDC ¿Õ¼äµÄ 8 ¸ö½Çµã (z Îª -1 ±íÊ¾½üÆ½Ãæ£¬1 ±íÊ¾Ô¶Æ½Ãæ)
-        /// OpenGL ±ê×¼
+        /// 1. å®šä¹‰ NDC ç©ºé—´çš„ 8 ä¸ªè§’ç‚¹ (z ä¸º -1 è¡¨ç¤ºè¿‘å¹³é¢ï¼Œ1 è¡¨ç¤ºè¿œå¹³é¢)
+        /// OpenGL æ ‡å‡†
         real    minX        =   vMin.x * 2.0 - 1.0;
         real    maxX        =   vMax.x * 2.0 - 1.0;
 
@@ -648,19 +648,19 @@ namespace FE
         real    minZ        =   -1.0;
         real    maxZ        =   +1.0;
 
-        /// NDC ¿Õ¼ä×ø±ê
+        /// NDC ç©ºé—´åæ ‡
         real4   ndcCorners[8] =
         {
-            /// ½üÆ½Ãæ (z=0)
+            /// è¿‘å¹³é¢ (z=0)
             {minX, minY, minZ, 1}, {maxX, minY, minZ, 1}, {maxX, maxY, minZ, 1},{minX, maxY, minZ, 1},
-            /// Ô¶Æ½Ãæ (z=1)
+            /// è¿œå¹³é¢ (z=1)
             {minX, minY, maxZ, 1}, {maxX, minY, maxZ, 1}, {maxX, maxY, maxZ, 1},{minX, maxY, maxZ, 1}, 
         };
 
         mat4r   matVP       =   _matProj * _matView ;
         mat4r   invVP       =   FE::inverse(matVP);
         real3   corners[8];
-        /// 3. ±ä»»µ½ÊÀ½ç¿Õ¼ä
+        /// 3. å˜æ¢åˆ°ä¸–ç•Œç©ºé—´
         for (int i = 0; i < 8; ++i)
         {
             const real4 worldPt =   invVP * ndcCorners[i];
@@ -681,8 +681,8 @@ namespace FE
         /// |/    |/
         /// 0-----1
         ///
-        /// 4. ¹¹½¨ 6 ¸öÆ½Ãæ (È·µãĞò±£·¨ÏßÖ¸Ïò Frustum ÄÚ²¿)
-        /// Ê¹ÓÃÓÒÊÖ¶¨Ôò£ºÊÖÖ¸°´µãĞòÍäÇú£¬´óÄ´Ö¸Ö¸ÏòÄÚ²¿
+        /// 4. æ„å»º 6 ä¸ªå¹³é¢ (ç¡®ç‚¹åºä¿æ³•çº¿æŒ‡å‘ Frustum å†…éƒ¨)
+        /// ä½¿ç”¨å³æ‰‹å®šåˆ™ï¼šæ‰‹æŒ‡æŒ‰ç‚¹åºå¼¯æ›²ï¼Œå¤§æ‹‡æŒ‡æŒ‡å‘å†…éƒ¨
         result._planes[FrustumR::FRUSTUM_LEFT]      = PlaneR(corners[0],corners[4], corners[7]); 
         result._planes[FrustumR::FRUSTUM_RIGHT]     = PlaneR(corners[1],corners[2], corners[6]); 
         result._planes[FrustumR::FRUSTUM_BOTTOM]    = PlaneR(corners[0],corners[1], corners[5]); 

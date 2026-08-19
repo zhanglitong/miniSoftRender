@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEBuffer.hpp"
 #include    "FEWriter.hpp"
@@ -17,12 +17,12 @@ namespace   FE
             _buffer =   ptr;
         }
         /// <summary>
-        /// Ğ´»º³åÇø
+        /// å†™ç¼“å†²åŒº
         /// </summary>
-        /// <param name="data">Êı¾İµØÖ· </param>
-        /// <param name="len">Êı¾İ³¤¶È</param>
-        /// <param name="tag">Êı¾İ±êÇ©</param>
-        /// <returns>Ğ´Èë´óĞ¡,0Ê§°Ü</returns>
+        /// <param name="data">æ•°æ®åœ°å€ </param>
+        /// <param name="len">æ•°æ®é•¿åº¦</param>
+        /// <param name="tag">æ•°æ®æ ‡ç­¾</param>
+        /// <returns>å†™å…¥å¤§å°,0å¤±è´¥</returns>
         virtual uint64  writeBuffer(const void* data,uint64 len,const Tag& tag = {}) override
         {
             (void)tag;
@@ -37,7 +37,7 @@ namespace   FE
             return  0;
         }
         /// <summary>
-        /// »ñÈ¡Î»ÖÃ
+        /// è·å–ä½ç½®
         /// </summary>
         /// <returns></returns>
         virtual uint64  tell() const override
@@ -45,7 +45,7 @@ namespace   FE
             return  _cur;
         }
         /// <summary>
-        /// ÉèÖÃÎ»ÖÃ
+        /// è®¾ç½®ä½ç½®
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>

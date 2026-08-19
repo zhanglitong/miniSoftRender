@@ -1,4 +1,4 @@
-/**
+ï»¿/**
  * @file wgpu.h
  * @brief wgpu-native specific extensions to the standard WebGPU C API.
  *
@@ -1431,7 +1431,7 @@ typedef WGPUFlags WGPUShaderRuntimeChecks;
 
 static const WGPUShaderRuntimeChecks WGPUShaderRuntimeChecks_None = 0x0000000000000000;
 /**
- * Enforce bounds checks in shaders, even if the underlying driver doesn¡¯t support doing so natively.
+ * Enforce bounds checks in shaders, even if the underlying driver doesnâ€™t support doing so natively.
  */
 static const WGPUShaderRuntimeChecks WGPUShaderRuntimeChecks_BoundsChecks = 0x0000000000000001;
 /**
@@ -1448,7 +1448,7 @@ static const WGPUShaderRuntimeChecks WGPUShaderRuntimeChecks_RayQueryInitializat
  */
 static const WGPUShaderRuntimeChecks WGPUShaderRuntimeChecks_TaskShaderDispatchTracking = 0x0000000000000008;
 /**
- * If not set, mesh shaders won¡¯t clamp the output primitives¡¯ vertex indices, which can lead to
+ * If not set, mesh shaders wonâ€™t clamp the output primitivesâ€™ vertex indices, which can lead to
  * undefined behavior and arbitrary memory access.
  */
 static const WGPUShaderRuntimeChecks WGPUShaderRuntimeChecks_MeshShaderPrimitiveIndicesClamp = 0x0000000000000010;

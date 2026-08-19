@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEFormat.hpp"
 
 namespace   FE
@@ -13,7 +13,7 @@ namespace   FE
         {}
     public:
         /// <summary>
-        /// »ñÈ¡¸ñÊ½ĞèÒªµÄÄÚ´æ´óĞ¡£¬µ¥Î»×Ö½Ú
+        /// è·å–æ ¼å¼éœ€è¦çš„å†…å­˜å¤§å°ï¼Œå•ä½å­—èŠ‚
         /// </summary>
         /// <param name="fmt"></param>
         /// <returns></returns>
@@ -129,14 +129,14 @@ namespace   FE
                 return  1 * sizeof(float16);
             case FMT_D32_UNORM :
                 return  1 * sizeof(float32);
-            /// °´32Î»Éî¶È + 8Î»Ä£°å£¬°´8×Ö½Ú¶ÔÆë
+            /// æŒ‰32ä½æ·±åº¦ + 8ä½æ¨¡æ¿ï¼ŒæŒ‰8å­—èŠ‚å¯¹é½
             case FMT_D32_S8_UNORM :
                 return  2 * sizeof(float32);
             }
             return  1;
         }
         /// <summary>
-        /// »ñÈ¡ÑÕÉ«µÄÍ¨µÀÊı£¬R:1,RG:2,RGB:3,RGBA:4;
+        /// è·å–é¢œè‰²çš„é€šé“æ•°ï¼ŒR:1,RG:2,RGB:3,RGBA:4;
         /// </summary>
         /// <param name="fmt"></param>
         /// <returns></returns>
@@ -259,7 +259,7 @@ namespace   FE
             return  1;
         }
         /// <summary>
-        /// »ñÈ¡Ãû³Æ
+        /// è·å–åç§°
         /// </summary>
         /// <param name="fmt"></param>
         /// <returns></returns>
@@ -369,7 +369,7 @@ namespace   FE
             return  "NONE";
         }
         /// <summary>
-        /// ¸ù¾İÃû³Æ»ñÈ¡¸ñÊ½
+        /// æ ¹æ®åç§°è·å–æ ¼å¼
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
@@ -461,35 +461,35 @@ namespace   FE
         }
         
         /// <summary>
-        /// ¼ÆËãÒ»ĞĞÊı¾İ(w¸öÏñËØ)Õ¼ÓÃµÄÄÚ´æ¿Õ¼ä´óĞ¡(µ¥Î»×Ö½Ú)
+        /// è®¡ç®—ä¸€è¡Œæ•°æ®(wä¸ªåƒç´ )å ç”¨çš„å†…å­˜ç©ºé—´å¤§å°(å•ä½å­—èŠ‚)
         /// </summary>
-        /// <param name="w">¿í¶È</param>
-        /// <param name="align">¶ÔÆë×Ö½ÚÊı1,2,4,8,16,32,64...</param>
-        /// <param name="fmt">ÏñËØ¸ñÊ½</param>
-        /// <returns>ËùĞè¿Õ¼ä´óĞ¡£¬µ¥Î»×Ö½Ú</returns>
+        /// <param name="w">å®½åº¦</param>
+        /// <param name="align">å¯¹é½å­—èŠ‚æ•°1,2,4,8,16,32,64...</param>
+        /// <param name="fmt">åƒç´ æ ¼å¼</param>
+        /// <returns>æ‰€éœ€ç©ºé—´å¤§å°ï¼Œå•ä½å­—èŠ‚</returns>
         static  uint32_t    pitch(uint32_t w,uint16_t align,FEFormat fmt)
         {
             return  (w * FEFormatHelper::sizeOf(fmt) + (align - 1)) / align * align;
         }
         /// <summary>
-        /// ¼ÆËãÒ»ĞĞÊı¾İ(w¸öÏñËØ)Õ¼ÓÃµÄÄÚ´æ¿Õ¼ä´óĞ¡(µ¥Î»×Ö½Ú)
+        /// è®¡ç®—ä¸€è¡Œæ•°æ®(wä¸ªåƒç´ )å ç”¨çš„å†…å­˜ç©ºé—´å¤§å°(å•ä½å­—èŠ‚)
         /// </summary>
         /// <param name="w"></param>
-        /// <param name="align">¶ÔÆë×Ö½ÚÊı1,2,4,8,16,32,64...</param>
-        /// <param name="pixelByte">Ã¿¸öÏñËØµÄ×Ö½ÚÊı</param>
-        /// <returns>ËùĞè¿Õ¼ä´óĞ¡£¬µ¥Î»×Ö½Ú</returns>
+        /// <param name="align">å¯¹é½å­—èŠ‚æ•°1,2,4,8,16,32,64...</param>
+        /// <param name="pixelByte">æ¯ä¸ªåƒç´ çš„å­—èŠ‚æ•°</param>
+        /// <returns>æ‰€éœ€ç©ºé—´å¤§å°ï¼Œå•ä½å­—èŠ‚</returns>
         static  uint32_t    pitch(uint32_t w,uint16_t align,uint16_t pixelByte)
         {
             return  (w * pixelByte + (align - 1)) / align * align;
         }
         /// <summary>
-        /// ¸ù¾İÍ¼ÏñµÄ´óĞ¡,mipmap,¶ÔÆë·½Ê½,Êı¾İ¸ñÊ½,¼ÆËãĞèÒªµÄ¿Õ¼ä×Ö½ÚÊı
+        /// æ ¹æ®å›¾åƒçš„å¤§å°,mipmap,å¯¹é½æ–¹å¼,æ•°æ®æ ¼å¼,è®¡ç®—éœ€è¦çš„ç©ºé—´å­—èŠ‚æ•°
         /// </summary>
-        /// <param name="extent">³¤¿í¸ß</param>
+        /// <param name="extent">é•¿å®½é«˜</param>
         /// <param name="levels">mipmap</param>
-        /// <param name="align">¶ÔÆë1,2,4,8,16,32,64...</param>
-        /// <param name="fmt">¸ñÊ½</param>
-        /// <returns>ËùĞè¿Õ¼ä´óĞ¡£¬µ¥Î»×Ö½Ú</returns>
+        /// <param name="align">å¯¹é½1,2,4,8,16,32,64...</param>
+        /// <param name="fmt">æ ¼å¼</param>
+        /// <returns>æ‰€éœ€ç©ºé—´å¤§å°ï¼Œå•ä½å­—èŠ‚</returns>
         static  uint32_t    bytesOfLayer(const uint3& extent,uint32_t levels,uint32_t align,FEFormat fmt)
         {
             uint32_t    mips    =   (std::max<uint32_t>)(1,levels);

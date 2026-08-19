@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    "FEKeyFrame.hpp"
 #include    "FETrackResult.hpp"
 
@@ -29,7 +29,7 @@ namespace FE
         }
     public:
         /// <summary>
-        /// 计算获取帧的范围
+        /// 璁＄畻鑾峰彇甯х殑鑼冨洿
         /// </summary>
         /// <returns></returns>
         uint2       range() const
@@ -41,7 +41,7 @@ namespace FE
             return  uint2(nMin,nMax);
         }
         /// <summary>
-        /// 获取中帧数
+        /// 鑾峰彇涓抚鏁?
         /// </summary>
         /// <returns></returns>
         uint        frames() const
@@ -50,7 +50,7 @@ namespace FE
             return  (temp.y - temp.x) + 1;
         }
         /// <summary>
-        /// 是否有效，如果有关键帧，有效，否则无效
+        /// 鏄惁鏈夋晥锛屽鏋滄湁鍏抽敭甯э紝鏈夋晥锛屽惁鍒欐棤鏁?
         /// </summary>
         /// <returns></returns>
         bool        isValid() const
@@ -58,7 +58,7 @@ namespace FE
             return !_keyframes.empty();
         }
         /// <summary>
-        /// 设置属性索引
+        /// 璁剧疆灞炴€х储寮?
         /// </summary>
         /// <param name="index"></param>
         void        setPropertyIndex(const PropIndex& index)
@@ -66,7 +66,7 @@ namespace FE
             _propIndex  =   index;
         }
         /// <summary>
-        /// 获取所有关键帧数据
+        /// 鑾峰彇鎵€鏈夊叧閿抚鏁版嵁
         /// </summary>
         /// <returns></returns>
         auto&       keyframes() const
@@ -74,7 +74,7 @@ namespace FE
             return _keyframes;
         }
         /// <summary>
-        /// 第一帧
+        /// 绗竴甯?
         /// </summary>
         /// <returns></returns>
         KeyFrame    front() const
@@ -85,7 +85,7 @@ namespace FE
                 return  _keyframes.front();
         }
         /// <summary>
-        /// 最后一帧
+        /// 鏈€鍚庝竴甯?
         /// </summary>
         /// <returns></returns>
         KeyFrame    back() const
@@ -96,31 +96,31 @@ namespace FE
                 return  _keyframes.back();
         }
         /// <summary>
-        /// 添加关键帧
+        /// 娣诲姞鍏抽敭甯?
         /// </summary>
         /// <param name="keyFrame"></param>
         /// <returns></returns>
         bool        addKeyFrame(KeyFrame keyFrame)
         {
-            /// 二分法查找插入位置
+            /// 浜屽垎娉曟煡鎵炬彃鍏ヤ綅缃?
             auto    itr =   std::lower_bound(_keyframes.begin(), _keyframes.end(), keyFrame, [](const KeyFrame& l, const KeyFrame& r)
             {
                 return l->frame() < r->frame();
             });
-            /// 没有找到
+            /// 娌℃湁鎵惧埌
             if (itr == _keyframes.end())
                 _keyframes.push_back(keyFrame);
-            /// 找到
+            /// 鎵惧埌
             else if((*itr)->frame() != keyFrame->frame())
                 _keyframes.insert(itr,keyFrame);
-            /// 已经存在
+            /// 宸茬粡瀛樺湪
             else
                 return  false;
             return  true;
         }
         /// <summary>
-        /// 调用完成该函数后，如果frames是无序的，需要再次调用 @ref  sortKeyFames();
-        /// 保证数据有序
+        /// 璋冪敤瀹屾垚璇ュ嚱鏁板悗锛屽鏋渇rames鏄棤搴忕殑锛岄渶瑕佸啀娆¤皟鐢?@ref  sortKeyFames();
+        /// 淇濊瘉鏁版嵁鏈夊簭
         /// </summary>
         /// <param name="frames"></param>
         void        appendKeyFrames(const KeyFrames& frames)
@@ -128,7 +128,7 @@ namespace FE
             _keyframes.insert(_keyframes.end(),frames.begin(),frames.end());
         }
         /// <summary>
-        /// 根据索引号获取关键帧
+        /// 鏍规嵁绱㈠紩鍙疯幏鍙栧叧閿抚
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
@@ -140,7 +140,7 @@ namespace FE
                 return  nullptr;
         }
         /// <summary>
-        /// 移除关键帧对象
+        /// 绉婚櫎鍏抽敭甯у璞?
         /// </summary>
         /// <param name="keyFrame"></param>
         /// <returns></returns>
@@ -158,7 +158,7 @@ namespace FE
             return  false;
         }
         /// <summary>
-        /// 根据关键帧序号移除
+        /// 鏍规嵁鍏抽敭甯у簭鍙风Щ闄?
         /// </summary>
         /// <param name="keyFrame"></param>
         /// <returns></returns>
@@ -176,10 +176,10 @@ namespace FE
             return  false;
         }
         /// <summary>
-        /// 根据关键帧序号，获取关键帧数组下标
+        /// 鏍规嵁鍏抽敭甯у簭鍙凤紝鑾峰彇鍏抽敭甯ф暟缁勪笅鏍?
         /// </summary>
         /// <param name="keyFrame"></param>
-        /// <returns>size_t(-1) 没有找到</returns>
+        /// <returns>size_t(-1) 娌℃湁鎵惧埌</returns>
         size_t      keyFrameIndex(uint keyNo) const
         {
             auto    itr =   std::lower_bound(_keyframes.begin(), _keyframes.end(), keyNo, [](const KeyFrame& l, uint keyNo)
@@ -192,7 +192,7 @@ namespace FE
                 return  size_t(-1);
         }
         /// <summary>
-        /// 重新根据时间排序，当track内的keyframe被直接修改时间时调用
+        /// 閲嶆柊鏍规嵁鏃堕棿鎺掑簭锛屽綋track鍐呯殑keyframe琚洿鎺ヤ慨鏀规椂闂存椂璋冪敤
         /// </summary>
         void        sortKeyFames()
         {
@@ -202,7 +202,7 @@ namespace FE
             });
         }
         /// <summary>
-        /// 更新逻辑
+        /// 鏇存柊閫昏緫
         /// </summary>
         /// <param name="frame"></param>
         bool        update(const real& frame,FETrackResult& result)
@@ -210,7 +210,7 @@ namespace FE
             if (!isValid())
                 return  false;
             auto    rng =   range();
-            /// 不能 <= 后续需要进行计算，触发条件计算
+            /// 涓嶈兘 <= 鍚庣画闇€瑕佽繘琛岃绠楋紝瑙﹀彂鏉′欢璁＄畻
             if (frame < rng.x)
                 result._value   =   front()->value();
             else if(frame > rng.y)

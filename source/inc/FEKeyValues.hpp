@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMath.hpp"
 
 namespace   FE
@@ -12,7 +12,7 @@ namespace   FE
         FEKeyValues()
         {}
         /// <summary>
-        /// Ìí¼Ó£¬Èç¹û´æÔÚ·µ»Øfalse
+        /// æ·»åŠ ï¼Œå¦‚æœå­˜åœ¨è¿”å›false
         /// </summary>
         /// <param name="key"></param>
         /// <param name="value"></param>
@@ -27,7 +27,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ÒÆ³ı,Èç¹û²»´æÔÚ,·µ»Øfalse
+        /// ç§»é™¤,å¦‚æœä¸å­˜åœ¨,è¿”å›false
         /// </summary>
         /// <param name="key"></param>
         inline  bool    remove(const TKey& key)
@@ -40,7 +40,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ÊÇ·ñ´æÔÚ
+        /// æ˜¯å¦å­˜åœ¨
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
@@ -61,7 +61,7 @@ namespace   FE
                 return  &itr->second;
         }
         /// <summary>
-        /// ²éÑ¯
+        /// æŸ¥è¯¢
         /// </summary>
         /// <param name="key"></param>
         /// <param name="value"></param>
@@ -76,7 +76,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// Èç¹û´æÔÚ·µ»Ø,²»´æÔÚ´´½¨
+        /// å¦‚æœå­˜åœ¨è¿”å›,ä¸å­˜åœ¨åˆ›å»º
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
@@ -85,7 +85,7 @@ namespace   FE
             return  _valueMap[key];
         }
         /// <summary>
-        /// Çå³ı
+        /// æ¸…é™¤
         /// </summary>
         inline  void    clear()
         {
@@ -100,7 +100,7 @@ namespace   FE
             return  _valueMap;
         }
         /// <summary>
-        /// ¼ì²âÊı¾İÊÇ·ñ·¢ÉúÁË±ä»¯£¬ĞèÒª¸üĞÂ
+        /// æ£€æµ‹æ•°æ®æ˜¯å¦å‘ç”Ÿäº†å˜åŒ–ï¼Œéœ€è¦æ›´æ–°
         /// </summary>
         /// <returns></returns>
         /// inline  bool    isDirty() const

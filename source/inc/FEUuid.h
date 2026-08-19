@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEDefine.h"
 
@@ -39,7 +39,7 @@ namespace   FE
             _guid   =   guid;
         }
         /// <summary>
-        /// ¸³ÖµÔËËã
+        /// èµ‹å€¼è¿ç®—
         /// </summary>
         /// <param name="right"></param>
         /// <returns></returns>
@@ -60,7 +60,7 @@ namespace   FE
             return  _64[0] != right._64[0] || _64[1] != right._64[1] ;
         }
         /// <summary>
-        /// ´óĞ¡±È½Ï,´óÓÚ
+        /// å¤§å°æ¯”è¾ƒ,å¤§äº
         /// </summary>
         /// <param name="right"></param>
         /// <returns></returns>
@@ -79,7 +79,7 @@ namespace   FE
                 return  _64[1] < right._64[1];
         }
         /// <summary>
-        /// ÓëGUIDµÄ¸³ÖµÔËËã
+        /// ä¸GUIDçš„èµ‹å€¼è¿ç®—
         /// </summary>
         /// <param name="guid"></param>
         /// <returns></returns>

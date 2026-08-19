@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <type_traits>
 #include    <functional>
@@ -23,7 +23,7 @@ namespace   FE
         virtual ~FEGeometryParam()
         {}
         /// <summary>
-        /// ÊÇ·ñÊÇ²ÎÊı»¯Ä£ĞÍ
+        /// æ˜¯å¦æ˜¯å‚æ•°åŒ–æ¨¡å‹
         /// </summary>
         /// <returns></returns>
         virtual bool    isParam() const override
@@ -31,24 +31,24 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ¸ù¾İÊôĞÔÉú³Émesh
+        /// æ ¹æ®å±æ€§ç”Ÿæˆmesh
         /// </summary>
         /// <param name="attr"></param>
         /// <returns></returns>
         virtual Mesh    triangular(const Attrs& inputs)    =   0;
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// 
-        /// ĞèÒªÓÅ»¯ÊôĞÔ²¿·Ö£¬¿ÉÒÔÖ±½ÓÓÃË÷ÒıºÅ£¬´ÓÏµÍ³¿âÖĞÕÒ
+        /// éœ€è¦ä¼˜åŒ–å±æ€§éƒ¨åˆ†ï¼Œå¯ä»¥ç›´æ¥ç”¨ç´¢å¼•å·ï¼Œä»ç³»ç»Ÿåº“ä¸­æ‰¾
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>
@@ -77,23 +77,23 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override
         {
-            /// ²ÎÊı»¯ĞÅÏ¢Ğ´Èë »ùÀàÖĞµ÷ÓÃ triangular,ĞèÒªÊ¹ÓÃ _param
-            /// ËùÒÔÏÈĞ´Èë²ÎÊı»¯ĞÅÏ¢
+            /// å‚æ•°åŒ–ä¿¡æ¯å†™å…¥ åŸºç±»ä¸­è°ƒç”¨ triangular,éœ€è¦ä½¿ç”¨ _param
+            /// æ‰€ä»¥å…ˆå†™å…¥å‚æ•°åŒ–ä¿¡æ¯
             writer.write(_param);
             FEGeometryParam::serializeTraits(writer,chk,version,ctx);
         }
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// 
-        /// ĞèÒªÓÅ»¯ÊôĞÔ²¿·Ö£¬¿ÉÒÔÖ±½ÓÓÃË÷ÒıºÅ£¬´ÓÏµÍ³¿âÖĞÕÒ
+        /// éœ€è¦ä¼˜åŒ–å±æ€§éƒ¨åˆ†ï¼Œå¯ä»¥ç›´æ¥ç”¨ç´¢å¼•å·ï¼Œä»ç³»ç»Ÿåº“ä¸­æ‰¾
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>

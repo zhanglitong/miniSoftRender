@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <type_traits>
 #include    <functional>
@@ -107,11 +107,11 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override
         {
@@ -122,7 +122,7 @@ namespace   FE
             writer.write(_type);
         }
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>
@@ -141,11 +141,11 @@ namespace   FE
         EDrawType   _type           =   DRAW_ARRAY;
         int         _vertexOffset   =   0;
         /// <summary>
-        /// FEFactoryRender; ÓÃÀ´·ÃÎÊ¶ÔÓ¦GPUÊı¾İ
+        /// FEFactoryRender; ç”¨æ¥è®¿é—®å¯¹åº”GPUæ•°æ®
         /// </summary>
         Factory     _factory        =   nullptr;
         /// <summary>
-        /// ´ó¶àÊıÇé¿öÏÂÃ»ÓĞlod
+        /// å¤§å¤šæ•°æƒ…å†µä¸‹æ²¡æœ‰lod
         /// </summary>
         Lod         _lod            =   nullptr;
 

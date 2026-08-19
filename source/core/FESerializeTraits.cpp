@@ -1,4 +1,4 @@
-
+ï»¿
 #include    "../inc/FEReaderHelper.hpp"
 #include    "../inc/FEWriterHelper.hpp"
 #include    "../inc/FEObjectHelper.hpp"
@@ -39,21 +39,21 @@ namespace   FE
         {
             struct 
             {
-                /// ÊÇ·ñĞ´ÑÕÉ« Êı¾İ = [0,0,0,255] ²»Ğ´Èë
+                /// æ˜¯å¦å†™é¢œè‰² æ•°æ® = [0,0,0,255] ä¸å†™å…¥
                 uint16  _hasColor   :1;
-                /// ÊÇ·ñÓĞÃû×Ö,0 Ã»ÓĞ 1,uint8,2:uint16,3:uint32,¼õÉÙ³¤¶È×Ö¶ÎµÄÄÚ´æÕ¼ÓÃ
+                /// æ˜¯å¦æœ‰åå­—,0 æ²¡æœ‰ 1,uint8,2:uint16,3:uint32,å‡å°‘é•¿åº¦å­—æ®µçš„å†…å­˜å ç”¨
                 uint16  _hasName    :2;
-                /// ÊÇ·ñÓĞ×Ó½Úµã,0 Ã»ÓĞ 1,uint8,2:uint16,3:uint32,¼õÉÙ³¤¶È×Ö¶ÎµÄÄÚ´æÕ¼ÓÃ
+                /// æ˜¯å¦æœ‰å­èŠ‚ç‚¹,0 æ²¡æœ‰ 1,uint8,2:uint16,3:uint32,å‡å°‘é•¿åº¦å­—æ®µçš„å†…å­˜å ç”¨
                 uint16  _hasCom     :2;
-                /// ÊÇ·ñĞ´²ÄÖÊ
+                /// æ˜¯å¦å†™æè´¨
                 uint16  _hasMaterial:1;
-                /// ÊÇ·ñĞ´¼¸ºÎÌå
+                /// æ˜¯å¦å†™å‡ ä½•ä½“
                 uint16  _hasGeometry:1;
-                /// ÊÇ·ñĞ´Î»ÖÃ Êı¾İ = [0,0,0] ²»Ğ´Èë
+                /// æ˜¯å¦å†™ä½ç½® æ•°æ® = [0,0,0] ä¸å†™å…¥
                 uint16  _hasTrans   :1;
-                /// ÊÇ·ñĞ´Ëõ·Å Êı¾İ = [1,1,1] ²»Ğ´Èë
+                /// æ˜¯å¦å†™ç¼©æ”¾ æ•°æ® = [1,1,1] ä¸å†™å…¥
                 uint16  _hasScale   :1;
-                /// ÊÇ·ñĞ´Ğı×ª Êı¾İ = [1,0,0,0] ²»Ğ´Èë
+                /// æ˜¯å¦å†™æ—‹è½¬ æ•°æ® = [1,0,0,0] ä¸å†™å…¥
                 uint16  _hasRotate  :1;
             };
             uint16  _value;
@@ -101,7 +101,7 @@ namespace   FE
         bits._hasMaterial   =   _material ? 1 : 0;
 
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        /// ±ØĞëĞŞ¸Ä
+        /// å¿…é¡»ä¿®æ”¹
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         chunk._flags        =   bits._value;
         
@@ -113,14 +113,14 @@ namespace   FE
         if (_mesh)              writer.write(_mesh->objectId());
         if (_material)          writer.write(_material->objectId());
 
-        /// Ğ´ÈëÃû³Æ
+        /// å†™å…¥åç§°
         switch(bits._hasName)
         {
         case 1: writer.write<uint8>(_name); break;
         case 2: writer.write<uint16>(_name);break;
         case 3: writer.write<uint32>(_name);break;
         }
-        /// Ğ´Èë³¤¶ÈÊı¾İ
+        /// å†™å…¥é•¿åº¦æ•°æ®
         switch(bits._hasCom)
         {
         case 1: writer.write<uint8>(uint8(nCom));  break;
@@ -149,20 +149,22 @@ namespace   FE
         if (bits._hasRotate )   reader.read(_rotate);
         if (bits._hasColor)     reader.read(_color);
        
-        /// ¶Á¼¸ºÎÌå
+        /// è¯»å‡ ä½•ä½“
         if (bits._hasGeometry)
         {
             OBJId   objectId ;
             auto    result  =   reader.read(objectId);
+            UNUSED(result);
             assert(result == sizeof(objectId));
             auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
             _mesh           =   object ? object->cast<FEMesh>() : nullptr;
         }
-        /// ¶Á²ÄÖÊ
+        /// è¯»æè´¨
         if (bits._hasMaterial)
         {
             OBJId   objectId ;
             auto    result  =   reader.read(objectId);
+            UNUSED(result);
             assert(result == sizeof(objectId));
             auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
             _material       =   object ? object->cast<FEMaterial>() : nullptr;
@@ -173,7 +175,7 @@ namespace   FE
         case 2: reader.read<uint16>(_name);break;
         case 3: reader.read<uint32>(_name);break;
         }
-        /// ¶ÁÈ¡×é¼ş
+        /// è¯»å–ç»„ä»¶
         uint    cnt =   0;
         switch(bits._hasCom)
         {
@@ -186,6 +188,7 @@ namespace   FE
         {
             OBJId   objectId ;
             auto    result  =   reader.read(objectId);
+            UNUSED(result);
             assert(result == sizeof(objectId));
             auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
             if (object == nullptr)
@@ -200,9 +203,9 @@ namespace   FE
         {
             struct 
             {
-                /// ÊÇ·ñÓĞPrimitive, 0 Ã»ÓĞ 1,uint8,2:uint16,3:uint32,¼õÉÙ³¤¶È×Ö¶ÎµÄÄÚ´æÕ¼ÓÃ
+                /// æ˜¯å¦æœ‰Primitive, 0 æ²¡æœ‰ 1,uint8,2:uint16,3:uint32,å‡å°‘é•¿åº¦å­—æ®µçš„å†…å­˜å ç”¨
                 uint16  _hasPrimitive   :2;
-                /// ÊÇ·ñÓĞmeshBuffer,0 Ã»ÓĞ 1,uint8,2:uint16,3:uint32,¼õÉÙ³¤¶È×Ö¶ÎµÄÄÚ´æÕ¼ÓÃ
+                /// æ˜¯å¦æœ‰meshBuffer,0 æ²¡æœ‰ 1,uint8,2:uint16,3:uint32,å‡å°‘é•¿åº¦å­—æ®µçš„å†…å­˜å ç”¨
                 uint16  _hasSubMesh     :2;
             };
             uint16  _value;
@@ -230,7 +233,7 @@ namespace   FE
 
         bits._hasPrimitive  =   _primitives.empty() ? 0 : 1;
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        /// ±ØĞëĞŞ¸Ä
+        /// å¿…é¡»ä¿®æ”¹
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         chk._flags          =   bits._value;
 
@@ -298,12 +301,12 @@ namespace   FE
             struct 
             {
                 /// <summary>
-                /// ÊÇ·ñÊÇ²ÎÊı»¯
+                /// æ˜¯å¦æ˜¯å‚æ•°åŒ–
                 /// </summary>
                 uint16  _isParam    :   1;
-                /// ÊÇ·ñÓĞmesh, 0 Ã»ÓĞ,1 ÓĞ
+                /// æ˜¯å¦æœ‰mesh, 0 æ²¡æœ‰,1 æœ‰
                 uint16  _hasMesh    :   1;
-                /// ÊÇ·ñÓĞattr, 0 Ã»ÓĞ 1,uint8,2:uint16,3:uint32,¼õÉÙ³¤¶È×Ö¶ÎµÄÄÚ´æÕ¼ÓÃ
+                /// æ˜¯å¦æœ‰attr, 0 æ²¡æœ‰ 1,uint8,2:uint16,3:uint32,å‡å°‘é•¿åº¦å­—æ®µçš„å†…å­˜å ç”¨
                 uint16  _hasAttr    :   2;
             };
             uint16  _value;
@@ -356,21 +359,21 @@ namespace   FE
         assert (_mesh != nullptr);
         Attrs   customs;
         Attrs   systems;
-        /// ²ÎÊı»¯¼¸ºÎÌå£¬ÎªÁË±£Ö¤¿ÉÒÔÕıÈ·µÄ²ÎÊı»¯£¬ĞèÒª°ÑÊôĞÔĞÅÏ¢¼ÇÂ¼ÏÂÀ´
+        /// å‚æ•°åŒ–å‡ ä½•ä½“ï¼Œä¸ºäº†ä¿è¯å¯ä»¥æ­£ç¡®çš„å‚æ•°åŒ–ï¼Œéœ€è¦æŠŠå±æ€§ä¿¡æ¯è®°å½•ä¸‹æ¥
         if (_mesh)
         {
             
         }
-        /// Ğ´ÈëÏµÍ³ÀàĞÍµÄ¸öÊı
+        /// å†™å…¥ç³»ç»Ÿç±»å‹çš„ä¸ªæ•°
         writer.write<uint8>(uint8(systems.size()));
-        /// Ğ´Èë×Ô¶¨ÒåÀàĞÍµÄ¸öÊı
+        /// å†™å…¥è‡ªå®šä¹‰ç±»å‹çš„ä¸ªæ•°
         writer.write<uint8>(uint8(customs.size()));
-        /// ÏµÍ³ÀàĞÍĞ´Èëindex
+        /// ç³»ç»Ÿç±»å‹å†™å…¥index
         if (!systems.empty())
         {
             
         }
-        /// ×Ô¶¨ÒåÀàĞÍ Ğ´objectId
+        /// è‡ªå®šä¹‰ç±»å‹ å†™objectId
         /// for (auto& var : customs)
         /// {
         /// }
@@ -394,11 +397,11 @@ namespace   FE
         Attrs       inputs;
         Attrs       systems;
         SlotFormats slotFmts;
-        /// ¶ÁÏµÍ³ÀàĞÍµÄ¸öÊı
+        /// è¯»ç³»ç»Ÿç±»å‹çš„ä¸ªæ•°
         reader.read<uint8>(systemCnt);
-        /// ¶Á×Ô¶¨ÒåÀàĞÍµÄ¸öÊı
+        /// è¯»è‡ªå®šä¹‰ç±»å‹çš„ä¸ªæ•°
         reader.read<uint8>(customCnt);
-        /// ¶ÁÏµÍ³ÀàĞÍindex
+        /// è¯»ç³»ç»Ÿç±»å‹index
         systems.resize(systemCnt);
         inputs.reserve(systemCnt + customCnt);
         
@@ -413,7 +416,7 @@ namespace   FE
            
         }
 
-        /// ×Ô¶¨ÒåÀàĞÍ Ğ´objectId
+        /// è‡ªå®šä¹‰ç±»å‹ å†™objectId
         for (uint8 i = 0 ;i < customCnt ; ++ i)
         {
             

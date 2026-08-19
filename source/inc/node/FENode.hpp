@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEItem.hpp"
 #include    "../FEObjectHelper.hpp"
@@ -20,30 +20,30 @@ namespace   FE
         enum    NodeFlag
         {
             /// <summary>
-            /// Ó°Ïì»æÖÆµÄinstance
-            /// »á´¥·¢¸üĞÂ IS_INSTANCE_MAT_C0,IS_INSTANCE_MAT_C1,IS_INSTANCE_MAT_C2,IS_INSTANCE_MAT_C3
-            /// ¸Ã×´Ì¬»áÔÚ½ÚµãËùÔÚ¹¤³§ÖĞÏû·ÑºóÒÆ³ı
+            /// å½±å“ç»˜åˆ¶çš„instance
+            /// ä¼šè§¦å‘æ›´æ–° IS_INSTANCE_MAT_C0,IS_INSTANCE_MAT_C1,IS_INSTANCE_MAT_C2,IS_INSTANCE_MAT_C3
+            /// è¯¥çŠ¶æ€ä¼šåœ¨èŠ‚ç‚¹æ‰€åœ¨å·¥å‚ä¸­æ¶ˆè´¹åç§»é™¤
             /// </summary>
             FLAG_PROP_TRANS     =   FLAG_LAST,
             FLAG_PROP_SCALE     =   (FLAG_PROP_TRANS<<1),
             FLAG_PROP_ROT       =   (FLAG_PROP_SCALE<<1),
             /// <summary>
-            /// ½ÚµãÑÕÉ«ĞŞ¸Ä,Ó°Ïì»æÖÆµÄinstance,´¥·¢¸üĞÂ:IS_INSTANCE_COLOR
+            /// èŠ‚ç‚¹é¢œè‰²ä¿®æ”¹,å½±å“ç»˜åˆ¶çš„instance,è§¦å‘æ›´æ–°:IS_INSTANCE_COLOR
             /// </summary>
             FLAG_PROP_COLOR     =   (FLAG_PROP_ROT<<1),
             /// <summary>
-            /// äÖÈ¾×´Ì¬·¢Éú±ä»¯£¬´¥·¢¸üĞÂ IS_INSTANCE_FLAG£¬µ±ĞŞ¸ÄÁËrenderBits()
-            /// ĞèÒªÔö¼Ó¸Ã×´Ì¬£¬¸Ã×´Ì¬»áÔÚ½ÚµãËùÔÚ¹¤³§ÖĞÏû·ÑºóÒÆ³ı
+            /// æ¸²æŸ“çŠ¶æ€å‘ç”Ÿå˜åŒ–ï¼Œè§¦å‘æ›´æ–° IS_INSTANCE_FLAGï¼Œå½“ä¿®æ”¹äº†renderBits()
+            /// éœ€è¦å¢åŠ è¯¥çŠ¶æ€ï¼Œè¯¥çŠ¶æ€ä¼šåœ¨èŠ‚ç‚¹æ‰€åœ¨å·¥å‚ä¸­æ¶ˆè´¹åç§»é™¤
             /// </summary>
             FLAG_PROP_STATE     =   (FLAG_PROP_COLOR<<1),
             /// <summary>
-            /// mesh ÓĞ¿ÉÄÜ´æÔÚlodĞÅÏ¢,ÓĞ¿ÉÄÜÃ»ÓĞ£¬Èç¹ûÃ´ÓĞlod LOD_INDEX == -1,ÆäËûÔòÊÇÓĞĞ§Öµ
-            /// ÏµÍ³»áÊÕ¼¯ËùÓĞlodĞÅÏ¢µ½Ò»¸öÍ³Ò»µÄÊı×éÖĞ,
+            /// mesh æœ‰å¯èƒ½å­˜åœ¨lodä¿¡æ¯,æœ‰å¯èƒ½æ²¡æœ‰ï¼Œå¦‚æœä¹ˆæœ‰lod LOD_INDEX == -1,å…¶ä»–åˆ™æ˜¯æœ‰æ•ˆå€¼
+            /// ç³»ç»Ÿä¼šæ”¶é›†æ‰€æœ‰lodä¿¡æ¯åˆ°ä¸€ä¸ªç»Ÿä¸€çš„æ•°ç»„ä¸­,
             /// </summary>
             FLAG_PROP_LOD       =   (FLAG_PROP_COLOR<<1),
             /// <summary>
-            /// Ó°Ïì»æÖÆµÄ vbo,ibo,ito
-            /// ¸Ã×´Ì¬»áÔÚ½ÚµãËùÔÚ¹¤³§ÖĞÏû·ÑºóÒÆ³ı
+            /// å½±å“ç»˜åˆ¶çš„ vbo,ibo,ito
+            /// è¯¥çŠ¶æ€ä¼šåœ¨èŠ‚ç‚¹æ‰€åœ¨å·¥å‚ä¸­æ¶ˆè´¹åç§»é™¤
             /// </summary>
             FLAG_PROP_MESH      =   (FLAG_PROP_STATE<<1),
 
@@ -101,9 +101,9 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ ´ÓÊÀ½çµ½½ÚµãµÄÎ»ÖÃ±ä»»
+        /// è®¾ç½® ä»ä¸–ç•Œåˆ°èŠ‚ç‚¹çš„ä½ç½®å˜æ¢
         /// </summary>
-        /// <param name="vec">´ÓÊÀ½çµ½½ÚµãµÄÎ»ÖÃ±ä»»</param>
+        /// <param name="vec">ä»ä¸–ç•Œåˆ°èŠ‚ç‚¹çš„ä½ç½®å˜æ¢</param>
         inline  auto&   setGlobalTranslation(const real3& vec)
         {
             if (_parent != nullptr)
@@ -114,9 +114,9 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡ ´ÓÊÀ½çµ½½ÚµãµÄÎ»ÖÃ±ä»»
+        /// è·å– ä»ä¸–ç•Œåˆ°èŠ‚ç‚¹çš„ä½ç½®å˜æ¢
         /// </summary>
-        /// <returns>´ÓÊÀ½çµ½½ÚµãµÄÎ»ÖÃ±ä»»</returns>
+        /// <returns>ä»ä¸–ç•Œåˆ°èŠ‚ç‚¹çš„ä½ç½®å˜æ¢</returns>
         inline  real3   globalTranslation() const
         {
             return this->globalTransform() * real4(0,0,0,0);
@@ -130,9 +130,9 @@ namespace   FE
             return  rot;
         }
         /// <summary>
-        /// ÉèÖÃ ´ÓÊÀ½çµ½½ÚµãµÄĞı×ª±ä»»
+        /// è®¾ç½® ä»ä¸–ç•Œåˆ°èŠ‚ç‚¹çš„æ—‹è½¬å˜æ¢
         /// </summary>
-        /// <param name="quat">q´ÓÊÀ½çµ½½ÚµãµÄĞı×ª±ä»»</param>
+        /// <param name="quat">qä»ä¸–ç•Œåˆ°èŠ‚ç‚¹çš„æ—‹è½¬å˜æ¢</param>
         inline  auto&   setGlobalRotation(const quatr& quat)
         {
             if (_parent != nullptr)
@@ -170,7 +170,7 @@ namespace   FE
             return  _name.c_str();
         }
         /// <summary>
-        /// ²ÄÖÊ
+        /// æè´¨
         /// </summary>
         /// <returns></returns>
         inline  auto    material() const
@@ -178,7 +178,7 @@ namespace   FE
             return  _material;
         }
         /// <summary>
-        /// ¼¸ºÎÌå
+        /// å‡ ä½•ä½“
         /// </summary>
         /// <returns></returns>
         inline auto     mesh() const
@@ -198,7 +198,7 @@ namespace   FE
             _coms.push_back(object);
         }
         /// <summary>
-        /// Ìí¼ÓĞèÒª¸üĞÂ±ê¼Ç
+        /// æ·»åŠ éœ€è¦æ›´æ–°æ ‡è®°
         /// </summary>
         /// <returns></returns>
         inline  FENode& makeDirty()
@@ -207,23 +207,23 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ¼ì²â¸üĞÂ
+        /// æ£€æµ‹æ›´æ–°
         /// </summary>
         virtual void    update();
         virtual  void   fireChanged();
         /// <summary>
-        /// ¸üĞÂ°üÎ§ºĞĞÅÏ¢£¬²»¼ì²âÊÇ·ñĞèÒª£¬Ö±½Ó¼ÆËã
+        /// æ›´æ–°åŒ…å›´ç›’ä¿¡æ¯ï¼Œä¸æ£€æµ‹æ˜¯å¦éœ€è¦ï¼Œç›´æ¥è®¡ç®—
         /// </summary>
         /// <param name="recursion"></param>
         /// <returns></returns>
         virtual aabb3dr updateAabb(bool recursion = true);
         /// <summary>
-        /// ¸üĞÂ¾ØÕóĞÅÏ¢£¬²»¼ì²âÊÇ·ñĞèÒª£¬Ö±½Ó¼ÆËã
+        /// æ›´æ–°çŸ©é˜µä¿¡æ¯ï¼Œä¸æ£€æµ‹æ˜¯å¦éœ€è¦ï¼Œç›´æ¥è®¡ç®—
         /// </summary>
         /// <param name="recursion"></param>
         virtual void    updateTransform(bool recursion = true);
         /// <summary>
-        /// Ê°È¡º¯Êı
+        /// æ‹¾å–å‡½æ•°
         /// </summary>
         /// <param name="ray"></param>
         /// <param name="result"></param>
@@ -231,7 +231,7 @@ namespace   FE
         virtual size_t  intersect(const Ray& ray,Pickups& result) const;
         virtual size_t  intersect(const Ray& ray,FEPickup& result) const;
         /// <summary>
-        /// ¾Ö²¿×ø±ê¾ØÕó
+        /// å±€éƒ¨åæ ‡çŸ©é˜µ
         /// </summary>
         /// <returns></returns>
         inline  mat4r   localTransform() const
@@ -239,7 +239,7 @@ namespace   FE
             return  FE::makeTransform<real>(_trans,_scale,_rotate);
         }
         /// <summary>
-        /// Ã»ÓĞÆ½ÒÆĞÅÏ¢
+        /// æ²¡æœ‰å¹³ç§»ä¿¡æ¯
         /// </summary>
         /// <returns></returns>
         inline  mat4r   globalRSTransform() const
@@ -249,7 +249,7 @@ namespace   FE
             return  tMat;
         }
         /// <summary>
-        /// ÊÀ½ç×ø±ê¾ØÕó
+        /// ä¸–ç•Œåæ ‡çŸ©é˜µ
         /// </summary>
         /// <returns></returns>
         inline  mat4r   globalTransform() const
@@ -262,25 +262,25 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>
         /// <returns></returns>
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
         /// <summary>
-        /// »ñÈ¡ÒÀÀµµÄ¶ÔÏó,×ÓÀàÊµÏÖ
+        /// è·å–ä¾èµ–çš„å¯¹è±¡,å­ç±»å®ç°
         /// </summary>
         /// <param name="uset"></param>
-        /// <returns>·µ»ØÒÔÀ´µÄ¶ÔÏó¸öÊı</returns>
+        /// <returns>è¿”å›ä»¥æ¥çš„å¯¹è±¡ä¸ªæ•°</returns>
         virtual size_t  queryDepends(ObjectUSet& uset) const
         {
             const auto  vSize   =   uset.size();
@@ -294,7 +294,7 @@ namespace   FE
     protected:
         real3       _trans;
         /// <summary>
-        /// ÕâÁ½¸öÖµ¾«¶È¹»ÓÃ
+        /// è¿™ä¸¤ä¸ªå€¼ç²¾åº¦å¤Ÿç”¨
         /// </summary>
         float3      _scale;
         quatf       _rotate;
@@ -304,7 +304,7 @@ namespace   FE
         uint32      _dataFlag;
         Rgba8       _color;
         /// <summary>
-        /// ¾­³£±»·ÃÎÊµÄ×é¼ş
+        /// ç»å¸¸è¢«è®¿é—®çš„ç»„ä»¶
         /// </summary>
         Mesh        _mesh;
         Material    _material;

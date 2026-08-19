@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../../FEStreamReader.hpp"
 #include    "../../FEDateTime.hpp"
 #include    "../../FEReaderHelper.hpp"
@@ -37,7 +37,7 @@ namespace   FE
             :FEStreamReader(other)
         {}
         /// <summary>
-        /// ×é¼şÖ§³ÖµÄ¸ñÊ½Êı×é
+        /// ç»„ä»¶æ”¯æŒçš„æ ¼å¼æ•°ç»„
         /// </summary>
         /// <returns></returns>
         virtual Formats formats() const override
@@ -45,7 +45,7 @@ namespace   FE
             return  formatList();
         }
         /// <summary>
-        /// ½Ó¿Úµ÷ÓÃ¼ÓÔØÎÄ¼ş
+        /// æ¥å£è°ƒç”¨åŠ è½½æ–‡ä»¶
         /// </summary>
         /// <param name="file"></param>
         /// <returns></returns>
@@ -93,7 +93,7 @@ namespace   FE
                     return  {};
                 }
             };
-            /// ¼ÆËãËùÓĞÎÄ¼ş´óĞ¡
+            /// è®¡ç®—æ‰€æœ‰æ–‡ä»¶å¤§å°
             for (auto& var : files)
             {
                 xsCtx.allByte +=  FEFileInfor::fileSize(var);
@@ -116,7 +116,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ÊäÈë¶à¸öbuffer,´Ó¶à¸öbufferÖĞ¶ÁÈ¡¶ÔÏóÊı¾İ
+        /// è¾“å…¥å¤šä¸ªbuffer,ä»å¤šä¸ªbufferä¸­è¯»å–å¯¹è±¡æ•°æ®
         /// </summary>
         /// <param name="buffers"></param>
         /// <param name="params"></param>
@@ -132,7 +132,7 @@ namespace   FE
             {
                 newCtx.allByte   +=  var->length();
             }
-            /// ²éÑ¯º¯Êı
+            /// æŸ¥è¯¢å‡½æ•°
             newCtx.query        =   [&](const OBJId& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
             {
                 switch(option)
@@ -168,9 +168,9 @@ namespace   FE
                     return  {};
                 }
             };
-            /// ÏÈ²éÕÒÊÇ·ñÒÑ¾­ÉèÖÃÁË
+            /// å…ˆæŸ¥æ‰¾æ˜¯å¦å·²ç»è®¾ç½®äº†
             auto        parCtx  =   param(TBCXSerialize);
-            /// Èç¹ûÒÑ¾­ÉèÖÃ£¬ÔòÊ¹ÓÃÉèÖÃµÄ
+            /// å¦‚æœå·²ç»è®¾ç½®ï¼Œåˆ™ä½¿ç”¨è®¾ç½®çš„
             if (!std::holds_alternative<std::monostate>(parCtx))
             {
                 pCtx    =   std::get<FESerializeCtx*>(parCtx);
@@ -182,7 +182,7 @@ namespace   FE
             {
                 fileName    =   std::get<std::string>(fileNameParam);
             }
-            /// ´æ´¢Èë¿Ú¶ÔÏóÁĞ±í
+            /// å­˜å‚¨å…¥å£å¯¹è±¡åˆ—è¡¨
             Objects         entryList;
             Objects         results;
             for (auto var : buffers)
@@ -223,7 +223,7 @@ namespace   FE
 
                     if (primitive.indices < 0)
                         continue;
-                    /// ½âÎö¶¥µã ·¨Ïß UVºÍÑÕÉ«Êı¾İ
+                    /// è§£æé¡¶ç‚¹ æ³•çº¿ UVå’Œé¢œè‰²æ•°æ®
                     size_t      vertexCount = 0;
                     floats      positionData;
                     floats      normalData  ;
@@ -311,7 +311,7 @@ namespace   FE
                             buffer1.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
                         }
                     }
-                    /// ½âÎöÃæµÄµãË÷ÒıÊı¾İ£¬Í¼ÔªĞÅÏ¢
+                    /// è§£æé¢çš„ç‚¹ç´¢å¼•æ•°æ®ï¼Œå›¾å…ƒä¿¡æ¯
                     Primitive   pri     =   parsePrimitive(primitive, model);
                     if(pri == nullptr)
                         continue;
@@ -385,15 +385,15 @@ namespace   FE
         {
             auto        texTransform        =   [](const tinygltf::ExtensionMap& extensions,float2& vScale,float2& vTrans,float& radian)
             {
-                /// ¼ì²éÀ©Õ¹ÊÇ·ñ´æÔÚ
+                /// æ£€æŸ¥æ‰©å±•æ˜¯å¦å­˜åœ¨
                 auto extIt = extensions.find("KHR_texture_transform");
                 if (extIt != extensions.end())
                 {
-                    // 3. »ñÈ¡À©Õ¹Êı¾İ¶ÔÏó
+                    // 3. è·å–æ‰©å±•æ•°æ®å¯¹è±¡
                     const auto& extension   =   extIt->second;
                     const auto& obj         =   extension.Get<tinygltf::Value::Object>();
 
-                    // 4. ¶ÁÈ¡ scale Êı×é
+                    // 4. è¯»å– scale æ•°ç»„
                     auto itr = obj.find("scale");
                     if (itr != obj.end() && itr->second.IsArray())
                     {
@@ -431,7 +431,7 @@ namespace   FE
                 auto extIt = extensions.find("KHR_materials_emissive_strength");
                 if (extIt != extensions.end())
                 {
-                    // 3. »ñÈ¡À©Õ¹Êı¾İ¶ÔÏó
+                    // 3. è·å–æ‰©å±•æ•°æ®å¯¹è±¡
                     const auto& extension   =   extIt->second;
                     const auto& objs        =   extension.Get<tinygltf::Value::Object>();
                     auto itr = objs.find("emissiveStrength");
@@ -464,7 +464,7 @@ namespace   FE
 
         }
         /// <summary>
-        /// ½ø¶ÈÍ¨Öª
+        /// è¿›åº¦é€šçŸ¥
         /// </summary>
         /// <param name="val"></param>
         void        onProgress(real val)
@@ -523,7 +523,7 @@ namespace   FE
                 scale.z = static_cast<double>(node.scale[2]);
                 pNode->setLocalScaling(scale);
             }
-            //ÓĞ¿ÉÄÜÖ»ÓĞmatrix£¬Ã»ÓĞÉÏÃæµÄÈıÏî
+            //æœ‰å¯èƒ½åªæœ‰matrixï¼Œæ²¡æœ‰ä¸Šé¢çš„ä¸‰é¡¹
             if(node.matrix.size() == 16)
             {
                 mat4r   mat;

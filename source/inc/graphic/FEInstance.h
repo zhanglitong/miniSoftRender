@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEMath.hpp"
 #include    "../FEFormat.hpp"
@@ -7,34 +7,34 @@
 namespace   FE
 {
     /// <summary>
-    /// ¸ÃÀàÊÇÉú³ÉinstanceÊı¾İµÄ¹¤¾ßÀà£¬ÊÇÏµÍ³ÄÜÌá¹©instanceµÄ½Ó¿ÚÀà
+    /// è¯¥ç±»æ˜¯ç”Ÿæˆinstanceæ•°æ®çš„å·¥å…·ç±»ï¼Œæ˜¯ç³»ç»Ÿèƒ½æä¾›instanceçš„æ¥å£ç±»
     /// </summary>
     struct  FEInstance
     {
         /// <summary>
-        /// Ç°Èı¸ö´æ´¢ÕûÊı²¿·Öx,y,z;
-        /// w ´æ´¢InstanceId
-        /// Ë÷ÒıÔÚ×öÊ°È¡µÄÊ±ºò·´À¡Ê¹ÓÃ£¬Ê°È¡ºó·µ»ØÊ¹ÓÃ
-        /// ²¢½áºÏ¹¤³§Id,¿ÉÒÔ¶¨Î»µ½Ê°È¡µ½µÄ½ÚµãÊı¾İ
+        /// å‰ä¸‰ä¸ªå­˜å‚¨æ•´æ•°éƒ¨åˆ†x,y,z;
+        /// w å­˜å‚¨InstanceId
+        /// ç´¢å¼•åœ¨åšæ‹¾å–çš„æ—¶å€™åé¦ˆä½¿ç”¨ï¼Œæ‹¾å–åè¿”å›ä½¿ç”¨
+        /// å¹¶ç»“åˆå·¥å‚Id,å¯ä»¥å®šä½åˆ°æ‹¾å–åˆ°çš„èŠ‚ç‚¹æ•°æ®
         /// </summary>
         int     _intPartX;
         int     _intPartY;
         int     _intPartZ;
         int     _instanceId;
         /// <summary>
-        /// ´æ´¢lodË÷Òı,Ä¬ÈÏÖµÊÇ-1,ËµÃ÷Ã»ÓĞlod
+        /// å­˜å‚¨lodç´¢å¼•,é»˜è®¤å€¼æ˜¯-1,è¯´æ˜æ²¡æœ‰lod
         /// </summary>
         int     _lodIndex;
         uint32  _renderBits;
         /// <summary>
-        /// Ğı×ªĞÅÏ¢
+        /// æ—‹è½¬ä¿¡æ¯
         /// </summary>
         float   _rotX;
         float   _rotY;
         float   _rotZ;
         float   _rotW;
         /// <summary>
-        ///  °üÎ§ÇòĞÅÏ¢
+        ///  åŒ…å›´çƒä¿¡æ¯
         /// </summary>
         float   _boundSphereX;
         float   _boundSphereY;
@@ -81,10 +81,10 @@ namespace   FE
             return   *this;
         }
         /// <summary>
-        /// ÉèÖÃÎ»ÖÃĞÅÏ¢
+        /// è®¾ç½®ä½ç½®ä¿¡æ¯
         /// </summary>
-        /// <param name="center">Î»ÖÃÊı¾İ</param>
-        /// <returns>×Ô¼º</returns>
+        /// <param name="center">ä½ç½®æ•°æ®</param>
+        /// <returns>è‡ªå·±</returns>
         inline  auto&   setTranslate(const real3& center)
         {
             _intPartX        =   int(center.x);
@@ -96,10 +96,10 @@ namespace   FE
             return   *this;
         }
         /// <summary>
-        /// ÉèÖÃÎ»ÖÃĞÅÏ¢
+        /// è®¾ç½®ä½ç½®ä¿¡æ¯
         /// </summary>
-        /// <param name="center">Î»ÖÃÊı¾İ</param>
-        /// <returns>×Ô¼º</returns>
+        /// <param name="center">ä½ç½®æ•°æ®</param>
+        /// <returns>è‡ªå·±</returns>
         inline  auto&   setTranslate(const float3& center)
         {
             _intPartX   =   int(center.x);
@@ -111,7 +111,7 @@ namespace   FE
             return   *this;
         }
         /// <summary>
-        /// ÉèÖÃËõ·ÅÊı¾İ
+        /// è®¾ç½®ç¼©æ”¾æ•°æ®
         /// </summary>
         /// <param name="scale"></param>
         /// <returns></returns>
@@ -123,7 +123,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃËõ·ÅÊı¾İ
+        /// è®¾ç½®ç¼©æ”¾æ•°æ®
         /// </summary>
         /// <param name="scale"></param>
         /// <returns></returns>
@@ -151,7 +151,7 @@ namespace   FE
             return   *this;
         }
         /// <summary>
-        /// ÉèÖÃinstanceÊı¾İ
+        /// è®¾ç½®instanceæ•°æ®
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
@@ -161,7 +161,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ°üÎ§ÇòÊı¾İ
+        /// è®¾ç½®åŒ…å›´çƒæ•°æ®
         /// </summary>
         /// <param name="box"></param>
         /// <returns></returns>
@@ -175,11 +175,11 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ°üÎ§ÇòÊı¾İ
+        /// è®¾ç½®åŒ…å›´çƒæ•°æ®
         /// </summary>
-        /// <param name="pos">ÖĞĞÄµã</param>
-        /// <param name="radius">°ë¾¶</param>
-        /// <returns>×Ô¼º</returns>
+        /// <param name="pos">ä¸­å¿ƒç‚¹</param>
+        /// <param name="radius">åŠå¾„</param>
+        /// <returns>è‡ªå·±</returns>
         inline  auto&   setBoundSphere(const float3& pos = float3(0),float radius = 1.0f)
         {
             _boundSphereX    =   pos.x;
@@ -189,14 +189,14 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// Ê¹ÓÃ¸ø¶¨Êı¾İÌî³äinstance
-        /// ´Ó¾ØÕóÖĞİÍÈ¡Î»ÖÃ£¬Ëõ·Å£¬Ğı×ªĞÅÏ¢Ìî³ä¼ÆËãÊı¾İ
+        /// ä½¿ç”¨ç»™å®šæ•°æ®å¡«å……instance
+        /// ä»çŸ©é˜µä¸­èƒå–ä½ç½®ï¼Œç¼©æ”¾ï¼Œæ—‹è½¬ä¿¡æ¯å¡«å……è®¡ç®—æ•°æ®
         /// </summary>
-        /// <param name="mat">¾ØÕóÊı¾İ</param>
-        /// <returns>×Ô¼º</returns>
+        /// <param name="mat">çŸ©é˜µæ•°æ®</param>
+        /// <returns>è‡ªå·±</returns>
         inline  auto&   setTransform(const mat4r& mat)
         {
-            /// ±£´æ¾ØÕóĞÅÏ¢
+            /// ä¿å­˜çŸ©é˜µä¿¡æ¯
             _mat_0  =   mat[0];
             _mat_1  =   mat[1];
             _mat_2  =   mat[2];
@@ -221,15 +221,15 @@ namespace   FE
         struct  InputDesc
         {
             /// <summary>
-            /// ¸ñÊ½
+            /// æ ¼å¼
             /// </summary>
             FEFormat    format  =   FMT_R32G32B32A32_FLOAT;
             /// <summary>
-            /// ²Û
+            /// æ§½
             /// </summary>
             FEInputSlot slot    =   IS_VERTEX_POS;
             /// <summary>
-            /// µ±Ç°ÀàĞÍµÄ×Ö½ÚÊıÁ¿
+            /// å½“å‰ç±»å‹çš„å­—èŠ‚æ•°é‡
             /// </summary>
             uint16      bytes   =   1;
         };

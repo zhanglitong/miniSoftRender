@@ -1,4 +1,4 @@
-
+ï»¿
 #include    <iostream>
 #include    <stdio.h>
 #include    "FEShaderRT.h"
@@ -6,8 +6,8 @@
 void    print(const char* msg)
 {
     printf("%s",msg);
-    /// Í¨¹ıÒ»ÏÂ·½·¨»ñÈ¡ name Óë½Ó¿Ú
+    /// é€šè¿‡ä¸€ä¸‹æ–¹æ³•è·å– name ä¸æ¥å£
     const auto  name    =   FE::ExportShader<SampleVS>::name();
     const auto  api     =   FE::ExportShader<SampleVS>::shaderInterface();
-    /// ¿ÉÒÔ¼ÓÈëµ½äÖÈ¾ÏµÍ³ÖĞ
+    /// å¯ä»¥åŠ å…¥åˆ°æ¸²æŸ“ç³»ç»Ÿä¸­
 }

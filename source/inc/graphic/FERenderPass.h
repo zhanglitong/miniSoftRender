@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 
 #include    "../FEFormat.hpp"
 #include    "RSObject.h"

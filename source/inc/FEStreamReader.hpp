@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMath.hpp"
 #include    "FEObject.h"
 #include    "FEBuffer.hpp"
@@ -21,18 +21,18 @@ namespace   FE
             :FETask(other)
         {}
         /// <summary>
-        /// ×é¼şÖ§³ÖµÄ¸ñÊ½Êı×é
+        /// ç»„ä»¶æ”¯æŒçš„æ ¼å¼æ•°ç»„
         /// </summary>
         /// <returns></returns>
         virtual Formats formats() const =   0;
         /// <summary>
-        /// ½Ó¿Úµ÷ÓÃ¼ÓÔØÎÄ¼ş
+        /// æ¥å£è°ƒç”¨åŠ è½½æ–‡ä»¶
         /// </summary>
         /// <param name="file"></param>
         /// <returns></returns>
         virtual Objects readFiles(const Strings& files)  =   0;
         /// <summary>
-        /// ÊäÈë¶à¸öbuffer,´Ó¶à¸öbufferÖĞ¶ÁÈ¡¶ÔÏóÊı¾İ
+        /// è¾“å…¥å¤šä¸ªbuffer,ä»å¤šä¸ªbufferä¸­è¯»å–å¯¹è±¡æ•°æ®
         /// </summary>
         /// <param name="buffers"></param>
         /// <param name="params"></param>
@@ -40,7 +40,7 @@ namespace   FE
         virtual Objects readBuffers(const Buffers& buffers) =   0;
     protected:
         /// <summary>
-        /// Í¨Öª¿ªÊ¼Ö´ĞĞ£¬ÓÃÀ´´òÓ¡Ò»Ğ©ĞÅÏ¢µÈ
+        /// é€šçŸ¥å¼€å§‹æ‰§è¡Œï¼Œç”¨æ¥æ‰“å°ä¸€äº›ä¿¡æ¯ç­‰
         /// </summary>
         virtual bool    onStart() override
         {
@@ -48,10 +48,10 @@ namespace   FE
             return  true;
         }
         // <summary>
-        /// ÈÎÎñÖ´ĞĞÌå,ÏµÍ³»áÓÅÏÈµ÷ÓÃ¸Ãº¯ÊıÖ´ĞĞÈÎÎñ£¬Èç¹û·µ»Øfalse
-        /// ÈÎÎñ»áµ÷ÓÃ  _evtRun;
+        /// ä»»åŠ¡æ‰§è¡Œä½“,ç³»ç»Ÿä¼šä¼˜å…ˆè°ƒç”¨è¯¥å‡½æ•°æ‰§è¡Œä»»åŠ¡ï¼Œå¦‚æœè¿”å›false
+        /// ä»»åŠ¡ä¼šè°ƒç”¨  _evtRun;
         /// </summary>
-        /// <returns>·µ»Øtrue,ËµÃ÷ÊÇÒÑ¾­Ö´ĞĞÁËÈÎÎñ£¬Èç¹ûfalse ÏµÍ³»áÈÏÎªÈÎÎñ»¹Ã»ÓĞÖ´ĞĞ,»áµ÷ÓÃÈÎÎñ¹ÜÀí¼ÌĞøÖ´ĞĞÈÎÎñ</returns>
+        /// <returns>è¿”å›true,è¯´æ˜æ˜¯å·²ç»æ‰§è¡Œäº†ä»»åŠ¡ï¼Œå¦‚æœfalse ç³»ç»Ÿä¼šè®¤ä¸ºä»»åŠ¡è¿˜æ²¡æœ‰æ‰§è¡Œ,ä¼šè°ƒç”¨ä»»åŠ¡ç®¡ç†ç»§ç»­æ‰§è¡Œä»»åŠ¡</returns>
         virtual bool    onExec() override
         {
             LOG_DBG("onExec(%s)!",_name.c_str());
@@ -77,7 +77,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ÈÎÎñÈ¡ÏûÍ¨Öª
+        /// ä»»åŠ¡å–æ¶ˆé€šçŸ¥
         /// </summary>
         /// <returns></returns>
         virtual bool    onCancel() override
@@ -86,7 +86,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ÈÎÎñÍê³ÉÍ¨Öª
+        /// ä»»åŠ¡å®Œæˆé€šçŸ¥
         /// </summary>
         virtual bool    onFinish() override
         {

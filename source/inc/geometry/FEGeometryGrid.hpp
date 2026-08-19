@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEGeometryParam.hpp"
 #include    "detail/FEGridImpl.hpp"
 
@@ -24,7 +24,7 @@ namespace   FE
         virtual ~FEGeometryGrid()
         {}
         /// <summary>
-        /// ¸ù¾İÊôĞÔÉú³Émesh
+        /// æ ¹æ®å±æ€§ç”Ÿæˆmesh
         /// </summary>
         /// <param name="attr"></param>
         /// <returns></returns>
@@ -33,7 +33,7 @@ namespace   FE
             FEGridImpl      data;
             bool            attrPos     =   false;
             bool            attrColor   =   false;
-            /// »ñÈ¡²Û¶ÔÓ¦µÄÊµ¼ÊÊôĞÔ¶ÔÏó
+            /// è·å–æ§½å¯¹åº”çš„å®é™…å±æ€§å¯¹è±¡
             for (auto& var : inputs)
             {
                 if (var.slot() && (IS_VERTEX_POS) )   attrPos     =   true; 

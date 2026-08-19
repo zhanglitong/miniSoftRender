@@ -1,4 +1,4 @@
-
+ï»¿
 #include    "../inc/mesh/FEMesh.hpp"
 
 constexpr const float   constScreenThreshold    =   4;
@@ -17,14 +17,14 @@ namespace   FE
         {
         case EDrawType::DRAW_ARRAY:
             {
-                /// ×¢Òâ: DrawElement ±È DrawArray ´ó£¬ËùÒÔÕâÀïÍ³Ò»ÓÃDrawElement ´æ´¢Êı¾İ
-                /// ÔÚ»æÖÆµÄÊ±ºòÇø·ÖÊÇ DrawArray/DrawElement
+                /// æ³¨æ„: DrawElement æ¯” DrawArray å¤§ï¼Œæ‰€ä»¥è¿™é‡Œç»Ÿä¸€ç”¨DrawElement å­˜å‚¨æ•°æ®
+                /// åœ¨ç»˜åˆ¶çš„æ—¶å€™åŒºåˆ†æ˜¯ DrawArray/DrawElement
                 auto        pDraw   =   (FEDrawArray*)(pri.get());
                 cmd.count           =   pDraw->count();
                 cmd.primCount       =   1;
                 cmd.firstIndex      =   pDraw->start() + pri->vertexOffset();
                 cmd.baseVertex      =   instId;
-                /// cs Ê°È¡ÖĞ»áÊ¹ÓÃµ½ /compute shader ÒÑ¾­´¦Àí
+                /// cs æ‹¾å–ä¸­ä¼šä½¿ç”¨åˆ° /compute shader å·²ç»å¤„ç†
                 cmd.baseInstance    =   0xFFFFFFFF;
                 return  2;
             }
@@ -104,7 +104,7 @@ namespace   FE
             return  false;
         auto    attr        =   pSubMesh->attr();
 
-        /// ¶¥µã¸ñÊ½±ØĞëÊÇÒÔÏÂÁ½ÖÖ
+        /// é¡¶ç‚¹æ ¼å¼å¿…é¡»æ˜¯ä»¥ä¸‹ä¸¤ç§
         switch (attr.format())
         {
         case FMT_R32G32B32_FLOAT:
@@ -166,7 +166,7 @@ namespace   FE
                     real3   ptRay;
                     real3   ptSet;
                     auto    dist    =   ray.distance2(seg,&ptSet,&ptRay);
-                    /// ¾àÀë·ûºÏÒªÇó,time ·ûºÏÒªÇó
+                    /// è·ç¦»ç¬¦åˆè¦æ±‚,time ç¬¦åˆè¦æ±‚
                     if (dist.x < constDistance2 && dist.y < time)
                     {
                         time            =   dist.y;
@@ -193,7 +193,7 @@ namespace   FE
                     real   t(0), u(0), v(0);
                     if (!ray.intersect(dpos0, dpos1, dpos2, &t, &u, &v))
                         continue;
-                    /// Ïà»úÔÚ±»Ê°È¡¶ÔÏóµÄ±³Ãæ
+                    /// ç›¸æœºåœ¨è¢«æ‹¾å–å¯¹è±¡çš„èƒŒé¢
                     if (t < 0)
                         continue;
                     if (t > time)
@@ -225,7 +225,7 @@ namespace   FE
                         dpos1   =   dpos2;
                         continue;
                     }
-                    /// Ïà»úÔÚ±»Ê°È¡¶ÔÏóµÄ±³Ãæ
+                    /// ç›¸æœºåœ¨è¢«æ‹¾å–å¯¹è±¡çš„èƒŒé¢
                     if (t < 0)
                     {
                         dpos0   =   dpos1;
@@ -263,7 +263,7 @@ namespace   FE
                         continue;
                     }
                     dpos1   =   dpos2;
-                    /// Ïà»úÔÚ±»Ê°È¡¶ÔÏóµÄ±³Ãæ
+                    /// ç›¸æœºåœ¨è¢«æ‹¾å–å¯¹è±¡çš„èƒŒé¢
                     if (t < 0)
                         continue;
                     if (time < t)
@@ -288,13 +288,13 @@ namespace   FE
     }
     bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint8*pri, const mat4r& , FEPickup& result) 
     {
-        /// »ñÈ¡¶¥µã»º³åÇøÊı¾İ
+        /// è·å–é¡¶ç‚¹ç¼“å†²åŒºæ•°æ®
         auto    pBuffer =   get(IS_VERTEX_POS);
         if (pBuffer == nullptr)
             return  false;
-        /// »ñÈ¡¶¥µãÊôĞÔ
+        /// è·å–é¡¶ç‚¹å±æ€§
         auto    attr        =   pBuffer->attr();
-        /// ¶¥µã¸ñÊ½±ØĞëÊÇÒÔÏÂÁ½ÖÖ
+        /// é¡¶ç‚¹æ ¼å¼å¿…é¡»æ˜¯ä»¥ä¸‹ä¸¤ç§
         switch (attr.format())
         {
         case FMT_R32G32B32_FLOAT:
@@ -386,13 +386,13 @@ namespace   FE
     }
     bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint16*pri,const mat4r& , FEPickup& result) 
     {
-        /// »ñÈ¡¶¥µã»º³åÇøÊı¾İ
+        /// è·å–é¡¶ç‚¹ç¼“å†²åŒºæ•°æ®
         auto    pBuffer =   get(IS_VERTEX_POS);
         if (pBuffer == nullptr)
             return  false;
-        /// »ñÈ¡¶¥µãÊôĞÔ
+        /// è·å–é¡¶ç‚¹å±æ€§
         auto    attr        =   pBuffer->attr();
-        /// ¶¥µã¸ñÊ½±ØĞëÊÇÒÔÏÂÁ½ÖÖ
+        /// é¡¶ç‚¹æ ¼å¼å¿…é¡»æ˜¯ä»¥ä¸‹ä¸¤ç§
         switch (attr.format())
         {
         case FMT_R32G32B32_FLOAT:
@@ -484,13 +484,13 @@ namespace   FE
     }
     bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint32*pri,const mat4r& , FEPickup& result) 
     {
-        /// »ñÈ¡¶¥µã»º³åÇøÊı¾İ
+        /// è·å–é¡¶ç‚¹ç¼“å†²åŒºæ•°æ®
         auto    pBuffer =   get(IS_VERTEX_POS);
         if (pBuffer == nullptr)
             return  false;
-        /// »ñÈ¡¶¥µãÊôĞÔ
+        /// è·å–é¡¶ç‚¹å±æ€§
         auto    attr        =   pBuffer->attr();
-        /// ¶¥µã¸ñÊ½±ØĞëÊÇÒÔÏÂÁ½ÖÖ
+        /// é¡¶ç‚¹æ ¼å¼å¿…é¡»æ˜¯ä»¥ä¸‹ä¸¤ç§
         switch (attr.format())
         {
         case FMT_R32G32B32_FLOAT:

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <type_traits>
 #include    <functional>
@@ -22,55 +22,55 @@ namespace   FE
         enum    Option: uint32_t
         {
             /// <summary>
-            /// ²éÑ¯¶ÔÏó
+            /// æŸ¥è¯¢å¯¹è±¡
             /// </summary>
             O_Query,
             /// <summary>
-            /// ²éÑ¯ÀàĞÍindex
+            /// æŸ¥è¯¢ç±»å‹index
             /// </summary>
             O_QueryClassIndex,
             /// <summary>
-            /// »º´æ¶ÔÏó
+            /// ç¼“å­˜å¯¹è±¡
             /// </summary>
             O_Cache,
             /// <summary>
-            /// »ñÈ¡½ø¶È¶ÔÏó
+            /// è·å–è¿›åº¦å¯¹è±¡
             /// </summary>
             O_Progress ,
             /// <summary>
-            /// ¸üĞÂ½ø¶È
+            /// æ›´æ–°è¿›åº¦
             /// </summary>
             O_UpdateProgress,
         };
     public:
         using   QResult             =   std::pair<FEObject*,uint32_t>;
         /// <summary>
-        /// 1. option == O_Query,           ÔòÊ¹ÓÃid,²éÑ¯,Èç¹û²éÑ¯µ½ÁË£¬·µ»Ø¶ÔÏóÒÔ¼°¶ÔÏóË÷Òı
-        /// 2. option == O_QueryClassIndex, ÔòÊ¹ÓÃid,²éÑ¯,Èç¹û²éÑ¯µ½ÁË£¬·µ»ØË÷Òı,<0,Ã»ÓĞÕÒµ½,¶ÔÏó == nullptr;
-        /// 3. option == O_Cache,           ÔòÊ¹ÓÃid,object »á±»cacheµ½ÉÏÏÂÎÄ£¬·µ»ØÖµÊÇ¶ÔÏó×ÔÉíÒÔ¼°Ë÷Òı
-        /// 4. option == O_Progress,        ·µ»Øobject,ÊÇFEProgress¶ÔÏó
-        /// 5. option == O_UpdateProgress,  ¸üĞÂ½ø¶È
+        /// 1. option == O_Query,           åˆ™ä½¿ç”¨id,æŸ¥è¯¢,å¦‚æœæŸ¥è¯¢åˆ°äº†ï¼Œè¿”å›å¯¹è±¡ä»¥åŠå¯¹è±¡ç´¢å¼•
+        /// 2. option == O_QueryClassIndex, åˆ™ä½¿ç”¨id,æŸ¥è¯¢,å¦‚æœæŸ¥è¯¢åˆ°äº†ï¼Œè¿”å›ç´¢å¼•,<0,æ²¡æœ‰æ‰¾åˆ°,å¯¹è±¡ == nullptr;
+        /// 3. option == O_Cache,           åˆ™ä½¿ç”¨id,object ä¼šè¢«cacheåˆ°ä¸Šä¸‹æ–‡ï¼Œè¿”å›å€¼æ˜¯å¯¹è±¡è‡ªèº«ä»¥åŠç´¢å¼•
+        /// 4. option == O_Progress,        è¿”å›object,æ˜¯FEProgresså¯¹è±¡
+        /// 5. option == O_UpdateProgress,  æ›´æ–°è¿›åº¦
         /// </summary>
         using   QueryObject         =   std::function<QResult(const FEUuid& id,FEObject* object,Option option)>;
         /// <summary>
-        /// ¼ÓÔØÊı¾İ×Ü´óĞ¡
+        /// åŠ è½½æ•°æ®æ€»å¤§å°
         /// </summary>
         uint64      allByte         =   0;
         /// <summary>
-        /// ÒÑ¾­´¦ÀíµÄ´óĞ¡
+        /// å·²ç»å¤„ç†çš„å¤§å°
         /// </summary>
         uint64      doByte          =   0;
         bool        change          =   false;
         /// <summary>
-        /// »º´æÉÏÒ»´Î¶ÁÈ¡classId
+        /// ç¼“å­˜ä¸Šä¸€æ¬¡è¯»å–classId
         /// </summary>
         FEUuid      preCLSId;
         /// <summary>
-        /// ÉÏÒ»´ÎµÄ´´½¨Æ÷,Èç¹û¶ÁÈ¡µ½clsId == preCLSId preCreator ¿ÉÒÔÖ±½ÓÊ¹ÓÃ£¬±ÜÃâÖØ¸´²éÑ¯
+        /// ä¸Šä¸€æ¬¡çš„åˆ›å»ºå™¨,å¦‚æœè¯»å–åˆ°clsId == preCLSId preCreator å¯ä»¥ç›´æ¥ä½¿ç”¨ï¼Œé¿å…é‡å¤æŸ¥è¯¢
         /// </summary>
         FECreator   preCreator;
         /// <summary>
-        /// ÉÏÏÂÎÄ²éÑ¯º¯Êı
+        /// ä¸Šä¸‹æ–‡æŸ¥è¯¢å‡½æ•°
         /// </summary>
         QueryObject query   =   [](const FEUuid& id,FEObject* object,Option option)->QResult
         {

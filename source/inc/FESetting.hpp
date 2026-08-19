@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <stdarg.h>
 #include    <stdio.h>
 #include    <stdlib.h>
@@ -26,7 +26,7 @@ namespace   FE
                                         , float2, float3, float4
                                         , real2,  real3,  real4>;
         /// <summary>
-        /// µ±Ç°item,ÒÔ¼°ÀúÊ·Öµ,Èç¹ûµÚ¶ş¸öÎªnullptr,ÔòÊÇµÚÒ»´ÎÉèÖÃ
+        /// å½“å‰item,ä»¥åŠå†å²å€¼,å¦‚æœç¬¬äºŒä¸ªä¸ºnullptr,åˆ™æ˜¯ç¬¬ä¸€æ¬¡è®¾ç½®
         /// </summary>
         using   NotifyChange    =   std::function<void(const Item& Item,const Value*)>;
         using   NotifyChanges   =   std::map<const void*,NotifyChange>;
@@ -41,7 +41,7 @@ namespace   FE
                 _name   =   name;
             }
             /// <summary>
-            /// Ìí¼ÓÍ¨Öª
+            /// æ·»åŠ é€šçŸ¥
             /// </summary>
             /// <param name="key"></param>
             /// <param name="notify"></param>
@@ -53,7 +53,7 @@ namespace   FE
                 return  *this;
             }
             /// <summary>
-            /// ÒÆ³ıÍ¨Öª
+            /// ç§»é™¤é€šçŸ¥
             /// </summary>
             /// <param name="key"></param>
             /// <returns></returns>
@@ -65,14 +65,14 @@ namespace   FE
                 return  *this;
             }
             /// <summary>
-            /// Çå³ıÍ¨Öª
+            /// æ¸…é™¤é€šçŸ¥
             /// </summary>
             inline  void    clearNotify()
             {
                 _notifys.clear();
             }
             /// <summary>
-            /// »ñÈ¡£¬Èç¹ûÃ»ÓĞ£¬Ìí¼Ó
+            /// è·å–ï¼Œå¦‚æœæ²¡æœ‰ï¼Œæ·»åŠ 
             /// </summary>
             /// <param name="name"></param>
             /// <returns></returns>
@@ -87,14 +87,14 @@ namespace   FE
                 return  *item;
             }
             /// <summary>
-            /// »ñÈ¡Öµ
+            /// è·å–å€¼
             /// </summary>
             /// <typeparam name="TVal"></typeparam>
             /// <returns></returns>
             template<class TVal>
             inline   TVal*   value(const TVal& val = {})
             {
-                /// Èç¹ûÃ»ÓĞ³õÊ¼»¯
+                /// å¦‚æœæ²¡æœ‰åˆå§‹åŒ–
                 if (std::holds_alternative<std::monostate>(_value))
                 {
                     _value  =   val;
@@ -103,7 +103,7 @@ namespace   FE
                 return std::get_if<TVal>(&_value);
             }
             /// <summary>
-            /// ÉèÖÃÖµ
+            /// è®¾ç½®å€¼
             /// </summary>
             /// <typeparam name="TVal"></typeparam>
             /// <param name="val"></param>
@@ -111,7 +111,7 @@ namespace   FE
             template<class TVal>
             inline  auto&   set(const TVal& val)
             {
-                /// ËµÃ÷»¹Ã»ÓĞ³õÊ¼»¯
+                /// è¯´æ˜è¿˜æ²¡æœ‰åˆå§‹åŒ–
                 if (std::holds_alternative<std::monostate>(_value))
                 {
                     _value  =   val;
@@ -130,7 +130,7 @@ namespace   FE
             }
         protected:
             /// <summary>
-            /// ´¥·¢Í¨Öª
+            /// è§¦å‘é€šçŸ¥
             /// </summary>
             inline  void    fire(const Value* old) const
             {
@@ -140,7 +140,7 @@ namespace   FE
                 }
             }
             /// <summary>
-            /// ²éÑ¯
+            /// æŸ¥è¯¢
             /// </summary>
             /// <param name="name"></param>
             /// <returns></returns>

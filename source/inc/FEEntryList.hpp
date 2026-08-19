@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEObject.h"
 #include    "FEReaderHelper.hpp"
 #include    "FEWriterHelper.hpp"
@@ -8,9 +8,9 @@ namespace   FE
     DEFINE_CLASS_UUID(FEEntryList,"{D8FCAE35-0D25-4782-A6F3-998FA64E1CC4}");
 
     /// <summary>
-    /// ÔÚ´æ´¢ÎÄ¼şµÄÊ±ºò£¬¶¨ÒåÒª·µ»ØÄÄĞ©¶ÔÏó¶àÎªÊä³ö
-    /// ÀıÈç:Èç¹ûÓÃ»§´æ´¢µÄnode£¬Ôò·µ»Ønode
-    /// Èç¹ûÓÃ»§´æ´¢µÄÊÇ²ÄÖÊ£¬·µ»ØµÄÊÇ²ÄÖÊ
+    /// åœ¨å­˜å‚¨æ–‡ä»¶çš„æ—¶å€™ï¼Œå®šä¹‰è¦è¿”å›å“ªäº›å¯¹è±¡å¤šä¸ºè¾“å‡º
+    /// ä¾‹å¦‚:å¦‚æœç”¨æˆ·å­˜å‚¨çš„nodeï¼Œåˆ™è¿”å›node
+    /// å¦‚æœç”¨æˆ·å­˜å‚¨çš„æ˜¯æè´¨ï¼Œè¿”å›çš„æ˜¯æè´¨
     /// </summary>
     class   FEEntryList:public FEObject
     {
@@ -33,11 +33,11 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ) const override
         {
@@ -53,7 +53,7 @@ namespace   FE
             }
 ;        }
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>

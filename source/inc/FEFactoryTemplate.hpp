@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEFactory.hpp"
 
@@ -21,7 +21,7 @@ namespace   FE
             _objects    =   other._objects;
         }
         /// <summary>
-        /// »ñÈ¡¶ÔÏóÁĞ±í
+        /// è·å–å¯¹è±¡åˆ—è¡¨
         /// </summary>
         /// <returns></returns>
         const   TObjects&   objects() const
@@ -29,7 +29,7 @@ namespace   FE
             return  _objects;
         }
         /// <summary>
-        /// ÊÇ·ñÒÑ¾­´æÔÚ¶ÔÏó
+        /// æ˜¯å¦å·²ç»å­˜åœ¨å¯¹è±¡
         /// </summary>
         /// <param name="object"></param>
         /// <returns></returns>
@@ -46,7 +46,7 @@ namespace   FE
             return  exists(object);
         }
         /// <summary>
-        /// Ìí¼Ó¶ÔÏó,·µ»Ø0,ÒÑ¾­´æÔÚ,·µ»Ø1,Ìí¼Ó³É¹¦
+        /// æ·»åŠ å¯¹è±¡,è¿”å›0,å·²ç»å­˜åœ¨,è¿”å›1,æ·»åŠ æˆåŠŸ
         /// </summary>
         /// <param name="object"></param>
         /// <returns></returns>
@@ -62,20 +62,20 @@ namespace   FE
             return  1;
         }
         /// <summary>
-        /// ÅúÁ¿Ìí¼Ó¶ÔÏó·µ»ØÔö¼ÓµÄ¸öÊı
+        /// æ‰¹é‡æ·»åŠ å¯¹è±¡è¿”å›å¢åŠ çš„ä¸ªæ•°
         /// </summary>
         /// <param name="objects"></param>
         /// <returns></returns>
         virtual size_t  addObjects(const TObjects& objects)
         {
-            /// Êı¾İÏÈ²åÈëµ½Ä©Î²
+            /// æ•°æ®å…ˆæ’å…¥åˆ°æœ«å°¾
             auto    nOld    =   _objects.size();
             _objects.insert(_objects.end(),objects.begin(),objects.end());
-            /// ÅÅĞò
+            /// æ’åº
             std::sort(_objects.begin(),_objects.end());
-            /// unique »á°ÑÖØ¸´µÄ·Åµ½ºóÃæ
+            /// unique ä¼šæŠŠé‡å¤çš„æ”¾åˆ°åé¢
             auto    newEnd  =   std::unique(_objects.begin(),_objects.end());
-            /// É¾³ıÖØ¸´µÄ
+            /// åˆ é™¤é‡å¤çš„
             _objects.erase(newEnd, _objects.end());
             auto    result  =   _objects.size() - nOld;
             if (result != 0)
@@ -90,18 +90,18 @@ namespace   FE
             return  removeObjectImpl(object);
         }
         /// <summary>
-        /// ÏÈ¸´ÖÆÒ»·İ,ÅÅĞòÊ¹ÓÃ
+        /// å…ˆå¤åˆ¶ä¸€ä»½,æ’åºä½¿ç”¨
         /// </summary>
         /// <param name="objects"></param>
         /// <returns></returns>
         virtual size_t  removeObjects(const TObjects& objects)
         {
-            /// ÏÈ¸´ÖÆÒ»·İ,ÅÅĞòÊ¹ÓÃ,Ö÷Òª¿¼ÂÇĞÔÄÜÎÊÌâ
+            /// å…ˆå¤åˆ¶ä¸€ä»½,æ’åºä½¿ç”¨,ä¸»è¦è€ƒè™‘æ€§èƒ½é—®é¢˜
             TObjects    deletes     =   objects;
             return  removeObjectsImpl(std::move(deletes));
         }
         /// <summary>
-        /// ²»¸´ÖÆ£¬º¯Êı»á¸Ädeletes Êı¾İË³Ğò,µ«ĞÔÄÜ¸üºÃ
+        /// ä¸å¤åˆ¶ï¼Œå‡½æ•°ä¼šæ”¹deletes æ•°æ®é¡ºåº,ä½†æ€§èƒ½æ›´å¥½
         /// </summary>
         /// <param name="deletes"></param>
         /// <returns></returns>
@@ -110,7 +110,7 @@ namespace   FE
             return  removeObjectsImpl(std::move(deletes));
         }
         /// <summary>
-        /// Ö§³ÖÓÒÖµ
+        /// æ”¯æŒå³å€¼
         /// </summary>
         /// <param name="deletes"></param>
         /// <returns></returns>
@@ -119,7 +119,7 @@ namespace   FE
             return  removeObjectsImpl(std::move(deletes));
         }
         /// <summary>
-        /// Çå¿ÕËùÓĞÊı¾İ
+        /// æ¸…ç©ºæ‰€æœ‰æ•°æ®
         /// </summary>
         virtual void    clearObjects()
         {
@@ -132,7 +132,7 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀà¿ÉÒÔÖØĞ´£¬Ìí¼Ó¶ÔÏóµÄ»Øµ÷º¯Êı
+        /// å­ç±»å¯ä»¥é‡å†™ï¼Œæ·»åŠ å¯¹è±¡çš„å›è°ƒå‡½æ•°
         /// </summary>
         virtual void    onAddObjects()
         {}
@@ -150,16 +150,16 @@ namespace   FE
             return  1;
         }
         /// <summary>
-        /// removeObjectsµÄ¾ßÌåÊµÏÖº¯Êı
+        /// removeObjectsçš„å…·ä½“å®ç°å‡½æ•°
         /// </summary>
         /// <param name="deletes"></param>
         /// <returns></returns>
         inline  size_t  removeObjectsImpl(TObjects&& deletes)
         {
             size_t  nOld    =   _objects.size();
-            /// ÏÈÅÅĞò£¬ºóĞø²éÕÒËÙ¶È¿ì
+            /// å…ˆæ’åºï¼Œåç»­æŸ¥æ‰¾é€Ÿåº¦å¿«
             std::sort(deletes.begin(),deletes.end());
-            /// É¾³ıÂß¼­£ºÈç¹ûµ±Ç°ÖµÔÚ deletes ÀïÄÜÕÒµ½£¬¾ÍÉ¾³ı(·µ»Ø true)
+            /// åˆ é™¤é€»è¾‘ï¼šå¦‚æœå½“å‰å€¼åœ¨ deletes é‡Œèƒ½æ‰¾åˆ°ï¼Œå°±åˆ é™¤(è¿”å› true)
             auto    newEnd  =   std::remove_if(_objects.begin(), _objects.end(), [&](const TObject& object) 
             {
                 return  std::binary_search(deletes.begin(), deletes.end(), object);

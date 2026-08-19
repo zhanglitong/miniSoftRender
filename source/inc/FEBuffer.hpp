@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEDefine.h"
 #include    "FEObject.h"
@@ -25,11 +25,11 @@ namespace   FE
         {
             uint8s  _buffer;
             /// <summary>
-            /// Êı¾İµÄÆğÊ¼Æ«ÒÆÁ¿
+            /// æ•°æ®çš„èµ·å§‹åç§»é‡
             /// </summary>
             uint64  _offset =   0;
             /// <summary>
-            /// ÒıÓÃÊı¾İµÄ³¤¶È
+            /// å¼•ç”¨æ•°æ®çš„é•¿åº¦
             /// </summary>
             uint64  _range  =   ~0ULL;
 
@@ -66,7 +66,7 @@ namespace   FE
         }
         virtual ~FEBuffer() =   default;
         /// <summary>
-        /// »ñÈ¡´´½¨ĞÅÏ¢(¶ÁĞ´)
+        /// è·å–åˆ›å»ºä¿¡æ¯(è¯»å†™)
         /// </summary>
         /// <returns></returns>
         inline  auto&       cInfo()
@@ -74,7 +74,7 @@ namespace   FE
             return  _cInfo;
         }
         /// <summary>
-        /// »ñÈ¡´´½¨ĞÅÏ¢(Ö»¶Á·½Ê½)
+        /// è·å–åˆ›å»ºä¿¡æ¯(åªè¯»æ–¹å¼)
         /// </summary>
         /// <returns></returns>
         const   auto&       cInfo() const
@@ -112,7 +112,7 @@ namespace   FE
         }
         
         /// <summary>
-        /// µ÷ÓÃºó£¬bufferÄÚ´æ¹ÜÀíÈ¨ ÒÆ½»¸ø_buffer
+        /// è°ƒç”¨åï¼Œbufferå†…å­˜ç®¡ç†æƒ ç§»äº¤ç»™_buffer
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="buffer"></param>
@@ -124,7 +124,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// Ö´ĞĞÄÚ´æ¿½±´¶¯×÷
+        /// æ‰§è¡Œå†…å­˜æ‹·è´åŠ¨ä½œ
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="buffer"></param>
@@ -136,7 +136,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ´´½¨
+        /// åˆ›å»º
         /// </summary>
         /// <param name="infor"></param>
         /// <returns></returns>
@@ -147,15 +147,15 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& ,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>
@@ -165,7 +165,7 @@ namespace   FE
         CreateInfo  _cInfo;
     public:
         /// <summary>
-        /// ¼ÓÔØÎÄ¼ş
+        /// åŠ è½½æ–‡ä»¶
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="fileName"></param>

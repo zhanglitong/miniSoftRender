@@ -1,4 +1,4 @@
-
+ï»¿
 #include    "VKGPUBuffer.h"
 #include    "VKDevice.h"
 #include    "FEVulkan.h"
@@ -100,8 +100,8 @@ namespace   FE
                 assert (cmdPool != nullptr);
                 if (cmdPool != nullptr)
                 {
-                    /// ÕâÀï×¢Òâ: ÊÇÒ»¸öÁÙÊ±¶ÔÏó£¬ÊôĞÔÓë±»¸üĞÂ¶ÔÏóÒ»ÖÂ£¬Ö»ÊÇÊı¾İÔÚÖ÷»úÄÚ´æÖĞ
-                    /// ±ØĞëÔÚ cmd Ö´ĞĞÍê³ÉºóÊÇ·ñ£¬·ñÔò»áÓĞÎÊÌâ
+                    /// è¿™é‡Œæ³¨æ„: æ˜¯ä¸€ä¸ªä¸´æ—¶å¯¹è±¡ï¼Œå±æ€§ä¸è¢«æ›´æ–°å¯¹è±¡ä¸€è‡´ï¼Œåªæ˜¯æ•°æ®åœ¨ä¸»æœºå†…å­˜ä¸­
+                    /// å¿…é¡»åœ¨ cmd æ‰§è¡Œå®Œæˆåæ˜¯å¦ï¼Œå¦åˆ™ä¼šæœ‰é—®é¢˜
                     GPUBuffer   srcBuf  =   _ctx.device().createFromBuffer(pData,length);
                     CMDPtr      cmd     =   cmdPool->createCmd();
                     cmd->begin(true);

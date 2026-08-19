@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <stdio.h>
 #include    <string>
 #include    <chrono>
@@ -65,7 +65,7 @@ namespace   FE
             return  buf;
         }
         /// <summary>
-        /// Ôö¼ÓÌìÊıÁ¿
+        /// å¢åŠ å¤©æ•°é‡
         /// </summary>
         /// <param name="days"></param>
         /// <returns></returns>
@@ -101,7 +101,7 @@ namespace   FE
         }
 
         /// <summary>
-        /// »ñÈ¡ÌìÊı
+        /// è·å–å¤©æ•°
         /// </summary>
         /// <returns></returns>
         inline  int64_t days() const
@@ -110,7 +110,7 @@ namespace   FE
             return  hs / 24 + (hs % 24 ) ? 1 : 0;
         }
         /// <summary>
-        /// »ñÈ¡Ğ¡Ê±£¬´Ó1900-1-1¿ªÊ¼µÄĞ¡Ê±Êı
+        /// è·å–å°æ—¶ï¼Œä»1900-1-1å¼€å§‹çš„å°æ—¶æ•°
         /// </summary>
         inline  int64_t hours() const 
         {
@@ -118,7 +118,7 @@ namespace   FE
             return  std::chrono::duration_cast<std::chrono::hours>(tms).count();
         }
         /// <summary>
-        /// »ñÈ¡·ÖÖÓ£¬´Ó1900-1-1¿ªÊ¼µÄ·ÖÖÓÊı
+        /// è·å–åˆ†é’Ÿï¼Œä»1900-1-1å¼€å§‹çš„åˆ†é’Ÿæ•°
         /// </summary>
         inline  int64_t minutes() const 
         {
@@ -126,7 +126,7 @@ namespace   FE
             return  std::chrono::duration_cast<std::chrono::minutes>(tms).count();
         }
         /// <summary>
-        /// »ñÈ¡Ãë£¬´Ó1900-1-1¿ªÊ¼µÄÃëÊı
+        /// è·å–ç§’ï¼Œä»1900-1-1å¼€å§‹çš„ç§’æ•°
         /// </summary>
         inline  int64_t seconds() const
         {
@@ -134,7 +134,7 @@ namespace   FE
             return  std::chrono::duration_cast<std::chrono::seconds>(tms).count();
         }
         /// <summary>
-        /// »ñÈ¡ºÁÃë£¬´Ó1900-1-1¿ªÊ¼µÄºÁÃëÊı
+        /// è·å–æ¯«ç§’ï¼Œä»1900-1-1å¼€å§‹çš„æ¯«ç§’æ•°
         /// </summary>
         inline  int64_t milliSeconds() const
         {
@@ -142,7 +142,7 @@ namespace   FE
             return  std::chrono::duration_cast<std::chrono::milliseconds>(tms).count();
         }
         /// <summary>
-        /// »ñÈ¡Î¢Ãî£¬´Ó1900-1-1¿ªÊ¼µÄÎ¢ÃëÊı
+        /// è·å–å¾®å¦™ï¼Œä»1900-1-1å¼€å§‹çš„å¾®ç§’æ•°
         /// </summary>
         inline  int64_t microSeconds() const 
         {
@@ -150,7 +150,7 @@ namespace   FE
             return  std::chrono::duration_cast<std::chrono::microseconds>(tms).count();
         }
         /// <summary>
-        /// »ñÈ¡ ÄÉÃë£¬´Ó1900-1-1¿ªÊ¼µÄÄÉÃëÊı
+        /// è·å– çº³ç§’ï¼Œä»1900-1-1å¼€å§‹çš„çº³ç§’æ•°
         /// </summary>
         inline  int64_t nanoSeconds() const
         {
@@ -158,7 +158,7 @@ namespace   FE
             return  std::chrono::duration_cast<std::chrono::nanoseconds>(tms).count();
         }
         /// <summary>
-        /// ¸üĞÂÊ±¼ä
+        /// æ›´æ–°æ—¶é—´
         /// </summary>
         /// <param name="fromNow"></param>
         inline  void    update(bool fromNow = true)
@@ -188,7 +188,7 @@ namespace   FE
             
         }
         /// <summary>
-        /// ¹¹ÔìÒ»¸öÊ±¼äµã¶ÔÏó
+        /// æ„é€ ä¸€ä¸ªæ—¶é—´ç‚¹å¯¹è±¡
         /// </summary>
         /// <param name="year"></param>
         /// <param name="month"></param>
@@ -215,7 +215,7 @@ namespace   FE
                 return std::chrono::system_clock::from_time_t(tmValue);
         }
         /// <summary>
-        /// »ñÈ¡Á½¸öÊ±¼äÖ®¼äµÄÌìÊıÁ¿
+        /// è·å–ä¸¤ä¸ªæ—¶é—´ä¹‹é—´çš„å¤©æ•°é‡
         /// </summary>
         /// <param name="l"></param>
         /// <param name="r"></param>
@@ -228,7 +228,7 @@ namespace   FE
             return  int(days);
         }
         /// <summary>
-        /// »ñÈ¡µ±Ç°Ê±¼ä
+        /// è·å–å½“å‰æ—¶é—´
         /// </summary>
         /// <returns></returns>
         static  auto    now()
@@ -236,7 +236,7 @@ namespace   FE
             return  FEDateTime();
         }
         /// <summary>
-        /// ´Ó×Ö·û´®ÖĞ¹¹ÔìÊ±¼ä¶ÔÏó
+        /// ä»å­—ç¬¦ä¸²ä¸­æ„é€ æ—¶é—´å¯¹è±¡
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>

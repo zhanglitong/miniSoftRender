@@ -1,4 +1,4 @@
-
+﻿
 
 #include    "VKDSet.h"
 #include    "VKDevice.h"

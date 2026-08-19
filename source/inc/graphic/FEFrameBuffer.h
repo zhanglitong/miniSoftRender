@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../FEImage.h"
 #include    "../FESmallVector.h"
@@ -11,7 +11,7 @@
 namespace   FE
 {
     /// <summary>
-    /// ÓÃÀ´ÖØÔØ»æÖÆ½á¹ûµÄ»­²¼
+    /// ç”¨æ¥é‡è½½ç»˜åˆ¶ç»“æœçš„ç”»å¸ƒ
     /// </summary>
     class   FEFrameBuffer :public RSObject
     {
@@ -22,8 +22,8 @@ namespace   FE
             GImgView        _depth          =   nullptr;
             GImgViews       _colors;
             /// <summary>
-            /// width  ±ØĞë²»ÄÜ´óÓÚ pColors / pDepth : width;
-            /// height ±ØĞë²»ÄÜ´óÓÚ pColors / pDepth : height;
+            /// width  å¿…é¡»ä¸èƒ½å¤§äº pColors / pDepth : width;
+            /// height å¿…é¡»ä¸èƒ½å¤§äº pColors / pDepth : height;
             /// </summary>
             uint32_t        _width          =   0;
             uint32_t        _height         =   0;

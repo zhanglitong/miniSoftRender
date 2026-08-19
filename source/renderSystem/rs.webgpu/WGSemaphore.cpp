@@ -1,4 +1,4 @@
-#include    "WGSemaphore.h"
+﻿#include    "WGSemaphore.h"
 
 namespace   FE
 {

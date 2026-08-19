@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <string>
 #include    "../inc/FEObject.h"
 #include    "../inc/FEMath.hpp"
@@ -9,8 +9,8 @@
 namespace   FE
 {
     /// <summary>
-    /// Í¼ÏñµÄ×î»ù±¾µ¥Ôª: [x*y*z*fmt]
-    /// Êı×é[layers] * ( [x*y*z*fmt] + [x>>1*y>>1*z>>1*fmt] + ...]
+    /// å›¾åƒçš„æœ€åŸºæœ¬å•å…ƒ: [x*y*z*fmt]
+    /// æ•°ç»„[layers] * ( [x*y*z*fmt] + [x>>1*y>>1*z>>1*fmt] + ...]
     /// </summary>
     struct  FEImageSource
     {
@@ -19,22 +19,22 @@ namespace   FE
         uint32_t    _height =   0;
         FEFormat    _format =   FMT_NONE;
         /// <summary>
-        /// µ¥Î»×Ö½Ú
+        /// å•ä½å­—èŠ‚
         /// </summary>
         uint16_t    _align  =   4;
         /// <summary>
-        /// »º´æ£¬¿ÉÒÔÍ¨¹ı _align + _format µÃ³ö
+        /// ç¼“å­˜ï¼Œå¯ä»¥é€šè¿‡ _align + _format å¾—å‡º
         /// </summary>
         uint32_t    _pitch  =   0;
         /// <summary>
-        /// Èç¹û _align / format ·¢Éú±ä»¯£¬ĞèÒª¸üĞÂÒ»ÏÂ
+        /// å¦‚æœ _align / format å‘ç”Ÿå˜åŒ–ï¼Œéœ€è¦æ›´æ–°ä¸€ä¸‹
         /// </summary>
         inline  void    update()
         {
             _pitch  =   FEFormatHelper::pitch(_width,_align,_format);
         }
         /// <summary>
-        /// ¸ñÊ½
+        /// æ ¼å¼
         /// </summary>
         /// <returns></returns>
         inline  auto    format() const
@@ -42,7 +42,7 @@ namespace   FE
             return  _format;
         }
         /// <summary>
-        /// ¿í¶È
+        /// å®½åº¦
         /// </summary>
         /// <returns></returns>
         inline  auto    width()  const
@@ -50,7 +50,7 @@ namespace   FE
             return  _width;
         }
         /// <summary>
-        /// ¸ß¶È
+        /// é«˜åº¦
         /// </summary>
         /// <returns></returns>
         inline  auto    height() const
@@ -58,7 +58,7 @@ namespace   FE
             return  _height;
         }
         /// <summary>
-        /// Ò»ĞĞÊı¾İ´óĞ¡
+        /// ä¸€è¡Œæ•°æ®å¤§å°
         /// </summary>
         /// <returns></returns>
         inline  auto    pitch()  const
@@ -66,7 +66,7 @@ namespace   FE
             return  _pitch;
         }
         /// <summary>
-        /// Ô­Ê¼Êı¾İµØÖ·
+        /// åŸå§‹æ•°æ®åœ°å€
         /// </summary>
         /// <returns></returns>
         inline  auto    data() 
@@ -83,7 +83,7 @@ namespace   FE
             return  (TType*)_buffer;
         }
         /// <summary>
-        /// µÃµ½µ±Ç°Êı¾İµÄÊ×µØÖ·
+        /// å¾—åˆ°å½“å‰æ•°æ®çš„é¦–åœ°å€
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
@@ -93,7 +93,7 @@ namespace   FE
             return  (const TType*)_buffer;
         }
         /// <summary>
-        /// »ñÈ¡Ö¸¶¨ĞĞÊı¾İÊ×µØÖ·
+        /// è·å–æŒ‡å®šè¡Œæ•°æ®é¦–åœ°å€
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
@@ -108,7 +108,7 @@ namespace   FE
             return  (TType*)(_buffer + row * pitch() + col *  FEFormatHelper::sizeOf(_format));
         }
         /// <summary>
-        /// µÃµ½Ò»ĞĞÊı¾İµÄÊ×µØÖ·
+        /// å¾—åˆ°ä¸€è¡Œæ•°æ®çš„é¦–åœ°å€
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="row"></param>
@@ -120,7 +120,7 @@ namespace   FE
             return  (TType*)pData;
         }
         /// <summary>
-        /// µÃµ½Ò»ĞĞÊı¾İµÄÊ×µØÖ·
+        /// å¾—åˆ°ä¸€è¡Œæ•°æ®çš„é¦–åœ°å€
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
@@ -131,7 +131,7 @@ namespace   FE
             return  (const TType*)pData;
         }
         /// <summary>
-        /// ÉèÖÃÒ»¸öÏñËØ
+        /// è®¾ç½®ä¸€ä¸ªåƒç´ 
         /// </summary>
         /// <typeparam name="TType"></typeparam>
         /// <param name="x"></param>
@@ -147,11 +147,11 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ¶ÔÖ¸¶¨µÄÇøÓòÌî³ä¹Ì¶¨Öµ
+        /// å¯¹æŒ‡å®šçš„åŒºåŸŸå¡«å……å›ºå®šå€¼
         /// </summary>
-        /// <typeparam name="TFrom">ÑÕÉ«¶ÔÏóÀàĞÍ</typeparam>
-        /// <param name="rect">ÇøÓò·¶Î§</param>
-        /// <param name="color">ÑÕÉ«Öµ</param>
+        /// <typeparam name="TFrom">é¢œè‰²å¯¹è±¡ç±»å‹</typeparam>
+        /// <param name="rect">åŒºåŸŸèŒƒå›´</param>
+        /// <param name="color">é¢œè‰²å€¼</param>
         /// <returns></returns>
         template<class TFrom>
         inline  auto&   fillRect(const RectU32& rect,const TFrom& color)
@@ -258,11 +258,11 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ¶ÔÖ¸¶¨µÄÇøÓòÌî³äÖµ
+        /// å¯¹æŒ‡å®šçš„åŒºåŸŸå¡«å……å€¼
         /// </summary>
-        /// <typeparam name="TFrom">ÑÕÉ«¶ÔÏóÀàĞÍ</typeparam>
-        /// <param name="rect">ÇøÓò·¶Î§</param>
-        /// <param name="color">ÑÕÉ«Êı×é(±ØĞëÁ¬Ğø)</param>
+        /// <typeparam name="TFrom">é¢œè‰²å¯¹è±¡ç±»å‹</typeparam>
+        /// <param name="rect">åŒºåŸŸèŒƒå›´</param>
+        /// <param name="color">é¢œè‰²æ•°ç»„(å¿…é¡»è¿ç»­)</param>
         /// <returns></returns>
         template<class TFrom>
         inline  auto&   fillRect(const RectU32& rect,const TFrom* color)
@@ -369,15 +369,15 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ¶ÔÖ¸¶¨µÄÇøÓòÌî³äÖµ
+        /// å¯¹æŒ‡å®šçš„åŒºåŸŸå¡«å……å€¼
         /// rtSrc.width()  == rtDst.width()
         /// rtSrc.height() == rtDst.height()
         /// 
         /// </summary>
-        /// <typeparam name="TFrom">Êı¾İÀàĞÍ</typeparam>
-        /// <param name="rtDst">Ä¿±ê¾ØĞÎÇøÓò£¬Êı¾İ¸²¸ÇµÄÇøÓò</param>
-        /// <param name="src">Êı¾İÔ´</param>
-        /// <param name="rtSrc">Êı¾İÔ´ÇøÓò,Ö÷Òªtop,leftÓĞĞ§,right,bottom ÔİÊ±ÎŞĞ§,</param>
+        /// <typeparam name="TFrom">æ•°æ®ç±»å‹</typeparam>
+        /// <param name="rtDst">ç›®æ ‡çŸ©å½¢åŒºåŸŸï¼Œæ•°æ®è¦†ç›–çš„åŒºåŸŸ</param>
+        /// <param name="src">æ•°æ®æº</param>
+        /// <param name="rtSrc">æ•°æ®æºåŒºåŸŸ,ä¸»è¦top,leftæœ‰æ•ˆ,right,bottom æš‚æ—¶æ— æ•ˆ,</param>
         /// <returns></returns>
         template<class TFrom>
         inline  auto&   fillRect(const RectU32& rtDst,const FEImageSource& src,const RectU32& rtSrc)
@@ -490,9 +490,9 @@ namespace   FE
             return  fillRect<TFrom>(rect,color);
         }
         /// <summary>
-        /// Ò»ĞĞÊı¾İµÄÕæÊµÊı¾İ´óĞ¡£¬²»°üº¬¶ÔÆëÌî²¹²¿·Ö
-        /// ÓëpitchÇø±ğ bytesOfRow() <= pitch
-        /// pitchÓĞ¶ÔÆëĞÅÏ¢
+        /// ä¸€è¡Œæ•°æ®çš„çœŸå®æ•°æ®å¤§å°ï¼Œä¸åŒ…å«å¯¹é½å¡«è¡¥éƒ¨åˆ†
+        /// ä¸pitchåŒºåˆ« bytesOfRow() <= pitch
+        /// pitchæœ‰å¯¹é½ä¿¡æ¯
         /// </summary>
         /// <returns></returns>
         inline  uint64  bytesOfRow() const
@@ -500,7 +500,7 @@ namespace   FE
             return  FEFormatHelper::sizeOf(_format) * _width;
         }
         /// <summary>
-        /// Êı¾İ´óĞ¡,µ¥Î»×Ö½Ú
+        /// æ•°æ®å¤§å°,å•ä½å­—èŠ‚
         /// </summary>
         /// <returns></returns>
         inline  uint64  size() const
@@ -508,7 +508,7 @@ namespace   FE
             return  pitch() * _height;
         }
         /// <summary>
-        /// Ë®Æ½·´×ªÍ¼Ïñ
+        /// æ°´å¹³åè½¬å›¾åƒ
         /// </summary>
         inline  void    flipY()
         {
@@ -539,7 +539,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// ´¹Ö±·´×ª
+        /// å‚ç›´åè½¬
         /// </summary>
         inline  void    flipX()
         {
@@ -652,10 +652,10 @@ namespace   FE
         /// 
         /// </summary>
         /// <typeparam name="TTo"></typeparam>
-        /// <param name="r">ĞĞ</param>
-        /// <param name="c">ÁĞ</param>
-        /// <param name="width">ÏñËØÊı</param>
-        /// <param name="src">ÑÕÉ«Öµ</param>
+        /// <param name="r">è¡Œ</param>
+        /// <param name="c">åˆ—</param>
+        /// <param name="width">åƒç´ æ•°</param>
+        /// <param name="src">é¢œè‰²å€¼</param>
         /// <returns></returns>
         template<class TTo>
         inline  auto&   fill(uint32 r,uint32 c,uint32 width,const TTo& color)

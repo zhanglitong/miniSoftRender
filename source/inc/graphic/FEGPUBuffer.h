@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../FEBuffer.hpp"
 #include    "RSObject.h"
 #include    "FEGraphicEnums.h"
@@ -41,7 +41,7 @@ namespace   FE
         virtual void*   lock(uint64 length,uint64 offset)   =   0;
         virtual void    unlock()    =   0;
         /// <summary>
-        /// Ä£°å·½·¨£¬·½±ãÊ¹ÓÃ
+        /// æ¨¡æ¿æ–¹æ³•ï¼Œæ–¹ä¾¿ä½¿ç”¨
         /// </summary>
         /// <typeparam name="TValue"></typeparam>
         /// <param name="length"></param>
@@ -53,7 +53,7 @@ namespace   FE
             return  (TValue*)lock(length,offset);
         }
         /// <summary>
-        /// »ñÈ¡Ö÷ÓÃÍ¾
+        /// è·å–ä¸»ç”¨é€”
         /// </summary>
         /// <returns></returns>
         inline  auto    bufferUsage() const
@@ -64,7 +64,7 @@ namespace   FE
     protected:
         CreateInfo      _cInfo;
         /// <summary>
-        /// »º³åÇøÖ÷ÒªÓÃÍ¾
+        /// ç¼“å†²åŒºä¸»è¦ç”¨é€”
         /// </summary>
         BufferUsages    _bufferUsage;
     };

@@ -1,4 +1,4 @@
-#pragma     once
+Ôªø#pragma     once
 #include    "../FEFlags.hpp"
 #include    "../FEStringHelper.hpp"
 #include    "../mesh/FEPrimitive.hpp"
@@ -30,15 +30,15 @@ namespace   FE
     {
         DEVICE_DEFAULT_BIT      =   0x00000000,
         /// <summary>
-        /// GPU∂Àƒ⁄¥Ê
+        /// GPUÁ´ØÂÜÖÂ≠ò
         /// </summary>
         DEVICE_LOCAL_BIT        =   0x00000001,
         /// <summary>
-        /// CPU∂Àƒ⁄¥Ê
+        /// CPUÁ´ØÂÜÖÂ≠ò
         /// </summary>
         HOST_VISIBLE_BIT        =   0x00000002,
         /// <summary>
-        /// CPU/GPU∂ºø…º˚
+        /// CPU/GPUÈÉΩÂèØËßÅ
         /// </summary>
         HOST_COHERENT_BIT       =   0x00000004,
         /// <summary>
@@ -46,7 +46,7 @@ namespace   FE
         /// </summary>
         HOST_CACHED_BIT         =   0x00000008,
         /// <summary>
-        /// GPU ¿¡º”‘ÿ
+        /// GPU ÊáíÂä†ËΩΩ
         /// </summary>
         LAZILY_ALLOCATED_BIT    =   0x00000010,
     } ;
@@ -120,7 +120,7 @@ namespace   FE
     using   ShaderTypes                 =   FEFlags<FEShaderType,uint>;
 
     /// <summary>
-    ///  ‰»Î≤€–≈œ¢
+    /// ËæìÂÖ•ÊßΩ‰ø°ÊÅØ
     /// </summary>
     enum    FEInputSlot :uint32
     {

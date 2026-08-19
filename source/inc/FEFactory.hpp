@@ -1,4 +1,4 @@
-#pragma     once
+О╩©#pragma     once
 
 #include    "FEObject.h"
 #include    "FEPriority.hpp"
@@ -11,15 +11,15 @@ namespace   FE
         enum    PriorityType:uint32_t
         {
             /// <summary>
-            /// ╦Эпбсеох╪╤
+            /// Ф⌡╢Ф√╟Д╪≤Е┘┬Г╨╖
             /// </summary>
             PT_Update,
             /// <summary>
-            /// ╩Фжфсеох╪╤
+            /// Г╩≤Е┬╤Д╪≤Е┘┬Г╨╖
             /// </summary>
             PT_Render,
             /// <summary>
-            /// й╟х║сеох╪╤
+            /// Ф▀╬Е▐√Д╪≤Е┘┬Г╨╖
             /// </summary>
             PT_Pickup,
             PT_Max,
@@ -29,15 +29,15 @@ namespace   FE
         enum  FactoryFlag
         {
             /// <summary>
-            /// лМ╪с╤тоС
+            /// Ф╥╩Е┼═Е╞╧Х╠║
             /// </summary>
             FLAG_ADD_OBJECT     =   FlagBit::FLAG_LAST,
             /// <summary>
-            /// рфЁЩ╤тоС
+            /// Г╖╩И≥╓Е╞╧Х╠║
             /// </summary>
             FLAG_REMOVE_OBJECT  =   (FLAG_ADD_OBJECT)<<1,
             /// <summary>
-            /// ╤тоСпч╦д
+            /// Е╞╧Х╠║Д©╝Ф■╧
             /// </summary>
             FLAG_MODIFY_OBJECT  =   (FLAG_REMOVE_OBJECT)<<1,
         };
@@ -50,7 +50,7 @@ namespace   FE
             _prioritys  =   other._prioritys;
         }
         /// <summary>
-        /// ╥╣╩ьсеох╪╤
+        /// Х©■Е⌡·Д╪≤Е┘┬Г╨╖
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <type_traits>
 #include    <functional>
@@ -17,11 +17,11 @@ namespace   FE
             this->_format   =   fmt;
         }
         /// <summary>
-        /// ÒµÎñ²ãÃüÃû£¬POS,NORMAL,UV,COLOR...
+        /// ä¸šåŠ¡å±‚å‘½åï¼ŒPOS,NORMAL,UV,COLOR...
         /// </summary>
         FEInputSlot _slot   =   IS_VERTEX_POS;
         /// <summary>
-        /// ÊôĞÔÊı¾İµÄÊı¾İ¸ñÊ½
+        /// å±æ€§æ•°æ®çš„æ•°æ®æ ¼å¼
         /// </summary>
         FEFormat    _format =   FMT_R8G8B8A8_UNORM;
     public:

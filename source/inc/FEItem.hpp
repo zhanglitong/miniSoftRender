@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEObject.h"
 #include    "FENotify.hpp"
@@ -26,7 +26,7 @@ namespace   FE
         }
 
         /// <summary>
-        /// »ñÈ¡×Ó¶ÔÏó(Ö»¶Á)
+        /// è·å–å­å¯¹è±¡(åªè¯»)
         /// </summary>
         /// <returns></returns>
         const   Items&  children()  const
@@ -38,7 +38,7 @@ namespace   FE
             return  _childs;
         }
         /// <summary>
-        /// »ñÈ¡¸¸¶ÔÏó
+        /// è·å–çˆ¶å¯¹è±¡
         /// </summary>
         /// <returns></returns>
         inline  Item    parent() const
@@ -46,9 +46,9 @@ namespace   FE
             return  _parent;
         }
         /// <summary>
-        /// Ìí¼Ó×Ó½Úµã
+        /// æ·»åŠ å­èŠ‚ç‚¹
         /// </summary>
-        /// <param name="child">±»Ìí¼Ó¶ÔÏó</param>
+        /// <param name="child">è¢«æ·»åŠ å¯¹è±¡</param>
         /// <returns></returns>
         virtual bool    addChild(Item child)
         {
@@ -61,9 +61,9 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// Ìí¼Ó×Ö¶ÔÏó£¬·µ»ØÌí¼Ó³É¹¦µÄ¸öÊı
+        /// æ·»åŠ å­—å¯¹è±¡ï¼Œè¿”å›æ·»åŠ æˆåŠŸçš„ä¸ªæ•°
         /// </summary>
-        /// <param name="objects">±»Ìí¼Óitem¶ÔÏóÁĞ±í</param>
+        /// <param name="objects">è¢«æ·»åŠ itemå¯¹è±¡åˆ—è¡¨</param>
         /// <returns></returns>
         virtual size_t  addChilds(const Items& objects)
         {
@@ -84,7 +84,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ÒÆ³ı×Ó¶ÔÏó
+        /// ç§»é™¤å­å¯¹è±¡
         /// </summary>
         /// <param name="child"></param>
         /// <returns></returns>
@@ -100,7 +100,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ¸ù¾İ¶ÔÏóidÒÆ³ı
+        /// æ ¹æ®å¯¹è±¡idç§»é™¤
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -118,7 +118,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ÒÆ³ı
+        /// ç§»é™¤
         /// </summary>
         /// <param name="objects"></param>
         /// <returns></returns>
@@ -141,7 +141,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ÒÆ³ıËùÓĞ×Óitem
+        /// ç§»é™¤æ‰€æœ‰å­item
         /// </summary>
         virtual void    removeAllChild()
         {
@@ -154,8 +154,8 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ÉèÖÃ¸¸¶ÔÏó
-        /// Èç¹ûÒªĞŞ¸Ä¸¸½Ú£¬ÔòĞèÒªµ÷ÓÃparent()->addChild / parent()->removeChilds ÊµÏÖ
+        /// è®¾ç½®çˆ¶å¯¹è±¡
+        /// å¦‚æœè¦ä¿®æ”¹çˆ¶èŠ‚ï¼Œåˆ™éœ€è¦è°ƒç”¨parent()->addChild / parent()->removeChilds å®ç°
         /// </summary>
         /// <param name="parent"></param>
         inline  void    setParent(FEItem* parent)
@@ -165,7 +165,7 @@ namespace   FE
     protected:
         Item            _parent;
         /// <summary>
-        /// ×Ó½Úµã
+        /// å­èŠ‚ç‚¹
         /// </summary>
         Items           _childs;
     };

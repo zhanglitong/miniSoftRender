@@ -1,4 +1,4 @@
-#include    "SWGImage.h"
+﻿#include    "SWGImage.h"
 #include    "SWGImageView.h"
 #include    "SWDevice.h"
 

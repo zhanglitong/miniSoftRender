@@ -1,4 +1,4 @@
-#include    "demo.h"
+﻿#include    "demo.h"
 
 #ifdef _WIN32
 #include    <windows.h>
@@ -12,7 +12,7 @@ USING_PLUGIN(rs_webgpu);
 int     main(int argc,char** argv)
 {
 #ifdef _WIN32
-    // 分配控制台，让 printf 能看到 WebGPU validation 层的输出
+    // 鍒嗛厤鎺у埗鍙帮紝璁?printf 鑳界湅鍒?WebGPU validation 灞傜殑杈撳嚭
     AllocConsole();
     freopen_s((FILE**)stdout,"CONOUT$","w",stdout);
     freopen_s((FILE**)stderr,"CONOUT$","w",stderr);

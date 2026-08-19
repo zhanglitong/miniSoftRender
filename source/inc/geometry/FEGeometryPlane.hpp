@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEGeometryParam.hpp"
 #include    "detail/FEPlaneImpl.hpp"
@@ -10,19 +10,19 @@ namespace   FE
     struct  FEParamPlane
     {
         /// <summary>
-        /// ´óĞ¡
+        /// å¤§å°
         /// </summary>
         float   _width  =   1.0f;
         float   _height =   1.0f;
         /// <summary>
-        /// ·Ö¶ÎÊıÁ¿
+        /// åˆ†æ®µæ•°é‡
         /// </summary>
         uint    _wSegs  =   1;
         uint    _hSegs  =   1;
     };
 
     /// <summary>
-    /// ÃèÊöµÄÊÇxoyÆ½Ãæ
+    /// æè¿°çš„æ˜¯xoyå¹³é¢
     /// </summary>
     class   FEGeometryPlane : public TFEGeometryParam<FEParamPlane>
     {
@@ -30,7 +30,7 @@ namespace   FE
         IMPLEMENT_CLASS_REFLECT(FEGeometryPlane)
     public:
 		/// <summary>
-        /// ¹¹ÔìÉèÖÃÊäÈë¶¥µãµÄÊôĞÔÊı¾İ
+        /// æ„é€ è®¾ç½®è¾“å…¥é¡¶ç‚¹çš„å±æ€§æ•°æ®
         /// </summary>
         FEGeometryPlane(FEContext& ctx)
             : TFEGeometryParam<FEParamPlane>(ctx)
@@ -41,7 +41,7 @@ namespace   FE
         virtual ~FEGeometryPlane()
         {}
         /// <summary>
-        /// ¸ù¾İÊôĞÔÉú³Émesh
+        /// æ ¹æ®å±æ€§ç”Ÿæˆmesh
         /// </summary>
         /// <param name="attr"></param>
         /// <returns></returns>
@@ -51,7 +51,7 @@ namespace   FE
             bool            attrPos =   false;
             bool            attrNor =   false;
             bool            attrUV  =   false;
-            /// »ñÈ¡²Û¶ÔÓ¦µÄÊµ¼ÊÊôĞÔ¶ÔÏó
+            /// è·å–æ§½å¯¹åº”çš„å®é™…å±æ€§å¯¹è±¡
             for (auto& var : inputs)
             {
                 if (var.slot() & (IS_VERTEX_POS) )         attrPos =    true; 

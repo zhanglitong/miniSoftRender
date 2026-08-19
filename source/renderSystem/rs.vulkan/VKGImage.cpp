@@ -1,4 +1,4 @@
-
+﻿
 #include    "VKGImage.h"
 #include    "VKDevice.h"
 #include    "VKGImageView.h"

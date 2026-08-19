@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEVec3.hpp"
 #include    "FEVec4.hpp"
@@ -42,7 +42,7 @@ namespace   FE
             return  _origin != _direction;
         }
         /// <summary>
-        /// ÉèÖÃÉäÏßµÄÆğµã
+        /// è®¾ç½®å°„çº¿çš„èµ·ç‚¹
         /// </summary>
         /// <param name="origin"></param>
         inline  void    setOrigin(const tvec3<T>& origin)
@@ -50,7 +50,7 @@ namespace   FE
             _origin = origin;
         }
         /// <summary>
-        /// ·µ»ØÉäÏßµÄÆğµã
+        /// è¿”å›å°„çº¿çš„èµ·ç‚¹
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -59,7 +59,7 @@ namespace   FE
             return _origin;
         }
         /// <summary>
-        /// ·µ»ØÉäÏßµÄÆğµã
+        /// è¿”å›å°„çº¿çš„èµ·ç‚¹
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -68,7 +68,7 @@ namespace   FE
             return _origin;
         }
         /// <summary>
-        /// ·µ»ØÉäÏßµÄ·½Ïò
+        /// è¿”å›å°„çº¿çš„æ–¹å‘
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -78,7 +78,7 @@ namespace   FE
         }
         
         /// <summary>
-        /// ÉèÖÃÉäÏßµÄ·½Ïò
+        /// è®¾ç½®å°„çº¿çš„æ–¹å‘
         /// </summary>
         /// <param name="dir"></param>
         inline  void    setDirection(const tvec3<T>& dir)
@@ -87,7 +87,7 @@ namespace   FE
             _dirInverse =   inverse(dir);
         }
         /// <summary>
-        /// ·µ»ØÉäÏßµÄ·½Ïò
+        /// è¿”å›å°„çº¿çš„æ–¹å‘
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -105,31 +105,31 @@ namespace   FE
             return tvec3<T>(_origin + (_direction * time));
         }
         /// <summary>
-        /// ÉäÏß×ö¾ØÕó±ä»»
-        /// µäĞÍÓ¦ÓÃ³¡¾°: ¼¸ºÎÌåÏà½»¼ÆËã
+        /// å°„çº¿åšçŸ©é˜µå˜æ¢
+        /// å…¸å‹åº”ç”¨åœºæ™¯: å‡ ä½•ä½“ç›¸äº¤è®¡ç®—
         /// </summary>
         /// <param name="m"></param>
-        /// <returns>×Ô¼º</returns>
+        /// <returns>è‡ªå·±</returns>
         inline  auto&   transform(const tmat4<T>& m) 
         {
-            /// 1. Æğµã£¨µã£©£ºÊÜÆ½ÒÆ¡¢Ğı×ª¡¢Ëõ·ÅÓ°Ïì
-            /// ÔÚÆë´Î×ø±êÖĞ£¬w·ÖÁ¿Îª1
+            /// 1. èµ·ç‚¹ï¼ˆç‚¹ï¼‰ï¼šå—å¹³ç§»ã€æ—‹è½¬ã€ç¼©æ”¾å½±å“
+            /// åœ¨é½æ¬¡åæ ‡ä¸­ï¼Œwåˆ†é‡ä¸º1
             tvec4<T>    worldOrigin =   tvec4<T>(this->_origin, T(1));
             _origin                 =   (m * worldOrigin);
 
-            /// 2. ·½Ïò£¨ÏòÁ¿£©£º½öÊÜĞı×ª¡¢Ëõ·ÅÓ°Ïì£¬²»ÊÜÆ½ÒÆÓ°Ïì
-            /// ÔÚÆë´Î×ø±êÖĞ£¬w·ÖÁ¿Îª0
+            /// 2. æ–¹å‘ï¼ˆå‘é‡ï¼‰ï¼šä»…å—æ—‹è½¬ã€ç¼©æ”¾å½±å“ï¼Œä¸å—å¹³ç§»å½±å“
+            /// åœ¨é½æ¬¡åæ ‡ä¸­ï¼Œwåˆ†é‡ä¸º0
             tvec4<T>    worldDir    =   tvec4<T>(this->_direction, 0.0f);
             _direction              =   (m * worldDir);
             _dirInverse             =   inverse(_direction);
-            /// 3. ×¢Òâ£ºÈç¹û¾ØÕó°üº¬Ëõ·Å£¬·½ÏòÏòÁ¿µÄ³¤¶È»á¸Ä±ä£¬
-            /// Ğí¶àÇó½»Ëã·¨ÒªÇó·½ÏòÏòÁ¿±ØĞëµ¥Î»»¯,ÕâÀï²»×ö¹éÒ»»¯£¬Ä¿µÄÊÇ¼ÆËã³öÀ´µÄtimeÔÚĞÂµÄ¾ØÕóÉÏÒÀÈ»¿ÉÓÃ
+            /// 3. æ³¨æ„ï¼šå¦‚æœçŸ©é˜µåŒ…å«ç¼©æ”¾ï¼Œæ–¹å‘å‘é‡çš„é•¿åº¦ä¼šæ”¹å˜ï¼Œ
+            /// è®¸å¤šæ±‚äº¤ç®—æ³•è¦æ±‚æ–¹å‘å‘é‡å¿…é¡»å•ä½åŒ–,è¿™é‡Œä¸åšå½’ä¸€åŒ–ï¼Œç›®çš„æ˜¯è®¡ç®—å‡ºæ¥çš„timeåœ¨æ–°çš„çŸ©é˜µä¸Šä¾ç„¶å¯ç”¨
             /// _direction.normalize();
             return  *this;
         }
         /// <summary>
-        /// ÉäÏß×ö¾ØÕó±ä»»
-        /// µäĞÍÓ¦ÓÃ³¡¾°: ¼¸ºÎÌåÏà½»¼ÆËã
+        /// å°„çº¿åšçŸ©é˜µå˜æ¢
+        /// å…¸å‹åº”ç”¨åœºæ™¯: å‡ ä½•ä½“ç›¸äº¤è®¡ç®—
         /// </summary>
         /// <param name="m"></param>
         /// <returns></returns>
@@ -137,27 +137,27 @@ namespace   FE
         {
             tray<T>     result;
 
-            /// 1. Æğµã£¨µã£©£ºÊÜÆ½ÒÆ¡¢Ğı×ª¡¢Ëõ·ÅÓ°Ïì
-            /// ÔÚÆë´Î×ø±êÖĞ£¬w·ÖÁ¿Îª1
+            /// 1. èµ·ç‚¹ï¼ˆç‚¹ï¼‰ï¼šå—å¹³ç§»ã€æ—‹è½¬ã€ç¼©æ”¾å½±å“
+            /// åœ¨é½æ¬¡åæ ‡ä¸­ï¼Œwåˆ†é‡ä¸º1
             tvec4<T>    worldOrigin =   tvec4<T>(this->_origin, T(1));
             result._origin          =   (m * worldOrigin);
 
-            /// 2. ·½Ïò£¨ÏòÁ¿£©£º½öÊÜĞı×ª¡¢Ëõ·ÅÓ°Ïì£¬²»ÊÜÆ½ÒÆÓ°Ïì
-            /// ÔÚÆë´Î×ø±êÖĞ£¬w·ÖÁ¿Îª0
+            /// 2. æ–¹å‘ï¼ˆå‘é‡ï¼‰ï¼šä»…å—æ—‹è½¬ã€ç¼©æ”¾å½±å“ï¼Œä¸å—å¹³ç§»å½±å“
+            /// åœ¨é½æ¬¡åæ ‡ä¸­ï¼Œwåˆ†é‡ä¸º0
             tvec4<T> worldDir       =   tvec4<T>(this->_direction, T(0));
             result._direction       =   (m * worldDir);
             result._dirInverse      =   inverse(result._direction);
-            /// 3. ×¢Òâ£ºÈç¹û¾ØÕó°üº¬Ëõ·Å£¬·½ÏòÏòÁ¿µÄ³¤¶È»á¸Ä±ä£¬
-            /// Ğí¶àÇó½»Ëã·¨ÒªÇó·½ÏòÏòÁ¿±ØĞëµ¥Î»»¯,Ä¿µÄÊÇ¼ÆËã³öÀ´µÄtimeÔÚĞÂµÄ¾ØÕóÉÏÒÀÈ»¿ÉÓÃ
+            /// 3. æ³¨æ„ï¼šå¦‚æœçŸ©é˜µåŒ…å«ç¼©æ”¾ï¼Œæ–¹å‘å‘é‡çš„é•¿åº¦ä¼šæ”¹å˜ï¼Œ
+            /// è®¸å¤šæ±‚äº¤ç®—æ³•è¦æ±‚æ–¹å‘å‘é‡å¿…é¡»å•ä½åŒ–,ç›®çš„æ˜¯è®¡ç®—å‡ºæ¥çš„timeåœ¨æ–°çš„çŸ©é˜µä¸Šä¾ç„¶å¯ç”¨
             /// result._direction.normalize();
             return  result;
         }
         /// <summary>
-        /// ²âÊÔÉäÏßboxÏà½»
-        /// Èç¹ûÏà½»,·µ»ØÖµÖĞµÄfirst == true.·ñÔòfalse
+        /// æµ‹è¯•å°„çº¿boxç›¸äº¤
+        /// å¦‚æœç›¸äº¤,è¿”å›å€¼ä¸­çš„first == true.å¦åˆ™false
         /// </summary>
         /// <param name="box"></param>
-        /// <returns>secondÎªÉäÏßµ½µãµÄ¾àÀë,µ÷ÓÃgetPoint·½·¨£¬Ôò·µ»Ø½»µã</returns>
+        /// <returns>secondä¸ºå°„çº¿åˆ°ç‚¹çš„è·ç¦»,è°ƒç”¨getPointæ–¹æ³•ï¼Œåˆ™è¿”å›äº¤ç‚¹</returns>
         inline  auto    intersects(const taabb3<T>& box) const
         {
             T           lowt    =   0;
@@ -351,7 +351,7 @@ namespace   FE
                 T t0 = (-B - sqrt(test)) / ((T)2.0 * A);
                 T t1 = (-B + sqrt(test)) / ((T)2.0 * A);
                 tvec3<T>    nor(m, n, p);
-                // ÆäÊµÓĞÁ½¸ö½â£¬¸ù¾İÄãµÄĞèÒªÑ¡Ôñt0»¹ÊÇt1¡£
+                // å…¶å®æœ‰ä¸¤ä¸ªè§£ï¼Œæ ¹æ®ä½ çš„éœ€è¦é€‰æ‹©t0è¿˜æ˜¯t1ã€‚
                 result  =   nor*t0 + p0;
                 return  true;
             }
@@ -363,10 +363,10 @@ namespace   FE
         }
 #endif 
         /// <summary>
-        /// ÉäÏßÓëÆ½ÃæµÄ½»µã
+        /// å°„çº¿ä¸å¹³é¢çš„äº¤ç‚¹
         /// </summary>
-        /// <param name="normal">Æ½Ãæ·¨ÏòÁ¿</param>
-        /// <param name="pos">Æ½ÃæÉÏµÄÈÎÒâÒ»µã</param>
+        /// <param name="normal">å¹³é¢æ³•å‘é‡</param>
+        /// <param name="pos">å¹³é¢ä¸Šçš„ä»»æ„ä¸€ç‚¹</param>
         inline  auto    intersectSurface(const tvec3<T>& normal, const tvec3<T>& pos)
         {
             const   T t =   dot(normal, pos - _origin) / dot(normal, _direction);
@@ -376,10 +376,10 @@ namespace   FE
                 return std::pair<bool, T>(false,(T)0);
         }
         /// <summary>
-        /// ÉäÏßÓëÆ½ÃæµÄ½»µã
+        /// å°„çº¿ä¸å¹³é¢çš„äº¤ç‚¹
         /// </summary>
-        /// <param name="normal">Æ½Ãæ·¨ÏòÁ¿</param>
-        /// <param name="distance">Æ½Ãæµ½Ô­µãµÄ¾àÀë</param>
+        /// <param name="normal">å¹³é¢æ³•å‘é‡</param>
+        /// <param name="distance">å¹³é¢åˆ°åŸç‚¹çš„è·ç¦»</param>
         inline  auto    intersectSurface(const tvec3<T>& normal, T distance)
         {
             const   auto    pos =   normal * distance;
@@ -390,7 +390,7 @@ namespace   FE
                 return  std::pair<bool, T>(false,   (T)0);
         }
         /// <summary>
-        /// ²âÊÔ´úÂë
+        /// æµ‹è¯•ä»£ç 
         /// </summary>
         /// <param name="box"></param>
         /// <returns></returns>
@@ -402,40 +402,40 @@ namespace   FE
             T       tmin    =    (std::min)(tx1, tx2);
             T       tmax    =    (std::max)(tx1, tx2);
 
-            // Y Öá½»µã¼ÆËã
+            // Y è½´äº¤ç‚¹è®¡ç®—
             const T ty1     =   (box._minimum.y - _origin.y) * _dirInverse.y;
             const T ty2     =   (box._maximum.y - _origin.y) * _dirInverse.y;
 
             tmin            =   (std::max)(tmin, (std::min)(ty1, ty2));
             tmax            =   (std::min)(tmax, (std::max)(ty1, ty2));
 
-            // Z Öá½»µã¼ÆËã
+            // Z è½´äº¤ç‚¹è®¡ç®—
             const T tz1     =   (box._minimum.z - _origin.z) * _dirInverse.z;
             const T tz2     =   (box._maximum.z - _origin.z) * _dirInverse.z;
 
             tmin            =   (std::max)(tmin, (std::min)(tz1, tz2));
             tmax            =   (std::min)(tmax, (std::max)(tz1, tz2));
 
-            /// ÅĞ¶ÏÂß¼­£º
-            /// 1. tmax >= tmin: Èı¸öÖáÏòµÄÖØµşÇø¼ä´æÔÚ
-            /// 2. tmax > 0: ºĞ×Ó²»ÔÚÉäÏßºó·½
-            /// 3. tmin < 0: ÉäÏßÆğµãÔÚºĞ×ÓÄÚ²¿:(tmin > 0) ? tmin : tmax,½»µãÊ¹ÓÃtmax¼ÆËã
+            /// åˆ¤æ–­é€»è¾‘ï¼š
+            /// 1. tmax >= tmin: ä¸‰ä¸ªè½´å‘çš„é‡å åŒºé—´å­˜åœ¨
+            /// 2. tmax > 0: ç›’å­ä¸åœ¨å°„çº¿åæ–¹
+            /// 3. tmin < 0: å°„çº¿èµ·ç‚¹åœ¨ç›’å­å†…éƒ¨:(tmin > 0) ? tmin : tmax,äº¤ç‚¹ä½¿ç”¨tmaxè®¡ç®—
             if (tmax >= (std::max)(T(0), tmin))
                 return  std::pair<bool, T>(true, (tmin > 0) ? tmin : tmax);
             else
                 return  std::pair<bool, T>(false, T(0));
         }
         /// <summary>
-        /// ¼ÆËãÉäÏß(Ray)ÉÏ¾àÀë¿Õ¼äÖĞ¸ø¶¨µã(point)×î½üµÄÒ»¸öµã
+        /// è®¡ç®—å°„çº¿(Ray)ä¸Šè·ç¦»ç©ºé—´ä¸­ç»™å®šç‚¹(point)æœ€è¿‘çš„ä¸€ä¸ªç‚¹
         /// </summary>
         /// <param name="point"></param>
-        /// <returns>·µ»Øµã</returns>
+        /// <returns>è¿”å›ç‚¹</returns>
         inline  auto    closestPointToPoint(const tvec3<T>& point) const
         {
-            /// ¼ÆËã´ÓÉäÏßµÄÆğµã_origin Ö¸ÏòÄ¿±êµã point µÄÏòÁ¿
+            /// è®¡ç®—ä»å°„çº¿çš„èµ·ç‚¹_origin æŒ‡å‘ç›®æ ‡ç‚¹ point çš„å‘é‡
             const   auto    dir     =   point - _origin;
-            /// µã»ı Dot Product ¼ÆËã¸ÃÆ«ÒÆÏòÁ¿ÔÚÉäÏß·½Ïò _direction£¬Í¨³£Îªµ¥Î»ÏòÁ¿ÉÏµÄÍ¶Ó°³¤¶È
-            /// Èç¹ûÔÚÆğµãºó·½ dirDist < 0
+            /// ç‚¹ç§¯ Dot Product è®¡ç®—è¯¥åç§»å‘é‡åœ¨å°„çº¿æ–¹å‘ _directionï¼Œé€šå¸¸ä¸ºå•ä½å‘é‡ä¸Šçš„æŠ•å½±é•¿åº¦
+            /// å¦‚æœåœ¨èµ·ç‚¹åæ–¹ dirDist < 0
             const   auto    dirDist =   FE::dot(dir,_direction);
             if (dirDist < 0)
                 return  _origin;
@@ -443,7 +443,7 @@ namespace   FE
                 return  _origin + _direction * dirDist;
         }
         /// <summary>
-        /// ¸ù¾İ¸ø¶¨µãÖØĞÂ¼ÆËã·½Ïò
+        /// æ ¹æ®ç»™å®šç‚¹é‡æ–°è®¡ç®—æ–¹å‘
         /// </summary>
         /// <param name="v"></param>
         /// <returns></returns>
@@ -454,13 +454,13 @@ namespace   FE
         }
         
         /// <summary>
-        /// ¼ÆËãÒ»ÌõÉäÏß£¨Ray£©ÓëÒ»ÌõÏß¶Î£¨Segment£©Ö®¼äµÄ×î¶Ì¾àÀëµÄÆ½·½
+        /// è®¡ç®—ä¸€æ¡å°„çº¿ï¼ˆRayï¼‰ä¸ä¸€æ¡çº¿æ®µï¼ˆSegmentï¼‰ä¹‹é—´çš„æœ€çŸ­è·ç¦»çš„å¹³æ–¹
         /// </summary>
-        /// <param name="v0">SegmentµÄ¶Ëµã</param>
-        /// <param name="v1">SegmentµÄ¶Ëµã</param>
-        /// <param name="optionalPointOnRay">Êä³öÉäÏßÉÏ¾àÀëÏß¶Î×î½üµÄµã</param>
-        /// <param name="optionalPointOnSegment">Êä³öÏß¶Î¾àÀëÉäÏß×î½üµÄµã</param>
-        /// <returns>result.x ¾àÀëÆ½·½,result.y ÉäÏßµÄ²ÎÊıt,result.z Ïß¶Î²ÎÊı t(ÒÔÖĞĞÄµãÎªÔ­µã)</returns>
+        /// <param name="v0">Segmentçš„ç«¯ç‚¹</param>
+        /// <param name="v1">Segmentçš„ç«¯ç‚¹</param>
+        /// <param name="optionalPointOnRay">è¾“å‡ºå°„çº¿ä¸Šè·ç¦»çº¿æ®µæœ€è¿‘çš„ç‚¹</param>
+        /// <param name="optionalPointOnSegment">è¾“å‡ºçº¿æ®µè·ç¦»å°„çº¿æœ€è¿‘çš„ç‚¹</param>
+        /// <returns>result.x è·ç¦»å¹³æ–¹,result.y å°„çº¿çš„å‚æ•°t,result.z çº¿æ®µå‚æ•° t(ä»¥ä¸­å¿ƒç‚¹ä¸ºåŸç‚¹)</returns>
         inline  tvec3<T>    distanceSqToSegment(const tvec3<T>& v0, const tvec3<T>& v1, tvec3<T>* optionalPointOnSegment,tvec3<T>* optionalPointOnRay) const
         {
             /// from http://www.geometrictools.com/GTEngine/Include/Mathematics/GteDistRaySegment.h
@@ -569,7 +569,7 @@ namespace   FE
             return  distanceSqToSegment(segment[0],segment[1],pSegmentPoint,pRayPoint);
         }
         /// <summary>
-        /// ÉäÏßÓëÈı½ÇĞÎÏà½»¼ÆËã
+        /// å°„çº¿ä¸ä¸‰è§’å½¢ç›¸äº¤è®¡ç®—
         /// </summary>
         /// <param name="v0"></param>
         /// <param name="v1"></param>
@@ -588,21 +588,21 @@ namespace   FE
             return  intersectTriangle(_origin,_direction,v0,v1,v2,t,u,v);
         }
         /// <summary>
-        /// ÉäÏßÓëÈı½ÇĞÎÏà½»
-        /// Èç¹ûdirÓĞ´óĞ¡,¿ÉÒÔ¼ÆËãÏß¶ÎÓëÈı½ÇĞÎµÄ½»µã orig:Ïß¶ÎÆğµã£¬Ïß¶ÎÖÕµã: orig + dir,t >=0 && t<=1 ÓĞ½»µã
-        /// M?ller-Trumbore Ëã·¨¡£
+        /// å°„çº¿ä¸ä¸‰è§’å½¢ç›¸äº¤
+        /// å¦‚æœdiræœ‰å¤§å°,å¯ä»¥è®¡ç®—çº¿æ®µä¸ä¸‰è§’å½¢çš„äº¤ç‚¹ orig:çº¿æ®µèµ·ç‚¹ï¼Œçº¿æ®µç»ˆç‚¹: orig + dir,t >=0 && t<=1 æœ‰äº¤ç‚¹
+        /// M?ller-Trumbore ç®—æ³•ã€‚
         /// (S + t dot dir = v0 + u dot edge1 + v dot edge2)
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="orig"></param>
-        /// <param name="dir">Èç¹ûdirÓĞ´óĞ¡£¬origÈÏÎªÊÇÆğµã£¬ÖÕµã: orig + dir</param>
-        /// <param name="v0">Èı½ÇĞÎµÄ¶¥µã</param>
-        /// <param name="v1">Èı½ÇĞÎµÄ¶¥µã</param>
-        /// <param name="v2">Èı½ÇĞÎµÄ¶¥µã</param>
-        /// <param name="t">Ïß¶ÎÉÏµÄµã¿É±íÊ¾Îª: P(t)=S+t(E-S))£¬ÆäÖĞ (t in [0,1] )</param>
-        /// <param name="u">Èı½ÇĞÎÉÏµÄµã¿É±íÊ¾Îª:T(u,v)=(1-u-v ) * v0 + u * v1 + v * v2)</param>
-        /// <param name="v">Èı½ÇĞÎÉÏµÄµã¿É±íÊ¾Îª:T(u,v)=(1-u-v ) * v0 + u * v1 + v * v2)</param>
-        /// <returns>ÊÇ·ñÏà½»</returns>
+        /// <param name="dir">å¦‚æœdiræœ‰å¤§å°ï¼Œorigè®¤ä¸ºæ˜¯èµ·ç‚¹ï¼Œç»ˆç‚¹: orig + dir</param>
+        /// <param name="v0">ä¸‰è§’å½¢çš„é¡¶ç‚¹</param>
+        /// <param name="v1">ä¸‰è§’å½¢çš„é¡¶ç‚¹</param>
+        /// <param name="v2">ä¸‰è§’å½¢çš„é¡¶ç‚¹</param>
+        /// <param name="t">çº¿æ®µä¸Šçš„ç‚¹å¯è¡¨ç¤ºä¸º: P(t)=S+t(E-S))ï¼Œå…¶ä¸­ (t in [0,1] )</param>
+        /// <param name="u">ä¸‰è§’å½¢ä¸Šçš„ç‚¹å¯è¡¨ç¤ºä¸º:T(u,v)=(1-u-v ) * v0 + u * v1 + v * v2)</param>
+        /// <param name="v">ä¸‰è§’å½¢ä¸Šçš„ç‚¹å¯è¡¨ç¤ºä¸º:T(u,v)=(1-u-v ) * v0 + u * v1 + v * v2)</param>
+        /// <returns>æ˜¯å¦ç›¸äº¤</returns>
         static  bool    intersectTriangle(  const tvec3<T>& orig,
                                             const tvec3<T>& dir,
                                             const tvec3<T>& v0,
@@ -615,11 +615,11 @@ namespace   FE
             // Find vectors for two edges sharing vert0
             const   auto    edge1 = v1 - v0;
             const   auto    edge2 = v2 - v0;
-            // Ëã·¨¡£ÄÂÀÕ-ÌØÀÊ²©¶û 
-            // Ïß¶ÎÉÏµÄµã¿É±íÊ¾Îª£º   P(t)=S+t(E-S))£¬ÆäÖĞ (t in [0,1])
-            // Èı½ÇĞÎÉÏµÄµã¿É±íÊ¾Îª£º  T(u,v)=(1-u-v ) * V0+u * V1+v * V2)
-            // Ïà½»Ìõ¼ş£º?(u >= 0,v >= 0,u+v <= 1)
-            // ½»µãÔÚÈı½ÇĞÎÄÚ (0 <= t <= 1) £¨½»µãÔÚÏß¶ÎÉÏ£©
+            // ç®—æ³•ã€‚ç©†å‹’-ç‰¹æœ—åšå°” 
+            // çº¿æ®µä¸Šçš„ç‚¹å¯è¡¨ç¤ºä¸ºï¼š   P(t)=S+t(E-S))ï¼Œå…¶ä¸­ (t in [0,1])
+            // ä¸‰è§’å½¢ä¸Šçš„ç‚¹å¯è¡¨ç¤ºä¸ºï¼š  T(u,v)=(1-u-v ) * V0+u * V1+v * V2)
+            // ç›¸äº¤æ¡ä»¶ï¼š?(u >= 0,v >= 0,u+v <= 1)
+            // äº¤ç‚¹åœ¨ä¸‰è§’å½¢å†… (0 <= t <= 1) ï¼ˆäº¤ç‚¹åœ¨çº¿æ®µä¸Šï¼‰
             // Begin calculating determinant - also used to calculate U parameter
             const   auto    pvec    =   cross(dir, edge2);
             // If determinant is near zero, ray lies in plane of triangle

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEDefine.h"
 #include    "FEMath.hpp"
@@ -39,7 +39,7 @@ namespace   FE
         using   VType       =   Type;
     public:
         /// <summary>
-        /// Ä¬ÈÏ¹¹Ôì£¨ÈôType¿ÉÄ¬ÈÏ¹¹Ôì£©
+        /// é»˜è®¤æ„é€ ï¼ˆè‹¥Typeå¯é»˜è®¤æ„é€ ï¼‰
         /// </summary>
         TColor() : _value() 
         {}
@@ -48,31 +48,31 @@ namespace   FE
             :_value(std::forward<Args>(args)...)
         {}
         /// <summary>
-        /// ´Ó const ×óÖµ¹¹Ôì
+        /// ä» const å·¦å€¼æ„é€ 
         /// </summary>
         /// <param name="value"></param>
         TColor(const Type& value) 
             : _value(value) 
         {}
         /// <summary>
-        /// ´ÓÓÒÖµ¹¹Ôì£¨ÕæÕıÒÆ¶¯£©
+        /// ä»å³å€¼æ„é€ ï¼ˆçœŸæ­£ç§»åŠ¨ï¼‰
         /// </summary>
         /// <param name="value"></param>
         TColor(Type&& value) 
             : _value(std::move(value)) 
         {}
         /// <summary>
-        /// ¿½±´¹¹Ôì
+        /// æ‹·è´æ„é€ 
         /// </summary>
         /// <param name=""></param>
         TColor(const TColor&)   =   default;
         /// <summary>
-        /// ÒÆ¶¯¹¹Ôì£¨ÕæÕıÒÆ¶¯£©
+        /// ç§»åŠ¨æ„é€ ï¼ˆçœŸæ­£ç§»åŠ¨ï¼‰
         /// </summary>
         /// <param name=""></param>
         TColor(TColor&&)        =   default;
         /// <summary>
-        /// »ñÈ¡Ô­Ê¼Êı¾İÖµ
+        /// è·å–åŸå§‹æ•°æ®å€¼
         /// </summary>
         /// <returns></returns>
         const   Type&   value() const
@@ -80,21 +80,21 @@ namespace   FE
             return  _value;
         }
         /// <summary>
-        /// ¸³Öµ²Ù×÷·û
+        /// èµ‹å€¼æ“ä½œç¬¦
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
         inline  TColor& operator=(const TColor&) =   default;
         inline  TColor& operator=(TColor&&)      =   default;
         /// <summary>
-        /// ÀàĞÍ×ª»»
+        /// ç±»å‹è½¬æ¢
         /// </summary>
         inline  operator const Type&() const    
         {
             return _value; 
         }
         /// <summary>
-        /// »ñÈ¡¸ñÊ½
+        /// è·å–æ ¼å¼
         /// </summary>
         /// <returns></returns>
         constexpr FEFormat  format()   const
@@ -785,14 +785,14 @@ namespace   FE
     {};
 
     /// <summary>
-    /// ÌØ»¯°æ±¾£ºÈô T::format() ¿Éµ÷ÓÃ£¬Ôò¼Ì³Ğ true_type
+    /// ç‰¹åŒ–ç‰ˆæœ¬ï¼šè‹¥ T::format() å¯è°ƒç”¨ï¼Œåˆ™ç»§æ‰¿ true_type
     /// </summary>
     /// <typeparam name="T"></typeparam>
     template <typename Type, FEFormat Fmt>
     struct  IsColorFromat<TColor<Type, Fmt>> : std::true_type 
     {};
     /// <summary>
-    /// ÌáÈ¡ÀàĞÍ,Í¨ÓÃÀà¶¨Òå
+    /// æå–ç±»å‹,é€šç”¨ç±»å®šä¹‰
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <typeparam name="IsTColor"></typeparam>
@@ -802,7 +802,7 @@ namespace   FE
         using   type    =   T;
     };
     /// <summary>
-    /// ÌØ»¯ IsTColor == true,»á×ßµ½¸ÃÄ£°å
+    /// ç‰¹åŒ– IsTColor == true,ä¼šèµ°åˆ°è¯¥æ¨¡æ¿
     /// </summary>
     /// <typeparam name="T"></typeparam>
     template <typename T>

@@ -1,4 +1,4 @@
-#include    "WGPipeline.h"
+﻿#include    "WGPipeline.h"
 #include    "WGDevice.h"
 #include    "WGShader.h"
 #include    "WGDSet.h"

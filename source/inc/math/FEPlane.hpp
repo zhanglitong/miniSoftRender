@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "glm/glm.hpp"
 #include    "FEVec3.hpp"
@@ -72,7 +72,7 @@ namespace   FE
             redefine(rkPoint0, rkPoint1, rkPoint2);
         }
         /// <summary>
-        /// µ½µãµÄ¾àÀë
+        /// åˆ°ç‚¹çš„è·ç¦»
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
@@ -81,7 +81,7 @@ namespace   FE
             return  dot(_normal, pos) + _distance;
         }
         /// <summary>
-        /// ÃæµÄ·¨Ïß
+        /// é¢çš„æ³•çº¿
         /// </summary>
         /// <returns></returns>
         inline  auto    normal() const
@@ -101,7 +101,7 @@ namespace   FE
             return tplane::NO_SIDE;
         }
         /// <summary>
-        /// ÒÆ¶¯ÃæÆ«ÒÆÁ¿
+        /// ç§»åŠ¨é¢åç§»é‡
         /// </summary>
         inline  void    translate(const tvec3<T> &off) 
         {
@@ -126,7 +126,7 @@ namespace   FE
             return tplane::BOTH_SIDE;
         }
         /// <summary>
-        /// ¸ù¾İ¸ø¶¨µÄÈı¸öµã¶¨Òå¸öÃæ
+        /// æ ¹æ®ç»™å®šçš„ä¸‰ä¸ªç‚¹å®šä¹‰ä¸ªé¢
         /// </summary>
         inline  void    redefine(const tvec3<T>& pt0, const tvec3<T>& pt1, const tvec3<T>& pt2)
         {
@@ -147,20 +147,20 @@ namespace   FE
             _distance   =   -dot(vNormal, vPoint);
         }
         /// <summary>
-        /// »ñÈ¡µãµ½ÃæÉÏÍ¶Ó°
-        /// Ëã·¨:µãµ½Ö±ÏßµÄ¾àÀë distance(p); distance(p) * _normal,ÀàËÆ t * dir;
-        /// ´Óp - t * dir£¬µÃµ½Æ½ÃæÉÏµÄµã¡£
+        /// è·å–ç‚¹åˆ°é¢ä¸ŠæŠ•å½±
+        /// ç®—æ³•:ç‚¹åˆ°ç›´çº¿çš„è·ç¦» distance(p); distance(p) * _normal,ç±»ä¼¼ t * dir;
+        /// ä»p - t * dirï¼Œå¾—åˆ°å¹³é¢ä¸Šçš„ç‚¹ã€‚
         /// </summary>
         inline  auto    project(const tvec3<T>& p) const
         {
             return p - _normal * distance(p);
         }
         /// <summary>
-        /// Æ½ÃæÓëÏß¶ÎÏà½»²âÊÔ
+        /// å¹³é¢ä¸çº¿æ®µç›¸äº¤æµ‹è¯•
         /// </summary>
-        /// <param name="p0">Ïß¶ÎµÄÁ½¸ö¶Ëµã</param>
-        /// <param name="p1">Ïß¶ÎµÄÁ½¸ö¶Ëµã</param>
-        /// <returns>std::pair<bool,tvec3<T>>,ÊÇ·ñÏà½»£¬ÒÔ¼°½»µã</returns>
+        /// <param name="p0">çº¿æ®µçš„ä¸¤ä¸ªç«¯ç‚¹</param>
+        /// <param name="p1">çº¿æ®µçš„ä¸¤ä¸ªç«¯ç‚¹</param>
+        /// <returns>std::pair<bool,tvec3<T>>,æ˜¯å¦ç›¸äº¤ï¼Œä»¥åŠäº¤ç‚¹</returns>
         inline  auto    intersectLine(const tvec3<T>& p0,const tvec3<T>& p1) const
         {
             const   auto    direction   =   p1 - p0;
@@ -179,7 +179,7 @@ namespace   FE
                 return  p0 + direction * t;
         }
         /// <summary>
-        /// ¼ì²âÏß¶ÎÓëÆ½ÃæÏà½»ËÙ¶È¿ì£¬²»¼ÆËã½»µã
+        /// æ£€æµ‹çº¿æ®µä¸å¹³é¢ç›¸äº¤é€Ÿåº¦å¿«ï¼Œä¸è®¡ç®—äº¤ç‚¹
         /// </summary>
         /// <param name="vStart"></param>
         /// <param name="vEnd"></param>
@@ -192,39 +192,39 @@ namespace   FE
             return (signS < 0 && signE > 0) || (signE < 0 && signS > 0);
         }
         /// <summary>
-        /// Æ½ÃæÓëÇòÌåÏà½»
+        /// å¹³é¢ä¸çƒä½“ç›¸äº¤
         /// </summary>
-        /// <param name="vCenter">ÇòÌåÖĞĞÄµã</param>
-        /// <param name="radius">ÇòÌå°ë¾¶</param>
+        /// <param name="vCenter">çƒä½“ä¸­å¿ƒç‚¹</param>
+        /// <param name="radius">çƒä½“åŠå¾„</param>
         /// <returns>true/false</returns>
         inline  bool    intersectsSphere(const tvec3<T>& vCenter,const T& radius) const
         {
             return  (std::abs)(distance(vCenter)) <= radius;
         }
         /// <summary>
-        /// Æ½ÃæÓë°üÎ§ºĞÏà½»¼ÆËã
+        /// å¹³é¢ä¸åŒ…å›´ç›’ç›¸äº¤è®¡ç®—
         /// </summary>
         /// <param name="aabb"></param>
         /// <returns></returns>
         inline  bool    intersectsAABB(const taabb3<T>& aabb)
         {
-            /// ¼ÆËãAABBÖĞĞÄ
+            /// è®¡ç®—AABBä¸­å¿ƒ
             const auto  center  =   aabb.center();
-            /// ¼ÆËãAABB°ë³¤
+            /// è®¡ç®—AABBåŠé•¿
             /// const auto  extent  =   aabb.getHalfSize();
-            /// ÓëÏÂÃæµÈ¼Û£¬ĞÔÄÜ¸üºÃ
+            /// ä¸ä¸‹é¢ç­‰ä»·ï¼Œæ€§èƒ½æ›´å¥½
             const auto  extent  =   aabb._maximum - center;
             /// extent : e;
-            /// ¸ù¾İ¼¸ºÎÍ¶Ó°Ô­Àí,Ò»¸ö AABB ÔÚÈÎÒâÏòÁ¿ N ÉÏµÄ×î´óÍ¶Ó°°ë¾¶ r µÈÓÚ
-            /// Èç¹û(N.x) ÊÇÕıµÄ,¾ÍÑ¡ + e.x
-            /// Èç¹û(N.x) ÊÇ¸ºµÄ,¾ÍÑ¡ - e.x
-            /// ÕâµÈ¼ÛÓÚ¶ÔÃ¿Ò»ÏîÈ¡¾ø¶ÔÖµ£º
-            /// r   =   e.x¡¤|N.x| + e.y¡¤|N.y| + e.z¡¤|N.z|
-            /// ¼ÆËãÍ¶Ó°°ë¾¶
+            /// æ ¹æ®å‡ ä½•æŠ•å½±åŸç†,ä¸€ä¸ª AABB åœ¨ä»»æ„å‘é‡ N ä¸Šçš„æœ€å¤§æŠ•å½±åŠå¾„ r ç­‰äº
+            /// å¦‚æœ(N.x) æ˜¯æ­£çš„,å°±é€‰ + e.x
+            /// å¦‚æœ(N.x) æ˜¯è´Ÿçš„,å°±é€‰ - e.x
+            /// è¿™ç­‰ä»·äºå¯¹æ¯ä¸€é¡¹å–ç»å¯¹å€¼ï¼š
+            /// r   =   e.xÂ·|N.x| + e.yÂ·|N.y| + e.zÂ·|N.z|
+            /// è®¡ç®—æŠ•å½±åŠå¾„
             const auto  radius  =   extent.x * (std::abs)(_normal.x) +
                 extent.y * (std::abs)(_normal.y) +
                 extent.z * (std::abs)(_normal.z);
-            /// ¼ÆËã¾àÀë
+            /// è®¡ç®—è·ç¦»
             const auto  dist    =   distance(center);
             return  (std::abs)(dist) <= radius;
         }
@@ -261,7 +261,7 @@ namespace   FE
             return (right._distance != _distance && right._normal != _normal);
         }
         /// <summary>
-        /// ¼ÆËã¾µÃæ·´Éä¾ØÕó
+        /// è®¡ç®—é•œé¢åå°„çŸ©é˜µ
         /// </summary>
         inline  auto    reflectionMatrix()
         {
@@ -282,10 +282,10 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ÇóÈı¸öÃæµÄ½»µã
-        /// ¸ø¶¨Èı¸öÆ½Ãæ£¬Æä·¨Ïß·Ö±ğÎª n1,n2,n3£¬¾àÀëÔ­µãµÄÆ«ÒÆÁ¿Îªd1,d2,d3
-        /// Æ½Ãæ·½³ÌÎª n¡¤ P + d=0 )£¬ËüÃÇµÄ½»µã P ¿ÉÒÔÍ¨¹ıÒÔÏÂ¹«Ê½¼ÆËã
-        ///  P = (-d1 * (n2 x n3) - d2(n3 x n1) - d3(n1 x n2))/(n1¡¤(n2 x n3))
+        /// æ±‚ä¸‰ä¸ªé¢çš„äº¤ç‚¹
+        /// ç»™å®šä¸‰ä¸ªå¹³é¢ï¼Œå…¶æ³•çº¿åˆ†åˆ«ä¸º n1,n2,n3ï¼Œè·ç¦»åŸç‚¹çš„åç§»é‡ä¸ºd1,d2,d3
+        /// å¹³é¢æ–¹ç¨‹ä¸º nÂ· P + d=0 )ï¼Œå®ƒä»¬çš„äº¤ç‚¹ P å¯ä»¥é€šè¿‡ä»¥ä¸‹å…¬å¼è®¡ç®—
+        ///  P = (-d1 * (n2 x n3) - d2(n3 x n1) - d3(n1 x n2))/(n1Â·(n2 x n3))
         /// </summary>
         /// <param name="p1"></param>
         /// <param name="p2"></param>
@@ -303,7 +303,7 @@ namespace   FE
 
             const auto  det =   dot(n1, c23);
 
-            // Èç¹û det Ç÷½üÓÚ 0£¬ËµÃ÷Æ½ÃæÆ½ĞĞ»ò¹²Ïß£¬µ«ÔÚºÏ·¨ÊÓ×¶ÌåÖĞ²»»á·¢Éú
+            // å¦‚æœ det è¶‹è¿‘äº 0ï¼Œè¯´æ˜å¹³é¢å¹³è¡Œæˆ–å…±çº¿ï¼Œä½†åœ¨åˆæ³•è§†é”¥ä½“ä¸­ä¸ä¼šå‘ç”Ÿ
             if (std::abs(det) < T(1e-8f))
                 return {false,tvec3<T>(0)};
             T       detInv  =   T(1.0f)/det;

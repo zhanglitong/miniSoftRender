@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEDefine.h"
 namespace   FE
 {
@@ -219,12 +219,12 @@ namespace   FE
         }
         void    update64(const unsigned char input[], size_t length)
         {
-            /// Ö§³ÖÄÚ´æ³¬¹ı4GµÄÇé¿ö
-            /// Ã¿´Î×î´ó1GÄÚ´æ¼ÆËã
+            /// æ”¯æŒå†…å­˜è¶…è¿‡4Gçš„æƒ…å†µ
+            /// æ¯æ¬¡æœ€å¤§1Gå†…å­˜è®¡ç®—
             constexpr   uint  BLOCK   =   1024 * 1024 * 1024;
-            /// ¿éÊı
+            /// å—æ•°
             size_t      nBlock  =   length/BLOCK;
-            /// Ê£Óà×Ö½Ú
+            /// å‰©ä½™å­—èŠ‚
             size_t      nLast   =   length - nBlock * BLOCK;
             uint8*      pBuf    =   (uint8*)input;
             for (size_t i = 0; i < nBlock; i++)
@@ -256,7 +256,7 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ¸ù¾İ×Ö·û´®²úÉúkey
+        /// æ ¹æ®å­—ç¬¦ä¸²äº§ç”Ÿkey
         /// </summary>
         /// <param name="source"></param>
         /// <returns></returns>
@@ -265,7 +265,7 @@ namespace   FE
             return  fromBuffer(source,(unsigned)strlen(source));
         }
         /// <summary>
-        /// ¸ù¾İ»º³åÇø²úÉúkey
+        /// æ ¹æ®ç¼“å†²åŒºäº§ç”Ÿkey
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="length"></param>
@@ -276,7 +276,7 @@ namespace   FE
             return  sInstance.md5((const char*)buffer,length);
         }
         /// <summary>
-        /// ¼ÆËãÎÄ¼şµÄMD5;
+        /// è®¡ç®—æ–‡ä»¶çš„MD5;
         /// </summary>
         /// <param name="fileName"></param>
         /// <returns></returns>
@@ -285,9 +285,9 @@ namespace   FE
             FILE*   pFile   =   fopen(fileName,"rb");
             if (pFile == nullptr)
                 return  FEMd5Key();
-            /// Ã¿´Î¶ÁÈ¡µÄ´óĞ¡
+            /// æ¯æ¬¡è¯»å–çš„å¤§å°
             char    szTemp[4096]    =   {};
-            /// »ñÈ¡ÎÄ¼ş´óĞ¡
+            /// è·å–æ–‡ä»¶å¤§å°
             _fseeki64(pFile,0,  SEEK_END);
             uint64_t    nFile   =   _ftelli64(pFile);
             _fseeki64(pFile,0,  SEEK_SET);

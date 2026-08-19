@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "RSObject.h"
 #include    "FEShader.h"
@@ -27,7 +27,7 @@ namespace   FE
             DynamicStates       _dynamicStates;
             InputAssemblyState  _inputAssemblyState;
             /// <summary>
-            /// ÄÚ²¿Ìî³ä£¬²»ĞèÒªÍâ²¿¸³Óè
+            /// å†…éƒ¨å¡«å……ï¼Œä¸éœ€è¦å¤–éƒ¨èµ‹äºˆ
             /// </summary>
             ShaderTypes         _pushConstantStage;
             bool                _pushConstant;

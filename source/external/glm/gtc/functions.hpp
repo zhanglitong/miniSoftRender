@@ -1,4 +1,4 @@
-/// @ref gtc_functions
+﻿/// @ref gtc_functions
 /// @file glm/gtc/functions.hpp
 /// 
 /// @see core (dependence)

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../FEChunkInf.hpp"
 #include    "../FEObject.h"
 #include    "../FEDefine.h"
@@ -20,7 +20,7 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ÊÇ·ñÓĞĞ§
+        /// æ˜¯å¦æœ‰æ•ˆ
         /// </summary>
         /// <returns></returns>
         virtual bool    isValid() const override
@@ -44,7 +44,7 @@ namespace   FE
         }
 
         /// <summary>
-        /// »ñÈ¡Î»ÖÃ
+        /// è·å–ä½ç½®
         /// </summary>
         /// <returns></returns>
         virtual uint64  tell() const override
@@ -56,10 +56,10 @@ namespace   FE
                 return  _ftelli64(_file);
         }
         /// <summary>
-        /// ÉèÖÃÎ»ÖÃ
+        /// è®¾ç½®ä½ç½®
         /// </summary>
         /// <param name="pos"></param>
-        /// <returns>ÉÏÒ»´ÎµÄÎ»ÖÃ</returns>
+        /// <returns>ä¸Šä¸€æ¬¡çš„ä½ç½®</returns>
         virtual uint64  seek(uint64 pos) override
         {
             uint64  old =   tell();
@@ -70,16 +70,16 @@ namespace   FE
             return  old;
         }
         /// <summary>
-        /// Ìø¹ı
+        /// è·³è¿‡
         /// </summary>
         /// <param name="pos"></param>
-        /// <returns>ÉÏÒ»´ÎµÄÎ»ÖÃ</returns>
+        /// <returns>ä¸Šä¸€æ¬¡çš„ä½ç½®</returns>
         virtual uint64  skip(int64 pos) override
         {
            return   seek(tell() + pos);
         }
         /// <summary>
-        /// »ñÈ¡³¤¶È
+        /// è·å–é•¿åº¦
         /// </summary>
         /// <returns></returns>
         virtual uint64  length() const override

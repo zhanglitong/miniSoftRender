@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../FEFlags.hpp"
 #include    "FEVec3.hpp"
 #include    "FEMat4.hpp"
@@ -170,7 +170,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÄÚ²¿×ö´óĞ¡±È½Ï,Íâ²¿²»¹ÜÏß point0,point1,µÄ´óĞ¡
+        /// å†…éƒ¨åšå¤§å°æ¯”è¾ƒ,å¤–éƒ¨ä¸ç®¡çº¿ point0,point1,çš„å¤§å°
         /// </summary>
         /// <param name="point0"></param>
         /// <param name="point1"></param>
@@ -185,7 +185,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡°Ë¸ö¶¥µãÊı¾İ
+        /// è·å–å…«ä¸ªé¡¶ç‚¹æ•°æ®
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="corners"></param>
@@ -227,7 +227,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡°Ë¸ö¶¥µãÊı¾İ
+        /// è·å–å…«ä¸ªé¡¶ç‚¹æ•°æ®
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="corners"></param>
@@ -238,7 +238,7 @@ namespace   FE
             return  getAllCorners(corners);
         }
         /// <summary>
-        /// »ñÈ¡12Ìõ±ßµÄÊı¾İ
+        /// è·å–12æ¡è¾¹çš„æ•°æ®
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="indices"></param>
@@ -252,7 +252,7 @@ namespace   FE
             ///     4,5,5,6,6,7,7,4,
             ///     0,6,1,5,2,4,3,7,
             /// }
-            /// --- µ×Ãæ 4 Ìõ±ß ---
+            /// --- åº•é¢ 4 æ¡è¾¹ ---
             indices[0]  =   0;
             indices[1]  =   1;
 
@@ -265,7 +265,7 @@ namespace   FE
             indices[6]  =   3;
             indices[7]  =   0;
 
-            /// --- ¶¥Ãæ 4 Ìõ±ß ---
+            /// --- é¡¶é¢ 4 æ¡è¾¹ ---
             indices[8]  =   4;
             indices[9]  =   5;
 
@@ -278,8 +278,8 @@ namespace   FE
             indices[14] =   7;
             indices[15] =   4;
 
-            /// --- Á¬½Óµ×ÃæÓë¶¥ÃæµÄ 4 Ìõ´¹Ö±±ß ---
-            /// ¶ÔÓ¦¹ØÏµÈ¡¾öÓÚÄã getAllCorners µÄ¾ßÌåÓ³Éä
+            /// --- è¿æ¥åº•é¢ä¸é¡¶é¢çš„ 4 æ¡å‚ç›´è¾¹ ---
+            /// å¯¹åº”å…³ç³»å–å†³äºä½  getAllCorners çš„å…·ä½“æ˜ å°„
 
             indices[16] =   0;
             indices[17] =   6;
@@ -296,7 +296,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡Ö¸¶¨µã
+        /// è·å–æŒ‡å®šç‚¹
         /// </summary>
         /// <param name="cornerToGet"></param>
         /// <returns></returns>
@@ -325,7 +325,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// ºÏ²¢°üÎ§ºĞ
+        /// åˆå¹¶åŒ…å›´ç›’
         /// </summary>
         /// <param name="right"></param>
         /// <returns></returns>
@@ -342,7 +342,7 @@ namespace   FE
                 _extent         =   right._extent;
                 return  *this;
             }
-            /// ÎŞÏŞ´óÒ²×öºÏ×÷¶¯×÷
+            /// æ— é™å¤§ä¹Ÿåšåˆä½œåŠ¨ä½œ
             else if (_extent == EXTENT_INFINITE)
             {
                 tvec3<T>    min =   _minimum;
@@ -368,7 +368,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ºÏ²¢°üÎ§ºĞ
+        /// åˆå¹¶åŒ…å›´ç›’
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <param name="right"></param>
@@ -400,7 +400,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ºÏ²¢µã
+        /// åˆå¹¶ç‚¹
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>
@@ -421,7 +421,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// °üÎ§ºĞÓ¦ÓÃ¾ØÕó
+        /// åŒ…å›´ç›’åº”ç”¨çŸ©é˜µ
         /// </summary>
         /// <param name="matrix"></param>
         /// <returns></returns>
@@ -527,7 +527,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ·µ»ØĞÂµÄaabb;
+        /// è¿”å›æ–°çš„aabb;
         /// </summary>
         /// <param name="mat"></param>
         /// <returns></returns>
@@ -545,7 +545,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ºöÂÔz
+        /// å¿½ç•¥z
         /// </summary>
         /// <param name="b2"></param>
         /// <returns></returns>
@@ -563,7 +563,7 @@ namespace   FE
 
         }
         /// <summary>
-        /// ¼ì²âµãÊÇ·ñ±»°üº¬
+        /// æ£€æµ‹ç‚¹æ˜¯å¦è¢«åŒ…å«
         /// </summary>
         /// <param name="pt"></param>
         /// <returns></returns>
@@ -579,7 +579,7 @@ namespace   FE
 
         }
         /// <summary>
-        /// °üÎ§ºĞÓë°üÎ§ºĞ½»¼¯
+        /// åŒ…å›´ç›’ä¸åŒ…å›´ç›’äº¤é›†
         /// </summary>
         /// <param name="b2"></param>
         /// <returns></returns>
@@ -604,7 +604,7 @@ namespace   FE
             return taabb3<T>();
         }
         /// <summary>
-        /// ÉèÖÃÎªnull
+        /// è®¾ç½®ä¸ºnull
         /// </summary>
         /// <returns></returns>
         inline  auto&   setNull()
@@ -613,7 +613,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÊÇ·ñÊÇnull
+        /// æ˜¯å¦æ˜¯null
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -622,7 +622,7 @@ namespace   FE
             return (_extent == EXTENT_NULL);
         }
         /// <summary>
-        /// ÊÇ·ñÊÇÓĞÏŞµÄ
+        /// æ˜¯å¦æ˜¯æœ‰é™çš„
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -631,14 +631,14 @@ namespace   FE
             return (_extent == EXTENT_FINITE);
         }
         /// <summary>
-        /// ÉèÖÃÎªÎŞÏŞ´ó
+        /// è®¾ç½®ä¸ºæ— é™å¤§
         /// </summary>
         inline  void    setInfinite()
         {
             _extent = EXTENT_INFINITE;
         }
         /// <summary>
-        /// ÊÇ·ñÊÇÎŞÏŞ´ó
+        /// æ˜¯å¦æ˜¯æ— é™å¤§
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -647,7 +647,7 @@ namespace   FE
             return (_extent == EXTENT_INFINITE);
         }
         /// <summary>
-        /// Ëõ·Å×Ô¼º
+        /// ç¼©æ”¾è‡ªå·±
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
@@ -659,7 +659,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ²»¸Ä±ä×Ô¼º,·µ»ØĞÂµÄ°üÎ§ºĞ
+        /// ä¸æ”¹å˜è‡ªå·±,è¿”å›æ–°çš„åŒ…å›´ç›’
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
@@ -670,7 +670,7 @@ namespace   FE
             return  taabb3<T>(min,max);
         }
         /// <summary>
-        /// ¼ì²âÁ½¸ö°üÎ§ºĞÊÇ·ñÏà½»
+        /// æ£€æµ‹ä¸¤ä¸ªåŒ…å›´ç›’æ˜¯å¦ç›¸äº¤
         /// </summary>
         /// <param name="b2"></param>
         /// <returns></returns>
@@ -691,7 +691,7 @@ namespace   FE
             return true;
         }
         /// <summary>
-        /// Ïà½»²âÊÔ
+        /// ç›¸äº¤æµ‹è¯•
         /// </summary>
         /// <param name="v"></param>
         /// <returns></returns>
@@ -702,7 +702,7 @@ namespace   FE
                 v.z >= _minimum.z  &&  v.z <= _maximum.z);
         }
         /// <summary>
-        /// Ïà½»²âÊÔ
+        /// ç›¸äº¤æµ‹è¯•
         /// </summary>
         /// <param name="v"></param>
         /// <returns></returns>
@@ -712,12 +712,12 @@ namespace   FE
                 v.y >= _minimum.y  &&  v.y <= _maximum.y);
         }        
         /// <summary>
-        /// °üÎ§ºĞÓëÈı½ÇĞÎÏà½»²âÊÔ
-        /// ·ÖÀëÖá¶¨Àí
+        /// åŒ…å›´ç›’ä¸ä¸‰è§’å½¢ç›¸äº¤æµ‹è¯•
+        /// åˆ†ç¦»è½´å®šç†
         /// </summary>
-        /// <param name="p0">Èı½ÇĞÎµÄ¶¥µã</param>
-        /// <param name="p1">Èı½ÇĞÎµÄ¶¥µã</param>
-        /// <param name="p2">Èı½ÇĞÎµÄ¶¥µã</param>
+        /// <param name="p0">ä¸‰è§’å½¢çš„é¡¶ç‚¹</param>
+        /// <param name="p1">ä¸‰è§’å½¢çš„é¡¶ç‚¹</param>
+        /// <param name="p2">ä¸‰è§’å½¢çš„é¡¶ç‚¹</param>
         /// <returns>true,false</returns>
         inline  bool    intersects(const tvec3<T>& p0,const tvec3<T>& p1,const tvec3<T>& p2) const
         {
@@ -732,8 +732,8 @@ namespace   FE
             const   auto    f1      =  v2 - v1;
             const   auto    f2      =  v0 - v2;
             /// axis_ij = u_i x f_j (u0, u1, u2 = face normals of aabb = x,y,z axes vectors since aabb is axis aligned)
-            /// ÖáµÄ¹¹ÔìÂß¼­£ºaxis_ij = e_i x f_j
-            /// ÀıÈç XÖá(1,0,0) x f0(x,y,z) = (0, -f0.z, f0.y)
+            /// è½´çš„æ„é€ é€»è¾‘ï¼šaxis_ij = e_i x f_j
+            /// ä¾‹å¦‚ Xè½´(1,0,0) x f0(x,y,z) = (0, -f0.z, f0.y)
             const  tvec3<T> axes[]    =
             {
                 {0, -f0.z, f0.y}, {0, -f1.z, f1.y}, {0, -f2.z, f2.y},
@@ -754,7 +754,7 @@ namespace   FE
             return satForAxes(&triangleNormal,1, v0, v1, v2, half);
         }
         /// <summary>
-        /// µÃµ½¸ø¶¨µãµ½°üÎ§ºĞµÄ¾àÀë
+        /// å¾—åˆ°ç»™å®šç‚¹åˆ°åŒ…å›´ç›’çš„è·ç¦»
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>
@@ -765,7 +765,7 @@ namespace   FE
             return      length(clamped - point);
         }
         /// <summary>
-        /// Á½¸ö°üÎ§ºĞµÄ¾àÀë
+        /// ä¸¤ä¸ªåŒ…å›´ç›’çš„è·ç¦»
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -777,7 +777,7 @@ namespace   FE
             return (T)std::sqrt(dx*dx + dy*dy + dz*dz);
         }
         /// <summary>
-        /// µÃµ½Àï°üÎ§ºĞ×î½üµÄµã
+        /// å¾—åˆ°é‡ŒåŒ…å›´ç›’æœ€è¿‘çš„ç‚¹
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>
@@ -786,7 +786,7 @@ namespace   FE
             return  FE::clamp(point, _minimum, _maximum);
         }
         /// <summary>
-        /// ·µ»ØÖĞĞÄµã
+        /// è¿”å›ä¸­å¿ƒç‚¹
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -797,7 +797,7 @@ namespace   FE
                 (_maximum.z + _minimum.z) * T(0.5f));
         }
         /// <summary>
-        /// ·µ»ØÖĞĞÄµã
+        /// è¿”å›ä¸­å¿ƒç‚¹
         /// </summary>
         /// <returns></returns>
         inline  auto    center() const
@@ -805,7 +805,7 @@ namespace   FE
             return  getCenter();
         }
         /// <summary>
-        /// ¼ÆËã°üÎ§ºĞÈı¸öÎ¬¶ÈµÄ³¤¿í¸ß
+        /// è®¡ç®—åŒ…å›´ç›’ä¸‰ä¸ªç»´åº¦çš„é•¿å®½é«˜
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -814,7 +814,7 @@ namespace   FE
             return _maximum - _minimum;
         }
         /// <summary>
-        /// ¼ÆËã°üÎ§ºĞÈı¸öÎ¬¶ÈµÄ³¤¿í¸ßµÄÒ»°ë
+        /// è®¡ç®—åŒ…å›´ç›’ä¸‰ä¸ªç»´åº¦çš„é•¿å®½é«˜çš„ä¸€åŠ
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
@@ -823,7 +823,7 @@ namespace   FE
             return (_maximum - _minimum) * T(0.5);
         }
         /// <summary>
-        /// °üº¬µã²âÊÔ
+        /// åŒ…å«ç‚¹æµ‹è¯•
         /// </summary>
         /// <param name="v"></param>
         /// <returns></returns>
@@ -834,7 +834,7 @@ namespace   FE
                 _minimum.z <= v.z && v.z <= _maximum.z;
         }
         /// <summary>
-        /// °üº¬²âÊÔ
+        /// åŒ…å«æµ‹è¯•
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -858,11 +858,11 @@ namespace   FE
         }
         
         /// <summary>
-        /// ¼ÆËã°üÎ§ºĞ right ÊÇ·ñÔÚµ±Ç°°üÎ§ºĞµÄÄÚ²¿(ÑÏ¸ñÄÚ²¿,²»°üº¬Ïà½»µÄÇé¿ö)
+        /// è®¡ç®—åŒ…å›´ç›’ right æ˜¯å¦åœ¨å½“å‰åŒ…å›´ç›’çš„å†…éƒ¨(ä¸¥æ ¼å†…éƒ¨,ä¸åŒ…å«ç›¸äº¤çš„æƒ…å†µ)
         /// </summary>
         /// <param name="right"></param>
         /// <param name="epsilon"></param>
-        /// <returns>ÔÚÄÚ²¿·µ»Øtrue, ·ñÔò·µ»Øfalse</returns>
+        /// <returns>åœ¨å†…éƒ¨è¿”å›true, å¦åˆ™è¿”å›false</returns>
         inline  bool    inside(const taabb3& right, T epsilon = std::numeric_limits<T>::epsilon()) const
         {
             if (this == &right || this->isNull() || right.isNull())
@@ -888,7 +888,7 @@ namespace   FE
             return true;
         }
         /// <summary>
-        /// ±íÃæ»ı×¼È·
+        /// è¡¨é¢ç§¯å‡†ç¡®
         /// </summary>
         /// <returns></returns>
         inline  T       area() const
@@ -897,7 +897,7 @@ namespace   FE
             return  (size.x * size.y + size.y * size.z + size.z * size.x) * T(2);
         }
         /// <summary>
-        /// ÔÚ²¿·Ö¼ÆËãÖĞÖ»ĞèÒª±È½ÏÏà¶ÔÃæ»ı£¬¿ÉÒÔÉÙ¼ÆËãÒ»´Î³Ë·¨
+        /// åœ¨éƒ¨åˆ†è®¡ç®—ä¸­åªéœ€è¦æ¯”è¾ƒç›¸å¯¹é¢ç§¯ï¼Œå¯ä»¥å°‘è®¡ç®—ä¸€æ¬¡ä¹˜æ³•
         /// </summary>
         /// <returns></returns>
         inline  T       halfArea() const
@@ -906,7 +906,7 @@ namespace   FE
             return  size.x * size.y + size.y * size.z + size.z * size.x;
         }
         /// <summary>
-        /// Ìå»ı¼ÆËã
+        /// ä½“ç§¯è®¡ç®—
         /// </summary>
         /// <returns></returns>
         inline  T       volume() const
@@ -915,7 +915,7 @@ namespace   FE
             return  size.x * size.y * size.z;
         }
         /// <summary>
-        /// Ìå»ı¼ÆËãÆ½·½
+        /// ä½“ç§¯è®¡ç®—å¹³æ–¹
         /// </summary>
         /// <returns></returns>
         inline  T       volume2() const
@@ -924,7 +924,7 @@ namespace   FE
             return  vol * vol;
         }
         /// <summary>
-        /// ·µ»Ø×î³¤µÄÖá0:xÖá,1,yÖá,2,zÖá
+        /// è¿”å›æœ€é•¿çš„è½´0:xè½´,1,yè½´,2,zè½´
         /// </summary>
         inline  int     longestAxis() const
         {
@@ -936,7 +936,7 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ·ÖÀëÖá²âÊÔ
+        /// åˆ†ç¦»è½´æµ‹è¯•
         /// </summary>
         /// <param name="axes"></param>
         /// <param name="nAxes"></param>

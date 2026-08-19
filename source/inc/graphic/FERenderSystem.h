@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FERenderContext.h"
 #include    "FEDevice.h"
@@ -67,7 +67,7 @@ namespace   FE
             :FEObject(other)
         {}
         /// <summary>
-        /// »ñÈ¡ĞÅÏ¢
+        /// è·å–ä¿¡æ¯
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -82,7 +82,7 @@ namespace   FE
             return  {};
         }
         /// <summary>
-        /// »ñÈ¡ÏÔ¿¨ÁĞ±í
+        /// è·å–æ˜¾å¡åˆ—è¡¨
         /// </summary>
         /// <returns></returns>
         virtual const GPUs& gpuList() const         =   0;
@@ -90,7 +90,7 @@ namespace   FE
         virtual Device      createDevice()          =   0;
     public:
         /// <summary>
-        /// ´´½¨äÖÈ¾ÏµÍ³
+        /// åˆ›å»ºæ¸²æŸ“ç³»ç»Ÿ
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="clsId"></param>

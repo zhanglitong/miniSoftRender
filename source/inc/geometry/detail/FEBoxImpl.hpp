@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    "../../FEObject.h"
 
 namespace   FE
@@ -18,7 +18,7 @@ namespace   FE
 
     using   FEBoxImplPtr    =   SharedPtr<FEBoxImpl>;
     /// <summary>
-    /// 模板的目的，静态编译，避免循中判断
+    /// 妯℃澘鐨勭洰鐨勶紝闈欐€佺紪璇戯紝閬垮厤寰腑鍒ゆ柇
     /// </summary>
     /// <typeparam name="bNormal"></typeparam>
     /// <typeparam name="bUV"></typeparam>

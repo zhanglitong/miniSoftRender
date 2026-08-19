@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    "FEKeyFrameTrack.hpp"
 #include    "FETrackResult.hpp"
 
@@ -25,7 +25,7 @@ namespace FE
         ~FEClip()   =   default;
     public:
         /// <summary>
-        /// 获取帧范围
+        /// 鑾峰彇甯ц寖鍥?
         /// </summary>
         /// <returns></returns>
         uint2       range() const
@@ -40,7 +40,7 @@ namespace FE
             return  result;
         }
         /// <summary>
-        /// 只读获取
+        /// 鍙鑾峰彇
         /// </summary>
         /// <returns></returns>
         auto&       tracks() const
@@ -48,7 +48,7 @@ namespace FE
             return  _tracks;
         }
         /// <summary>
-        /// 读写
+        /// 璇诲啓
         /// </summary>
         /// <returns></returns>
         auto&       tracks()
@@ -64,7 +64,7 @@ namespace FE
             _tracks.insert(_tracks.end(),tracks.begin(),tracks.end());
         }
         /// <summary>
-        /// 更新所有轨道值
+        /// 鏇存柊鎵€鏈夎建閬撳€?
         /// </summary>
         /// <param name="frame"></param>
         void        update(const real& frame,TrackResults& results)

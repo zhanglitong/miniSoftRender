@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 
 #include    "FEA2b10g10r10Unorm.hpp"
 

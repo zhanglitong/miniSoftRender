@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEGeometryParam.hpp"
 #include    "detail/FECylinderImpl.hpp"
@@ -8,13 +8,13 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEGeometryCylinder,"{731AAD1C-4BF9-46C8-9B83-8282BD8A2F59}");
     /// <summary>
-    /// Ô²Öù
-    /// Ä¿±êĞÎ×´	radiusTop	radiusBottom	radialSegments
-    /// ±ê×¼Ô²×¶	0	1	32 (»ò¸ü¸ß)
-    /// ÈıÀâ×¶	    0	1	3
-    /// ËÄÀâ×¶     (½ğ×ÖËş)	0	1	4
-    /// ÎåÀâ×¶	    0	1	5
-    /// ÁùÀâ×¶	    0	1	6
+    /// åœ†æŸ±
+    /// ç›®æ ‡å½¢çŠ¶	radiusTop	radiusBottom	radialSegments
+    /// æ ‡å‡†åœ†é”¥	0	1	32 (æˆ–æ›´é«˜)
+    /// ä¸‰æ£±é”¥	    0	1	3
+    /// å››æ£±é”¥     (é‡‘å­—å¡”)	0	1	4
+    /// äº”æ£±é”¥	    0	1	5
+    /// å…­æ£±é”¥	    0	1	6
     /// </summary>
     
     class   FEGeometryCylinder : public TFEGeometryParam<FEParamCylinder>
@@ -23,7 +23,7 @@ namespace   FE
         IMPLEMENT_CLASS_REFLECT(FEGeometryCylinder)
     public:
 		/// <summary>
-        /// ¹¹ÔìÉèÖÃÊäÈë¶¥µãµÄÊôĞÔÊı¾İ
+        /// æ„é€ è®¾ç½®è¾“å…¥é¡¶ç‚¹çš„å±æ€§æ•°æ®
         /// </summary>
         FEGeometryCylinder(FEContext& ctx)
             : TFEGeometryParam<FEParamCylinder>(ctx)
@@ -34,7 +34,7 @@ namespace   FE
         virtual ~FEGeometryCylinder()
         {}
         /// <summary>
-        /// ¸ù¾İÊôĞÔÉú³Émesh
+        /// æ ¹æ®å±æ€§ç”Ÿæˆmesh
         /// </summary>
         /// <param name="attr"></param>
         /// <returns></returns>
@@ -44,7 +44,7 @@ namespace   FE
             bool            attrPos =   false;
             bool            attrNor =   false;
             bool            attrUV  =   false;
-            /// »ñÈ¡²Û¶ÔÓ¦µÄÊµ¼ÊÊôĞÔ¶ÔÏó
+            /// è·å–æ§½å¯¹åº”çš„å®é™…å±æ€§å¯¹è±¡
             for (auto& var : inputs)
             {
                 if (var.slot() & (IS_VERTEX_POS))          attrPos =    true; 

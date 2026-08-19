@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    "wgpu.h"
 #include    "FEFormat.hpp"
 #include    "FEAspect.hpp"

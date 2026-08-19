@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEViewer.h"
 #include    "../FEFactoryTemplate.hpp"
@@ -6,12 +6,12 @@
 namespace   FE
 {
 
-    /// lambda ±í´ïÊ½×÷ÎªÀàĞÍ±ğÃû£¬È·±£ViewerLessÊÇÀàĞÍÃû
+    /// lambda è¡¨è¾¾å¼ä½œä¸ºç±»å‹åˆ«åï¼Œç¡®ä¿ViewerLessæ˜¯ç±»å‹å
     constexpr auto    ViewerLessLambda = [](const Viewer& l, const Viewer& r)
     {
         return  l < r ;
     };
-    /// ÏÈ¶¨ÒåÀàĞÍ±ğÃû£¬È·±£ViewerLessÊÇÀàĞÍÃû
+    /// å…ˆå®šä¹‰ç±»å‹åˆ«åï¼Œç¡®ä¿ViewerLessæ˜¯ç±»å‹å
     using   ViewerLess    =   decltype(ViewerLessLambda);
 
     class   FEViewerMgr : public FEFactoryTemplate<Viewer,ViewerLess>
@@ -26,7 +26,7 @@ namespace   FE
 
         virtual ~FEViewerMgr() = default;
         /// <summary>
-        /// ²éÕÒ¹¤³§¶ÔÏó,Èç¹ûÃ»ÓĞ·µ»Ønullptr
+        /// æŸ¥æ‰¾å·¥å‚å¯¹è±¡,å¦‚æœæ²¡æœ‰è¿”å›nullptr
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
@@ -40,7 +40,7 @@ namespace   FE
             return  nullptr;
         }
         /// <summary>
-        /// »ñÈ¡µ±Ç°¼¤»î×´Ì¬µÄviewer,Èç¹ûÃ»ÓĞ¼¤»îÔòÎªnullptr
+        /// è·å–å½“å‰æ¿€æ´»çŠ¶æ€çš„viewer,å¦‚æœæ²¡æœ‰æ¿€æ´»åˆ™ä¸ºnullptr
         /// </summary>
         /// <returns></returns>
         Viewer  activeViewer() const
@@ -48,7 +48,7 @@ namespace   FE
             return  _viewerActive;
         }
         /// <summary>
-        /// ÉèÖÃµ±Ç°¼¤»î×´Ì¬µÄviewer
+        /// è®¾ç½®å½“å‰æ¿€æ´»çŠ¶æ€çš„viewer
         /// </summary>
         /// <param name="viewer"></param>
         void   setActiveViewer(Viewer viewer)
@@ -57,8 +57,8 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// µ±Ç°¼¤»î×´Ì¬µÄviewer,Èç¹ûÃ»ÓĞ¼¤»îÔòÎªnullptr
-        /// Ö»ÓĞ¼¤»î×´Ì¬£¬²Å»á½ÓÊÕÊäÈëÊÂ¼ş
+        /// å½“å‰æ¿€æ´»çŠ¶æ€çš„viewer,å¦‚æœæ²¡æœ‰æ¿€æ´»åˆ™ä¸ºnullptr
+        /// åªæœ‰æ¿€æ´»çŠ¶æ€ï¼Œæ‰ä¼šæ¥æ”¶è¾“å…¥äº‹ä»¶
         /// </summary>
         Viewer  _viewerActive   =   nullptr;
     };

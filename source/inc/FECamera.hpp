@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEObject.h"
 #include    "FENotify.hpp"
@@ -28,7 +28,7 @@ namespace   FE
         using   Flags   =   FEFlags<CameraOption,uint>;
     public:
         /// <summary>
-        /// »ù´¡ĞÅÏ¢
+        /// åŸºç¡€ä¿¡æ¯
         /// </summary>
         real3       _eye;
         real3       _target;
@@ -39,18 +39,18 @@ namespace   FE
         mat4r       _matView;
         mat4r       _matProj;
         
-        ///Õı½»Í¶Ó°Ä£Ê½Ê¹ÓÃ
+        ///æ­£äº¤æŠ•å½±æ¨¡å¼ä½¿ç”¨
         real        _scaler;
         /// <summary>
-        ///  Ïà»úËÙ¶È
+        ///  ç›¸æœºé€Ÿåº¦
         /// </summary>
         real        _speed;
         real        _fov;
         real        _zNear;
         real        _zFar;
-        /// ±£´æ²Ù×÷ÉãÏñ»úµÄÒ»Ğ©×´Ì¬ĞÅÏ¢
+        /// ä¿å­˜æ“ä½œæ‘„åƒæœºçš„ä¸€äº›çŠ¶æ€ä¿¡æ¯
         Flags       _flag;
-        ///ÊÇ·ñÕı½»Í¶Ó°
+        ///æ˜¯å¦æ­£äº¤æŠ•å½±
         bool        _isOrtho    =   false;
         bool        _freeze     =   false;  
         real        _rLeft      =   0;
@@ -60,19 +60,19 @@ namespace   FE
         char        _name[FE_NAME_LENGTH] =   {0};
     public:
         /// <summary>
-        /// ¹¹ÔìÏà»ú
+        /// æ„é€ ç›¸æœº
         /// </summary>
-        /// <param name="target">ÉãÏñ»úÄ¿±êµãÎ»ÖÃ</param>
-        /// <param name="eye">ÉãÏñ»úÑÛ¾¦Î»ÖÃ</param>
-        /// <param name="right">ÉãÏñ»úright·½Ïò</param>
+        /// <param name="target">æ‘„åƒæœºç›®æ ‡ç‚¹ä½ç½®</param>
+        /// <param name="eye">æ‘„åƒæœºçœ¼ç›ä½ç½®</param>
+        /// <param name="right">æ‘„åƒæœºrightæ–¹å‘</param>
         FECamera(FEContext& ctx,const real3& target = real3(0, 0, 0), const real3& eye = real3(0, 100, 100), const real3& right = real3(1, 0, 0));
         /// <summary>
-        /// Îö¹¹
+        /// ææ„
         /// </summary>
         ~FECamera();
 
         /// <summary>
-        /// ÉèÖÃÏà»úµÄÃû³Æ
+        /// è®¾ç½®ç›¸æœºçš„åç§°
         /// </summary>
         /// <param name="name"></param>
         inline  void    setName(const char* name)
@@ -80,7 +80,7 @@ namespace   FE
             strncpy(_name,name,sizeof(_name)-1);
         }
         /// <summary>
-        /// »ñÈ¡Ïà»úÃû³Æ
+        /// è·å–ç›¸æœºåç§°
         /// </summary>
         /// <returns></returns>
         inline  PCSTR   name() const
@@ -88,7 +88,7 @@ namespace   FE
             return  _name;
         }
         /// <summary>
-        /// Ïñ»úÊÇ·ñÖ§³ÖĞŞ¸Ä
+        /// åƒæœºæ˜¯å¦æ”¯æŒä¿®æ”¹
         /// </summary>
         /// <returns></returns>
         inline  bool    freeze() const
@@ -96,7 +96,7 @@ namespace   FE
             return  _freeze;
         }
         /// <summary>
-        /// Ïñ»úÊÇ·ñÖ§³ÖĞŞ¸Ä
+        /// åƒæœºæ˜¯å¦æ”¯æŒä¿®æ”¹
         /// </summary>
         /// <param name="flag"></param>
         inline  void    setFreeze(bool flag)
@@ -104,7 +104,7 @@ namespace   FE
             _freeze =   flag;
         }
         /// <summary>
-        /// ÉèÖÃÎªenable×´Ì¬
+        /// è®¾ç½®ä¸ºenableçŠ¶æ€
         /// </summary>
         /// <param name="state"></param>
         inline  void    enable(CameraOption state)
@@ -112,7 +112,7 @@ namespace   FE
             _flag.addFlag(state);
         }
         /// <summary>
-        /// ÉèÖÃÎªdisable×´Ì¬
+        /// è®¾ç½®ä¸ºdisableçŠ¶æ€
         /// </summary>
         /// <param name="state"></param>
         inline  void    disable(CameraOption state)
@@ -128,143 +128,143 @@ namespace   FE
             return  _flag;
         }
         /// <summary>
-        /// »ñÈ¡ÉãÏñ»úÑÛ¾¦Î»ÖÃ
+        /// è·å–æ‘„åƒæœºçœ¼ç›ä½ç½®
         /// </summary>
-        /// <returns>ÉãÏñ»úÑÛ¾¦Î»ÖÃ</returns>
+        /// <returns>æ‘„åƒæœºçœ¼ç›ä½ç½®</returns>
         const   real3&  getEye() const 
         { 
             return _eye;
         }
         /// <summary>
-        /// ÉèÖÃÉãÏñ»úÑÛ¾¦Î»ÖÃ
+        /// è®¾ç½®æ‘„åƒæœºçœ¼ç›ä½ç½®
         /// </summary>
-        /// <param name="eye">ÉãÏñ»úÑÛ¾¦Î»ÖÃ</param>
+        /// <param name="eye">æ‘„åƒæœºçœ¼ç›ä½ç½®</param>
         inline void     setEye(const real3& eye)
         { 
             _eye = eye;
         }
         /// <summary>
-        /// »ñÈ¡ÉãÏñ»úÄ¿±êÎ»ÖÃ
+        /// è·å–æ‘„åƒæœºç›®æ ‡ä½ç½®
         /// </summary>
-        /// <returns>ÉãÏñ»úÄ¿±êÎ»ÖÃ</returns>
+        /// <returns>æ‘„åƒæœºç›®æ ‡ä½ç½®</returns>
         const   real3&  getTarget() const 
         { 
             return _target;
         }
         /// <summary>
-        /// ÉèÖÃÉãÏñ»úÄ¿±êÎ»ÖÃ
+        /// è®¾ç½®æ‘„åƒæœºç›®æ ‡ä½ç½®
         /// </summary>
-        /// <param name="target">ÉãÏñ»úÄ¿±êÎ»ÖÃ</param>
+        /// <param name="target">æ‘„åƒæœºç›®æ ‡ä½ç½®</param>
         inline  void    setTarget(const real3& target) 
         { 
             _target = target;
         }
         /// <summary>
-        /// »ñÈ¡ÉãÏñ»úRight·½Ïò
+        /// è·å–æ‘„åƒæœºRightæ–¹å‘
         /// </summary>
-        /// <returns>ÉãÏñ»úRight·½Ïò</returns>
+        /// <returns>æ‘„åƒæœºRightæ–¹å‘</returns>
         const   real3&  getRight() const
         {
             return  _right;
         }
         /// <summary>
-        /// ÉèÖÃÉãÏñ»úRight·½Ïò
+        /// è®¾ç½®æ‘„åƒæœºRightæ–¹å‘
         /// </summary>
-        /// <param name="right">ÉãÏñ»úRight·½Ïò</param>
+        /// <param name="right">æ‘„åƒæœºRightæ–¹å‘</param>
         inline  void    setRight(const real3& right)
         {
             _right = right;
         }
         /// <summary>
-        ///  »ñÈ¡ÉãÏñ»úup·½Ïò
+        ///  è·å–æ‘„åƒæœºupæ–¹å‘
         /// </summary>
-        /// <returns>ÉãÏñ»úup·½Ïò</returns>
+        /// <returns>æ‘„åƒæœºupæ–¹å‘</returns>
         const   real3&  getUp() const 
         { 
             return _up;
         }
         /// <summary>
-        /// ÉèÖÃÉãÏñ»úup·½Ïò
+        /// è®¾ç½®æ‘„åƒæœºupæ–¹å‘
         /// </summary>
-        /// <param name="up">ÉãÏñ»úup·½Ïò</param>
+        /// <param name="up">æ‘„åƒæœºupæ–¹å‘</param>
         inline  void    setUp(const real3& up)
         {
             _up = up;
         }
         /// <summary>
-        ///  »ñÈ¡ÉãÏñ»údir·½Ïò
+        ///  è·å–æ‘„åƒæœºdiræ–¹å‘
         /// </summary>
-        /// <returns>ÉãÏñ»údir·½Ïò</returns>
+        /// <returns>æ‘„åƒæœºdiræ–¹å‘</returns>
         const   real3&  getDir() const
         {
             return  _dir;
         }
         /// <summary>
-        /// ÉèÖÃÉãÏñ»údir·½Ïò
+        /// è®¾ç½®æ‘„åƒæœºdiræ–¹å‘
         /// </summary>
-        /// <param name="dir">ÉãÏñ»údir·½Ïò</param>
+        /// <param name="dir">æ‘„åƒæœºdiræ–¹å‘</param>
         inline  void    setDir(const real3& dir)
         {
             _dir    =   dir;
         }
         /// <summary>
-        /// Í¨¹ıÉãÏñ»úµ±Ç°µÄeyeÎ»ÖÃºÍtargetÎ»ÖÃ¼ÆËãdir·½Ïò
+        /// é€šè¿‡æ‘„åƒæœºå½“å‰çš„eyeä½ç½®å’Œtargetä½ç½®è®¡ç®—diræ–¹å‘
         /// </summary>
         inline  void    calcDir()
         {
             _dir    =   FE::normalize(_target - _eye);
         }
         /// <summary>
-        /// ÉèÖÃÕı½»Í¶Ó°Ëõ·Å±ÈÀı
+        /// è®¾ç½®æ­£äº¤æŠ•å½±ç¼©æ”¾æ¯”ä¾‹
         /// </summary>
-        /// <param name="scaler">ÉèÖÃÕı½»Í¶Ó°Ëõ·Å±ÈÀı</param>
+        /// <param name="scaler">è®¾ç½®æ­£äº¤æŠ•å½±ç¼©æ”¾æ¯”ä¾‹</param>
         inline  void    setScaler(real scaler)
         {
             _scaler = scaler;
         }
         /// <summary>
-        /// »ñÈ¡Õı½»Í¶Ó°Ëõ·Å±ÈÀı
+        /// è·å–æ­£äº¤æŠ•å½±ç¼©æ”¾æ¯”ä¾‹
         /// </summary>
-        /// <returns>»ñÈ¡Õı½»Í¶Ó°Ëõ·Å±ÈÀı</returns>
+        /// <returns>è·å–æ­£äº¤æŠ•å½±ç¼©æ”¾æ¯”ä¾‹</returns>
         inline  real    getScaler() const
         {
             return _scaler;
         }
         /// <summary>
-        /// ÉèÖÃÕı½»Í¶Ó°Ä£Ê½±êÖ¾
+        /// è®¾ç½®æ­£äº¤æŠ•å½±æ¨¡å¼æ ‡å¿—
         /// </summary>
-        /// <param name="b">true±íÊ¾ÎªÕı½»Í¶Ó°Ä£Ê½,·ñÔòÎªÍ¸ÊÓÄ£Ê½</param>
+        /// <param name="b">trueè¡¨ç¤ºä¸ºæ­£äº¤æŠ•å½±æ¨¡å¼,å¦åˆ™ä¸ºé€è§†æ¨¡å¼</param>
         inline  void    setOrtho(bool b)
         {
             _isOrtho = b;
         }
         /// <summary>
-        /// »ñÈ¡Õı½»Í¶Ó°Ä£Ê½±êÖ¾
+        /// è·å–æ­£äº¤æŠ•å½±æ¨¡å¼æ ‡å¿—
         /// </summary>
-        /// <returns>true±íÊ¾ÎªÕı½»Í¶Ó°Ä£Ê½,·ñÔòÎªÍ¸ÊÓÄ£Ê½</returns>
+        /// <returns>trueè¡¨ç¤ºä¸ºæ­£äº¤æŠ•å½±æ¨¡å¼,å¦åˆ™ä¸ºé€è§†æ¨¡å¼</returns>
         inline  bool    isOrtho() const
         {
             return _isOrtho;
         }
         /// <summary>
-        /// ÉèÖÃview size
+        /// è®¾ç½®view size
         /// </summary>
-        /// <param name="viewSize">¿í¶È,¸ß¶È</param>
+        /// <param name="viewSize">å®½åº¦,é«˜åº¦</param>
         inline  void    setViewSize(const real2& viewSize)
         {
             _viewSize   =   viewSize;
         }
         /// <summary>
-        /// ÉèÖÃview size
+        /// è®¾ç½®view size
         /// </summary>
-        /// <param name="x">¿í¶È</param>
-        /// <param name="y">¸ß¶È</param>
+        /// <param name="x">å®½åº¦</param>
+        /// <param name="y">é«˜åº¦</param>
         inline  void    setViewSize(real x,real y)
         {
             _viewSize   =   real2(x,y);
         }
         /// <summary>
-        /// »ñÈ¡view size
+        /// è·å–view size
         /// </summary>
         /// <returns>view size</returns>
         inline real2    getViewSize() const
@@ -288,24 +288,24 @@ namespace   FE
             return  T(_viewSize.y);
         }
         /// <summary>
-        /// ÉèÖÃproject¾ØÕó
+        /// è®¾ç½®projectçŸ©é˜µ
         /// </summary>
-        /// <param name="proj">proj project¾ØÕó</param>
+        /// <param name="proj">proj projectçŸ©é˜µ</param>
         inline  void    setProject(const mat4r& proj)
         {
             _matProj    =   proj;
         }
         /// <summary>
-        /// »ñÈ¡project¾ØÕó
+        /// è·å–projectçŸ©é˜µ
         /// </summary>
-        /// <returns>project¾ØÕó</returns>
+        /// <returns>projectçŸ©é˜µ</returns>
         const   mat4r&  getProject() const
         {
             return  _matProj;
         }
         /// <summary>
-        /// ÉèÖÃÏñ»úµÄÔ¶½ü²Ã¼ôÃæ
-        /// ÉèÖÃºó£¬ĞèÒªÖØĞÂ¼ÆËãÍ¶Ó°¾ØÕó @see updatePersective()£¬Êı¾İ²Å»áÉúĞ§
+        /// è®¾ç½®åƒæœºçš„è¿œè¿‘è£å‰ªé¢
+        /// è®¾ç½®åï¼Œéœ€è¦é‡æ–°è®¡ç®—æŠ•å½±çŸ©é˜µ @see updatePersective()ï¼Œæ•°æ®æ‰ä¼šç”Ÿæ•ˆ
         /// </summary>
         /// <param name="nearFar"></param>
         inline  void    setNearFar(const real2& nearFar)
@@ -317,7 +317,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// »ñÈ¡Ïñ»úµÄÔ¶½ü²Ã¼ôÃæ
+        /// è·å–åƒæœºçš„è¿œè¿‘è£å‰ªé¢
         /// </summary>
         /// <returns></returns>
         inline  real2   getNearFar() const
@@ -325,7 +325,7 @@ namespace   FE
             return  real2(_zNear,_zFar);
         }
         /// <summary>
-        /// »ñÈ¡Ïñ»úµÄ½ü²Ã¼ôÃæ 
+        /// è·å–åƒæœºçš„è¿‘è£å‰ªé¢ 
         /// </summary>
         /// <returns></returns>
         inline  real    getNear() const
@@ -333,7 +333,7 @@ namespace   FE
             return  _zNear;
         }
         /// <summary>
-        /// ÉèÖÃÏñ»úµÄ½ü²Ã¼ôÃæ
+        /// è®¾ç½®åƒæœºçš„è¿‘è£å‰ªé¢
         /// </summary>
         /// <returns></returns>
         inline  void    setNear(real dNear)
@@ -341,7 +341,7 @@ namespace   FE
             _zNear  =   dNear;
         }
         /// <summary>
-        /// »ñÈ¡Ïñ»úµÄÔ¶²Ã¼ôÃæ
+        /// è·å–åƒæœºçš„è¿œè£å‰ªé¢
         /// </summary>
         /// <returns></returns>
         inline  real    getFar() const
@@ -349,7 +349,7 @@ namespace   FE
             return  _zFar;
         }
         /// <summary>
-        /// ÉèÖÃÏñ»úµÄÔ¶²Ã¼ôÃæ
+        /// è®¾ç½®åƒæœºçš„è¿œè£å‰ªé¢
         /// </summary>
         /// <returns></returns>
         inline  void    setFar(real dFar)
@@ -357,7 +357,7 @@ namespace   FE
             _zFar   =   dFar;
         }
         /// <summary>
-        /// Ïà»úÊÓÒ°½Ç(Field of view, FOV),
+        /// ç›¸æœºè§†é‡è§’(Field of view, FOV),
         /// </summary>
         /// <returns></returns>
         inline  auto    getFov() const
@@ -369,7 +369,7 @@ namespace   FE
             return  _fov;
         }
         /// <summary>
-        /// ÉèÖÃÏà»úÊÓÒ°½Ç(Field of view, FOV),
+        /// è®¾ç½®ç›¸æœºè§†é‡è§’(Field of view, FOV),
         /// </summary>
         /// <returns></returns>
         inline  void    setFov(real fov)
@@ -422,9 +422,9 @@ namespace   FE
             _speed  =   speed;
         }
         /// <summary>
-        /// ¸üĞÂº¯Êı£¬»á¼ÆËãÏà»úµÄdir
-        /// Ïà»úµÄup,right£¬±£Ö¤ÕıÈ·ĞÔ
-        /// ¼ÆËã¹Û²ì¾ØÕó
+        /// æ›´æ–°å‡½æ•°ï¼Œä¼šè®¡ç®—ç›¸æœºçš„dir
+        /// ç›¸æœºçš„up,rightï¼Œä¿è¯æ­£ç¡®æ€§
+        /// è®¡ç®—è§‚å¯ŸçŸ©é˜µ
         /// </summary>
         inline  void    update()
         {
@@ -433,11 +433,11 @@ namespace   FE
             _right      =   normalize(cross(_dir, _up));
             _matView    =   lookAt(_eye, _target, _up);
             _matProj    =   FE::perspective<real>(_fov,_viewSize.x/_viewSize.y,_zNear,_zFar);
-            /// ±ê¼ÇĞèÒª¸üĞÂ
+            /// æ ‡è®°éœ€è¦æ›´æ–°
             flags().addFlag(FLAG_UPDATE);
         }
         /// <summary>
-        /// »ñÈ¡view¾ØÕó
+        /// è·å–viewçŸ©é˜µ
         /// </summary>
         /// <returns></returns>
         const   mat4r&  getView() const
@@ -446,7 +446,7 @@ namespace   FE
         }
         
         /// <summary>
-        /// »ñÈ¡Ïà»úÄ£ĞÍµÄ×ª»»¾ØÕó
+        /// è·å–ç›¸æœºæ¨¡å‹çš„è½¬æ¢çŸ©é˜µ
         /// </summary>
         /// <returns></returns>
         inline mat4r    transform()
@@ -459,7 +459,7 @@ namespace   FE
             return rMat;
         }
         /// <summary>
-        /// ¸üĞÂ project ¾ØÕóÎªÍ¸ÊÓÍ¶Ó°¾ØÕó
+        /// æ›´æ–° project çŸ©é˜µä¸ºé€è§†æŠ•å½±çŸ©é˜µ
         /// </summary>
         inline  void    updatePerspective()
         {
@@ -467,9 +467,9 @@ namespace   FE
             flags().addFlag(FLAG_UPDATE);
         }
         /// <summary>
-        /// ¸üĞÂ project ¾ØÕóÎªÕı½»Í¶Ó°¾ØÕó
+        /// æ›´æ–° project çŸ©é˜µä¸ºæ­£äº¤æŠ•å½±çŸ©é˜µ
         /// </summary>
-        /// <param name="sceneHalfSize">sceneHalfSize ³¡¾°°üÎ§ºĞ half size</param>
+        /// <param name="sceneHalfSize">sceneHalfSize åœºæ™¯åŒ…å›´ç›’ half size</param>
         /// <param name="orthoDistance"></param>
         inline  void    updateOrtho()
         {
@@ -487,7 +487,7 @@ namespace   FE
             flags().addFlag(FLAG_UPDATE);
         }
         /// <summary>
-        /// ¸ù¾İ²ÎÊıÉú³ÉÕı½»Í¶Ó°¾ØÕó
+        /// æ ¹æ®å‚æ•°ç”Ÿæˆæ­£äº¤æŠ•å½±çŸ©é˜µ
         /// </summary>
         /// <param name="left"></param>
         /// <param name="right"></param>
@@ -497,7 +497,7 @@ namespace   FE
         /// <param name="zFar"></param>
         inline  void    ortho( real left, real right, real bottom, real top, real zNear, real zFar )
         {
-            /// ±£´æÕı½»²ÎÊı£¬ĞòÁĞ»¯Ê¹ÓÃ
+            /// ä¿å­˜æ­£äº¤å‚æ•°ï¼Œåºåˆ—åŒ–ä½¿ç”¨
             _rLeft      =   left;
             _rRight     =   right;
             _rTop       =   top;
@@ -509,7 +509,7 @@ namespace   FE
         }
         
         /// <summary>
-        /// ¸ù¾İ²ÎÊıÉú³ÉÍ¸ÊÓÍ¶Ó°¾ØÕó
+        /// æ ¹æ®å‚æ•°ç”Ÿæˆé€è§†æŠ•å½±çŸ©é˜µ
         /// </summary>
         /// <param name="fov"></param>
         /// <param name="aspect"></param>
@@ -528,10 +528,10 @@ namespace   FE
         }
         
         /// <summary>
-        /// »ñÈ¡ÊÀ½ç×ø±êÓëÆÁÄ»ÏñËØµÄ±ÈÀı
+        /// è·å–ä¸–ç•Œåæ ‡ä¸å±å¹•åƒç´ çš„æ¯”ä¾‹
         /// </summary>
-        /// <param name="position">ÊÀ½ç×ø±êÎ»ÖÃ,×÷Îª²Î¿¼µã×ö¼ÆËã</param>
-        /// <returns>·µ»Ø±ÈÀıÖµ</returns>
+        /// <param name="position">ä¸–ç•Œåæ ‡ä½ç½®,ä½œä¸ºå‚è€ƒç‚¹åšè®¡ç®—</param>
+        /// <returns>è¿”å›æ¯”ä¾‹å€¼</returns>
         inline  real    pixelU(const real3& position) const
         {
             real3   p0      =   position;
@@ -542,10 +542,10 @@ namespace   FE
             return  pixelU;
         }
         /// <summary>
-        /// ÊÀ½ç×ø±ê×ª»¯Îª´°¿Ú×ø±ê
+        /// ä¸–ç•Œåæ ‡è½¬åŒ–ä¸ºçª—å£åæ ‡
         /// </summary>
-        /// <param name="world">Óû×ª»»µÄÊÀ½ç×ø±ê</param>
-        /// <returns>×ª»»½á¹û,´°¿Ú×ø±ê</returns>
+        /// <param name="world">æ¬²è½¬æ¢çš„ä¸–ç•Œåæ ‡</param>
+        /// <returns>è½¬æ¢ç»“æœ,çª—å£åæ ‡</returns>
         inline  real2   worldToScreen( const real3& world) const
         {
             real4  worlds(world.x,world.y,world.z,1);
@@ -554,10 +554,10 @@ namespace   FE
             return  real2(screens.x,screens.y);
         }
         /// <summary>
-        /// ÊÀ½ç×ø±ê×ª»¯Îª´°¿Ú×ø±ê
+        /// ä¸–ç•Œåæ ‡è½¬åŒ–ä¸ºçª—å£åæ ‡
         /// </summary>
-        /// <param name="world">Óû×ª»»µÄÊÀ½ç×ø±ê</param>
-        /// <returns>×ª»»½á¹û,´°¿Ú×ø±ê</returns>
+        /// <param name="world">æ¬²è½¬æ¢çš„ä¸–ç•Œåæ ‡</param>
+        /// <returns>è½¬æ¢ç»“æœ,çª—å£åæ ‡</returns>
         inline  int2    worldToScreenInt( const real3& world) const
         {
             real4  worlds(world.x,world.y,world.z,1);
@@ -566,10 +566,10 @@ namespace   FE
             return  int2((int)screens.x,(int)screens.y);
         }
         /// <summary>
-        /// ´°¿Ú×ø±ê×ª»¯ÎªÊÀ½ç×ø±ê
+        /// çª—å£åæ ‡è½¬åŒ–ä¸ºä¸–ç•Œåæ ‡
         /// </summary>
-        /// <param name="screen">Óû×ª»»µÄ´°¿Ú×ø±ê</param>
-        /// <returns>×ª»»½á¹û,ÊÀ½ç×ø±ê</returns>
+        /// <param name="screen">æ¬²è½¬æ¢çš„çª—å£åæ ‡</param>
+        /// <returns>è½¬æ¢ç»“æœ,ä¸–ç•Œåæ ‡</returns>
         inline  real3   screenToWorld(const real2& screen) const
         {
             real4  screens(screen.x,screen.y,0,1);
@@ -578,11 +578,11 @@ namespace   FE
             return  real3(world.x,world.y,world.z);
         }
         /// <summary>
-        ///  ´°¿Ú×ø±ê×ª»¯ÎªÊÀ½ç×ø±ê
+        ///  çª—å£åæ ‡è½¬åŒ–ä¸ºä¸–ç•Œåæ ‡
         /// </summary>
-        /// <param name="x">Óû×ª»»µÄ´°¿Ú×ø±êxÖµ</param>
-        /// <param name="y">Óû×ª»»µÄ´°¿Ú×ø±êyÖµ</param>
-        /// <returns>×ª»»½á¹û,ÊÀ½ç×ø±ê</returns>
+        /// <param name="x">æ¬²è½¬æ¢çš„çª—å£åæ ‡xå€¼</param>
+        /// <param name="y">æ¬²è½¬æ¢çš„çª—å£åæ ‡yå€¼</param>
+        /// <returns>è½¬æ¢ç»“æœ,ä¸–ç•Œåæ ‡</returns>
         inline  real3   screenToWorld(real x,real y) const
         {
             real4  screens(x,y,0,1);
@@ -591,11 +591,11 @@ namespace   FE
             return  real3(world.x,world.y,world.z);
         }
         /// <summary>
-        ///  Ê¹ÓÃ´°¿Ú×ø±ê´´½¨ÉäÏß
+        ///  ä½¿ç”¨çª—å£åæ ‡åˆ›å»ºå°„çº¿
         /// </summary>
-        /// <param name="x">´°¿Ú×ø±êxÖµ</param>
-        /// <param name="y">´°¿Ú×ø±êyÖµ</param>
-        /// <returns>ÉäÏß¶ÔÏó</returns>
+        /// <param name="x">çª—å£åæ ‡xå€¼</param>
+        /// <param name="y">çª—å£åæ ‡yå€¼</param>
+        /// <returns>å°„çº¿å¯¹è±¡</returns>
         inline  Ray     createRayFromScreen(int x,int y) const
         {
             real4  minWorld;
@@ -614,118 +614,118 @@ namespace   FE
             return  ray;
         }
         /// <summary>
-        /// ¸ù¾İ¸ø¶¨ÊÀ½ç×ø±êµã,¼ÆËã¸Ãµã¶ÔÓ¦µÄÆÁÄ»×ø±êÓëÊÀ½ç×ø±êµÄ±ÈÀı
+        /// æ ¹æ®ç»™å®šä¸–ç•Œåæ ‡ç‚¹,è®¡ç®—è¯¥ç‚¹å¯¹åº”çš„å±å¹•åæ ‡ä¸ä¸–ç•Œåæ ‡çš„æ¯”ä¾‹
         /// </summary>
-        /// <param name="context">ÉÏÏÂÎÄ¶ÔÏó</param>
-        /// <param name="center">Ö¸¶¨µÄÊÀ½ç×ø±êÎ»ÖÃµã</param>
-        /// <returns>ÆÁÄ»×ø±êÓëÊÀ½ç×ø±êµÄ±ÈÀı</returns>
+        /// <param name="context">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
+        /// <param name="center">æŒ‡å®šçš„ä¸–ç•Œåæ ‡ä½ç½®ç‚¹</param>
+        /// <returns>å±å¹•åæ ‡ä¸ä¸–ç•Œåæ ‡çš„æ¯”ä¾‹</returns>
         real        calcWowrldPScreen(const real3& center);
         /// <summary>
-        /// ÉãÏñ»ú×óÒÆ(·½ÏòÎª -right)
+        /// æ‘„åƒæœºå·¦ç§»(æ–¹å‘ä¸º -right)
         /// </summary>
-        /// <param name="fElapsed">fElapsed ·½ÏòÆ«ÒÆÁ¿</param>
+        /// <param name="fElapsed">fElapsed æ–¹å‘åç§»é‡</param>
         void        moveLeft(real fElapsed);
         /// <summary>
-        ///  ÉãÏñ»úÓÒÒÆ(·½ÏòÎª right)
+        ///  æ‘„åƒæœºå³ç§»(æ–¹å‘ä¸º right)
         /// </summary>
-        /// <param name="fElapsed">fElapsed ·½ÏòÆ«ÒÆÁ¿</param>
+        /// <param name="fElapsed">fElapsed æ–¹å‘åç§»é‡</param>
         void        moveRight(real fElapsed);
         /// <summary>
-        ///  ÉãÏñ»úÇ°ÒÆ(·½ÏòÎª dir)
+        ///  æ‘„åƒæœºå‰ç§»(æ–¹å‘ä¸º dir)
         /// </summary>
-        /// <param name="fElapsed"> fElapsed ·½ÏòÆ«ÒÆÁ¿</param>
+        /// <param name="fElapsed"> fElapsed æ–¹å‘åç§»é‡</param>
         void        moveFront(real fElapsed);
         /// <summary>
-        ///  ÉãÏñ»úºóÒÆ(·½ÏòÎª dir)
+        ///  æ‘„åƒæœºåç§»(æ–¹å‘ä¸º dir)
         /// </summary>
-        /// <param name="fElapsed">fElapsed ·½ÏòÆ«ÒÆÁ¿</param>
+        /// <param name="fElapsed">fElapsed æ–¹å‘åç§»é‡</param>
         void        moveBack(real fElapsed);
         /// <summary>
-        /// ÉãÏñ»úÉÏÒÆ(·½ÏòÎª up)
+        /// æ‘„åƒæœºä¸Šç§»(æ–¹å‘ä¸º up)
         /// </summary>
-        /// <param name="fElapsed">fElapsed ·½ÏòÆ«ÒÆÁ¿</param>
+        /// <param name="fElapsed">fElapsed æ–¹å‘åç§»é‡</param>
         void        moveUp(real fElapsed);
         /// <summary>
-        /// ÉãÏñ»úÏÂÒÆ(·½ÏòÎª -up)
+        /// æ‘„åƒæœºä¸‹ç§»(æ–¹å‘ä¸º -up)
         /// </summary>
-        /// <param name="fElapsed">fElapsed ·½ÏòÆ«ÒÆÁ¿</param>
+        /// <param name="fElapsed">fElapsed æ–¹å‘åç§»é‡</param>
         void        moveDown(real fElapsed);
         /// <summary>
-        /// ¸ù¾İÖ¸¶¨·½ÏòÒÆ¶¯Ïà»ú
+        /// æ ¹æ®æŒ‡å®šæ–¹å‘ç§»åŠ¨ç›¸æœº
         /// </summary>
-        /// <param name="dir">ÒÆ¶¯·½Ïò(µ¥Î»ÏòÁ¿)</param>
-        /// <param name="fElapsed">fElapsed ·½ÏòÆ«ÒÆÁ¿</param>
+        /// <param name="dir">ç§»åŠ¨æ–¹å‘(å•ä½å‘é‡)</param>
+        /// <param name="fElapsed">fElapsed æ–¹å‘åç§»é‡</param>
         void        moveDir(const real3& dir, real fElapsed);
         /// <summary>
-        ///  ÈÆ×ÔÉíZÖá(up)×Ô×ª
+        ///  ç»•è‡ªèº«Zè½´(up)è‡ªè½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
         void        rotateEyeZ(real angle);
         /// <summary>
-        /// ÈÆ×ÔÉíXÖá(right)×Ô×ª
+        /// ç»•è‡ªèº«Xè½´(right)è‡ªè½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
         void        rotateEyeX(real angle);
         /// <summary>
-        /// ÈÆÈÎÒâÖá×Ô×ª
+        /// ç»•ä»»æ„è½´è‡ªè½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
-        /// <param name="axis">Ğı×ªÖá(µ¥Î»ÏòÁ¿)</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
+        /// <param name="axis">æ—‹è½¬è½´(å•ä½å‘é‡)</param>
         void        rotateEyeAxis(real angle, const real3& axis);
         /// <summary>
-        /// ÈÆÊÀ½ç×ø±êÏµYÖá(0,1,0)²¢ÒÔ×ÔÉítargetÎªĞı×ªµã¹«×ª
+        /// ç»•ä¸–ç•Œåæ ‡ç³»Yè½´(0,1,0)å¹¶ä»¥è‡ªèº«targetä¸ºæ—‹è½¬ç‚¹å…¬è½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
         void        rotateViewY(real angle);
         /// <summary>
-        /// ÈÆ×ÔÉíXÖá(right)²¢ÒÔ×ÔÉítargetÎªĞı×ªµã¹«×ª
+        /// ç»•è‡ªèº«Xè½´(right)å¹¶ä»¥è‡ªèº«targetä¸ºæ—‹è½¬ç‚¹å…¬è½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
         void        rotateViewX(real angle);
         /// <summary>
-        /// ÈÆ×ÔÉíXÖá(right)²¢ÒÔÖ¸¶¨µãÎªĞı×ªµã¹«×ª
+        /// ç»•è‡ªèº«Xè½´(right)å¹¶ä»¥æŒ‡å®šç‚¹ä¸ºæ—‹è½¬ç‚¹å…¬è½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
-        /// <param name="pos">Ğı×ªµã</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
+        /// <param name="pos">æ—‹è½¬ç‚¹</param>
         void        rotateViewXByCenter(real angle, const real3& pos);
         /// <summary>
-        /// ÈÆÊÀ½ç×ø±êÏµYÖá(0,1,0)²¢ÒÔÖ¸¶¨µãÎªĞı×ªµã¹«×ª
+        /// ç»•ä¸–ç•Œåæ ‡ç³»Yè½´(0,1,0)å¹¶ä»¥æŒ‡å®šç‚¹ä¸ºæ—‹è½¬ç‚¹å…¬è½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
-        /// <param name="pos">Ğı×ªµã</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
+        /// <param name="pos">æ—‹è½¬ç‚¹</param>
         void        rotateViewYByCenter(real angle, const real3& pos);
         /// <summary>
-        ///  ÈÆÊÀ½ç×ø±êÏµZÖá(0,0,1)²¢ÒÔÖ¸¶¨µãÎªĞı×ªµã¹«×ª
+        ///  ç»•ä¸–ç•Œåæ ‡ç³»Zè½´(0,0,1)å¹¶ä»¥æŒ‡å®šç‚¹ä¸ºæ—‹è½¬ç‚¹å…¬è½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
-        /// <param name="pos">Ğı×ªµã</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
+        /// <param name="pos">æ—‹è½¬ç‚¹</param>
         void        rotateViewZByCenter(real angle, const real3& pos);
         /// <summary>
-        ///  ÈÆÈÎÒâÖá×Ô×ª
+        ///  ç»•ä»»æ„è½´è‡ªè½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
-        /// <param name="axis">Ğı×ªÖá(µ¥Î»ÏòÁ¿)</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
+        /// <param name="axis">æ—‹è½¬è½´(å•ä½å‘é‡)</param>
         void        rotateViewByAxis(real angle, const real3& axis);
         /// <summary>
-        /// ÈÆÖ¸¶¨ÖáºÍÖ¸¶¨ÖĞĞÄµã¹«×ª
+        /// ç»•æŒ‡å®šè½´å’ŒæŒ‡å®šä¸­å¿ƒç‚¹å…¬è½¬
         /// </summary>
-        /// <param name="angle">Ğı×ª½Ç¶È</param>
-        /// <param name="axis">Ğı×ªÖá(µ¥Î»ÏòÁ¿)</param>
-        /// <param name="pos">Ğı×ªµã</param>
+        /// <param name="angle">æ—‹è½¬è§’åº¦</param>
+        /// <param name="axis">æ—‹è½¬è½´(å•ä½å‘é‡)</param>
+        /// <param name="pos">æ—‹è½¬ç‚¹</param>
         void        rotateViewByAxis(real angle, const real3& axis, const real3& pos);
         /// <summary>
-        ///  Ö¸¶¨µãÍÆ½øÏà»ú
+        ///  æŒ‡å®šç‚¹æ¨è¿›ç›¸æœº
         /// </summary>
-        /// <param name="pos">ÍÆ½øµã</param>
-        /// <param name="persent">Æ«ÒÆÏµÊı£¬´óÓÚ1ÔòÔ¶ÀëÍÆ½øµã£¬Ğ¡ÓÚ1Ôò½Ó½üÍÆ½øµã</param>
+        /// <param name="pos">æ¨è¿›ç‚¹</param>
+        /// <param name="persent">åç§»ç³»æ•°ï¼Œå¤§äº1åˆ™è¿œç¦»æ¨è¿›ç‚¹ï¼Œå°äº1åˆ™æ¥è¿‘æ¨è¿›ç‚¹</param>
         void        scaleCameraByPos(const real3& pos, real persent);
 
         /// <summary>
-        ///  ÊÀ½ç×ø±ê×ª»¯Îª´°¿Ú×ø±ê
+        ///  ä¸–ç•Œåæ ‡è½¬åŒ–ä¸ºçª—å£åæ ‡
         /// </summary>
-        /// <param name="world">Óû×ª»»µÄÊÀ½ç×ø±ê</param>
-        /// <param name="screen">×ª»»½á¹û£¬´°¿Ú×ø±ê</param>
-        /// <returns>ÊÇ·ñ×ª»»³É¹¦</returns>
+        /// <param name="world">æ¬²è½¬æ¢çš„ä¸–ç•Œåæ ‡</param>
+        /// <param name="screen">è½¬æ¢ç»“æœï¼Œçª—å£åæ ‡</param>
+        /// <returns>æ˜¯å¦è½¬æ¢æˆåŠŸ</returns>
         bool        project(const real4& world, real4& screen) const
         {
             screen = (_matProj * _matView) * world;
@@ -748,11 +748,11 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        ///  ´°¿Ú×ø±ê×ª»¯ÎªÊÀ½ç×ø±ê
+        ///  çª—å£åæ ‡è½¬åŒ–ä¸ºä¸–ç•Œåæ ‡
         /// </summary>
-        /// <param name="screen">Óû×ª»»µÄ´°¿Ú×ø±ê</param>
-        /// <param name="world">×ª»»½á¹û£¬ÊÀ½ç×ø±ê</param>
-        /// <returns>ÊÇ·ñ×ª»»³É¹¦</returns>
+        /// <param name="screen">æ¬²è½¬æ¢çš„çª—å£åæ ‡</param>
+        /// <param name="world">è½¬æ¢ç»“æœï¼Œä¸–ç•Œåæ ‡</param>
+        /// <returns>æ˜¯å¦è½¬æ¢æˆåŠŸ</returns>
         bool        unProject(const real4& screen, real4& world) const
         {
             real4 v;
@@ -784,18 +784,18 @@ namespace   FE
         enum    FaceDir: uint
         {
             Top                 =   1 << 0,    
-            /// µ×²¿
+            /// åº•éƒ¨
             Bottom              =   1 << 1,
-            /// Ç°
+            /// å‰
             Front               =   1 << 2,
-            ///ºó
+            ///å
             Back                =   1 << 3,
-            /// ×ó
+            /// å·¦
             Left                =   1 << 4,
-            /// ÓÒ
+            /// å³
             Right               =   1 << 5,
             /// <summary>
-            /// Ä¿Ç°Ö§³ÖµÄ×éºÏ
+            /// ç›®å‰æ”¯æŒçš„ç»„åˆ
             /// </summary>
             FrontRightTop       =   Front | Right  | Top,
             FrontLeftTop        =   Front | Left   | Top,
@@ -819,8 +819,8 @@ namespace   FE
             BackLeft            =   Back  | Left,
             BackRight           =   Back  | Right,
             /// <summary>
-            /// Éè¼ÆÆ÷Öá²âÍ¼ÊÓ½Ç,Áù¸ö·½Ïò×éºÏµÄ×î´óÖµÎª (Right<<1) - 1
-            /// ËùÒÔÏÂÃæ´Ó(Right<<1) + 1 ¿ªÊ¼
+            /// è®¾è®¡å™¨è½´æµ‹å›¾è§†è§’,å…­ä¸ªæ–¹å‘ç»„åˆçš„æœ€å¤§å€¼ä¸º (Right<<1) - 1
+            /// æ‰€ä»¥ä¸‹é¢ä»(Right<<1) + 1 å¼€å§‹
             /// </summary>
             ISO1                =   (Right<<1) + 1,
             ISO2                =   (Right<<1) + 2,
@@ -829,19 +829,19 @@ namespace   FE
         };
         using   FaceDirs    =   FEFlags<FaceDir,uint>;
         /// <summary>
-        /// ¹Ì¶¨Ïà¼Ó²é¿´Î»ÖÃ
+        /// å›ºå®šç›¸åŠ æŸ¥çœ‹ä½ç½®
         /// </summary>
         /// <param name="aabb"></param>
         /// <param name="director"></param>
         void        lookAtTo(const aabb3dr& aabb,FaceDirs director = Front);
         /// <summary>
-        /// ¸ù¾İÆÁÄ»¿Õ¼äµÄ¾ØĞÎ·¶Î§Éú³É²Ã¼ô×¶Ìå(×ø±êµ¥Î»0-1)
-        /// ĞèÒª°ÑÆÁÄ»ÏñËØ×ø±êÓ³Éäµ½0-1
-        /// µäĞÍÓ¦ÓÃ³¡¾°:Êó±ê¿òÑ¡
+        /// æ ¹æ®å±å¹•ç©ºé—´çš„çŸ©å½¢èŒƒå›´ç”Ÿæˆè£å‰ªé”¥ä½“(åæ ‡å•ä½0-1)
+        /// éœ€è¦æŠŠå±å¹•åƒç´ åæ ‡æ˜ å°„åˆ°0-1
+        /// å…¸å‹åº”ç”¨åœºæ™¯:é¼ æ ‡æ¡†é€‰
         /// </summary>
-        /// <param name="vMin">·¶Î§0-1</param>
-        /// <param name="vMax">·¶Î§0-1</param>
-        /// <param name="vCorner">²»Îªnullptr,ÔòÊä³öÊÓ×¶µÄ¶¥µã×ø±ê£¬±ØĞë²»ÄÜÉÙÓÚ8¸ö¶¥µãµÄ»º³åÇø
+        /// <param name="vMin">èŒƒå›´0-1</param>
+        /// <param name="vMax">èŒƒå›´0-1</param>
+        /// <param name="vCorner">ä¸ä¸ºnullptr,åˆ™è¾“å‡ºè§†é”¥çš„é¡¶ç‚¹åæ ‡ï¼Œå¿…é¡»ä¸èƒ½å°‘äº8ä¸ªé¡¶ç‚¹çš„ç¼“å†²åŒº
         /// 
         ///    7-----6
         ///   /|    /|
@@ -856,13 +856,13 @@ namespace   FE
         /// <returns></returns>
         FrustumR    extract(const real2& vMin,const real2& vMax,real3* vCorner = nullptr);
         /// <summary>
-        /// ÆÁÄ»×ø±ê£¬µ¥Î»ÏñËØ,×¢Òâ:´°¿Ú×ø±ê×óÉÏ½ÇÎª(0,0),ÓÒÏÂ½Ç(width,height)
-        /// ÏµÍ³×ø±êÏµ:×óÏÂ½ÇÎª(0,0),ÓÒÉÏ½ÇÎª(width,height)
-        /// ĞèÒª°Ñy½øĞĞ·´×ªÏÂ
+        /// å±å¹•åæ ‡ï¼Œå•ä½åƒç´ ,æ³¨æ„:çª—å£åæ ‡å·¦ä¸Šè§’ä¸º(0,0),å³ä¸‹è§’(width,height)
+        /// ç³»ç»Ÿåæ ‡ç³»:å·¦ä¸‹è§’ä¸º(0,0),å³ä¸Šè§’ä¸º(width,height)
+        /// éœ€è¦æŠŠyè¿›è¡Œåè½¬ä¸‹
         /// </summary>
         /// <param name="screenMin"></param>
         /// <param name="screenMax"></param>
-        /// <param name="vCorner">²»Îªnullptr,ÔòÊä³öÊÓ×¶µÄ¶¥µã×ø±ê£¬±ØĞë²»ÄÜÉÙÓÚ8¸ö¶¥µãµÄ»º³åÇø
+        /// <param name="vCorner">ä¸ä¸ºnullptr,åˆ™è¾“å‡ºè§†é”¥çš„é¡¶ç‚¹åæ ‡ï¼Œå¿…é¡»ä¸èƒ½å°‘äº8ä¸ªé¡¶ç‚¹çš„ç¼“å†²åŒº
         /// 
         ///    7-----6
         ///   /|    /|
@@ -877,10 +877,10 @@ namespace   FE
         /// <returns></returns>
         FrustumR    extract(const uint2& screenMin,const uint2& screenMax,real3* vCorner = nullptr)
         {
-            /// ½«ÆÁÄ»×ø±êÓ³Éä³É0-1
+            /// å°†å±å¹•åæ ‡æ˜ å°„æˆ0-1
             real2   vMin    =   real2(screenMin.x,screenMin.y)/_viewSize;
             real2   vMax    =   real2(screenMax.x,screenMax.y)/_viewSize;
-            /// ±£Ö¤·¶Î§
+            /// ä¿è¯èŒƒå›´
             vMin    =   FE::clamp(vMin,real2(0,0),real2(1,1));
             vMax    =   FE::clamp(vMax,real2(0,0),real2(1,1));
 
@@ -905,15 +905,15 @@ public:
         enum    SplitMethod: uint
         {
             /// <summary>
-            /// Ä¬ÈÏ£¬×Ô¶¯¸ù¾İnear/far·¶Î§¼ÆËã£¬×î¶àÉú³ÉÈı¼¶
+            /// é»˜è®¤ï¼Œè‡ªåŠ¨æ ¹æ®near/farèŒƒå›´è®¡ç®—ï¼Œæœ€å¤šç”Ÿæˆä¸‰çº§
             /// </summary>
             SM_Auto     =   0,
             /// <summary>
-            /// ÏßĞÔ·Ö¼¶
+            /// çº¿æ€§åˆ†çº§
             /// </summary>
             SM_Uniform  =   1,
             /// <summary>
-            /// ¶ÔÊı·Ö¼¶
+            /// å¯¹æ•°åˆ†çº§
             /// </summary>
             SM_Log      =   2,
         };
@@ -936,10 +936,10 @@ public:
         }
 
         /// <summary>
-        /// ¸ù¾İ×î½üµãÓë×îÔ¶µã¼ÆËãÏà»ú¼¶ÁªÊı¾İ
+        /// æ ¹æ®æœ€è¿‘ç‚¹ä¸æœ€è¿œç‚¹è®¡ç®—ç›¸æœºçº§è”æ•°æ®
         /// </summary>
-        /// <param name="nearFar">Ïà»ú²Ã¼ô¾àÀë</param>
-        /// <returns>·µ»Ø¼¶ÁªÊı¾İ</returns>
+        /// <param name="nearFar">ç›¸æœºè£å‰ªè·ç¦»</param>
+        /// <returns>è¿”å›çº§è”æ•°æ®</returns>
         static  real2s  calcCascade(const real2& nearFar,SplitMethod method = SM_Auto,size_t cnt= 3)
         {
             (void)SM_Auto;
@@ -947,12 +947,12 @@ public:
             return  calcCascade(nearFar.x,nearFar.y,method,cnt);
         }
         /// <summary>
-        /// ¸ù¾İ×î½üµãÓë×îÔ¶µã¼ÆËãÏà»ú¼¶ÁªÊı¾İ
+        /// æ ¹æ®æœ€è¿‘ç‚¹ä¸æœ€è¿œç‚¹è®¡ç®—ç›¸æœºçº§è”æ•°æ®
         /// </summary>
-        /// <param name="fNear">Ïà»ú½ü²Ã¼ô¾àÀë</param>
-        /// <param name="fFar">Ïà»úÔ¶²Ã¼ô¾àÀë</param>
+        /// <param name="fNear">ç›¸æœºè¿‘è£å‰ªè·ç¦»</param>
+        /// <param name="fFar">ç›¸æœºè¿œè£å‰ªè·ç¦»</param>
         /// <param name="metod"></param>
-        /// <returns>·µ»Ø¼¶ÁªÊı¾İ</returns>
+        /// <returns>è¿”å›çº§è”æ•°æ®</returns>
         static  real2s  calcCascade(const real& fNear,const real& fFar,SplitMethod metod = SM_Auto,size_t cnt= 3)
         {
             switch (metod)
@@ -965,20 +965,20 @@ public:
                 {
                     real    dMax    =   fFar - fNear;
                     real2s  results;
-                    /// ³¬¹ı 1000000.0 ,Ôò·ÖÈı¼¶
+                    /// è¶…è¿‡ 1000000.0 ,åˆ™åˆ†ä¸‰çº§
                     if (dMax/1000000.0 > 1.0)
                     {
                         results.push_back(real2(0.0 + fNear,        1000.0 + fNear));
                         results.push_back(real2(1000.0,             1000000.0 + fNear));
                         results.push_back(real2(1000000.0,          dMax + fNear));
                     }
-                    /// ³¬¹ı 100000.0 ,Ôò·Ö2¼¶
+                    /// è¶…è¿‡ 100000.0 ,åˆ™åˆ†2çº§
                     else if (dMax/100000.0 > 1.0)
                     {
                         results.push_back(real2(0.0 + fNear,        1000.0 + fNear));
                         results.push_back(real2(1000.0,             dMax + fNear));
                     }
-                    /// Ğ¡ÓÚ 100000 , Ôò·Ö1¼¶
+                    /// å°äº 100000 , åˆ™åˆ†1çº§
                     else
                     {
                         results.push_back(real2(0.0 + fNear,      dMax + fNear));
@@ -989,11 +989,11 @@ public:
             }
         }
         /// <summary>
-        /// ÓÃÍ¾:¸ù¾İÏà»úµÄ×î½üÓë×îÔ¶¾àÀë£¬Éú³É¼¶ÁªÊı¾İ
+        /// ç”¨é€”:æ ¹æ®ç›¸æœºçš„æœ€è¿‘ä¸æœ€è¿œè·ç¦»ï¼Œç”Ÿæˆçº§è”æ•°æ®
         /// </summary>
-        /// <param name="amount">Éú³É¼¶ÁªµÄ¸öÊı£¬3¿ÉÒÔÊÊºÏ´ó¶àÊı³¡¾°</param>
-        /// <param name="neard">Ïà»úµÄ×î½üµã</param>
-        /// <param name="fard">Ïà»úµÄ×îÔ¶µã</param>
+        /// <param name="amount">ç”Ÿæˆçº§è”çš„ä¸ªæ•°ï¼Œ3å¯ä»¥é€‚åˆå¤§å¤šæ•°åœºæ™¯</param>
+        /// <param name="neard">ç›¸æœºçš„æœ€è¿‘ç‚¹</param>
+        /// <param name="fard">ç›¸æœºçš„æœ€è¿œç‚¹</param>
         /// <returns></returns>
         static  real2s  uniformSplit(size_t amount,real neard, real fard)
         {
@@ -1014,11 +1014,11 @@ public:
             return  result;
         }
         /// <summary>
-        /// ÓÃÍ¾:(¶ÔÊı·¨) ¸ù¾İÏà»úµÄ×î½üÓë×îÔ¶¾àÀë£¬Éú³É¼¶ÁªÊı¾İ
+        /// ç”¨é€”:(å¯¹æ•°æ³•) æ ¹æ®ç›¸æœºçš„æœ€è¿‘ä¸æœ€è¿œè·ç¦»ï¼Œç”Ÿæˆçº§è”æ•°æ®
         /// </summary>
-        /// <param name="amount">Éú³É¼¶ÁªµÄ¸öÊı£¬3¿ÉÒÔÊÊºÏ´ó¶àÊı³¡¾°</param>
-        /// <param name="neard">Ïà»úµÄ×î½üµã</param>
-        /// <param name="fard">Ïà»úµÄ×îÔ¶µã</param>
+        /// <param name="amount">ç”Ÿæˆçº§è”çš„ä¸ªæ•°ï¼Œ3å¯ä»¥é€‚åˆå¤§å¤šæ•°åœºæ™¯</param>
+        /// <param name="neard">ç›¸æœºçš„æœ€è¿‘ç‚¹</param>
+        /// <param name="fard">ç›¸æœºçš„æœ€è¿œç‚¹</param>
         /// <returns></returns>
         static  real2s  logarithmicSplit(size_t amount,real neard, real fard)
         {

@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    "../inc/FEImage.h"
 #include    "image/FEBmpWriter.hpp"
 #include    "image/FEBmpReader.hpp"

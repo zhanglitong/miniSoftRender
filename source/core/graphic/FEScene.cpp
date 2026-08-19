@@ -1,4 +1,4 @@
-
+﻿
 #include    "../inc/FELog.hpp"
 #include    "../inc/FEPickup.hpp"
 #include    "../inc/FEFileSystem.hpp"
@@ -22,7 +22,7 @@ namespace   FE
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
         _app        =   app;
-        _renderSys  =   FERenderSystem::create(_ctx,RS_WEBGPU);
+        _renderSys  =   FERenderSystem::create(_ctx,RS_VULKAN);
         assert(_renderSys != nullptr);
         if (_renderSys == nullptr)
             return  false;
@@ -92,16 +92,17 @@ namespace   FE
             addNodesToFactory({node});
         }
 
-        /// 创建 viewer,viewer是一个渲染器，负责管理场景中的所有对象，处理输入事件，并与渲染系统进行交互
+        /// 鍒涘缓 viewer,viewer鏄竴涓覆鏌撳櫒锛岃礋璐ｇ鐞嗗満鏅腑鐨勬墍鏈夊璞★紝澶勭悊杈撳叆浜嬩欢锛屽苟涓庢覆鏌撶郴缁熻繘琛屼氦浜?
         {
             auto    viewer = new FEViewer(_ctx,_camera,nullptr,ViewerUsage::USAGE_Classic);
             _viewerMgr.addObject(viewer);
             _viewerMgr.setActiveViewer(viewer);
         }
-        /// 关联anchor
-        /// anchor 发生变化后，绘制同步更新
+        /// 鍏宠仈anchor
+        /// anchor 鍙戠敓鍙樺寲鍚庯紝缁樺埗鍚屾鏇存柊
         _ctx.anchor().addNotify(this,[this](Object object)
             {
+                UNUSED(object);
                 if (_mousePoint)
                 {
                     _mousePoint->setLocalTranslation(_ctx.anchor().point());
@@ -311,7 +312,7 @@ namespace   FE
             mkey._primitive =   var->primitive();
             mkey._slotBits  =   slot;
             auto    key     =   mkey.key();
-            /// 查找工厂对象
+            /// 鏌ユ壘宸ュ巶瀵硅薄
             auto    factory =   _factorys.findObject(key);
             if (!factory)
                 continue;
@@ -389,8 +390,8 @@ namespace   FE
         cameraUBO->create({sizeof(CameraData),      MemoryUsage::DEVICE_DEFAULT_BIT});
         cameraUBO->setObjectId(FEConstUuid::CameraUBOId);
         device.cacheObject(cameraUBO.get());
-        /// Ĭ�Ϸ���ƹ������������
-        /// ��ϵͳ�ƹ������������128,���ַ���
+        /// 默锟较凤拷锟斤拷乒锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
+        /// 锟斤拷系统锟狡癸拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟?28,锟斤拷锟街凤拷锟斤拷
         auto    lightSBO    =   device.createSBO();
         lightSBO->create({sizeof(LightData) * 128,  MemoryUsage::DEVICE_DEFAULT_BIT});
         lightSBO->setObjectId(FEConstUuid::LightsId);

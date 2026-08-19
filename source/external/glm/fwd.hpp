@@ -1,4 +1,4 @@
-/// @ref core
+﻿/// @ref core
 /// @file glm/fwd.hpp
 
 #include "detail/setup.hpp"

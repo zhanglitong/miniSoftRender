@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEObject.h"
 #include    "FEReaderHelper.hpp"
@@ -45,13 +45,13 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ±ê×¼¶ÔÏó¶ÁÈ¡Á÷³Ì
+        /// æ ‡å‡†å¯¹è±¡è¯»å–æµç¨‹
         /// </summary>
         /// <param name="_ctx"></param>
         /// <param name="reader"></param>
         /// <param name="version"></param>
         /// <param name="xctx"></param>
-        /// <returns>nullptr Ê§°Ü</returns>
+        /// <returns>nullptr å¤±è´¥</returns>
         static  Object  readObject(FEContext& _ctx,FEReader& reader,uint& version,FESerializeCtx& xctx)
         {
             (void)version;
@@ -67,12 +67,12 @@ namespace   FE
                     break;
                 if(reader.read(clsId)  !=  sizeof(clsId))
                     break;
-                /// ÏàÍ¬,Ö±½ÓÊ¹ÓÃ¹¹½¨Æ÷
+                /// ç›¸åŒ,ç›´æ¥ä½¿ç”¨æ„å»ºå™¨
                 if (clsId == xctx.preCLSId)
                 {
                     result  =   createObject(_ctx,clsId,&xctx.preCreator,nullptr);
                 }
-                /// ²»Í¬,¸üĞÂ¹¹½¨Æ÷
+                /// ä¸åŒ,æ›´æ–°æ„å»ºå™¨
                 else
                 {
                     xctx.preCLSId   =   clsId;
@@ -83,22 +83,22 @@ namespace   FE
                     reader.skip(infor._length - sizeof(infor) - sizeof(clsId));
                     break;
                 }   
-                /// ĞòÁĞ»¯µÄÊ±ºòÒª´Ó¿éµÄ¿ªÊ¼¶ÁÈ¡£¬ËùÒÔÒªÌø»Ø¿éµÄ¿ªÊ¼
+                /// åºåˆ—åŒ–çš„æ—¶å€™è¦ä»å—çš„å¼€å§‹è¯»å–ï¼Œæ‰€ä»¥è¦è·³å›å—çš„å¼€å§‹
                 reader.seek(nCur);
-                /// ¶ÁÈ¡
+                /// è¯»å–
                 result->deserialize(reader,nVerison,xctx);
 
             } while (false);
             return  result;
         }
         /// <summary>
-        /// ´´½¨¶ÔÏó
+        /// åˆ›å»ºå¯¹è±¡
         /// </summary>
-        /// <param name="_ctx">Ó¦ÓÃÉÏÏÂÎÄ</param>
-        /// <param name="clsId">ÀàĞÍId</param>
-        /// <param name="pIn">ÊäÈë¹¹½¨Æ÷</param>
-        /// <param name="pOut">Êä³ö¹¹½¨Æ÷</param>
-        /// <returns>¶ÔÏó</returns>
+        /// <param name="_ctx">åº”ç”¨ä¸Šä¸‹æ–‡</param>
+        /// <param name="clsId">ç±»å‹Id</param>
+        /// <param name="pIn">è¾“å…¥æ„å»ºå™¨</param>
+        /// <param name="pOut">è¾“å‡ºæ„å»ºå™¨</param>
+        /// <returns>å¯¹è±¡</returns>
         static  Object  createObject(FEContext& _ctx,const CLSId& clsId,FECreator* pIn  = nullptr,FECreator* pOut = nullptr)
         {
             FECreator*  pCreator    =   nullptr;

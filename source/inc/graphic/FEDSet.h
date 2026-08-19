@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "RSObject.h"
 #include    "FEDSetLayout.h"
@@ -41,7 +41,7 @@ namespace   FE
             _cInfo  =   other._cInfo;
         }
         /// <summary>
-        /// »ñÈ¡´´½¨ĞÅÏ¢
+        /// è·å–åˆ›å»ºä¿¡æ¯
         /// </summary>
         /// <returns></returns>
         const   auto&   cInfo() const
@@ -51,7 +51,7 @@ namespace   FE
         virtual bool        create(const CreateInfo& info)  =   0;
         virtual bool        update()    =   0;
         /// <summary>
-        /// ²éÑ¯ Binding
+        /// æŸ¥è¯¢ Binding
         /// </summary>
         /// <param name="binding"></param>
         /// <returns></returns>
@@ -67,7 +67,7 @@ namespace   FE
             return  nullptr;
         }
         /// <summary>
-        /// ¹ØÁª¶ÔÏó
+        /// å…³è”å¯¹è±¡
         /// </summary>
         /// <param name="binding"></param>
         /// <param name="objects"></param>

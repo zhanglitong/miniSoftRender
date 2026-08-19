@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMaterial.hpp"
 
 namespace   FE
@@ -13,9 +13,9 @@ namespace   FE
             :FEMaterial(ctx)
         {
             setup("v3c4");
-            /// ×Ô¶¯½«ÏµÍ³Êı¾İÓë²ÄÖÊËùĞèÊı¾İ¹ØÁªÆğÀ´
+            /// è‡ªåŠ¨å°†ç³»ç»Ÿæ•°æ®ä¸æè´¨æ‰€éœ€æ•°æ®å…³è”èµ·æ¥
             autoAttach();
-            /// ¸üĞÂÊı¾İ
+            /// æ›´æ–°æ•°æ®
             update();
         }
         FEMaterialV3C4(const FEMaterialV3C4& other)

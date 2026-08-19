@@ -1,4 +1,4 @@
-#pragma     once
+Ôªø#pragma     once
 
 #include    "FEDefine.h"
 #include    "FEMath.hpp"
@@ -29,7 +29,7 @@ namespace   FE
             return  _bottom - _top;
         }
         /// <summary>
-        /// ¥Û–°
+        /// Â§ßÂ∞è
         /// </summary>
         /// <returns></returns>
         inline  auto    size() const
@@ -41,7 +41,7 @@ namespace   FE
             return  tvec2<T>(width()/T(2),height()/T(2));
         }
         /// <summary>
-        /// ÷––ƒµ„
+        /// ‰∏≠ÂøÉÁÇπ
         /// </summary>
         /// <returns></returns>
         inline  auto    center() const

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMath.hpp"
 
 namespace   FE
@@ -8,40 +8,40 @@ namespace   FE
     public:
         enum    StreamMode :uint16_t
         {
-            /// Ö§³ÖÄ£Ê½,supportº¯ÊıÖĞµ÷ÓÃ,read from file 
+            /// æ”¯æŒæ¨¡å¼,supportå‡½æ•°ä¸­è°ƒç”¨,read from file 
             SM_FILE    =   1<<0,
             /// read from memory
             SM_MEMORY  =   1<<1,
         };
         using   ModeBits    =   FEFlags<StreamMode,uint16_t>;
         /// <summary>
-        /// ½â¾ö¼ÓÔØÆ÷ÀàĞÍ¹ıÂËÎÊÌâ£¬ÀıÈçµ±ÎÒÖ»ĞèÒª¼ÓÔØÄ£ĞÍÀàÎÄ¼ş
-        /// ÄÇÃ´Ö»ĞèÒªÁĞ³öÀ´Ö§³ÖÄÄĞ©Ä£ĞÍÀàµÄÎÄ¼şÀàĞÍ¼´¿É
+        /// è§£å†³åŠ è½½å™¨ç±»å‹è¿‡æ»¤é—®é¢˜ï¼Œä¾‹å¦‚å½“æˆ‘åªéœ€è¦åŠ è½½æ¨¡å‹ç±»æ–‡ä»¶
+        /// é‚£ä¹ˆåªéœ€è¦åˆ—å‡ºæ¥æ”¯æŒå“ªäº›æ¨¡å‹ç±»çš„æ–‡ä»¶ç±»å‹å³å¯
         /// </summary>
         enum    Type : uint16_t
         {
             /// <summary>
-            /// ÈıÎ¬Ä£ĞÍÀàĞÍ
+            /// ä¸‰ç»´æ¨¡å‹ç±»å‹
             /// </summary>
             DT_Model,
             /// <summary>
-            /// Í¼Æ¬ÀàĞÍ,   Êı¾İÎªImagePtr list
+            /// å›¾ç‰‡ç±»å‹,   æ•°æ®ä¸ºImagePtr list
             /// </summary>
             DT_Image,
             /// <summary>
-            /// »º³åÇøÀà,   Êı¾İÎª DataObject List
+            /// ç¼“å†²åŒºç±»,   æ•°æ®ä¸º DataObject List
             /// </summary>
             DT_Buffer,
             /// <summary>
-            /// GIS ÒªËØÀà
+            /// GIS è¦ç´ ç±»
             /// </summary>
             DT_Feature,
             /// <summary>
-            /// ÊôĞÔÏà¹Ø£¬Ä£ĞÍÊôĞÔ
+            /// å±æ€§ç›¸å…³ï¼Œæ¨¡å‹å±æ€§
             /// </summary>
             DT_Attribute,
             /// <summary>
-            /// Êı¾İ¿â
+            /// æ•°æ®åº“
             /// </summary>
             DT_Database,
         };
@@ -67,15 +67,15 @@ namespace   FE
         ModeBits    _mode           =   SM_FILE;
         Type        _type           =   DT_Model;
         CLSId       _loaderId;
-        /// ¸ñÊ½×Ö·û´®
+        /// æ ¼å¼å­—ç¬¦ä¸²
         char        _format[16]     =   {0};
-        /// °æ±¾
+        /// ç‰ˆæœ¬
         char        _version[16]    =   {0};
-        /// ÃèÊöĞÅÏ¢
+        /// æè¿°ä¿¡æ¯
         char        _desc[64]       =   {0};
     public:
         /// <summary>
-        /// ¼ÓÔØÆ÷ÀàĞÍid
+        /// åŠ è½½å™¨ç±»å‹id
         /// </summary>
         /// <returns></returns>
         const   CLSId&  loaderId() const
@@ -87,15 +87,15 @@ namespace   FE
             return  strlen(_format) != 0;
         }
         /// <summary>
-        /// ·µ»Ø¸ñÊ½×Ö·û´®,ÀıÈç".pprj" ¿ÉĞ´
+        /// è¿”å›æ ¼å¼å­—ç¬¦ä¸²,ä¾‹å¦‚".pprj" å¯å†™
         /// </summary>
-        /// <returns>À©Õ¹Ãû</returns>
+        /// <returns>æ‰©å±•å</returns>
         inline  auto    ext() 
         {
             return  _format;
         }
         /// <summary>
-        /// ·µ»Ø¸ñÊ½×Ö·û´®,ÀıÈç".pprj" Ö»¶Á
+        /// è¿”å›æ ¼å¼å­—ç¬¦ä¸²,ä¾‹å¦‚".pprj" åªè¯»
         /// </summary>
         /// <returns></returns>
         const   auto    ext() const
@@ -103,7 +103,7 @@ namespace   FE
             return  _format;
         }
         /// <summary>
-        /// »ñÈ¡°æ±¾ºÅ,ÀıÈç:"1.0.0.1"
+        /// è·å–ç‰ˆæœ¬å·,ä¾‹å¦‚:"1.0.0.1"
         /// </summary>
         /// <returns></returns>
         const   auto    version() const
@@ -111,7 +111,7 @@ namespace   FE
             return  _format;
         }
         /// <summary>
-        /// ·µ»ØÃèÊö,ÀıÈç: "video file"
+        /// è¿”å›æè¿°,ä¾‹å¦‚: "video file"
         /// </summary>
         /// <returns></returns>
         const   auto    desc() const
@@ -119,7 +119,7 @@ namespace   FE
             return  _desc;
         }
         /// <summary>
-        /// ·µ»ØÃèÊö×Ö·û´®£¬ÓÃÓÚ×é×°´ò¿ªÎÄ¼şÁĞ±í
+        /// è¿”å›æè¿°å­—ç¬¦ä¸²ï¼Œç”¨äºç»„è£…æ‰“å¼€æ–‡ä»¶åˆ—è¡¨
         /// </summary>
         inline  String  toString() const
         {
@@ -133,30 +133,30 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ±È½ÏÊÇ·ñÊÇÏàÍ¬µÄÀàĞÍ,Èç¹û¸ñÊ½Ò»Ñù£¬±È½Ï°æ±¾£¬Ã»ÓĞ°æ±¾ĞÅÏ¢£¬Ôò±È½ÏÍ¨¹ı
+        /// æ¯”è¾ƒæ˜¯å¦æ˜¯ç›¸åŒçš„ç±»å‹,å¦‚æœæ ¼å¼ä¸€æ ·ï¼Œæ¯”è¾ƒç‰ˆæœ¬ï¼Œæ²¡æœ‰ç‰ˆæœ¬ä¿¡æ¯ï¼Œåˆ™æ¯”è¾ƒé€šè¿‡
         /// </summary>
         friend  bool    operator  == (const FEFileFormat& l,const FEFileFormat& r)
         {
-            /// Èç¹ûÀ©Õ¹Ãû²»Ò»Ñù£¬²»±È½Ï£¬Ö±½Ó²»Æ¥Åä
+            /// å¦‚æœæ‰©å±•åä¸ä¸€æ ·ï¼Œä¸æ¯”è¾ƒï¼Œç›´æ¥ä¸åŒ¹é…
             if (_stricmp(l.ext(),r.ext()) != 0)
                 return  false;
-            /// Èç¹û×ó²àÓĞ°æ±¾£¬ÔòÒª±È½Ï°æ±¾
+            /// å¦‚æœå·¦ä¾§æœ‰ç‰ˆæœ¬ï¼Œåˆ™è¦æ¯”è¾ƒç‰ˆæœ¬
             if (strlen(l.version()) > 0 && _stricmp(l.version(),r.version()) != 0)
                 return  false;
-            /// Èç¹û×ó²àÓĞ¹ıÂËĞÅÏ¢£¬ÔòÒª±È½Ï£¬·ñÔò²»±È½Ï
+            /// å¦‚æœå·¦ä¾§æœ‰è¿‡æ»¤ä¿¡æ¯ï¼Œåˆ™è¦æ¯”è¾ƒï¼Œå¦åˆ™ä¸æ¯”è¾ƒ
             if (strlen(l.desc()) > 0 && _stricmp(l.desc(),r.desc()) != 0)
                 return  false;
             return  true;
         }
         /// <summary>
-        /// ±È½ÏÊÇ·ñÊÇÏàÍ¬µÄÀàĞÍ,Èç¹û¸ñÊ½Ò»Ñù£¬±È½Ï°æ±¾£¬Ã»ÓĞ°æ±¾ĞÅÏ¢£¬Ôò±È½ÏÍ¨¹ı
+        /// æ¯”è¾ƒæ˜¯å¦æ˜¯ç›¸åŒçš„ç±»å‹,å¦‚æœæ ¼å¼ä¸€æ ·ï¼Œæ¯”è¾ƒç‰ˆæœ¬ï¼Œæ²¡æœ‰ç‰ˆæœ¬ä¿¡æ¯ï¼Œåˆ™æ¯”è¾ƒé€šè¿‡
         /// </summary>
         friend  bool    operator  != (const FEFileFormat& l,const FEFileFormat& r)
         {
             return  !(l == r);
         }
         /// <summary>
-        /// ¸ñÊ½»¯¶ÔÏó
+        /// æ ¼å¼åŒ–å¯¹è±¡
         /// </summary>
         /// <param name="filter"></param>
         /// <returns></returns>

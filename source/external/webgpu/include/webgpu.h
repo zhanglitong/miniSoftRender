@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright 2019-2023 WebGPU-Native developers
  *
  * SPDX-License-Identifier: BSD-3-Clause

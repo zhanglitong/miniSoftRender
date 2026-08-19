@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    <functional>
 #include    "FEClip.hpp"
 
@@ -7,10 +7,10 @@ namespace FE
     DEFINE_CLASS_UUID(FEAnimation, "{D0749EE9-7126-4A57-B4F2-84798E4F40F2}");
 
     /// <summary>
-    /// 对象中包含需要被动画的对象
-    /// 以及clip信息，clip 动画片段，包含实际的动画关键帧组数据
-    /// 可以实现动画数据与动画对象分离,让动画数据有复用价值
-    /// 典型应用：一个对象，在时间线上，可以断开
+    /// 瀵硅薄涓寘鍚渶瑕佽鍔ㄧ敾鐨勫璞?
+    /// 浠ュ強clip淇℃伅锛宑lip 鍔ㄧ敾鐗囨锛屽寘鍚疄闄呯殑鍔ㄧ敾鍏抽敭甯х粍鏁版嵁
+    /// 鍙互瀹炵幇鍔ㄧ敾鏁版嵁涓庡姩鐢诲璞″垎绂?璁╁姩鐢绘暟鎹湁澶嶇敤浠峰€?
+    /// 鍏稿瀷搴旂敤锛氫竴涓璞★紝鍦ㄦ椂闂寸嚎涓婏紝鍙互鏂紑
     /// </summary>
     class   FEAnimation : public FEObject
     {
@@ -30,7 +30,7 @@ namespace FE
         ~FEAnimation()   =   default;
     public:
         /// <summary>
-        /// 是否有效
+        /// 鏄惁鏈夋晥
         /// </summary>
         /// <returns></returns>
         bool    isValid() const
@@ -55,7 +55,7 @@ namespace FE
             _object =   object;
         }
         /// <summary>
-        /// 更新,会把动画数据应用到对象上
+        /// 鏇存柊,浼氭妸鍔ㄧ敾鏁版嵁搴旂敤鍒板璞′笂
         /// </summary>
         /// <param name="tmDelat"></param>
         bool    update(const real& tmDelta)

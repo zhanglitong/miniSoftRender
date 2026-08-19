@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "RSObject.h"
 #include    "FECmdBuffer.h"
@@ -121,19 +121,19 @@ namespace   FE
         /// <returns></returns>
         virtual GPUBuffer   createFromBuffer(const void*,uint64 length)   =   0;
         /// <summary>
-        /// Ö÷Òª×÷ÓÃÊÇ»º³åÏµÍ³ÄÚÖÃµÄ¶ÔÏó
+        /// ä¸»è¦ä½œç”¨æ˜¯ç¼“å†²ç³»ç»Ÿå†…ç½®çš„å¯¹è±¡
         /// </summary>
         /// <param name="object"></param>
         /// <returns></returns>
         virtual bool        cacheObject(Object object);
         /// <summary>
-        /// ²éÑ¯ÄÚÖÃ¶ÔÏó
+        /// æŸ¥è¯¢å†…ç½®å¯¹è±¡
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
         virtual Object      queryCache(const FEUuid& id) const;
         /// <summary>
-        /// Ïú»Ù
+        /// é”€æ¯
         /// </summary>
         virtual void        destroy();
     public:
@@ -146,11 +146,11 @@ namespace   FE
         CMDPool         _transferPool;
         Objects         _cacheObject;
         /// <summary>
-        /// ¹ÜÀíÏµÍ³ÖĞµÄËùÓĞ¹ÜÏß
+        /// ç®¡ç†ç³»ç»Ÿä¸­çš„æ‰€æœ‰ç®¡çº¿
         /// </summary>
         PipelineMgr     _pipelineMgr;
         /// <summary>
-        /// ¹ÜÀíµÆ¹â¶ÔÏó
+        /// ç®¡ç†ç¯å…‰å¯¹è±¡
         /// </summary>
         LightMgr        _lightsMgr;
         

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../../FEStreamReader.hpp"
 #include    "../../FEDateTime.hpp"
 #include    "../../FEReaderHelper.hpp"
@@ -23,7 +23,7 @@ namespace   FE
             :FEStreamReader(other)
         {}
         /// <summary>
-        /// ×é¼şÖ§³ÖµÄ¸ñÊ½Êı×é
+        /// ç»„ä»¶æ”¯æŒçš„æ ¼å¼æ•°ç»„
         /// </summary>
         /// <returns></returns>
         virtual Formats formats() const override
@@ -31,7 +31,7 @@ namespace   FE
             return  formatList();
         }
         /// <summary>
-        /// ½Ó¿Úµ÷ÓÃ¼ÓÔØÎÄ¼ş
+        /// æ¥å£è°ƒç”¨åŠ è½½æ–‡ä»¶
         /// </summary>
         /// <param name="file"></param>
         /// <returns></returns>
@@ -79,7 +79,7 @@ namespace   FE
                     return  {};
                 }
             };
-            /// ¼ÆËãËùÓĞÎÄ¼ş´óĞ¡
+            /// è®¡ç®—æ‰€æœ‰æ–‡ä»¶å¤§å°
             for (auto& var : files)
             {
                 xsCtx.allByte +=  FEFileInfor::fileSize(var);
@@ -99,7 +99,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ÊäÈë¶à¸öbuffer,´Ó¶à¸öbufferÖĞ¶ÁÈ¡¶ÔÏóÊı¾İ
+        /// è¾“å…¥å¤šä¸ªbuffer,ä»å¤šä¸ªbufferä¸­è¯»å–å¯¹è±¡æ•°æ®
         /// </summary>
         /// <param name="buffers"></param>
         /// <param name="params"></param>
@@ -115,7 +115,7 @@ namespace   FE
             {
                 newCtx.allByte   +=  var->length();
             }
-            /// ²éÑ¯º¯Êı
+            /// æŸ¥è¯¢å‡½æ•°
             newCtx.query        =   [&](const OBJId& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
             {
                 switch(option)
@@ -151,14 +151,14 @@ namespace   FE
                     return  {};
                 }
             };
-            /// ÏÈ²éÕÒÊÇ·ñÒÑ¾­ÉèÖÃÁË
+            /// å…ˆæŸ¥æ‰¾æ˜¯å¦å·²ç»è®¾ç½®äº†
             auto        parCtx  =   param(TBCXSerialize);
-            /// Èç¹ûÒÑ¾­ÉèÖÃ£¬ÔòÊ¹ÓÃÉèÖÃµÄ
+            /// å¦‚æœå·²ç»è®¾ç½®ï¼Œåˆ™ä½¿ç”¨è®¾ç½®çš„
             if (!std::holds_alternative<std::monostate>(parCtx))
             {
                 pCtx    =   std::get<FESerializeCtx*>(parCtx);
             }
-            /// ´æ´¢Èë¿Ú¶ÔÏóÁĞ±í
+            /// å­˜å‚¨å…¥å£å¯¹è±¡åˆ—è¡¨
             Objects         entryList;
             Objects         results;
             for (auto var : buffers)
@@ -180,8 +180,8 @@ namespace   FE
                     if (object == nullptr)
                         continue;
                     pCtx->query(object->objectId(),object.get(),FESerializeCtx::O_Cache);
-                    /// ¼ì²âÊÇ²»ÊÇFEEntryList 
-                    /// ¸Ã¶ÔÏó¶¨ÒåÁËÒª·µ»ØÄÄĞ©¶ÔÏó
+                    /// æ£€æµ‹æ˜¯ä¸æ˜¯FEEntryList 
+                    /// è¯¥å¯¹è±¡å®šä¹‰äº†è¦è¿”å›å“ªäº›å¯¹è±¡
                     if (object->cast<FEEntryList>())
                     {
                         entryList.push_back(object);
@@ -202,7 +202,7 @@ namespace   FE
             return  results;
         }
         /// <summary>
-        /// ½ø¶ÈÍ¨Öª
+        /// è¿›åº¦é€šçŸ¥
         /// </summary>
         /// <param name="val"></param>
         virtual void    onProgress(real val)

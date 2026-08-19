@@ -1,4 +1,4 @@
-
+ï»¿
 #include    "../inc/graphic/FEViewer.h"
 #include    "../inc/graphic/FEDevice.h"
 #include    "../inc/graphic/FEFactoryMgr.hpp"
@@ -47,9 +47,9 @@ namespace   FE
     }
     void    FEViewer::onMessage(const FEMessage& msg)
     {
-        /// ´¦ÀíÊäÈëÏûÏ¢µÄÂß¼­
-        /// ÕâÀï¿ÉÒÔ¸ù¾Ý¾ßÌåµÄÏûÏ¢ÀàÐÍ½øÐÐ´¦Àí£¬ÀýÈçÊó±êµã»÷¡¢¼üÅÌÊäÈëµÈ
-        /// ¿ÉÒÔµ÷ÓÃÏàÓ¦µÄ»Øµ÷º¯Êý»òÕßÐÞ¸ÄÏà»ú×´Ì¬µÈ
+        /// å¤„ç†è¾“å…¥æ¶ˆæ¯çš„é€»è¾‘
+        /// è¿™é‡Œå¯ä»¥æ ¹æ®å…·ä½“çš„æ¶ˆæ¯ç±»åž‹è¿›è¡Œå¤„ç†ï¼Œä¾‹å¦‚é¼ æ ‡ç‚¹å‡»ã€é”®ç›˜è¾“å…¥ç­‰
+        /// å¯ä»¥è°ƒç”¨ç›¸åº”çš„å›žè°ƒå‡½æ•°æˆ–è€…ä¿®æ”¹ç›¸æœºçŠ¶æ€ç­‰
         switch (msg.msgId())
         {
         case MSG_UPDATE:
@@ -131,7 +131,7 @@ namespace   FE
             USAGE_GUI     ,
             USAGE_Overlay ,
         };
-        /// ±£Ö¤¹¤³§µÄäÖÈ¾Ë³Ðò£¬°´ÕÕusageµÄË³Ðò½øÐÐäÖÈ¾
+        /// ä¿è¯å·¥åŽ‚çš„æ¸²æŸ“é¡ºåºï¼ŒæŒ‰ç…§usageçš„é¡ºåºè¿›è¡Œæ¸²æŸ“
         for (auto usage : usageList)
         {
             if (!_usages.hasFlag(usage))
@@ -161,7 +161,7 @@ namespace   FE
         auto    camera  =   _camera ? _camera : _ctx.scene()->camera();
         if (camera == nullptr)
             return;
-        /// ÕâÀïÐèÒª»ñÈ¡µ½Ïà¶ÔÓÚµ±Ç°viewerµÄ×ø±ê
+        /// è¿™é‡Œéœ€è¦èŽ·å–åˆ°ç›¸å¯¹äºŽå½“å‰viewerçš„åæ ‡
         auto    viewPt  =   clientToViewer(msg._info._mouse);
         auto    ray     =   camera->createRayFromScreen(viewPt.x,viewPt.y);
         auto&   nodeTree=   _ctx.scene()->nodeTree();
@@ -184,6 +184,7 @@ namespace   FE
 
     void    FEViewer::onRButtonDown(const MsgRButtonDown& msg)
     {
+        UNUSED(msg);
     }
     void    FEViewer::onMouseMove(const MsgMouseMove& msg)
     {

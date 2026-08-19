@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../../FEStreamWriter.hpp"
 #include    "../../FEDateTime.hpp"
 #include    "../../FEEntryList.hpp"
@@ -23,7 +23,7 @@ namespace   FE
             :FEStreamWriter(other)
         {}
         /// <summary>
-        /// ×é¼şÖ§³ÖµÄ¸ñÊ½Êı×é
+        /// ç»„ä»¶æ”¯æŒçš„æ ¼å¼æ•°ç»„
         /// </summary>
         /// <returns></returns>
         virtual Formats formats() const override
@@ -31,7 +31,7 @@ namespace   FE
             return  FEFormatXML::formats(classId());
         }
         /// <summary>
-        /// Ğ´ÎÄ¼ş
+        /// å†™æ–‡ä»¶
         /// </summary>
         /// <param name="ojects"></param>
         /// <param name="filePathName"></param>
@@ -49,7 +49,7 @@ namespace   FE
                 return  false;
             Buffer          buffer  =   new FEBuffer(_ctx);
             buffer->cInfo()._buffer.resize(nLen);
-            /// ¼ÆËã×Ü´óĞ¡
+            /// è®¡ç®—æ€»å¤§å°
             xsCtx.allByte   =   vFile.tell();
             xsCtx.doByte    =   0;
             setParam(TBCXSerialize,&xsCtx);
@@ -71,16 +71,16 @@ namespace   FE
                 fFile.close();
             }
             std::filesystem::path   tmpFile     =   tmp;
-            /// É¾³ıÔ­À´µÄÎÄ¼ş
+            /// åˆ é™¤åŸæ¥çš„æ–‡ä»¶
             std::filesystem::path   filePath    =   filePathName;
             if (std::filesystem::exists(filePath))
                 std::filesystem::remove(filePath);
-            /// ÖØÃüÃûtmp-> filePath
+            /// é‡å‘½åtmp-> filePath
             std::filesystem::rename(tmpFile,filePath);
             return  true;
         }
         /// <summary>
-        /// Ğ´Writer
+        /// å†™Writer
         /// </summary>
         /// <param name="ojects"></param>
         /// <param name="writer"></param>
@@ -139,20 +139,20 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ²éÑ¯Ò»¸ö¶ÔÏóµÄÒÀÀµ¶ÔÏó
+        /// æŸ¥è¯¢ä¸€ä¸ªå¯¹è±¡çš„ä¾èµ–å¯¹è±¡
         /// </summary>
-        /// <param name="object">±»²éÑ¯¶ÔÏó</param>
-        /// <param name="objectSet">Êä³öÒÀÀµ¶ÔÏó¼¯ºÏ</param>
-        /// <param name="results">ÓëobjectSetÒ»ÖÂ£¬ÊÇÓĞĞòµÄ£¬°´ÕÕÒÀÀµ¹ØÏµ</param>
+        /// <param name="object">è¢«æŸ¥è¯¢å¯¹è±¡</param>
+        /// <param name="objectSet">è¾“å‡ºä¾èµ–å¯¹è±¡é›†åˆ</param>
+        /// <param name="results">ä¸objectSetä¸€è‡´ï¼Œæ˜¯æœ‰åºçš„ï¼ŒæŒ‰ç…§ä¾èµ–å…³ç³»</param>
         static  void    collectDepends(Object object,ObjectUSet& objectSet,Objects& results)
         {
             if (!object->supportSerial())
                 return;
             ObjectUSet  depends;
-            /// ²éÑ¯objectÒÀÀµµÄ¶ÔÏó
+            /// æŸ¥è¯¢objectä¾èµ–çš„å¯¹è±¡
             object->queryDepends(depends);
-            /// ×ª´æµ½ÏßĞÔ±í
-            /// ×¼±¸²éÑ¯ÒÀÀµµÄÒÀÀµ
+            /// è½¬å­˜åˆ°çº¿æ€§è¡¨
+            /// å‡†å¤‡æŸ¥è¯¢ä¾èµ–çš„ä¾èµ–
             for (auto& var : depends)
             {
                 if (!var->supportSerial())
@@ -162,7 +162,7 @@ namespace   FE
                 results.push_back(var);
                 objectSet.emplace(var);
             }
-            /// ±éÀú×ÓËï½Úµã,ÓÅÏÈ°´ÕÕ²ã¼¶µİ¹é
+            /// éå†å­å­™èŠ‚ç‚¹,ä¼˜å…ˆæŒ‰ç…§å±‚çº§é€’å½’
             if (object->cast<FENode>())
             {
                 auto&   childs  =   object->cast<FENode>()->children();
@@ -174,7 +174,7 @@ namespace   FE
                 }
             }
             
-            /// Ñ¯ÒÀÀµµÄÒÀÀµ(µİ¹é) Éî¶Èµİ¹é
+            /// è¯¢ä¾èµ–çš„ä¾èµ–(é€’å½’) æ·±åº¦é€’å½’
             for (auto& var : depends)
             {
                 collectDepends(var,objectSet,results);
@@ -186,7 +186,7 @@ namespace   FE
             XMLNode*    ver     =   doc.allocate_node(rapidxml::node_pi, "xml version='1.0' encoding='utf-8'", 0);
             doc.append_node(ver);
 
-            /// Í³¼ÆÒÀÀµ
+            /// ç»Ÿè®¡ä¾èµ–
             ObjectUSet  objectSet;
             Objects     results;
             uint64      nStart  =   writer.tell();
@@ -196,15 +196,15 @@ namespace   FE
             }
             Header  header(true);
             header.write(writer);
-            /// ÒÀÀµĞ´Èë
+            /// ä¾èµ–å†™å…¥
             for (auto& var : results)
             {
                 uint    version =   0;
                 var->serialize(writer,version,xCTX);
             }
-            /// ¶ÔÏóĞ´Èë
+            /// å¯¹è±¡å†™å…¥
             FEEntryList entryList(_ctx);
-            /// ¸øÈë¿ÚÊı¾İ¸³Öµ
+            /// ç»™å…¥å£æ•°æ®èµ‹å€¼
             uint    nVersion =   0;
             for (auto& var : ojects)
             {

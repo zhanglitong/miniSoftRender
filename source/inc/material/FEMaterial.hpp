@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEObject.h"
 #include    "graphic/FEDSet.h"
 #include    "graphic/FEPipeline.h"
@@ -36,10 +36,10 @@ namespace   FE
     protected:
         DSets       _dsets      =   {};
         /// <summary>
-        /// vulkan Ã¿Ò»ÖÖÍ¼ÔªÀàĞÍÊÇÒ»ÖÖpipeline
-        /// ÓĞĞ©ÏÔ¿¨Ö§³Ö¶¯Ì¬ÉèÖÃÍ¼ÔªÀàĞÍ£¬ÓĞĞ©²»Ö§³Ö
-        /// Èç¹ûÖ§³ÖµÄÏÔ¿¨,ÔòËùÓĞµÄÄÚÈİÊÇÒ»ÑùµÄ
-        /// Èç¹û²»Ö§³Ö,ÔòÃ¿Ò»¸ö¶¼ÊÇ²»Í¬µÄ¹ÜÏß
+        /// vulkan æ¯ä¸€ç§å›¾å…ƒç±»å‹æ˜¯ä¸€ç§pipeline
+        /// æœ‰äº›æ˜¾å¡æ”¯æŒåŠ¨æ€è®¾ç½®å›¾å…ƒç±»å‹ï¼Œæœ‰äº›ä¸æ”¯æŒ
+        /// å¦‚æœæ”¯æŒçš„æ˜¾å¡,åˆ™æ‰€æœ‰çš„å†…å®¹æ˜¯ä¸€æ ·çš„
+        /// å¦‚æœä¸æ”¯æŒ,åˆ™æ¯ä¸€ä¸ªéƒ½æ˜¯ä¸åŒçš„ç®¡çº¿
         /// </summary>
         Pipeline    _pipelines[PRI_MAX] =   {};
         
@@ -76,7 +76,7 @@ namespace   FE
         }
 
         /// <summary>
-        /// ×ÓÀàÖØĞ´£¬»ùÀàÊ¹ÓÃ£¬·µ»Ø0,Ôò²»Ğ´Èë
+        /// å­ç±»é‡å†™ï¼ŒåŸºç±»ä½¿ç”¨ï¼Œè¿”å›0,åˆ™ä¸å†™å…¥
         /// </summary>
         /// <returns></returns>
         virtual uint        pushConstantSize() const
@@ -88,8 +88,8 @@ namespace   FE
             return  nullptr;
         }
         /// <summary>
-        /// ¸Ãº¯Êı»á¸ù¾İÇ°×º×Ö·û´® + /ÀàĞÍ ²éÑ¯pipeline
-        /// ÀıÈç v3c4,ÏµÍ³»á×Ô¶¯Éú³É v3c4/nameOfEnum(EPrimitive);
+        /// è¯¥å‡½æ•°ä¼šæ ¹æ®å‰ç¼€å­—ç¬¦ä¸² + /ç±»å‹ æŸ¥è¯¢pipeline
+        /// ä¾‹å¦‚ v3c4,ç³»ç»Ÿä¼šè‡ªåŠ¨ç”Ÿæˆ v3c4/nameOfEnum(EPrimitive);
         /// for (uint8 i = 0; i < EPrimitive::PRI_MAX; ++i)
         /// {
         ///   String      plName  =   "v3c4/" + String(nameOfEnum(EPrimitive(i)));
@@ -99,17 +99,17 @@ namespace   FE
         /// <returns></returns>
         bool    setup(const String& prefix);
         /// <summary>
-        /// Ó¦ÓÃ¶¯Ì¬ÉèÖÃ
+        /// åº”ç”¨åŠ¨æ€è®¾ç½®
         /// </summary>
         void    appDynamicState(CMDPtr cmd,EPrimitive pri);
         /// <summary>
-        /// ²éÑ¯ÃèÊö·û
+        /// æŸ¥è¯¢æè¿°ç¬¦
         /// </summary>
         /// <param name="set"></param>
         /// <returns></returns>
         DSet    query(uint16 set);
         /// <summary>
-        /// °ó¶¨Êı¾İµ½ÃèÊö·û£¬µ÷ÓÃÍê³Éºó£¬ĞèÒªµ÷ÓÃ¸üĞÂº¯Êı£¬°ÑÊı¾İ´«¸øÏÔ¿¨
+        /// ç»‘å®šæ•°æ®åˆ°æè¿°ç¬¦ï¼Œè°ƒç”¨å®Œæˆåï¼Œéœ€è¦è°ƒç”¨æ›´æ–°å‡½æ•°ï¼ŒæŠŠæ•°æ®ä¼ ç»™æ˜¾å¡
         /// </summary>
         /// <param name="set"></param>
         /// <param name="bind"></param>
@@ -117,12 +117,12 @@ namespace   FE
         /// <returns></returns>
         bool    bind(uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges = {},const uint64s& offsets = {});
         /// <summary>
-        /// Êı¾İÉÏ´«µ½ÏÔ¿¨£¬ĞèÒªÊÖ¶¯µ÷ÓÃ
+        /// æ•°æ®ä¸Šä¼ åˆ°æ˜¾å¡ï¼Œéœ€è¦æ‰‹åŠ¨è°ƒç”¨
         /// </summary>
         void    update();
     protected:
         /// <summary>
-        /// ÊµÏÖ ubo,texture ×Ô¶¯¹ØÁª
+        /// å®ç° ubo,texture è‡ªåŠ¨å…³è”
         /// </summary>
         void    autoAttach();
     };

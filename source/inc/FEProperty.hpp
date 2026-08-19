@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEObject.h"
 #include    "FEKeyValues.hpp"
@@ -12,7 +12,7 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// ÊôĞÔÖµµÄÀàĞÍ£¬Ä¿Ç°Ö»ÓĞÈçÏÂ¼¯ÖĞÀàĞÍ
+        /// å±æ€§å€¼çš„ç±»å‹ï¼Œç›®å‰åªæœ‰å¦‚ä¸‹é›†ä¸­ç±»å‹
         /// </summary>
         using   Value       =   std::variant<   std::monostate,int64,real
                                                 ,String,Strings
@@ -20,7 +20,7 @@ namespace   FE
                                                 ,Rgba8
                                                 ,FEUuid>;
         /// <summary>
-        /// ±ä¸üÍ¨Öª
+        /// å˜æ›´é€šçŸ¥
         /// </summary>
         using   NChanged    =   std::function<void(const Value& old,const Value&)>;
         class   ValueObject
@@ -37,7 +37,7 @@ namespace   FE
                 _value  =   std::move(value);
             }
             /// <summary>
-            /// »ñÈ¡Öµ
+            /// è·å–å€¼
             /// </summary>
             /// <returns></returns>
             const   Value&  value() const
@@ -45,7 +45,7 @@ namespace   FE
                 return  _value;
             }
             /// <summary>
-            /// ÊÇ·ñÓĞĞ§
+            /// æ˜¯å¦æœ‰æ•ˆ
             /// </summary>
             /// <returns></returns>
             inline  bool    isValid() const
@@ -53,7 +53,7 @@ namespace   FE
                 return  !std::holds_alternative<std::monostate>(_value);
             }
             /// <summary>
-            /// ÉèÖÃÖµ
+            /// è®¾ç½®å€¼
             /// </summary>
             /// <param name="value"></param>
             /// <returns></returns>
@@ -118,11 +118,11 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override
         {
@@ -161,7 +161,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>

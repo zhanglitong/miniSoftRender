@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEBuffer.hpp"
 #include    "stream/FEReader.hpp"
@@ -29,7 +29,7 @@ namespace   FE
             return  buffer;
         }
         /// <summary>
-        /// »ñÈ¡Ğ´µÄ×Ö½ÚÊı
+        /// è·å–å†™çš„å­—èŠ‚æ•°
         /// </summary>
         /// <returns></returns>
         uint64_t    size() const

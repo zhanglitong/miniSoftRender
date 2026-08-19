@@ -1,4 +1,4 @@
-#include    "WGDSetPool.h"
+﻿#include    "WGDSetPool.h"
 
 namespace   FE
 {

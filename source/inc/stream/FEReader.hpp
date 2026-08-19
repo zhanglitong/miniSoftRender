@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../FEChunkInf.hpp"
 #include    "../FEObject.h"
 #include    "../FEDefine.h"
@@ -26,11 +26,12 @@ namespace   FE
         {
             T       value   =   {};
             auto    result  =   read(value);
+            UNUSED(result);
             assert(result == sizeof(value));
             return  value;
         }
         /// <summary>
-        /// ¶ÁÈ¡×Ö·û´®
+        /// è¯»å–å­—ç¬¦ä¸²
         /// </summary>
         /// <param name="val"></param>
         /// <returns></returns>
@@ -59,7 +60,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ¶Á×Ö·û´®Êı×é
+        /// è¯»å­—ç¬¦ä¸²æ•°ç»„
         /// </summary>
         /// <param name="vals"></param>
         /// <returns></returns>
@@ -105,40 +106,40 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// ¶ÁÈ¡Ö¸¶¨´óĞ¡µÄÊı¾İs
+        /// è¯»å–æŒ‡å®šå¤§å°çš„æ•°æ®s
         /// </summary>
         /// <param name="data"></param>
         /// <param name="len"></param>
         /// <returns></returns>
         virtual uint64  readBuffer(void* data,uint64 len)   =   0;
         /// <summary>
-        /// »ñÈ¡Î»ÖÃ
+        /// è·å–ä½ç½®
         /// </summary>
         /// <returns></returns>
         virtual uint64  tell() const    =   0;
         /// <summary>
-        /// ÉèÖÃÎ»ÖÃ
+        /// è®¾ç½®ä½ç½®
         /// </summary>
         /// <param name="pos"></param>
-        /// <returns>ÉÏÒ»´ÎµÄÎ»ÖÃ</returns>
+        /// <returns>ä¸Šä¸€æ¬¡çš„ä½ç½®</returns>
         virtual uint64  seek(uint64 pos)    =   0;;
         /// <summary>
-        /// Ìø¹ı
+        /// è·³è¿‡
         /// </summary>
         /// <param name="pos"></param>
-        /// <returns>ÉÏÒ»´ÎµÄÎ»ÖÃ</returns>
+        /// <returns>ä¸Šä¸€æ¬¡çš„ä½ç½®</returns>
         virtual uint64  skip(int64 pos) =   0;
         /// <summary>
-        /// ³¤¶È
+        /// é•¿åº¦
         /// </summary>
         /// <returns></returns>
         virtual uint64  length() const  =   0;
         /// <summary>
-        /// ¹Ø±Õ
+        /// å…³é—­
         /// </summary>
         virtual void    close() =   0;
         /// <summary>
-        /// ÊÇ·ñÓĞĞ§
+        /// æ˜¯å¦æœ‰æ•ˆ
         /// </summary>
         /// <returns></returns>
         virtual bool    isValid() const =   0;

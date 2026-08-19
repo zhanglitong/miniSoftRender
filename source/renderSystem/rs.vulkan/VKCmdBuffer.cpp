@@ -1,4 +1,4 @@
-
+Ôªø
 
 #include    "VKCmdBuffer.h"
 #include    "VKDevice.h"
@@ -204,7 +204,7 @@ namespace   FE
         else
             vkCmdEndRendering(_native);
 
-        /// ≤ºæ÷◊™ªª
+        /// Â∏ÉÂ±ÄËΩ¨Êç¢
         constexpr   size_t  nMax    =   32;
         size_t      nCnt            =   (std::min<size_t>)(nMax,rs._colors.size());
 

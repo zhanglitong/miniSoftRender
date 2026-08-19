@@ -1,4 +1,4 @@
-#pragma     once
+О╩©#pragma     once
 
 #include    <cstddef>
 #include    <cstdint>
@@ -12,10 +12,10 @@ namespace   FE
         {
             struct
             {
-                uint32_t _b : 10;  // Blue  ╥жа©ё╛сп╥Ш╨её╛╥╤н╖ 0 ~ 1023
-                uint32_t _g : 10;  // Green ╥жа©ё╛сп╥Ш╨её╛╥╤н╖ 0 ~ 1023
-                uint32_t _r : 10;  // Red   ╥жа©ё╛сп╥Ш╨её╛╥╤н╖ 0 ~ 1023
-                uint32_t _a : 2;   // Alpha ╥жа©ё╛сп╥Ш╨её╛╥╤н╖ 0 ~ 3
+                uint32_t _b : 10;  // Blue  Е┬├И┤▐О╪▄Ф°┴Г╛╕Е▐╥О╪▄Х▄┐Е⌡╢ 0 ~ 1023
+                uint32_t _g : 10;  // Green Е┬├И┤▐О╪▄Ф°┴Г╛╕Е▐╥О╪▄Х▄┐Е⌡╢ 0 ~ 1023
+                uint32_t _r : 10;  // Red   Е┬├И┤▐О╪▄Ф°┴Г╛╕Е▐╥О╪▄Х▄┐Е⌡╢ 0 ~ 1023
+                uint32_t _a : 2;   // Alpha Е┬├И┤▐О╪▄Ф°┴Г╛╕Е▐╥О╪▄Х▄┐Е⌡╢ 0 ~ 3
             };
             uint32_t _value;
         };

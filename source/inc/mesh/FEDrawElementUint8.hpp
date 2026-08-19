@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEPrimitive.hpp"
 namespace   FE
@@ -38,7 +38,7 @@ namespace   FE
             _indexOffset    =   offset;
         }
         /// <summary>
-        /// ·µ»ØË÷ÒıµÄÊıÁ¿
+        /// è¿”å›ç´¢å¼•çš„æ•°é‡
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="pbuf"></param>
@@ -56,12 +56,12 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="chunk">Êı¾İÍ·£¬×ÓÀà¿É¸ù¾İÇé¿öĞŞ¸Ä(flags×Ö¶Î)£¬ÊµÏÖÒ»Ğ©ÓÅ»¯´¦Àí</param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="chunk">æ•°æ®å¤´ï¼Œå­ç±»å¯æ ¹æ®æƒ…å†µä¿®æ”¹(flagså­—æ®µ)ï¼Œå®ç°ä¸€äº›ä¼˜åŒ–å¤„ç†</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override
         {
@@ -69,10 +69,10 @@ namespace   FE
             writer.write(_index);
         }
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
-        /// <param name="chk">Êı¾İÍ·£¬×ÓÀà¿É¸ù¾İchk._flags×Ö¶Î¶ÁÈ¡¿ØÖÆ</param>
+        /// <param name="chk">æ•°æ®å¤´ï¼Œå­ç±»å¯æ ¹æ®chk._flagså­—æ®µè¯»å–æ§åˆ¶</param>
         /// <param name="ctx"></param>
         /// <returns></returns>
         virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chk,uint version,FESerializeCtx& ctx) override

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <stdio.h>
 #include    <string.h>
@@ -55,7 +55,7 @@ namespace   FE
             delete  []_buffer;
         }
         /// <summary>
-        /// ÊÇ·ñÎª¿Õ
+        /// æ˜¯å¦ä¸ºç©º
         /// </summary>
         /// <returns></returns>
         inline  bool    empty() const
@@ -63,15 +63,15 @@ namespace   FE
             return  _buffer == nullptr || _buffer[0]=='\0';
         }
         /// <summary>
-        /// º¯Êı²»»á·µ»Ønullptr,Èç¹ûÊÇnullptr,Ôò·µ»Ø""
+        /// å‡½æ•°ä¸ä¼šè¿”å›nullptr,å¦‚æœæ˜¯nullptr,åˆ™è¿”å›""
         /// </summary>
-        /// <returns>Öµ×ÜÊÇÓĞĞ§</returns>
+        /// <returns>å€¼æ€»æ˜¯æœ‰æ•ˆ</returns>
         inline  PCSTR   c_str() const
         {
             return  _buffer == nullptr ? "" : _buffer;
         }
         /// <summary>
-        /// ·µ»Ø×Ö·û´®³¤¶È
+        /// è¿”å›å­—ç¬¦ä¸²é•¿åº¦
         /// </summary>
         /// <returns></returns>
         inline  size_t  size() const
@@ -82,15 +82,15 @@ namespace   FE
                 return  strlen(_buffer);
         }
         /// <summary>
-        /// Êı¾İ²»Ò»¶¨ÓĞĞ§£¬Èç¹ûÃ»ÓĞ³õÊ¼»¯£¬·µ»ØÖµÄÚ²¿Ö¸Õë¶ÔÏó
+        /// æ•°æ®ä¸ä¸€å®šæœ‰æ•ˆï¼Œå¦‚æœæ²¡æœ‰åˆå§‹åŒ–ï¼Œè¿”å›å€¼å†…éƒ¨æŒ‡é’ˆå¯¹è±¡
         /// </summary>
-        /// <returns>ÄÚ²¿Êı¾İÖ¸Õë</returns>
+        /// <returns>å†…éƒ¨æ•°æ®æŒ‡é’ˆ</returns>
         inline  char*   data()
         {
             return  _buffer;
         }
         /// <summary>
-        /// Ö»¶Á·½Ê½»ñÈ¡Êı¾İ
+        /// åªè¯»æ–¹å¼è·å–æ•°æ®
         /// </summary>
         /// <returns></returns>
         inline  PCSTR   data() const
@@ -98,7 +98,7 @@ namespace   FE
             return  _buffer;
         }
         /// <summary>
-        /// ÖØĞÂ·ÖÅäÄÚ´æ´óĞ¡£¬»áÓÃÀÏµÄÊı¾İÌî³äĞÂ»º³åÇø
+        /// é‡æ–°åˆ†é…å†…å­˜å¤§å°ï¼Œä¼šç”¨è€çš„æ•°æ®å¡«å……æ–°ç¼“å†²åŒº
         /// </summary>
         /// <param name="len"></param>
         inline  void    resize(size_t len)
@@ -114,7 +114,7 @@ namespace   FE
             _buffer =   pStr;
         }
         /// <summary>
-        /// ·ÖÅäÄÚ´æ,²»»á¸³ÖµÄÚ´æ£¬ĞèÒªÍâ²¿´¦Àí
+        /// åˆ†é…å†…å­˜,ä¸ä¼šèµ‹å€¼å†…å­˜ï¼Œéœ€è¦å¤–éƒ¨å¤„ç†
         /// </summary>
         /// <param name="len"></param>
         inline  void    alloc(size_t len)
@@ -124,7 +124,7 @@ namespace   FE
             _buffer[len]    =   '\0';
         }
         /// <summary>
-        /// ¸³Öµº¯Êı
+        /// èµ‹å€¼å‡½æ•°
         /// </summary>
         /// <param name="right"></param>
         /// <returns></returns>
@@ -132,7 +132,7 @@ namespace   FE
         {
             if (right == _buffer || right == nullptr)
                 return  *this;
-            /// ÊÍ·Åbuffer
+            /// é‡Šæ”¾buffer
             delete  []_buffer;
             _buffer     =   nullptr;
             size_t  len =   strlen(right);
@@ -152,25 +152,25 @@ namespace   FE
             return  (operator =(right.c_str()));
         }
         /// <summary>
-        /// ÊÇ·ñÏàµÈ
+        /// æ˜¯å¦ç›¸ç­‰
         /// </summary>
         /// <param name="pStr"></param>
         /// <returns></returns>
         inline  bool operator == (const char* pStr) const
         {
-            /// pStr == _buffer Óë×Ô¼º±È½Ï ÔòÊÇÏàµÈ
-            /// pStr == _buffer = nullptr ¶¼ÊÇnullptr,ÔòÈÏÎªÊÇÏàµÈ
+            /// pStr == _buffer ä¸è‡ªå·±æ¯”è¾ƒ åˆ™æ˜¯ç›¸ç­‰
+            /// pStr == _buffer = nullptr éƒ½æ˜¯nullptr,åˆ™è®¤ä¸ºæ˜¯ç›¸ç­‰
             if (pStr == _buffer)
                 return  true;
             /// pStr != _buffer  pStr == nullptr
-            /// ÆäÖĞÒ»¸öÊÇnullptr,ÔòÈÏÎª²»ÏàµÈ
+            /// å…¶ä¸­ä¸€ä¸ªæ˜¯nullptr,åˆ™è®¤ä¸ºä¸ç›¸ç­‰
             else if(pStr == nullptr)
                 return  false;
             /// pStr != _buffer  _buffer == nullptr
-            /// ÆäÖĞÒ»¸öÊÇnullptr,ÔòÈÏÎª²»ÏàµÈ
+            /// å…¶ä¸­ä¸€ä¸ªæ˜¯nullptr,åˆ™è®¤ä¸ºä¸ç›¸ç­‰
             else if(_buffer == nullptr)
                 return  false;
-            /// Êı¾İÓĞĞ§£¬±È½ÏÄÚÈİ
+            /// æ•°æ®æœ‰æ•ˆï¼Œæ¯”è¾ƒå†…å®¹
             else
                 return  strcmp(pStr,_buffer) == 0;
         }
@@ -183,7 +183,7 @@ namespace   FE
             return  operator == (str.c_str());
         }
         /// <summary>
-        /// ²»ÏàµÈ
+        /// ä¸ç›¸ç­‰
         /// </summary>
         /// <param name="pStr"></param>
         /// <returns></returns>

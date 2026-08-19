@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "../FEApp.hpp"
 #include    <windows.h>
 #include    <fcntl.h>
@@ -176,9 +176,9 @@ namespace   FE
                 {
                     MsgUpdate   msgUpdate   =   {};
                     MsgRender   msgRender   =   {};
-                    /// ¸üĞÂÏûÏ¢
+                    /// æ›´æ–°æ¶ˆæ¯
                     onMessage(msgUpdate);
-                    /// »æÖÆÏûÏ¢
+                    /// ç»˜åˆ¶æ¶ˆæ¯
                     onMessage(msgRender);
                 }
             }
@@ -194,13 +194,14 @@ namespace   FE
         {}
 
         /// <summary>
-        /// »ñÈ¡µ±Ç°Ó¦ÓÃµÄÈ«Â·¾¶
+        /// è·å–å½“å‰åº”ç”¨çš„å…¨è·¯å¾„
         /// </summary>
         /// <returns></returns>
         virtual String  filePathName() override
         {
             char    szTemp[2048]    =   {};
             auto    result  =   GetModuleFileNameA(nullptr,szTemp,sizeof(szTemp));
+            UNUSED(result);
             assert(result < sizeof(szTemp));
             return  szTemp;
         }

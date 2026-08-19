@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEFactoryRender.hpp"
 
@@ -10,15 +10,15 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// °ó¶¨¸üĞÂµÄ¶ÔÏós
+        /// ç»‘å®šæ›´æ–°çš„å¯¹è±¡s
         /// </summary>
         Object          _object;
         /// <summary>
-        /// Í¨Öª
+        /// é€šçŸ¥
         /// </summary>
         UpdateNotify    _notify;
         /// <summary>
-        /// ¸üĞÂµÄÓÅÏÈ¼¶
+        /// æ›´æ–°çš„ä¼˜å…ˆçº§
         /// </summary>
         FEPriority      _priority;
         /// <summary>
@@ -33,7 +33,7 @@ namespace   FE
     {
     public:
         /// <summary>
-        /// Ìí¼ÓĞèÒª¸üĞÂµÄ¶ÔÏó
+        /// æ·»åŠ éœ€è¦æ›´æ–°çš„å¯¹è±¡
         /// </summary>
         /// <param name="object"></param>
         /// <param name="pri"></param>
@@ -62,7 +62,7 @@ namespace   FE
             return  true;
         }
         /// <summary>
-        /// ÒÆ³ı¸üĞÂ¶ÔÏó
+        /// ç§»é™¤æ›´æ–°å¯¹è±¡
         /// </summary>
         /// <param name="object"></param>
         /// <returns></returns>
@@ -85,7 +85,7 @@ namespace   FE
             return  _queue;
         }
         /// <summary>
-        /// Ö´ĞĞ¸üĞÂ
+        /// æ‰§è¡Œæ›´æ–°
         /// </summary>
         /// <param name="cmd"></param>
         inline  void    update(CMDPtr cmd)

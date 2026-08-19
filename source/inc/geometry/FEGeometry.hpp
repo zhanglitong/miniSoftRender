@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    <type_traits>
 #include    <functional>
@@ -46,7 +46,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÊÇ·ñÊÇ²ÎÊı»¯Ä£ĞÍ,²ÎÊı»¯×ÓÀàÖØĞ´
+        /// æ˜¯å¦æ˜¯å‚æ•°åŒ–æ¨¡å‹,å‚æ•°åŒ–å­ç±»é‡å†™
         /// </summary>
         /// <returns></returns>
         virtual bool    isParam() const
@@ -54,10 +54,10 @@ namespace   FE
             return  false;
         }
         /// <summary>
-        /// »ñÈ¡ÒÀÀµµÄ¶ÔÏó,×ÓÀàÊµÏÖ
+        /// è·å–ä¾èµ–çš„å¯¹è±¡,å­ç±»å®ç°
         /// </summary>
         /// <param name="uset"></param>
-        /// <returns>·µ»ØÒÔÀ´µÄ¶ÔÏó¸öÊı</returns>
+        /// <returns>è¿”å›ä»¥æ¥çš„å¯¹è±¡ä¸ªæ•°</returns>
         virtual size_t  queryDepends(ObjectUSet& uSet) const
         {
             if (_mesh == nullptr)
@@ -74,15 +74,15 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀàÊµÏÖ
+        /// å­ç±»å®ç°
         /// </summary>
         /// <param name="writer"></param>
-        /// <param name="version">°æ±¾ºÅ</param>
-        /// <param name="ctx">ÉÏÏÂÎÄ¶ÔÏó</param>
+        /// <param name="version">ç‰ˆæœ¬å·</param>
+        /// <param name="ctx">ä¸Šä¸‹æ–‡å¯¹è±¡</param>
         /// <returns></returns>
         virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
-        /// ×ÓÀàÊµÏÖ,Ö»¹Ø×¢×Ô¼ºĞèÒª¶ÁÈ¡µÄÊı¾İ
+        /// å­ç±»å®ç°,åªå…³æ³¨è‡ªå·±éœ€è¦è¯»å–çš„æ•°æ®
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>

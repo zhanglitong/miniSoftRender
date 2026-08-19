@@ -1,4 +1,4 @@
-/// @ref simd
+﻿/// @ref simd
 /// @file glm/simd/platform.h
 
 #pragma once

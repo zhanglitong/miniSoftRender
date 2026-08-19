@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMath.hpp"
 #include    "FEObject.h"
 #include    "FEProgress.hpp"
@@ -16,18 +16,18 @@ namespace   FE
         TS_Max,
     };
     /// <summary>
-    /// ÄÚÖÃ±äÁ¿
+    /// å†…ç½®å˜é‡
     /// </summary>
     constexpr   const char* TBCXSerialize    =   "CTXSerialize";
     /// <summary>
     /// Task Buildin Param
-    /// ÄÚÖÃ²ÎÊı
+    /// å†…ç½®å‚æ•°
     /// </summary>
     constexpr   const char* TBWriteFile      =   "TBWriteFile";
     constexpr   const char* TBWriteBuffer    =   "TBWriteBuffer";
     /// <summary>
     /// Task Buildin Param
-    /// ÄÚÖÃ²ÎÊı
+    /// å†…ç½®å‚æ•°
     /// </summary>
     constexpr   const char* TBReadFiles     =   "TBReadFiles";
     constexpr   const char* TBReadBuffers   =   "TBReadBuffers";
@@ -46,20 +46,20 @@ namespace   FE
     protected:
         TaskState   _state  =   TS_Waiting;
         /// <summary>
-        /// Èç¹ûÊÇreader,ÔòÊÇ½á¹û
-        /// Èç¹ûÊÇwriter,ÔòÊÇ±»²Ù×÷¶ÔÏó
+        /// å¦‚æœæ˜¯reader,åˆ™æ˜¯ç»“æœ
+        /// å¦‚æœæ˜¯writer,åˆ™æ˜¯è¢«æ“ä½œå¯¹è±¡
         /// </summary>
         Objects     _objects;
         /// <summary>
-        /// _code >= 0 ,³É¹¦, _code < 0 Ê§°Ü
+        /// _code >= 0 ,æˆåŠŸ, _code < 0 å¤±è´¥
         /// </summary>
         int64       _code   =   0;
         /// <summary>
-        /// Õı³£Çé¿öÏÂ
+        /// æ­£å¸¸æƒ…å†µä¸‹
         /// </summary>
         TaskParams  _param;
         /// <summary>
-        /// ÈÎÎñÃû³Æ£¬·½±ãµ÷ÊÔÊ¹ÓÃ,ÎŞÊµ¼ÊÒµÎñ¼ÛÖµ
+        /// ä»»åŠ¡åç§°ï¼Œæ–¹ä¾¿è°ƒè¯•ä½¿ç”¨,æ— å®é™…ä¸šåŠ¡ä»·å€¼
         /// </summary>
         String      _name;
     public:
@@ -87,20 +87,20 @@ namespace   FE
             return  *this;
         }
         // <summary>
-        /// ÈÎÎñÖ´ĞĞÌå,ÏµÍ³»áÓÅÏÈµ÷ÓÃ¸Ãº¯ÊıÖ´ĞĞÈÎÎñ£¬Èç¹û·µ»Øfalse
-        /// ÈÎÎñ»áµ÷ÓÃ  _evtRun;
+        /// ä»»åŠ¡æ‰§è¡Œä½“,ç³»ç»Ÿä¼šä¼˜å…ˆè°ƒç”¨è¯¥å‡½æ•°æ‰§è¡Œä»»åŠ¡ï¼Œå¦‚æœè¿”å›false
+        /// ä»»åŠ¡ä¼šè°ƒç”¨  _evtRun;
         /// </summary>
-        /// <returns>·µ»Øtrue,ËµÃ÷ÊÇÒÑ¾­Ö´ĞĞÁËÈÎÎñ£¬Èç¹ûfalse ÏµÍ³»áÈÏÎªÈÎÎñ»¹Ã»ÓĞÖ´ĞĞ,»áµ÷ÓÃÈÎÎñ¹ÜÀí¼ÌĞøÖ´ĞĞÈÎÎñ</returns>
+        /// <returns>è¿”å›true,è¯´æ˜æ˜¯å·²ç»æ‰§è¡Œäº†ä»»åŠ¡ï¼Œå¦‚æœfalse ç³»ç»Ÿä¼šè®¤ä¸ºä»»åŠ¡è¿˜æ²¡æœ‰æ‰§è¡Œ,ä¼šè°ƒç”¨ä»»åŠ¡ç®¡ç†ç»§ç»­æ‰§è¡Œä»»åŠ¡</returns>
         inline  bool    exec()
         {
             _state  =   TS_Run;
-            /// 1. ÏÈµ÷ÓÃ¿ªÊ¼
+            /// 1. å…ˆè°ƒç”¨å¼€å§‹
             onStart();
-            /// 2. Ö´ĞĞ
+            /// 2. æ‰§è¡Œ
             return  onExec();
         }
         /// <summary>
-        /// È¡ÏûÍ¨Öª
+        /// å–æ¶ˆé€šçŸ¥
         /// </summary>
         /// <returns></returns>
         inline  bool    cancel()
@@ -109,7 +109,7 @@ namespace   FE
             return  onCancel();
         }
         /// <summary>
-        /// ÈÎÎñÍê³É
+        /// ä»»åŠ¡å®Œæˆ
         /// </summary>
         inline  bool    finish()
         {
@@ -117,7 +117,7 @@ namespace   FE
             return  onFinish();
         }
         /// <summary>
-        /// ¶ÁÈ¡½á¹û»òÕßÊÇ±»Ğ´ÈëÊı¾İ
+        /// è¯»å–ç»“æœæˆ–è€…æ˜¯è¢«å†™å…¥æ•°æ®
         /// </summary>
         /// <returns></returns>
         const   Objects&objects() const
@@ -125,7 +125,7 @@ namespace   FE
             return  _objects;
         }
         /// <summary>
-        /// ÉèÖÃ±»Ğ´Èë¶ÔÏóÊı¾İ
+        /// è®¾ç½®è¢«å†™å…¥å¯¹è±¡æ•°æ®
         /// </summary>
         /// <param name="objects"></param>
         /// <returns></returns>
@@ -140,7 +140,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// ÉèÖÃ²ÎÊı
+        /// è®¾ç½®å‚æ•°
         /// </summary>
         /// <param name="name"></param>
         /// <param name="param"></param>
@@ -151,7 +151,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡²ÎÊı
+        /// è·å–å‚æ•°
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
@@ -165,23 +165,23 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// Í¨Öª¿ªÊ¼Ö´ĞĞ£¬ÓÃÀ´´òÓ¡Ò»Ğ©ĞÅÏ¢µÈ
+        /// é€šçŸ¥å¼€å§‹æ‰§è¡Œï¼Œç”¨æ¥æ‰“å°ä¸€äº›ä¿¡æ¯ç­‰
         /// </summary>
         virtual bool    onStart()
         {
             return  true;
         }
         // <summary>
-        /// ÈÎÎñÖ´ĞĞÌå,ÏµÍ³»áÓÅÏÈµ÷ÓÃ¸Ãº¯ÊıÖ´ĞĞÈÎÎñ£¬Èç¹û·µ»Øfalse
-        /// ÈÎÎñ»áµ÷ÓÃ  _evtRun;
+        /// ä»»åŠ¡æ‰§è¡Œä½“,ç³»ç»Ÿä¼šä¼˜å…ˆè°ƒç”¨è¯¥å‡½æ•°æ‰§è¡Œä»»åŠ¡ï¼Œå¦‚æœè¿”å›false
+        /// ä»»åŠ¡ä¼šè°ƒç”¨  _evtRun;
         /// </summary>
-        /// <returns>·µ»Øtrue,ËµÃ÷ÊÇÒÑ¾­Ö´ĞĞÁËÈÎÎñ£¬Èç¹ûfalse ÏµÍ³»áÈÏÎªÈÎÎñ»¹Ã»ÓĞÖ´ĞĞ,»áµ÷ÓÃÈÎÎñ¹ÜÀí¼ÌĞøÖ´ĞĞÈÎÎñ</returns>
+        /// <returns>è¿”å›true,è¯´æ˜æ˜¯å·²ç»æ‰§è¡Œäº†ä»»åŠ¡ï¼Œå¦‚æœfalse ç³»ç»Ÿä¼šè®¤ä¸ºä»»åŠ¡è¿˜æ²¡æœ‰æ‰§è¡Œ,ä¼šè°ƒç”¨ä»»åŠ¡ç®¡ç†ç»§ç»­æ‰§è¡Œä»»åŠ¡</returns>
         virtual bool    onExec()
         {
             return  false;
         }
         /// <summary>
-        /// ÈÎÎñÈ¡ÏûÍ¨Öª
+        /// ä»»åŠ¡å–æ¶ˆé€šçŸ¥
         /// </summary>
         /// <returns></returns>
         virtual bool    onCancel()
@@ -189,7 +189,7 @@ namespace   FE
             return  false;
         }
         /// <summary>
-        /// ÈÎÎñÍê³ÉÍ¨Öª
+        /// ä»»åŠ¡å®Œæˆé€šçŸ¥
         /// </summary>
         virtual bool    onFinish()
         {

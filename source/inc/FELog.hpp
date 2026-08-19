@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <stdarg.h>
 #include    <stdio.h>
 #include    <stdlib.h>
@@ -27,44 +27,44 @@ namespace   FE
     public:
         using   uint    =   uint32_t;
         /// <summary>
-        /// Êä³ö¸ñÊ½¶¨Òå
+        /// è¾“å‡ºæ ¼å¼å®šä¹‰
         /// </summary>
         static  constexpr   const char* LOG_FORMAT      =   "[%-10s],[%-8s],[%-24s],log=%s\n";
         /// <summary>
-        /// Ä¬ÈÏµÄÄ£¿éÃû³Æ¶¨Òå
+        /// é»˜è®¤çš„æ¨¡å—åç§°å®šä¹‰
         /// </summary>
         static  constexpr   const char* DEF_MODULE_NAME =   "default";  
     public:
         /// <summary>
-        /// Ğ´ÈÕÖ¾Ö®Ç°»Øµ÷Í¨Öª
-        /// µÚÒ»¸ö²ÎÊı: Ä£¿é£¬¿ÉÄÜÎªnullptr
-        /// µÚ¶ş¸ö²ÎÊı: ÀàĞÍ
-        /// µÚÈı¸ö²ÎÊı: ÈÕÖ¾ÄÚÈİ
-        /// µÚËÄ¸ö²ÎÊı: Ê±¼ä
+        /// å†™æ—¥å¿—ä¹‹å‰å›è°ƒé€šçŸ¥
+        /// ç¬¬ä¸€ä¸ªå‚æ•°: æ¨¡å—ï¼Œå¯èƒ½ä¸ºnullptr
+        /// ç¬¬äºŒä¸ªå‚æ•°: ç±»å‹
+        /// ç¬¬ä¸‰ä¸ªå‚æ•°: æ—¥å¿—å†…å®¹
+        /// ç¬¬å››ä¸ªå‚æ•°: æ—¶é—´
         /// </summary>
         using   NotifyEvent =   std::function<void(const char*,const char* ,const char*,const FEDateTime&  )>;
     public:
         enum    LEVEL :uint32_t
         {
-            /// ÊÊºÏ¿ª·¢ÓÃ£¬ÓÃÀ´¼ÇÂ¼º¯Êıµ÷ÓÃµÄÊÂ¼ş
+            /// é€‚åˆå¼€å‘ç”¨ï¼Œç”¨æ¥è®°å½•å‡½æ•°è°ƒç”¨çš„äº‹ä»¶
             LEVEL_DEBUG     =   0,
-            /// ÊÂ¼ş£¬ÀıÈçÊó±ê£¬¼üÅÌ£¬ÓÃ»§µÄ¶¯×÷
+            /// äº‹ä»¶ï¼Œä¾‹å¦‚é¼ æ ‡ï¼Œé”®ç›˜ï¼Œç”¨æˆ·çš„åŠ¨ä½œ
             LEVEL_EVENT     =   1,
-            /// Í¨ÖªÈÕÖ¾£¬¼ÇÂ¼Ò»Ğ©ÏµÍ³·¢ÉúµÄÊÂÇé
+            /// é€šçŸ¥æ—¥å¿—ï¼Œè®°å½•ä¸€äº›ç³»ç»Ÿå‘ç”Ÿçš„äº‹æƒ…
             LEVEL_INFOR     =   2,
-            /// ¾¯¸æĞÅÏ¢
+            /// è­¦å‘Šä¿¡æ¯
             LEVEL_WARNING   =   3,
-            /// ´íÎóĞÅÏ¢
+            /// é”™è¯¯ä¿¡æ¯
             LEVEL_ERROR     =   4,
-            /// Òì³£ĞÅÏ¢
+            /// å¼‚å¸¸ä¿¡æ¯
             LEVEL_EXCEPTION =   5,
-            /// ×î´óÖ§³Ö¼¶±ğ
+            /// æœ€å¤§æ”¯æŒçº§åˆ«
             LEVEL_MAX       =   6,
         };
         enum    LevelBit : uint32_t
         {
             /// <summary>
-            /// Ä¬ÈÏĞ´ÈÕÖ¾¿ØÖÆÎ»
+            /// é»˜è®¤å†™æ—¥å¿—æ§åˆ¶ä½
             /// </summary>
             LOG_Bits    =     (1 << LEVEL_EVENT)
                             | (1 << LEVEL_INFOR)
@@ -72,7 +72,7 @@ namespace   FE
                             | (1 << LEVEL_ERROR)
                             | (1 << LEVEL_EXCEPTION),
             /// <summary>
-            /// µ÷ÊÔÊä³ö¿ØÖÆÎ»
+            /// è°ƒè¯•è¾“å‡ºæ§åˆ¶ä½
             /// </summary>
             DBG_Bits    =     (1 << LEVEL_DEBUG)
                             | (1 << LEVEL_EVENT)
@@ -118,11 +118,11 @@ namespace   FE
             FELog&          _log;
             char            _name[64];
             /// <summary>
-            /// ¿ØÖÆÄÄĞ©Êı¾İ±»Ğ´Èëµ½ÈÕÖ¾ÎÄ¼şÖĞ
+            /// æ§åˆ¶å“ªäº›æ•°æ®è¢«å†™å…¥åˆ°æ—¥å¿—æ–‡ä»¶ä¸­
             /// </summary>
             uint            _logBits    =   LOG_Bits;
             /// <summary>
-            /// ¿ØÖÆÄÄĞ©»áÊä³öµ½¿ØÖÆÌ¨
+            /// æ§åˆ¶å“ªäº›ä¼šè¾“å‡ºåˆ°æ§åˆ¶å°
             /// </summary>
             uint            _dbgBits    =   DBG_Bits;
         public:
@@ -145,77 +145,77 @@ namespace   FE
                 return  *this;
             }
             /// <summary>
-            /// ÊÂ¼şÈÕÖ¾,¼ÇÂ¼ËùÓĞ²Ù×÷ĞÅÏ¢,ÓÃÀ´µ÷ÊÔ
+            /// äº‹ä»¶æ—¥å¿—,è®°å½•æ‰€æœ‰æ“ä½œä¿¡æ¯,ç”¨æ¥è°ƒè¯•
             /// </summary>
-            /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-            /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+            /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+            /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
             template<typename... Args>
             inline  auto&   debug(const char*  format,Args&&... args)
             {
                 return  log(LEVEL_DEBUG,format,std::forward<Args>(args)...);
             }
             /// <summary>
-            /// ÊÂ¼şÈÕÖ¾,¼ÇÂ¼ËùÓĞ²Ù×÷ĞÅÏ¢,ÓÃÀ´µ÷ÊÔ
+            /// äº‹ä»¶æ—¥å¿—,è®°å½•æ‰€æœ‰æ“ä½œä¿¡æ¯,ç”¨æ¥è°ƒè¯•
             /// </summary>
-            /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-            /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+            /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+            /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
             template<typename... Args>
             inline  auto&   event(const char*  format,Args&&... args)
             {
                 return  log(LEVEL_EVENT,format,std::forward<Args>(args)...);
             }
             /// <summary>
-            /// Ğ´ĞÅÏ¢Êä³ö,Ò»Ğ©ÖØÒªµÄĞÅÏ¢
+            /// å†™ä¿¡æ¯è¾“å‡º,ä¸€äº›é‡è¦çš„ä¿¡æ¯
             /// </summary>
-            /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-            /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+            /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+            /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
             template<typename... Args>
             inline  auto&   infor(const char*  format,Args&&... args)
             {
                 return  log(LEVEL_INFOR,format,std::forward<Args>(args)...);
             }
             /// <summary>
-            /// Ğ´¾¯¸æĞÅÏ¢
+            /// å†™è­¦å‘Šä¿¡æ¯
             /// </summary>
-            /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-            /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+            /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+            /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
             template<typename... Args>
             inline  auto&   warning(const char*  format,Args&&... args)
             {
                 return  log(LEVEL_WARNING,format,std::forward<Args>(args)...);
             }
             /// <summary>
-            /// Ğ´´íÎóĞÅÏ¢
+            /// å†™é”™è¯¯ä¿¡æ¯
             /// </summary>
-            /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-            /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+            /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+            /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
             template<typename... Args>
             inline  auto&   error(const char*  format,Args&&... args)
             {
                 return  log(LEVEL_ERROR,format,std::forward<Args>(args)...);
             }
             /// <summary>
-            /// Ğ´Òì³£ÈÕÖ¾
+            /// å†™å¼‚å¸¸æ—¥å¿—
             /// </summary>
-            /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-            /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+            /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+            /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
             template<typename... Args>
             inline  auto&   exception(const char*  format,Args&&... args)
             {
                 return  log(LEVEL_EXCEPTION,format,std::forward<Args>(args)...);
             }
             /// <summary>
-            /// Ğ´Òì³£ÈÕÖ¾
+            /// å†™å¼‚å¸¸æ—¥å¿—
             /// </summary>
-            /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-            /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+            /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+            /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
             template<typename... Args>
             inline  auto&   exc(const char*  format,Args&&... args)
             {
                 return  log(LEVEL_EXCEPTION,format,std::forward<Args>(args)...);
             }
             /// <summary>
-            /// Í¨ÓÃ½Ó¿Ú£¬¿ÉÒÔ×Ô¶¨ÒåÈÕÖ¾ÀàĞÍ
+            /// é€šç”¨æ¥å£ï¼Œå¯ä»¥è‡ªå®šä¹‰æ—¥å¿—ç±»å‹
             /// </summary>
             /// <param name="type"></param>
             /// <param name="format"></param>
@@ -230,20 +230,20 @@ namespace   FE
         };
     protected:
         /// <summary>
-        /// Í¨Öª£¬Ó¦ÓÃ²ã¿ÉÒÔ½Ø»ñÈÕÖ¾ÊÂ¼ş
-        /// µäĞÍÓ¦ÓÃ³¡¾°£¬ÔÚ½çÃæÉÏÊä³öÈÕÖ¾
+        /// é€šçŸ¥ï¼Œåº”ç”¨å±‚å¯ä»¥æˆªè·æ—¥å¿—äº‹ä»¶
+        /// å…¸å‹åº”ç”¨åœºæ™¯ï¼Œåœ¨ç•Œé¢ä¸Šè¾“å‡ºæ—¥å¿—
         /// </summary>
         NotifyEvent     _notify;
         /// <summary>
-        /// ÓÃÀ´ÊµÊ±Êä³öµ½µ÷ÊÔÆ÷´°¿ÚÖĞ
+        /// ç”¨æ¥å®æ—¶è¾“å‡ºåˆ°è°ƒè¯•å™¨çª—å£ä¸­
         /// </summary>
         NotifyEvent     _notifyDebug;
         /// <summary>
-        /// ¿ØÖÆÄÄĞ©Êı¾İ±»Ğ´Èëµ½ÈÕÖ¾ÎÄ¼şÖĞ
+        /// æ§åˆ¶å“ªäº›æ•°æ®è¢«å†™å…¥åˆ°æ—¥å¿—æ–‡ä»¶ä¸­
         /// </summary>
         uint            _logBits    =   LOG_Bits;
         /// <summary>
-        /// ¿ØÖÆÄÄĞ©»áÊä³öµ½¿ØÖÆÌ¨
+        /// æ§åˆ¶å“ªäº›ä¼šè¾“å‡ºåˆ°æ§åˆ¶å°
         /// </summary>
         uint            _dbgBits    =   DBG_Bits;
         FEMutex         _mutex;
@@ -256,17 +256,17 @@ namespace   FE
             {
                 open(fileName);
             }
-            /// µÚÒ»¸ö²ÎÊı: Ä£¿é£¬¿ÉÄÜÎªnullptr
-            /// µÚ¶ş¸ö²ÎÊı: ÀàĞÍ
-            /// µÚÈı¸ö²ÎÊı: ÈÕÖ¾ÄÚÈİ
-            /// µÚËÄ¸ö²ÎÊı: Ê±¼ä
+            /// ç¬¬ä¸€ä¸ªå‚æ•°: æ¨¡å—ï¼Œå¯èƒ½ä¸ºnullptr
+            /// ç¬¬äºŒä¸ªå‚æ•°: ç±»å‹
+            /// ç¬¬ä¸‰ä¸ªå‚æ•°: æ—¥å¿—å†…å®¹
+            /// ç¬¬å››ä¸ªå‚æ•°: æ—¶é—´
             _notify     =   [](const char* moduleName,const char* type ,const char* log,const FEDateTime&)
             {
                 (void)moduleName;
                 (void)type;
                 (void)log;
             };
-            /// Ä¬ÈÏ¹ØÁª´òÓ¡µ½¿ØÖÆÌ¨
+            /// é»˜è®¤å…³è”æ‰“å°åˆ°æ§åˆ¶å°
             _notifyDebug=   [](const char* moduleName,const char* type ,const char* log,const FEDateTime& dateTime)
             {
                 char    szTime[128] =   {0};
@@ -281,8 +281,8 @@ namespace   FE
         virtual ~FELog()
         {}
         /// <summary>
-        /// ÉèÖÃµ÷ÊÔÊı¾İÊä³ö¿ØÖÆÎ»,¿ØÖÆÊı¾İÊÇ·ñÊä³öµ½¿ØÖÆÌ¨
-        /// log().setDebugBits(1<<LEVEL_DEBUG).debug("Êä³ödebugĞÅÏ¢);
+        /// è®¾ç½®è°ƒè¯•æ•°æ®è¾“å‡ºæ§åˆ¶ä½,æ§åˆ¶æ•°æ®æ˜¯å¦è¾“å‡ºåˆ°æ§åˆ¶å°
+        /// log().setDebugBits(1<<LEVEL_DEBUG).debug("è¾“å‡ºdebugä¿¡æ¯);
         /// </summary>
         /// <param name="bits"></param>
         /// <returns></returns>
@@ -292,7 +292,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡µ÷ÊÔÊä³ö¿ØÖÆÎ»
+        /// è·å–è°ƒè¯•è¾“å‡ºæ§åˆ¶ä½
         /// </summary>
         /// <returns></returns>
         inline  uint    debugBits() const
@@ -300,7 +300,7 @@ namespace   FE
             return  _dbgBits;
         }
         /// <summary>
-        /// ÉèÖÃÈÕÖ¾Êä³ö¿ØÖÆÎ»ÖÃ£¬¿ØÖÆÊä³öÊÇ·ñÊä³öµ½ÈÕÖ¾
+        /// è®¾ç½®æ—¥å¿—è¾“å‡ºæ§åˆ¶ä½ç½®ï¼Œæ§åˆ¶è¾“å‡ºæ˜¯å¦è¾“å‡ºåˆ°æ—¥å¿—
         /// </summary>
         /// <param name="bits"></param>
         /// <returns></returns>
@@ -310,7 +310,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// »ñÈ¡ÈÕÖ¾¿ØÖÆÎ»
+        /// è·å–æ—¥å¿—æ§åˆ¶ä½
         /// </summary>
         /// <returns></returns>
         inline  uint    logBits() const
@@ -318,8 +318,8 @@ namespace   FE
             return  _logBits;
         }
         /// <summary>
-        /// »ñÈ¡Ä£¿é£¬Ôö¼ÓÈÕÖ¾×Ö¶Î.
-        /// Ê¹ÓÃ·½Ê½  log().module("server").infor("start server %s",ipaddr.c_str());
+        /// è·å–æ¨¡å—ï¼Œå¢åŠ æ—¥å¿—å­—æ®µ.
+        /// ä½¿ç”¨æ–¹å¼  log().module("server").infor("start server %s",ipaddr.c_str());
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
@@ -328,25 +328,25 @@ namespace   FE
             return  Module(*this,name);
         }
         /// <summary>
-        /// ·µ»ØÖµĞ´ÈÕÖ¾Í¨Öª»Øµ÷º¯Êı
-        /// ÀıÈçÓÃÀ´ÊµÊ±ÏÔÊ¾ÈÕÖ¾ĞÅÏ¢µ½½çÃæÉÏ
+        /// è¿”å›å€¼å†™æ—¥å¿—é€šçŸ¥å›è°ƒå‡½æ•°
+        /// ä¾‹å¦‚ç”¨æ¥å®æ—¶æ˜¾ç¤ºæ—¥å¿—ä¿¡æ¯åˆ°ç•Œé¢ä¸Š
         /// </summary>
-        /// <returns>ÈÕÖ¾»Øµ÷ÊÂ¼ş</returns>
+        /// <returns>æ—¥å¿—å›è°ƒäº‹ä»¶</returns>
         inline  auto&   notify()
         {
             return  _notify;
         }
         /// <summary>
-        /// ·µ»ØÖµĞ´ÈÕÖ¾Í¨Öª»Øµ÷º¯Êı(Ö»¶Á)
-        /// ÀıÈçÓÃÀ´ÊµÊ±ÏÔÊ¾ÈÕÖ¾ĞÅÏ¢µ½½çÃæÉÏ
+        /// è¿”å›å€¼å†™æ—¥å¿—é€šçŸ¥å›è°ƒå‡½æ•°(åªè¯»)
+        /// ä¾‹å¦‚ç”¨æ¥å®æ—¶æ˜¾ç¤ºæ—¥å¿—ä¿¡æ¯åˆ°ç•Œé¢ä¸Š
         /// </summary>
-        /// <returns>ÈÕÖ¾»Øµ÷ÊÂ¼ş</returns>
+        /// <returns>æ—¥å¿—å›è°ƒäº‹ä»¶</returns>
         const   auto&   notify() const
         {
             return      _notify;
         }
         /// <summary>
-        /// ÓÃÀ´Êä³öµ½µ÷ÊÔÆ÷
+        /// ç”¨æ¥è¾“å‡ºåˆ°è°ƒè¯•å™¨
         /// </summary>
         /// <returns></returns>
         inline  auto&   notifyDebug()
@@ -354,7 +354,7 @@ namespace   FE
             return  _notifyDebug;
         }
         /// <summary>
-        /// ÓÃÀ´Êä³öµ½µ÷ÊÔÆ÷(Ö»¶Á)
+        /// ç”¨æ¥è¾“å‡ºåˆ°è°ƒè¯•å™¨(åªè¯»)
         /// </summary>
         /// <returns></returns>
         const   auto&   notifyDebug() const
@@ -362,10 +362,10 @@ namespace   FE
             return      _notifyDebug;
         }
         /// <summary>
-        /// ¿ØÖÆÈÕÖ¾µÄĞ´µ½ÎÄ¼şÖĞµÄ¼¶±ğ,Èç¹ûÊÇtrueÊä³ö£¬·ñÔò²»Êä³ö£¬¼´Ê¹µ÷ÓÃÁËº¯ÊıÒ²²»×öÈÎºÎ¶¯×÷
+        /// æ§åˆ¶æ—¥å¿—çš„å†™åˆ°æ–‡ä»¶ä¸­çš„çº§åˆ«,å¦‚æœæ˜¯trueè¾“å‡ºï¼Œå¦åˆ™ä¸è¾“å‡ºï¼Œå³ä½¿è°ƒç”¨äº†å‡½æ•°ä¹Ÿä¸åšä»»ä½•åŠ¨ä½œ
         /// </summary>
-        /// <param name="lev">¼¶±ğ</param>
-        /// <param name="openFlag">ÊÇ·ñ´ò¿ª</param>
+        /// <param name="lev">çº§åˆ«</param>
+        /// <param name="openFlag">æ˜¯å¦æ‰“å¼€</param>
         inline  auto&   setOption(LEVEL lev,bool openFlag)
         {
             if (openFlag)
@@ -375,7 +375,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// Èç¹ûÊÇtrueÊä³ö£¬ËµÃ÷¸Ã¼¶±ğÈÕÖ¾¿ÉÒÔÊä³ö£¬·ñÔò²»Êä³ö
+        /// å¦‚æœæ˜¯trueè¾“å‡ºï¼Œè¯´æ˜è¯¥çº§åˆ«æ—¥å¿—å¯ä»¥è¾“å‡ºï¼Œå¦åˆ™ä¸è¾“å‡º
         /// </summary>
         /// <param name="lev"></param>
         /// <returns></returns>
@@ -388,26 +388,26 @@ namespace   FE
             return  (bits  & (1<<(uint32_t)lev)) ? true : false;
         }
         /// <summary>
-        /// ÆôÓÃÖ¸¶¨¼¶±ğµÄÈÕÖ¾(Ğ´ÈÕÖ¾)
+        /// å¯ç”¨æŒ‡å®šçº§åˆ«çš„æ—¥å¿—(å†™æ—¥å¿—)
         /// </summary>
-        /// <param name="lev">ÈÕÖ¾¼¶±ğ</param>
+        /// <param name="lev">æ—¥å¿—çº§åˆ«</param>
         inline  auto&   enable(LEVEL lev)
         {
             return  setOption(lev,true);
         }
         /// <summary>
-        /// ½ûÓÃÖ¸¶¨¼¶±ğµÄÈÕÖ¾(²»Ğ´ÈÕÖ¾)
+        /// ç¦ç”¨æŒ‡å®šçº§åˆ«çš„æ—¥å¿—(ä¸å†™æ—¥å¿—)
         /// </summary>
-        /// <param name="lev">ÈÕÖ¾¼¶±ğ</param>
+        /// <param name="lev">æ—¥å¿—çº§åˆ«</param>
         inline  auto&   disable(LEVEL lev)
         {
             return  setOption(lev,false);
         }
         /// <summary>
-        /// Ö¸¶¨¼¶±ğµÄÈÕÖ¾ÊÇ·ñÆôÓÃ(²éÑ¯½Ó¿Ú)
+        /// æŒ‡å®šçº§åˆ«çš„æ—¥å¿—æ˜¯å¦å¯ç”¨(æŸ¥è¯¢æ¥å£)
         /// </summary>
-        /// <param name="lev">ÈÕÖ¾¼¶±ğ</param>
-        /// <returns>true,ÆôÓÃ false Î´ÆôÓÃ</returns>
+        /// <param name="lev">æ—¥å¿—çº§åˆ«</param>
+        /// <returns>true,å¯ç”¨ false æœªå¯ç”¨</returns>
         inline  bool    isEnable(LEVEL lev) const
         {
             return  getOption(lev);
@@ -419,67 +419,67 @@ namespace   FE
             return  log(LEVEL_DEBUG,format,std::forward<Args>(args)...);
         }
         /// <summary>
-        /// ÊÂ¼şÈÕÖ¾,¼ÇÂ¼ËùÓĞ²Ù×÷ĞÅÏ¢,ÓÃÀ´µ÷ÊÔ
+        /// äº‹ä»¶æ—¥å¿—,è®°å½•æ‰€æœ‰æ“ä½œä¿¡æ¯,ç”¨æ¥è°ƒè¯•
         /// </summary>
-        /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         template<typename... Args>
         inline  FELog&  event(const char*  format,Args&&... args)
         {
             return  log(LEVEL_EVENT,format,std::forward<Args>(args)...);
         }
         /// <summary>
-        /// Ğ´ĞÅÏ¢Êä³ö,Ò»Ğ©ÖØÒªµÄĞÅÏ¢
+        /// å†™ä¿¡æ¯è¾“å‡º,ä¸€äº›é‡è¦çš„ä¿¡æ¯
         /// </summary>
-        /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         template<typename... Args>
         inline  FELog&  infor(const char*  format,Args&&... args)
         {
             return  log(LEVEL_INFOR,format,std::forward<Args>(args)...);
         }
         /// <summary>
-        /// Ğ´¾¯¸æĞÅÏ¢
+        /// å†™è­¦å‘Šä¿¡æ¯
         /// </summary>
-        /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         template<typename... Args>
         inline  FELog&  warning(const char*  format,Args&&... args)
         {
             return  log(LEVEL_WARNING,format,std::forward<Args>(args)...);
         }
         /// <summary>
-        /// Ğ´´íÎóĞÅÏ¢
+        /// å†™é”™è¯¯ä¿¡æ¯
         /// </summary>
-        /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         template<typename... Args>
         inline  FELog&  error(const char*  format,Args&&... args)
         {
             return  log(LEVEL_ERROR,format,std::forward<Args>(args)...);
         }
         /// <summary>
-        /// Ğ´Òì³£ÈÕÖ¾
+        /// å†™å¼‚å¸¸æ—¥å¿—
         /// </summary>
-        /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         template<typename... Args>
         inline  FELog&  exception(const char*  format,Args&&... args)
         {
             return  log(LEVEL_EXCEPTION,format,std::forward<Args>(args)...);
         }
         /// <summary>
-        /// Ğ´Òì³£ÈÕÖ¾
+        /// å†™å¼‚å¸¸æ—¥å¿—
         /// </summary>
-        /// <param name="format">¸ñÊ½»¯×Ö·û´®</param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <param name="format">æ ¼å¼åŒ–å­—ç¬¦ä¸²</param>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         template<typename... Args>
         inline  FELog&  exc(const char*  format,Args&&... args)
         {
             return  log(LEVEL_EXCEPTION,format,std::forward<Args>(args)...);
         }
         /// <summary>
-        /// Í¨ÓÃ½Ó¿Ú£¬¿ÉÒÔ×Ô¶¨ÒåÈÕÖ¾ÀàĞÍ
+        /// é€šç”¨æ¥å£ï¼Œå¯ä»¥è‡ªå®šä¹‰æ—¥å¿—ç±»å‹
         /// </summary>
         /// <param name="type"></param>
         /// <param name="format"></param>
@@ -493,9 +493,9 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// ´ò¿ªÈÕÖ¾ÎÄ¼ş: d:/data/log.txt"
+        /// æ‰“å¼€æ—¥å¿—æ–‡ä»¶: d:/data/log.txt"
         /// </summary>
-        /// <returns>ÊÇ·ñ´ò¿ª³É¹¦</returns>
+        /// <returns>æ˜¯å¦æ‰“å¼€æˆåŠŸ</returns>
         virtual bool    open(const char* fileName) 
         {
             FEMutex::ScopeLock  lk(_mutex);
@@ -507,7 +507,7 @@ namespace   FE
             return  _file != nullptr;
         }
         /// <summary>
-        /// ÈÕÖ¾ÏµÍ³×´Ì¬ÊÇ·ñÊÇ´ò¿ª
+        /// æ—¥å¿—ç³»ç»ŸçŠ¶æ€æ˜¯å¦æ˜¯æ‰“å¼€
         /// </summary>
         /// <returns>true:false</returns>
         virtual bool    isOpen() const
@@ -515,7 +515,7 @@ namespace   FE
             return  _file != nullptr;
         }
         /// <summary>
-        /// ¹Ø±ÕÈÕÖ¾
+        /// å…³é—­æ—¥å¿—
         /// </summary>
         virtual void    close()
         {
@@ -527,12 +527,12 @@ namespace   FE
             }
         }
         /// <summary>
-        /// ×Ô¶¨ÒåĞ´ÈÕÖ¾ĞÅÏ¢,²»ÊÜLEVEL¿ØÖÆ
+        /// è‡ªå®šä¹‰å†™æ—¥å¿—ä¿¡æ¯,ä¸å—LEVELæ§åˆ¶
         /// </summary>
-        /// <param name="module">ÀıÈç "player","plugin.format.vue",Ã¿Ò»¸ö¶¯Ì¬¿â¿ÉÒÔ¶¨Òå³ÉÒ»¸öÄ£¿é </param>
-        /// <param name="type">ÀıÈç,debug,event,infor,warning,error,exception,Ò²¿ÉÒÔÊÇÈÎÒâ×Ö·û´®</param>
-        /// <param name="data">Êı¾İ</param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <param name="module">ä¾‹å¦‚ "player","plugin.format.vue",æ¯ä¸€ä¸ªåŠ¨æ€åº“å¯ä»¥å®šä¹‰æˆä¸€ä¸ªæ¨¡å— </param>
+        /// <param name="type">ä¾‹å¦‚,debug,event,infor,warning,error,exception,ä¹Ÿå¯ä»¥æ˜¯ä»»æ„å­—ç¬¦ä¸²</param>
+        /// <param name="data">æ•°æ®</param>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         virtual bool    write(const char* module,const char* type,const char* data) 
         {
             FEMutex::ScopeLock lk(_mutex);
@@ -547,13 +547,13 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×Ô¶¨ÒåĞ´ÈÕÖ¾ĞÅÏ¢,²»ÊÜLEVEL¿ØÖÆ
+        /// è‡ªå®šä¹‰å†™æ—¥å¿—ä¿¡æ¯,ä¸å—LEVELæ§åˆ¶
         /// </summary>
-        /// <param name="module">ÀıÈç "player","plugin.format.vue",Ã¿Ò»¸ö¶¯Ì¬¿â¿ÉÒÔ¶¨Òå³ÉÒ»¸öÄ£¿é </param>
-        /// <param name="level">ÀıÈç,debug,event,infor,warning,error,exception,Ò²¿ÉÒÔÊÇÈÎÒâ×Ö·û´®</param>
-        /// <param name="format">¸ñÊ½×Ö·û´®</param>
+        /// <param name="module">ä¾‹å¦‚ "player","plugin.format.vue",æ¯ä¸€ä¸ªåŠ¨æ€åº“å¯ä»¥å®šä¹‰æˆä¸€ä¸ªæ¨¡å— </param>
+        /// <param name="level">ä¾‹å¦‚,debug,event,infor,warning,error,exception,ä¹Ÿå¯ä»¥æ˜¯ä»»æ„å­—ç¬¦ä¸²</param>
+        /// <param name="format">æ ¼å¼å­—ç¬¦ä¸²</param>
         /// <param name=""></param>
-        /// <returns>·µ»ØĞ´Èë×´Ì¬</returns>
+        /// <returns>è¿”å›å†™å…¥çŠ¶æ€</returns>
         template<class ...Args>
         inline  bool    write(const char* module,LEVEL level,uint logBits,uint dbgBits,const char*  format,Args&& ... args)
         {

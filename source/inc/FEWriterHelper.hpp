@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "stream/FEWriter.hpp"
 #include    "stream/FEWriterFile.hpp"
 #include    "stream/FEWriterMemrory.hpp"
@@ -17,8 +17,8 @@ namespace   FE
         NotifyFlush     _flushNotify;
     public:
         /// <summary>
-        /// flushNotify µ±Ğ´ÍêÊı¾İºóµ÷ÓÃ£¬Ä¿µÄÊÇ»ØÌîÊı¾İÍ·£¬ĞèÒª²»Íâ×Ô¶¨ÒåÊµÏÖ
-        /// infor ÊÇÊı¾İÍ·
+        /// flushNotify å½“å†™å®Œæ•°æ®åè°ƒç”¨ï¼Œç›®çš„æ˜¯å›å¡«æ•°æ®å¤´ï¼Œéœ€è¦ä¸å¤–è‡ªå®šä¹‰å®ç°
+        /// infor æ˜¯æ•°æ®å¤´
         /// auto    notify  =   [](FEWriterHelper& helper)
         /// {   
         ///     uint64  nCur    =   helper._writer.tell();
@@ -47,7 +47,7 @@ namespace   FE
             return  _start;
         }
         /// <summary>
-        /// »ñÈ¡Ğ´µÄ×Ö½ÚÊı
+        /// è·å–å†™çš„å­—èŠ‚æ•°
         /// </summary>
         /// <returns></returns>
         uint64_t    size() const

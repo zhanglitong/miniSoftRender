@@ -1,12 +1,12 @@
-#pragma     once
+ï»¿#pragma     once
 #include    <initializer_list>
 #include    <cstddef>
 
 namespace   FE
 {
     /// <summary>
-    /// EnumType:Ã¶¾ÙÀàĞÍ
-    /// DataType:±£´æ±êÖ¾µÄÊı¾İÀàĞÍ(Í¨³£Îªint)
+    /// EnumType:æšä¸¾ç±»å‹
+    /// DataType:ä¿å­˜æ ‡å¿—çš„æ•°æ®ç±»å‹(é€šå¸¸ä¸ºint)
     /// eg:
     ///     enum MyFlag
     ///     {
@@ -68,7 +68,7 @@ namespace   FE
         {}
     public:
         /// <summary>
-        /// »ñÈ¡ flags
+        /// è·å– flags
         /// </summary>
         /// <returns></returns>
         inline  auto    data() const
@@ -76,7 +76,7 @@ namespace   FE
             return _flags;
         }
         /// <summary>
-        /// Ìí¼Óflag
+        /// æ·»åŠ flag
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -86,7 +86,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// Ìí¼Óflag
+        /// æ·»åŠ flag
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -96,7 +96,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ÒÆ³ıflag
+        /// ç§»é™¤flag
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -106,7 +106,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ÒÆ³ıflag
+        /// ç§»é™¤flag
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -116,10 +116,10 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ÉèÖÃ±ê¼Ç
+        /// è®¾ç½®æ ‡è®°
         /// </summary>
         /// <param name="flag"></param>
-        /// <param name="bOn">bOn Èç¹ûÎªtrue£¬Ìí¼Óflag£¬·ñÔòÒÆ³ıflag</param>
+        /// <param name="bOn">bOn å¦‚æœä¸ºtrueï¼Œæ·»åŠ flagï¼Œå¦åˆ™ç§»é™¤flag</param>
         /// <returns></returns>
         inline  auto&   setFlag(EnumType flag, bool bOn = true)
         {
@@ -129,7 +129,7 @@ namespace   FE
                 return removeFlag(flag);
         }
         /// <summary>
-        /// bOn Èç¹ûÎªtrue£¬Ìí¼Óflag£¬·ñÔòÒÆ³ıflag
+        /// bOn å¦‚æœä¸ºtrueï¼Œæ·»åŠ flagï¼Œå¦åˆ™ç§»é™¤flag
         /// </summary>
         /// <param name="flag"></param>
         /// <param name="bOn"></param>
@@ -142,7 +142,7 @@ namespace   FE
                 return removeFlag(flag);
         }
         /// <summary>
-        /// ÊÇ·ñ°üº¬Ä³¸ö flag
+        /// æ˜¯å¦åŒ…å«æŸä¸ª flag
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -151,7 +151,7 @@ namespace   FE
             return  (_flags & flag) == DataType(flag);
         }
         /// <summary>
-        /// ÊÇ·ñ°üº¬Ä³¸ö flag
+        /// æ˜¯å¦åŒ…å«æŸä¸ª flag
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -160,7 +160,7 @@ namespace   FE
             return  (_flags & flag) == DataType(flag);
         }
         /// <summary>
-        /// ÊÇ·ñ°üº¬ÈÎÒâÒ»¸ö flag
+        /// æ˜¯å¦åŒ…å«ä»»æ„ä¸€ä¸ª flag
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -169,7 +169,7 @@ namespace   FE
             return  (_flags & flag) != 0;
         }
         /// <summary>
-        /// Ìí¼Ó flags
+        /// æ·»åŠ  flags
         /// </summary>
         /// <param name="flags"></param>
         /// <returns></returns>
@@ -182,7 +182,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// Ìí¼Ó flags
+        /// æ·»åŠ  flags
         /// </summary>
         /// <param name="flags"></param>
         /// <returns></returns>
@@ -195,7 +195,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ÒÆ³ıflags
+        /// ç§»é™¤flags
         /// </summary>
         /// <param name="flags"></param>
         /// <returns></returns>
@@ -208,7 +208,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ÒÆ³ıflags
+        /// ç§»é™¤flags
         /// </summary>
         /// <param name="flags"></param>
         /// <returns></returns>
@@ -229,7 +229,7 @@ namespace   FE
         /// 
         /// </summary>
         /// <param name="flags"></param>
-        /// <param name="bOn">bOn Èç¹ûÎªtrue£¬Ìí¼Óflag£¬·ñÔòÒÆ³ıflag</param>
+        /// <param name="bOn">bOn å¦‚æœä¸ºtrueï¼Œæ·»åŠ flagï¼Œå¦åˆ™ç§»é™¤flag</param>
         /// <returns></returns>
         inline  auto&   setFlags(EnumFlags flags, bool bOn = true)
         {
@@ -239,7 +239,7 @@ namespace   FE
                 return removeFlags(flags);
         }
         /// <summary>
-        /// bOn Èç¹ûÎªtrue£¬Ìí¼Óflag£¬·ñÔòÒÆ³ıflag
+        /// bOn å¦‚æœä¸ºtrueï¼Œæ·»åŠ flagï¼Œå¦åˆ™ç§»é™¤flag
         /// </summary>
         /// <param name="flags"></param>
         /// <param name="bOn"></param>
@@ -252,7 +252,7 @@ namespace   FE
                 return removeFlags(flags);
         }
         /// <summary>
-        /// ËùÓĞµÄ flag ¾ù±»°üº¬Ê±·µ»Ø true, ·ñÔò·µ»Øfalse
+        /// æ‰€æœ‰çš„ flag å‡è¢«åŒ…å«æ—¶è¿”å› true, å¦åˆ™è¿”å›false
         /// </summary>
         /// <param name="flags"></param>
         /// <returns></returns>
@@ -266,8 +266,8 @@ namespace   FE
             return true;
         }
         /// <summary>
-        /// ÊÇ·ñ°üº¬ flags
-        /// ËùÓĞµÄ flag ¾ù±»°üº¬Ê±·µ»Ø true, ·ñÔò·µ»Øfalse
+        /// æ˜¯å¦åŒ…å« flags
+        /// æ‰€æœ‰çš„ flag å‡è¢«åŒ…å«æ—¶è¿”å› true, å¦åˆ™è¿”å›false
         /// </summary>
         /// <param name="flags"></param>
         /// <returns></returns>
@@ -281,7 +281,7 @@ namespace   FE
             return true;
         }
         /// <summary>
-        /// »ñÈ¡ÒÑÉèÖÃ±ê¼ÇÎ»µÄ¸öÊı
+        /// è·å–å·²è®¾ç½®æ ‡è®°ä½çš„ä¸ªæ•°
         /// </summary>
         /// <returns></returns>
         inline  size_t  flagCount() const
@@ -297,7 +297,7 @@ namespace   FE
             return flagCount;
         }
         /// <summary>
-        /// ¶¨Òåµ½boolµÄÒşÊ½×ª»»
+        /// å®šä¹‰åˆ°boolçš„éšå¼è½¬æ¢
         /// </summary>
         /// <returns></returns>
         inline  bool    operator !() const
@@ -305,7 +305,7 @@ namespace   FE
             return _flags == DataType(0);
         }
         /// <summary>
-        /// ~ ÔËËã
+        /// ~ è¿ç®—
         /// </summary>
         /// <returns></returns>
         inline  auto    operator~() const
@@ -313,7 +313,7 @@ namespace   FE
             return FEFlags<EnumType, DataType>(~_flags);
         }
         /// <summary>
-        /// &ÔËËã
+        /// &è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -322,7 +322,7 @@ namespace   FE
             return FEFlags(this->_flags & flag);
         }
         /// <summary>
-        /// & ÔËËã
+        /// & è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -331,7 +331,7 @@ namespace   FE
             return FEFlags(this->_flags & flag);
         }
         /// <summary>
-        /// & ÔËËã
+        /// & è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -340,7 +340,7 @@ namespace   FE
             return FEFlags(this->_flags & other._flags);
         }
         /// <summary>
-        /// &= ÔËËã
+        /// &= è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -350,7 +350,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// &= ÔËËã
+        /// &= è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -360,7 +360,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// &= ÔËËã
+        /// &= è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -370,7 +370,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// | ÔËËã
+        /// | è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -379,7 +379,7 @@ namespace   FE
             return  FEFlags(this->_flags | flag);
         }
         /// <summary>
-        /// | ÔËËã
+        /// | è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -388,7 +388,7 @@ namespace   FE
             return  FEFlags(this->_flags | flag);
         }
         /// <summary>
-        /// | ÔËËã
+        /// | è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -397,7 +397,7 @@ namespace   FE
             return FEFlags(this->_flags | other._flags);
         }
         /// <summary>
-        /// |= ÔËËã
+        /// |= è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -407,7 +407,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// |= ÔËËã
+        /// |= è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -417,7 +417,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// |= ÔËËã
+        /// |= è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -427,7 +427,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ^ ÔËËã
+        /// ^ è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -436,7 +436,7 @@ namespace   FE
             return  FEFlags(this->_flags ^ flag);
         }
         /// <summary>
-        /// ^ ÔËËã
+        /// ^ è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -445,7 +445,7 @@ namespace   FE
             return FEFlags(this->_flags ^ flag);
         }
         /// <summary>
-        /// ^ ÔËËã
+        /// ^ è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -454,7 +454,7 @@ namespace   FE
             return  FEFlags(this->_flags ^ other._flags);
         }
         /// <summary>
-        /// ^ ÔËËã
+        /// ^ è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -464,7 +464,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ^ ÔËËã
+        /// ^ è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -474,7 +474,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// ^ ÔËËã
+        /// ^ è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -484,7 +484,7 @@ namespace   FE
             return *this;
         }
         /// <summary>
-        /// == ÔËËã
+        /// == è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -493,7 +493,7 @@ namespace   FE
             return this->_flags == (DataType)(flag);
         }
         /// <summary>
-        /// == ÔËËã
+        /// == è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -502,7 +502,7 @@ namespace   FE
             return this->_flags == flag;
         }
         /// <summary>
-        ///  == ÔËËã
+        ///  == è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -511,7 +511,7 @@ namespace   FE
             return this->_flags == other._flags;
         }
         /// <summary>
-        /// != ÔËËã
+        /// != è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -520,7 +520,7 @@ namespace   FE
             return this->_flags != (DataType)(flag);
         }
         /// <summary>
-        /// != ÔËËã
+        /// != è¿ç®—
         /// </summary>
         /// <param name="flag"></param>
         /// <returns></returns>
@@ -529,7 +529,7 @@ namespace   FE
             return this->_flags != flag;
         }
         /// <summary>
-        /// != ÔËËã
+        /// != è¿ç®—
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>

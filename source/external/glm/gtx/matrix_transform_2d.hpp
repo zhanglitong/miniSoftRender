@@ -1,6 +1,6 @@
-/// @ref gtx_matrix_transform_2d
+﻿/// @ref gtx_matrix_transform_2d
 /// @file glm/gtx/matrix_transform_2d.hpp
-/// @author Miguel Ángel Pérez Martínez
+/// @author Miguel 脕ngel P茅rez Mart铆nez
 ///
 /// @see core (dependence)
 ///

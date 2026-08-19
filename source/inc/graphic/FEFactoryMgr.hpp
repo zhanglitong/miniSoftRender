@@ -1,16 +1,16 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "FEFactoryTemplate.hpp"
 #include    "graphic/FEFactoryRender.hpp"
 
 namespace   FE
 {
-    /// lambda ±í´ïÊ½×÷ÎªÀàĞÍ±ğÃû£¬È·±£RFactoryLessÊÇÀàĞÍÃû
+    /// lambda è¡¨è¾¾å¼ä½œä¸ºç±»å‹åˆ«åï¼Œç¡®ä¿RFactoryLessæ˜¯ç±»å‹å
     constexpr auto    RFactoryLessLambda = [](const RFactory& l, const RFactory& r)
     {
         return  l->key() < r->key();
     };
-    /// ÏÈ¶¨ÒåÀàĞÍ±ğÃû£¬È·±£RFactoryLessÊÇÀàĞÍÃû
+    /// å…ˆå®šä¹‰ç±»å‹åˆ«åï¼Œç¡®ä¿RFactoryLessæ˜¯ç±»å‹å
     using   RFactoryLess    =   decltype(RFactoryLessLambda);
 
     class   FEFactoryMgr :public FEFactoryTemplate<RFactory, RFactoryLess>
@@ -23,7 +23,7 @@ namespace   FE
             :FEFactoryTemplate(other)
         {}
         /// <summary>
-        /// ²éÕÒ¹¤³§¶ÔÏó,Èç¹ûÃ»ÓĞ·µ»Ønullptr
+        /// æŸ¥æ‰¾å·¥å‚å¯¹è±¡,å¦‚æœæ²¡æœ‰è¿”å›nullptr
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
@@ -40,7 +40,7 @@ namespace   FE
         }
     protected:
         /// <summary>
-        /// ×ÓÀà¿ÉÒÔÖØĞ´£¬Ìí¼Ó¶ÔÏóµÄ»Øµ÷º¯Êı
+        /// å­ç±»å¯ä»¥é‡å†™ï¼Œæ·»åŠ å¯¹è±¡çš„å›è°ƒå‡½æ•°
         /// </summary>
         virtual void    onAddObjects() override
         {

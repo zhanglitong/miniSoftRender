@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEMath.hpp"
 #include    "FEDefine.h"
 #include    <filesystem>
@@ -17,35 +17,35 @@ namespace   FE
         };
     public:
         /// <summary>
-        /// »ñÈ¡ÎÄ¼şÃû³Æ£¬²»´øÀ©Õ¹Ãû
+        /// è·å–æ–‡ä»¶åç§°ï¼Œä¸å¸¦æ‰©å±•å
         /// c:/xx/yy/tt.x
         /// return tt
         /// </summary>
-        /// <param name="fullPath">È«Â·¾¶</param>
-        /// <returns>·µ»ØÎÄ¼şÃû³Æ£¬²»´øÀ©Õ¹Ãû²¿·Ö</returns>
+        /// <param name="fullPath">å…¨è·¯å¾„</param>
+        /// <returns>è¿”å›æ–‡ä»¶åç§°ï¼Œä¸å¸¦æ‰©å±•åéƒ¨åˆ†</returns>
         static  String  fileStem(const char* fullPath)
         {
             fs::path filePath(fullPath);
             return  filePath.stem().string();
         }
         /// <summary>
-        /// »ñÈ¡ÎÄ¼şÃû³Æ
+        /// è·å–æ–‡ä»¶åç§°
         /// c:/xx/yy/tt.x
         /// return tt.x
         /// </summary>
-        /// <param name="fullPath">È«Â·¾¶</param>
-        /// <returns>·µ»ØÎÄ¼şÀ©Õ¹Ãû</returns>
+        /// <param name="fullPath">å…¨è·¯å¾„</param>
+        /// <returns>è¿”å›æ–‡ä»¶æ‰©å±•å</returns>
         static  String  fileName(const char* fullPath)
         {
             fs::path filePath(fullPath);
             return  filePath.filename().string();
         }
         /// <summary>
-        /// »ñÈ¡ÎÄ¼ş¼ĞÏÂµÄÎÄ¼ş»òÕßÎÄ¼ş¼Ğ£¬²»×öµİ¹é´¦Àí
+        /// è·å–æ–‡ä»¶å¤¹ä¸‹çš„æ–‡ä»¶æˆ–è€…æ–‡ä»¶å¤¹ï¼Œä¸åšé€’å½’å¤„ç†
         /// </summary>
-        /// <param name="dir">±»¼ìË÷ÎÄ¼ş¼Ğ</param>
-        /// <param name="filter">¹ıÂËÆ÷</param>
-        /// <returns>·µ»ØÃû³Æ£¬Ïà¶ÔÓÚ dir</returns>
+        /// <param name="dir">è¢«æ£€ç´¢æ–‡ä»¶å¤¹</param>
+        /// <param name="filter">è¿‡æ»¤å™¨</param>
+        /// <returns>è¿”å›åç§°ï¼Œç›¸å¯¹äº dir</returns>
         static  Strings entryList(const String& dir,const String& ext = "",Flags filter = FF_File)
         {
             Strings files;
@@ -71,7 +71,7 @@ namespace   FE
         }
 
         /// <summary>
-        /// ÎÄ¼ş/ÎÄ¼ş¼ĞÊÇ·ñ´æÔÚ
+        /// æ–‡ä»¶/æ–‡ä»¶å¤¹æ˜¯å¦å­˜åœ¨
         /// </summary>
         static  bool    fileExists(const std::string& file)
         {
@@ -82,7 +82,7 @@ namespace   FE
             return  std::filesystem::exists(file);
         }
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñÊÇÎÄ¼ş¼Ğ
+        /// åˆ¤æ–­æ˜¯å¦æ˜¯æ–‡ä»¶å¤¹
         /// </summary>
         static  bool    isDirectory(const std::string& path)
         {
@@ -93,7 +93,7 @@ namespace   FE
             return  std::filesystem::exists(path) && std::filesystem::is_directory(path);
         }
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñÊÇÎÄ¼ş
+        /// åˆ¤æ–­æ˜¯å¦æ˜¯æ–‡ä»¶
         /// </summary>
         static  bool    isFile(const std::string& path)
         {
@@ -104,14 +104,14 @@ namespace   FE
             return  std::filesystem::exists(path) && std::filesystem::is_regular_file(path);
         }
         /// <summary>
-        /// ´´½¨ÎÄ¼ş¼Ğ
+        /// åˆ›å»ºæ–‡ä»¶å¤¹
         /// </summary>
         static  bool    makeDir(const char* dir)
         {
             namespace   fs  =   std::filesystem;
             try
             {
-                /// ³É¹¦, Ê§°Ü£¬ÔòÊÇÒÑ¾­´æÔÚ
+                /// æˆåŠŸ, å¤±è´¥ï¼Œåˆ™æ˜¯å·²ç»å­˜åœ¨
                 if (fs::create_directory(dir))
                     return  true;
                 else
@@ -124,18 +124,18 @@ namespace   FE
             }
         }
         /// <summary>
-        /// ¿½±´ÎÄ¼ş
+        /// æ‹·è´æ–‡ä»¶
         /// </summary>
         static  bool    copyFile(const char* existFileName, const char* newFileName, bool bFailIfExist)
         {
 #if 1
-            /// Ô´ÎÄ¼şÂ·¾¶
+            /// æºæ–‡ä»¶è·¯å¾„
             fs::path source         =   existFileName;
-            /// Ä¿±êÎÄ¼şÂ·¾¶
+            /// ç›®æ ‡æ–‡ä»¶è·¯å¾„
             fs::path destination    =   newFileName; 
             try
             {
-                /// È·±£Ô´ÎÄ¼ş´æÔÚ
+                /// ç¡®ä¿æºæ–‡ä»¶å­˜åœ¨
                 if (!fs::exists(source))
                 {
                     std::cerr << "source file does not exist!" << std::endl;
@@ -149,7 +149,7 @@ namespace   FE
                         return  false;
                     }
                 }
-                /// ¸´ÖÆÎÄ¼ş
+                /// å¤åˆ¶æ–‡ä»¶
                 fs::copy(source, destination, fs::copy_options::overwrite_existing);
                 return  true;
             }
@@ -200,7 +200,7 @@ namespace   FE
 #endif
         }
         /// <summary>
-        /// É¾³ıÎÄ¼ş£¬ÄÚ²¿ÅĞ¶ÏÊÇ·ñÊÇÎÄ¼ş
+        /// åˆ é™¤æ–‡ä»¶ï¼Œå†…éƒ¨åˆ¤æ–­æ˜¯å¦æ˜¯æ–‡ä»¶
         /// </summary>
         /// <param name="file"></param>
         /// <returns></returns>
@@ -217,7 +217,7 @@ namespace   FE
             }
         }
         /// <summary>
-        /// É¾³ıÄ¿Â¼ÒÔ¼°ÆäÖĞµÄËùÓĞÎÄ¼ş
+        /// åˆ é™¤ç›®å½•ä»¥åŠå…¶ä¸­çš„æ‰€æœ‰æ–‡ä»¶
         /// </summary>
         /// <param name="file"></param>
         /// <returns></returns>
@@ -239,19 +239,19 @@ namespace   FE
         /// return c:/xx/yy/
         /// </summary>
         /// <param name="fileName"></param>
-        /// <returns>ÎÄ¼şÂ·¾¶</returns>
+        /// <returns>æ–‡ä»¶è·¯å¾„</returns>
         static  String  filePath(const char* fileName)
         {
             fs::path filePath(fileName);
             return  filePath.parent_path().string();
         }
         /// <summary>
-        /// »ñÈ¡ÎÄ¼şÀ©Õ¹Ãû
+        /// è·å–æ–‡ä»¶æ‰©å±•å
         /// c:/xx/yy/tt.x
         /// return .x
         /// </summary>
         /// <param name="fileName"></param>
-        /// <returns>·µ»ØÎÄ¼şÀ©Õ¹Ãû</returns>
+        /// <returns>è¿”å›æ–‡ä»¶æ‰©å±•å</returns>
         static  String  fileExtension(const char* fileName)
         {
             if (*fileName == '.')

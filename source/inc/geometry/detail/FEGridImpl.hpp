@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 
 #include    "../../FEObject.h"
 #include    "../../FEColor.hpp"
@@ -8,21 +8,21 @@ namespace   FE
     struct  FEParamGrid
     {
         /// <summary>
-        /// Íø¸ñµÄ×Ü±ß³¤
+        /// ç½‘æ ¼çš„æ€»è¾¹é•¿
         /// </summary>
         uint32_t    _size;
         /// <summary>
-        /// Íø¸ñµÄµÈ·ÖÊı(ºá×İ¸÷»®·ÖÎª¶àÉÙ¸ñ)
+        /// ç½‘æ ¼çš„ç­‰åˆ†æ•°(æ¨ªçºµå„åˆ’åˆ†ä¸ºå¤šå°‘æ ¼)
         /// </summary>
         uint32_t    _divs;
         /// <summary>
-        /// ÖĞĞÄÏßµÄÑÕÉ«
+        /// ä¸­å¿ƒçº¿çš„é¢œè‰²
         /// </summary>
         Rgba8        _color1;
         Rgba8        _color2;
         Rgba8        _color3;
         /// <summary>
-        /// ÆÕÍ¨Íø¸ñÏßµÄÑÕÉ«
+        /// æ™®é€šç½‘æ ¼çº¿çš„é¢œè‰²
         /// </summary>
         Rgba8       _color4;
         int         _dir    =   0;
@@ -53,7 +53,7 @@ namespace   FE
         }   
 
         /// <summary>
-        /// »ñÈ¡Ïß¶ÎÊı¾İ£¬Á½¸öµã×é³ÉÒ»¸öÏß¶Î
+        /// è·å–çº¿æ®µæ•°æ®ï¼Œä¸¤ä¸ªç‚¹ç»„æˆä¸€ä¸ªçº¿æ®µ
         /// </summary>
         /// <returns></returns>
         static  float3s     extractXYLines(const FEParamGrid& param)

@@ -1,4 +1,4 @@
-#pragma     once
+ï»¿#pragma     once
 #include    "FEObject.h"
 #include    "FEPlatform.h"
 #include    "FEInput.hpp"
@@ -46,17 +46,17 @@ namespace   FE
         /// </summary>
         virtual void    run()   =   0;
         /// <summary>
-        /// »ñÈ¡µ±Ç°Ó¦ÓÃµÄÈ«Â·¾¶
+        /// è·å–å½“å‰åº”ç”¨çš„å…¨è·¯å¾„
         /// </summary>
         /// <returns></returns>
         virtual String  filePathName()  =   0;
         virtual String  path()  =   0;
         /// <summary>
-        /// Ïú»Ù
+        /// é”€æ¯
         /// </summary>
         virtual void    destroy()   =   0;
         /// <summary>
-        /// »æÖÆÒ»Ö¡
+        /// ç»˜åˆ¶ä¸€å¸§
         /// </summary>
         virtual void    renderOneFrame()    =   0;
         virtual void    onMessage(const FEMessage& msg) override 

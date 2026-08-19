@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 #include    "graphic/FERenderSystem.h"
 #include    "VKDevice.h"
 #include    "VKInstanceLayers.h"
@@ -62,7 +62,7 @@ namespace   FE
             return  _gpus;
         }
         /// <summary>
-        /// �����豸
+        /// 锟斤拷锟斤拷锟借备
         /// </summary>
         /// <param name="info"></param>
         /// <returns></returns>
