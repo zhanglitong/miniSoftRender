@@ -1,4 +1,4 @@
-﻿/// @ref gtx_vector_angle
+/// @ref gtx_vector_angle
 /// @file glm/gtx/vector_angle.hpp
 ///
 /// @see core (dependence)

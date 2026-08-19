@@ -1,4 +1,4 @@
-﻿#include    "WGGImage.h"
+#include    "WGGImage.h"
 #include    "WGDevice.h"
 #include    "WGGImageView.h"
 

@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "../FEApp.hpp"
 #include    <windows.h>
 #include    <fcntl.h>

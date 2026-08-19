@@ -1,4 +1,4 @@
-﻿
+
 #include    "VKGPUBuffer.h"
 #include    "VKDevice.h"
 #include    "FEVulkan.h"

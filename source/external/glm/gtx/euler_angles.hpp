@@ -1,4 +1,4 @@
-﻿/// @ref gtx_euler_angles
+/// @ref gtx_euler_angles
 /// @file glm/gtx/euler_angles.hpp
 ///
 /// @see core (dependence)

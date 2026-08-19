@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEKeyFrameTrack.hpp"
 #include    "FETrackResult.hpp"
 

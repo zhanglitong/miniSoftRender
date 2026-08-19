@@ -1,4 +1,4 @@
-﻿
+
 #include    "VKFence.h"
 #include    "VKDevice.h"
 namespace   FE

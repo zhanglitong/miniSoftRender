@@ -1,4 +1,4 @@
-﻿
+
 #include    "VKGPipeline.h"
 #include    "VKDevice.h"
 #include    "VKShader.h"

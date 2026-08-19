@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file wgpu.h
  * @brief wgpu-native specific extensions to the standard WebGPU C API.
  *

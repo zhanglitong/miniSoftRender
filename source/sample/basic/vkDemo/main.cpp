@@ -1,4 +1,4 @@
-﻿#include    "demo.h"
+#include    "demo.h"
 
 #ifdef _WIN32
 #include    <windows.h>

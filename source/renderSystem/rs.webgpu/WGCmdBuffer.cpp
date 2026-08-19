@@ -1,4 +1,4 @@
-﻿#include    "WGCmdBuffer.h"
+#include    "WGCmdBuffer.h"
 #include    "WGDevice.h"
 #include    "WGGPUBuffer.h"
 #include    "WGPipeline.h"

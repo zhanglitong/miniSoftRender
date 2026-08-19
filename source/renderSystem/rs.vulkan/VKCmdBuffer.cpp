@@ -1,4 +1,4 @@
-﻿
+
 
 #include    "VKCmdBuffer.h"
 #include    "VKDevice.h"

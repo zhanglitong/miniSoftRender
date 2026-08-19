@@ -1,4 +1,4 @@
-﻿
+
 
 #include    "VKSwapchain.h"
 #include    "VKDevice.h"

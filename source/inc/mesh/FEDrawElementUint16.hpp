@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FEPrimitive.hpp"
 namespace   FE

@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "../../FEStreamWriter.hpp"
 #include    "../../FEDateTime.hpp"
 #include    "../../FEEntryList.hpp"

@@ -1,4 +1,4 @@
-﻿
+
 #include    "FECamera.hpp"
 
 

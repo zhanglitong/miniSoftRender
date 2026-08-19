@@ -1,4 +1,4 @@
-﻿
+
 #include    "../inc/FEContext.hpp"
 #include    "../inc/FEDateTime.hpp"
 #include    "../inc/FESetting.hpp"

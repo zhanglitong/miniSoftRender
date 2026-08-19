@@ -1,4 +1,4 @@
-﻿/// @ref core
+/// @ref core
 /// @file glm/integer.hpp
 
 #include "detail/setup.hpp"

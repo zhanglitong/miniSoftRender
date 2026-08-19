@@ -1,4 +1,4 @@
-﻿/// @ref gtc_vec1
+/// @ref gtc_vec1
 /// @file glm/gtc/vec1.hpp
 ///
 /// @see core (dependence)

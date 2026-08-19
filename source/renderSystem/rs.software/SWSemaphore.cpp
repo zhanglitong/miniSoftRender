@@ -1,4 +1,4 @@
-﻿#include    "SWSemaphore.h"
+#include    "SWSemaphore.h"
 #include    "SWDevice.h"
 
 namespace   FE

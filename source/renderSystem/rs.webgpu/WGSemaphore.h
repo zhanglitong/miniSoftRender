@@ -1,4 +1,4 @@
-﻿#include    "graphic/FESemaphore.h"
+#include    "graphic/FESemaphore.h"
 
 namespace   FE
 {

@@ -1,4 +1,4 @@
-﻿
+
 #include    "../inc/mesh/FEMesh.hpp"
 
 constexpr const float   constScreenThreshold    =   4;

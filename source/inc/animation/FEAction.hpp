@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    <functional>
 #include    "FEClip.hpp"
 #include    "FEAnimation.hpp"

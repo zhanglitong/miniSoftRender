@@ -1,4 +1,4 @@
-﻿#include    "SWDevice.h"
+#include    "SWDevice.h"
 #include    "SWRenderSystem.h"
 
 #include    "SWCmdBuffer.h"

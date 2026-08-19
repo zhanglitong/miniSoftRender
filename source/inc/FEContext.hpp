@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FELog.hpp"
 #include    "FEKeyValues.hpp"
 #include    "FEFileFormat.hpp"

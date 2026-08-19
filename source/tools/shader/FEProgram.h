@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FEShader.h"
 #include    "../../inc/FELog.h"

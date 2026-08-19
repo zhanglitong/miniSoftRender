@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEMath.hpp"
 #include    "FEObject.h"
 #include    "FEBuffer.hpp"

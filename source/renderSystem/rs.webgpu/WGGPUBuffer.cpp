@@ -1,4 +1,4 @@
-﻿#include    "WGGPUBuffer.h"
+#include    "WGGPUBuffer.h"
 #include    "WGDevice.h"
 
 namespace   FE

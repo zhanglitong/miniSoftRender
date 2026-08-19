@@ -1,4 +1,4 @@
-﻿#include    "SWCmdPool.h"
+#include    "SWCmdPool.h"
 #include    "SWDevice.h"
 #include    "SWCmdBuffer.h"
 

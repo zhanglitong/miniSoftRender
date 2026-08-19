@@ -1,4 +1,4 @@
-﻿/// @ref gtx_dual_quaternion
+/// @ref gtx_dual_quaternion
 /// @file glm/gtx/dual_quaternion.hpp
 /// @author Maksim Vorobiev (msomeone@gmail.com)
 ///

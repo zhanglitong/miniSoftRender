@@ -1,4 +1,4 @@
-﻿#include    "WGDevice.h"
+#include    "WGDevice.h"
 #include    "WGRenderSystem.h"
 #include    "WGCmdBuffer.h"
 #include    "WGQueue.h"

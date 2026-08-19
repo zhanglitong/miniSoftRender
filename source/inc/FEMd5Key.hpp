@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEDefine.h"
 namespace   FE
 {

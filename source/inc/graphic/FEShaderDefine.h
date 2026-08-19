@@ -42,15 +42,15 @@ using   namespace   FE;
 #endif
 
 /// <summary>
-/// 平行光
+/// 骞宠鍏?
 /// </summary>
 const   int     LightTypeDir    =   0;
 /// <summary>
-/// 点光源
+/// 鐐瑰厜婧?
 /// </summary>
 const   int     LightTypePoint  =   1;
 /// <summary>
-/// 聚光灯
+/// 鑱氬厜鐏?
 /// </summary>
 const   int     LightTypeSpot   =   2;
 
@@ -83,30 +83,30 @@ struct  LightData
 };
 
 // <summary>
-/// KHR_materials_iridescence 扩展的作用是在 glTF 材质中模拟真实的虹彩（薄膜干涉）效应，也就是我们常说的彩虹色。
-/// 这种效果出现在肥皂泡、油膜、某些昆虫翅膀或特殊涂层表面，能显著增强模型的真实感和视觉吸引力。
-/// 自然现象：肥皂泡、油膜、甲虫或蝴蝶翅膀。
-/// 人造物体：特殊车漆、陶瓷釉面、手机背壳等装饰性涂层。
-/// 可选纹理，使用其 G 通道在最小与最大厚度之间进行插值，实现表面厚度的不均匀变化，从而产生更复杂的虹彩图案
-/// uniform sampler2D u_IridescenceTexture;             强度贴图 (R通道)
-/// uniform sampler2D u_IridescenceThicknessTexture;    厚度贴图 (G通道)
+/// KHR_materials_iridescence 鎵╁睍鐨勪綔鐢ㄦ槸鍦?glTF 鏉愯川涓ā鎷熺湡瀹炵殑铏瑰僵锛堣杽鑶滃共娑夛級鏁堝簲锛屼篃灏辨槸鎴戜滑甯歌鐨勫僵铏硅壊銆?
+/// 杩欑鏁堟灉鍑虹幇鍦ㄨ偉鐨傛场銆佹补鑶溿€佹煇浜涙槅铏繀鑶€鎴栫壒娈婃秱灞傝〃闈紝鑳芥樉钁楀寮烘ā鍨嬬殑鐪熷疄鎰熷拰瑙嗚鍚稿紩鍔涖€?
+/// 鑷劧鐜拌薄锛氳偉鐨傛场銆佹补鑶溿€佺敳铏垨铦磋澏缈呰唨銆?
+/// 浜洪€犵墿浣擄細鐗规畩杞︽紗銆侀櫠鐡烽噳闈€佹墜鏈鸿儗澹崇瓑瑁呴グ鎬ф秱灞傘€?
+/// 鍙€夌汗鐞嗭紝浣跨敤鍏?G 閫氶亾鍦ㄦ渶灏忎笌鏈€澶у帤搴︿箣闂磋繘琛屾彃鍊硷紝瀹炵幇琛ㄩ潰鍘氬害鐨勪笉鍧囧寑鍙樺寲锛屼粠鑰屼骇鐢熸洿澶嶆潅鐨勮櫣褰╁浘妗?
+/// uniform sampler2D u_IridescenceTexture;             寮哄害璐村浘 (R閫氶亾)
+/// uniform sampler2D u_IridescenceThicknessTexture;    鍘氬害璐村浘 (G閫氶亾)
 /// </summary>
 struct  KHRMatIridescence
 {
     /// <summary>
-    /// 控制虹彩效果的强度，范围 0.0 (无效果) 到 1.0 (完全效果)。可使用 R 通道的纹理贴图控制。
+    /// 鎺у埗铏瑰僵鏁堟灉鐨勫己搴︼紝鑼冨洿 0.0 (鏃犳晥鏋? 鍒?1.0 (瀹屽叏鏁堟灉)銆傚彲浣跨敤 R 閫氶亾鐨勭汗鐞嗚创鍥炬帶鍒躲€?
     /// </summary>
     float   _factor;
     /// <summary>
-    /// 薄膜材质的折射率 (IOR)，典型范围 1.0 - 2.0，影响色彩变化的幅度。
+    /// 钖勮啘鏉愯川鐨勬姌灏勭巼 (IOR)锛屽吀鍨嬭寖鍥?1.0 - 2.0锛屽奖鍝嶈壊褰╁彉鍖栫殑骞呭害銆?
     /// </summary>
     float   _ior;
     /// <summary>
-    /// 薄膜的最小厚度（单位：纳米 nm），用于定义厚度范围的下限。
+    /// 钖勮啘鐨勬渶灏忓帤搴︼紙鍗曚綅锛氱撼绫?nm锛夛紝鐢ㄤ簬瀹氫箟鍘氬害鑼冨洿鐨勪笅闄愩€?
     /// </summary>
     float   _thicknessMin;
     /// <summary>
-    /// 薄膜的最大厚度（单位：纳米 nm），用于定义厚度范围的上限。若未提供厚度纹理，则使用此固定值。
+    /// 钖勮啘鐨勬渶澶у帤搴︼紙鍗曚綅锛氱撼绫?nm锛夛紝鐢ㄤ簬瀹氫箟鍘氬害鑼冨洿鐨勪笂闄愩€傝嫢鏈彁渚涘帤搴︾汗鐞嗭紝鍒欎娇鐢ㄦ鍥哄畾鍊笺€?
     /// </summary>
     float   _thicknessMax;
 #ifdef __cplusplus
@@ -121,11 +121,11 @@ struct  KHRMatIridescence
 };
 
 /// <summary>
-/// 清漆层
-/// 清漆强度	strength = factor × texture.r
-/// 清漆粗糙度	roughness = factor × texture.g
-/// 叠加方式	final = base + clearcoat
-/// 最终颜色 = 基础材质颜色 + 清漆层高光
+/// 娓呮紗灞?
+/// 娓呮紗寮哄害	strength = factor 脳 texture.r
+/// 娓呮紗绮楃硻搴?roughness = factor 脳 texture.g
+/// 鍙犲姞鏂瑰紡	final = base + clearcoat
+/// 鏈€缁堥鑹?= 鍩虹鏉愯川棰滆壊 + 娓呮紗灞傞珮鍏?
 /// </summary>
 struct  KHRMatClearcoat
 {
@@ -142,15 +142,15 @@ struct  KHRMatClearcoat
 
 /// <summary>
 /// KHR_materials_transmission
-/// 核心作用是让光线能够穿透物体表面，从而模拟出玻璃、水、塑料等半透明材质的效果
-/// 它的关键作用在于，它实现的是基于物理的“透射”，而不仅仅是简单的“透明”。
-/// 简单透明（Alpha 混合）只是让物体变淡，而透射则模拟了光线真正穿过物体的物理过程
-/// 物理透射	模拟光线穿过材质时的真实行为，而非简单的透明度叠加
-/// 保留高光	即使物体是透明的，表面依然能呈现真实、明亮的高光反射
-/// 粗糙度影响	材质的粗糙度参数会影响透射的清晰度：
-/// - 光滑玻璃 (粗糙度≈0) → 透射图像清晰
-/// - 磨砂玻璃 (粗糙度>0) → 透射图像变得模糊
-/// 薄壁模式	默认情况下，它将物体视为无限薄的表面。这对于窗户玻璃、灯泡外壳这类本身很薄的物体来说，效果非常理想。
+/// 鏍稿績浣滅敤鏄鍏夌嚎鑳藉绌块€忕墿浣撹〃闈紝浠庤€屾ā鎷熷嚭鐜荤拑銆佹按銆佸鏂欑瓑鍗婇€忔槑鏉愯川鐨勬晥鏋?
+/// 瀹冪殑鍏抽敭浣滅敤鍦ㄤ簬锛屽畠瀹炵幇鐨勬槸鍩轰簬鐗╃悊鐨勨€滈€忓皠鈥濓紝鑰屼笉浠呬粎鏄畝鍗曠殑鈥滈€忔槑鈥濄€?
+/// 绠€鍗曢€忔槑锛圓lpha 娣峰悎锛夊彧鏄鐗╀綋鍙樻贰锛岃€岄€忓皠鍒欐ā鎷熶簡鍏夌嚎鐪熸绌胯繃鐗╀綋鐨勭墿鐞嗚繃绋?
+/// 鐗╃悊閫忓皠	妯℃嫙鍏夌嚎绌胯繃鏉愯川鏃剁殑鐪熷疄琛屼负锛岃€岄潪绠€鍗曠殑閫忔槑搴﹀彔鍔?
+/// 淇濈暀楂樺厜	鍗充娇鐗╀綋鏄€忔槑鐨勶紝琛ㄩ潰渚濈劧鑳藉憟鐜扮湡瀹炪€佹槑浜殑楂樺厜鍙嶅皠
+/// 绮楃硻搴﹀奖鍝?鏉愯川鐨勭矖绯欏害鍙傛暟浼氬奖鍝嶉€忓皠鐨勬竻鏅板害锛?
+/// - 鍏夋粦鐜荤拑 (绮楃硻搴︹増0) 鈫?閫忓皠鍥惧儚娓呮櫚
+/// - 纾ㄧ爞鐜荤拑 (绮楃硻搴?0) 鈫?閫忓皠鍥惧儚鍙樺緱妯＄硦
+/// 钖勫妯″紡	榛樿鎯呭喌涓嬶紝瀹冨皢鐗╀綋瑙嗕负鏃犻檺钖勭殑琛ㄩ潰銆傝繖瀵逛簬绐楁埛鐜荤拑銆佺伅娉″澹宠繖绫绘湰韬緢钖勭殑鐗╀綋鏉ヨ锛屾晥鏋滈潪甯哥悊鎯炽€?
 /// </summary>
 struct  KHRMatTransmission
 {
@@ -168,17 +168,17 @@ struct  KHRMatTransmission
 struct  KHRMatVolume
 {
     /// <summary>
-    ///  吸收颜色
+    ///  鍚告敹棰滆壊
     /// </summary>
     float   _colorR;
     float   _colorG;
     float   _colorB;
     /// <summary>
-    /// 厚度
+    /// 鍘氬害
     /// </summary>
     float   _thickness;
     /// <summary>
-    /// 吸收距离
+    /// 鍚告敹璺濈
     /// </summary>
     float   _distance;
 #ifdef __cplusplus
@@ -240,22 +240,22 @@ struct  PointData
 {
     /// point range,min value~ max value
     uint        _point;
-    /// 颜色
+    /// 棰滆壊
     uint        _color;
 #ifdef __cplusplus
     PointData()
     {
         _color  =   0;
-        _color  |=  (static_cast<uint32_t>((0xFF))  << 24);  // R 在高8位
+        _color  |=  (static_cast<uint32_t>((0xFF))  << 24);  // R 鍦ㄩ珮8浣?
         _color  |=  (static_cast<uint32_t>((0x00))  << 16);  // G
         _color  |=  (static_cast<uint32_t>((0x00))  << 8 );  // B
-        _color  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // A 在低8位
+        _color  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // A 鍦ㄤ綆8浣?
        
         _point  =   0;
-        _point  |=  (static_cast<uint32_t>((1))     << 24);  // 是否覆盖顶点颜色
-        _point  |=  (static_cast<uint32_t>((8))     << 16);  // 点的min 8
-        _point  |=  (static_cast<uint32_t>((16))    << 8 );  // 点的max 16
-        _point  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // 非0,表示点
+        _point  |=  (static_cast<uint32_t>((1))     << 24);  // 鏄惁瑕嗙洊椤剁偣棰滆壊
+        _point  |=  (static_cast<uint32_t>((8))     << 16);  // 鐐圭殑min 8
+        _point  |=  (static_cast<uint32_t>((16))    << 8 );  // 鐐圭殑max 16
+        _point  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // 闈?,琛ㄧず鐐?
     }
 #endif
 };

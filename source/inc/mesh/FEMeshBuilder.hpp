@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FEMesh.hpp"
 #include    "FEPrimitive.hpp"

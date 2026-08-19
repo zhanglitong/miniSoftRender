@@ -1,4 +1,4 @@
-﻿#include    "SWFrameBuffer.h"
+#include    "SWFrameBuffer.h"
 #include    "SWDevice.h"
 
 namespace   FE

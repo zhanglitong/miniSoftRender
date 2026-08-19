@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    <string>
 #include    "../inc/FEObject.h"
 #include    "../inc/FEMath.hpp"

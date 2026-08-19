@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "RSObject.h"
 #include    "FECmdBuffer.h"

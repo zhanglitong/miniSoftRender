@@ -1,4 +1,4 @@
-﻿#include    "WGDSetLayout.h"
+#include    "WGDSetLayout.h"
 #include    "WGDevice.h"
 #include    "WGDSet.h"
 #include    "graphic/FEGraphicEnums.h"

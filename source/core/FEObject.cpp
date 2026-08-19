@@ -1,4 +1,4 @@
-﻿#include    <new> 
+#include    <new> 
 #include    <memory> 
 
 #include    "../inc/FEObject.h"

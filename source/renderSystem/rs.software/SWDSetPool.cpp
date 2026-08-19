@@ -1,4 +1,4 @@
-﻿#include    "SWDSetPool.h"
+#include    "SWDSetPool.h"
 #include    "SWDevice.h"
 
 namespace   FE

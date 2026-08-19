@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FEGeometryParam.hpp"
 #include    "detail/FEPlaneImpl.hpp"

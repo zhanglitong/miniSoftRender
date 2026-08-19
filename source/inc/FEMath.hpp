@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 
 #include    "math/FEVec2.hpp"

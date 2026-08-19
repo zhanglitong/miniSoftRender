@@ -1,4 +1,4 @@
-﻿/// @ref core
+/// @ref core
 /// @file glm/packing.hpp
 
 #include "detail/setup.hpp"

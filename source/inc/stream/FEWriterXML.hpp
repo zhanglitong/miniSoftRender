@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEWriter.hpp"
 #include    "../FEXML.hpp"
 

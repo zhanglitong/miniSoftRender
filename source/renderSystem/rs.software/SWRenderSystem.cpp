@@ -1,4 +1,4 @@
-﻿#include    "SWRenderSystem.h"
+#include    "SWRenderSystem.h"
 
 namespace   FE
 {

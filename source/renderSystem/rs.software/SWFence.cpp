@@ -1,4 +1,4 @@
-﻿#include    "SWFence.h"
+#include    "SWFence.h"
 #include    "SWDevice.h"
 
 namespace   FE

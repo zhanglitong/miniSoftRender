@@ -1,4 +1,4 @@
-﻿#include    "SWDSet.h"
+#include    "SWDSet.h"
 #include    "SWDevice.h"
 #include    "SWDSetLayout.h"
 #include    "SWDSetPool.h"

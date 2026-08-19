@@ -1,4 +1,4 @@
-﻿#include    "SWGPUBuffer.h"
+#include    "SWGPUBuffer.h"
 #include    "SWDevice.h"
 
 namespace   FE

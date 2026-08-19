@@ -1,4 +1,4 @@
-﻿/// @ref gtx_matrix_major_storage
+/// @ref gtx_matrix_major_storage
 /// @file glm/gtx/matrix_major_storage.hpp
 ///
 /// @see core (dependence)

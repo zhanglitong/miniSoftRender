@@ -1,4 +1,4 @@
-﻿
+
 #ifdef     IS_EMSCRIPTEN
     #include    <emscripten.h>
     #include    <emscripten/bind.h>

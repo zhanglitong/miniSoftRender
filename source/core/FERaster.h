@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FERasterState.h"
 #include    "../inc/graphic/FEPBuffer.h"

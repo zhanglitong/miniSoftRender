@@ -1,4 +1,4 @@
-﻿#include    "VKRenderPass.h"
+#include    "VKRenderPass.h"
 #include    "VkDevice.h"
 
 namespace   FE

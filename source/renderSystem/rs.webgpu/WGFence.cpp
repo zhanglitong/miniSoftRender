@@ -1,4 +1,4 @@
-﻿#include    "WGFence.h"
+#include    "WGFence.h"
 
 namespace   FE
 {

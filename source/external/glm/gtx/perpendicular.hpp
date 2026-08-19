@@ -1,4 +1,4 @@
-﻿/// @ref gtx_perpendicular
+/// @ref gtx_perpendicular
 /// @file glm/gtx/perpendicular.hpp
 ///
 /// @see core (dependence)

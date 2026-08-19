@@ -1,4 +1,4 @@
-﻿#include    "SWRenderPass.h"
+#include    "SWRenderPass.h"
 #include    "SWDevice.h"
 
 namespace   FE

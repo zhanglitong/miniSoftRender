@@ -1,4 +1,4 @@
-﻿/// @ref gtc_reciprocal
+/// @ref gtc_reciprocal
 /// @file glm/gtc/reciprocal.hpp
 ///
 /// @see core (dependence)

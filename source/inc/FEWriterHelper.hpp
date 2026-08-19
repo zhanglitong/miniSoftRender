@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "stream/FEWriter.hpp"
 #include    "stream/FEWriterFile.hpp"
 #include    "stream/FEWriterMemrory.hpp"

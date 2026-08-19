@@ -1,4 +1,4 @@
-﻿/// @ref gtc_bitfield
+/// @ref gtc_bitfield
 /// @file glm/gtc/bitfield.hpp
 ///
 /// @see core (dependence)

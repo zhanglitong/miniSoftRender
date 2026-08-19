@@ -1,4 +1,4 @@
-﻿
+
 #include    "../inc/FEReaderHelper.hpp"
 #include    "../inc/FEWriterHelper.hpp"
 #include    "../inc/FEObjectHelper.hpp"

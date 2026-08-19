@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "../FEImage.h"
 #include    "../FESmallVector.h"

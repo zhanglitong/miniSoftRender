@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "../FEFlags.hpp"
 #include    "FEVec3.hpp"
 #include    "FEMat4.hpp"

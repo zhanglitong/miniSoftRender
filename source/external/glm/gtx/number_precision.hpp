@@ -1,4 +1,4 @@
-﻿/// @ref gtx_number_precision
+/// @ref gtx_number_precision
 /// @file glm/gtx/number_precision.hpp
 ///
 /// @see core (dependence)

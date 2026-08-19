@@ -1,4 +1,4 @@
-﻿
+
 #include    "../inc/FELog.hpp"
 #include    "../inc/FEPickup.hpp"
 #include    "../inc/FEFileSystem.hpp"

@@ -1,4 +1,4 @@
-﻿/// @ref gtx_fast_trigonometry
+/// @ref gtx_fast_trigonometry
 /// @file glm/gtx/fast_trigonometry.hpp
 ///
 /// @see core (dependence)

@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEObject.h"
 #include    "graphic/FEDSet.h"
 #include    "graphic/FEPipeline.h"

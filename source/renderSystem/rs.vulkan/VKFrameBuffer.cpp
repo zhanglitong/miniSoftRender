@@ -1,4 +1,4 @@
-﻿
+
 #include    "VKFrameBuffer.h"
 #include    "VKDevice.h"
 

@@ -1,4 +1,4 @@
-﻿/// @ref core
+/// @ref core
 /// @file glm/vec4.hpp
 
 #include "detail/setup.hpp"

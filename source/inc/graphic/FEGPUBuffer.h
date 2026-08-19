@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "../FEBuffer.hpp"
 #include    "RSObject.h"
 #include    "FEGraphicEnums.h"

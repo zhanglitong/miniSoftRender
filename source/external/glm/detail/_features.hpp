@@ -1,4 +1,4 @@
-﻿/// @ref core
+/// @ref core
 /// @file glm/detail/_features.hpp
 
 #pragma once

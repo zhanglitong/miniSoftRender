@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "../FEInput.hpp"
 #include    "../FECamera.hpp"

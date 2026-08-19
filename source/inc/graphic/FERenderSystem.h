@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FERenderContext.h"
 #include    "FEDevice.h"

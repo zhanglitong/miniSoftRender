@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEMaterial.hpp"
 
 namespace   FE

@@ -1,4 +1,4 @@
-﻿#include    "SWShader.h"
+#include    "SWShader.h"
 #include    "SWDevice.h"
 #include    "SWDSetLayout.h"
 

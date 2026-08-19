@@ -1,4 +1,4 @@
-﻿
+
 #include    "../inc/material/FEMaterial.hpp"
 #include    "../inc/graphic/FEGPipeline.h"
 #include    "../inc/graphic/FEDevice.h"

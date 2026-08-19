@@ -1,4 +1,4 @@
-﻿#include    "SWGPipeline.h"
+#include    "SWGPipeline.h"
 #include    "SWDevice.h"
 #include    "SWShader.h"
 

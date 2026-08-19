@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FEFactoryTemplate.hpp"
 #include    "graphic/FEFactoryRender.hpp"

@@ -1,4 +1,4 @@
-﻿#include    "../../../inc/FEContext.hpp"
+#include    "../../../inc/FEContext.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 namespace   FE
 {

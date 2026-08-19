@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "../inc/FEDefine.h"
 #include    "../inc/FEObject.h"

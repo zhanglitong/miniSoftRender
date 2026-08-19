@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEStreamReader.hpp"
 #include    "FEStreamWriter.hpp"
 #include    "FEObjectHelper.hpp"

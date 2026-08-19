@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FELight.h"
 #include    "FELightPoint.h"
 #include    "FELightDir.h"

@@ -1,4 +1,4 @@
-﻿#include    "WGRenderSystem.h"
+#include    "WGRenderSystem.h"
 #include    "WGDevice.h"
 
 namespace   FE

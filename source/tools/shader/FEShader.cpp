@@ -1,4 +1,4 @@
-﻿
+
 #include    "FEShader.h"
 
 namespace FE

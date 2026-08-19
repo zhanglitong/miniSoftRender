@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "graphic/FERenderSystem.h"
 #include    "SWDevice.h"
 

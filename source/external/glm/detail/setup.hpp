@@ -1,4 +1,4 @@
-﻿/// @ref core
+/// @ref core
 /// @file glm/detail/setup.hpp
 
 #ifndef GLM_SETUP_INCLUDED

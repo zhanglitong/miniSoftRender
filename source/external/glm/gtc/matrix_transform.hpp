@@ -1,4 +1,4 @@
-﻿/// @ref gtc_matrix_transform
+/// @ref gtc_matrix_transform
 /// @file glm/gtc/matrix_transform.hpp
 ///
 /// @see core (dependence)

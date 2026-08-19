@@ -1,4 +1,4 @@
-﻿
+
 #include    "../inc/FEImage.h"
 #include    "../inc/FEReaderHelper.hpp"
 #include    "../inc/FEWriterHelper.hpp"

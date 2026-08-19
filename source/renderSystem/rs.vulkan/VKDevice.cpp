@@ -1,4 +1,4 @@
-﻿
+
 #include    "VKDevice.h"
 #include    "VKRenderSystem.h"
 

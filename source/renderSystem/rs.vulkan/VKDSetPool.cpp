@@ -1,4 +1,4 @@
-﻿
+
 
 #include    "VKDSetPool.h"
 #include    "VKDevice.h"

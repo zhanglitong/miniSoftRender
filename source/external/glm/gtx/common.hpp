@@ -1,4 +1,4 @@
-﻿/// @ref gtx_common
+/// @ref gtx_common
 /// @file glm/gtx/common.hpp
 ///
 /// @see core (dependence)

@@ -1,4 +1,4 @@
-﻿
+
 #include    "../inc/node/FENode.hpp"
 #include    "../inc/graphic/FEScene.h"
 

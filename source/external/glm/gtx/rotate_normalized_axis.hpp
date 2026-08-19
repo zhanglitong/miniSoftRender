@@ -1,4 +1,4 @@
-﻿/// @ref gtx_rotate_normalized_axis
+/// @ref gtx_rotate_normalized_axis
 /// @file glm/gtx/rotate_normalized_axis.hpp
 ///
 /// @see core (dependence)

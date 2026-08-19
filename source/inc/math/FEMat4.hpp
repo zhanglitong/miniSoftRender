@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "FEVec3.hpp"
 #include    "FEVec4.hpp"

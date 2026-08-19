@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "../graphic/FEConstUuid.h"
 #include    "../graphic/FEDevice.h"

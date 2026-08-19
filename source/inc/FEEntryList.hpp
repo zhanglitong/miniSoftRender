@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "FEObject.h"
 #include    "FEReaderHelper.hpp"
 #include    "FEWriterHelper.hpp"

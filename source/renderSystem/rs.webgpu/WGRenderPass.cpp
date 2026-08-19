@@ -1,4 +1,4 @@
-﻿#include    "WGRenderPass.h"
+#include    "WGRenderPass.h"
 
 namespace   FE
 {

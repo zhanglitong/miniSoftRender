@@ -1,4 +1,4 @@
-﻿/// @ref gtx_component_wise
+/// @ref gtx_component_wise
 /// @file glm/gtx/component_wise.hpp
 /// @date 2007-05-21 / 2011-06-07
 /// @author Christophe Riccio

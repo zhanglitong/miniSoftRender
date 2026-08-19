@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 #include    "../FEFlags.hpp"
 #include    "../FEStringHelper.hpp"
 #include    "../mesh/FEPrimitive.hpp"

@@ -1,4 +1,4 @@
-﻿#include    "demo.h"
+#include    "demo.h"
 #include    "../../../inc/FEAppHelper.hpp"
 #include    "../../../inc/geometry/FEGeometryGrid.hpp"
 #include    "../../../inc/FEFileFormatHelper.hpp"
