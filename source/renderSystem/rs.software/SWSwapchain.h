@@ -19,7 +19,6 @@ namespace   FE
         virtual ~SWSwapchain();
     public:
         virtual Frame       acquireNextFrame(uint64 timeout)  override;
-        virtual Frames      frames() const override;
         virtual bool        create(const CreateInfo& info)  override;
         virtual bool        queuePresent(const PresentInfo& pInfo) override;
         virtual FEFormat    colorFormat() const

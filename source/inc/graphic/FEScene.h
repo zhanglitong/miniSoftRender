@@ -22,6 +22,7 @@
 #include    "FEFactoryMgr.hpp"
 #include    "FEViewerMgr.hpp"
 #include    "FEFrame.h"
+#include    "../animation/FEActionGroup.hpp"
 
 namespace   FE
 {
@@ -42,12 +43,15 @@ namespace   FE
             ,_nodeTree(ctx)
             ,_factorys(ctx)
             ,_viewerMgr(ctx)
-        {}
+            ,_actionGrp(ctx)
+        {
+        }
         FEScene(const FEScene& other)
             :FEObject(other)
             ,_nodeTree(other._nodeTree)
             ,_factorys(other._factorys)
             ,_viewerMgr(other._viewerMgr)
+            ,_actionGrp(other._actionGrp)
         {}
         inline  auto&   updateQueue()
         {
@@ -143,12 +147,13 @@ namespace   FE
         FENodeTree          _nodeTree;
         FEFactoryMgr        _factorys;
         FEViewerMgr         _viewerMgr;
+        FEActionGroup       _actionGrp;
         FEUpdateQueue       _updateQueue;
         Camera              _camera;
+        
         RenderSys           _renderSys;
         Device              _device;
         Swapchain           _swapchain;
-        RenderPass          _renderPass;
         CMDPool             _cmdPool;
         GImage              _imgDepth   =   nullptr;
         GImgView            _depthView  =   nullptr;

@@ -9,22 +9,17 @@ namespace   FE
 {
     WGSwapchain::~WGSwapchain()
     {
-        if (_currentTexture)
-        {
-            wgpuTextureRelease(_currentTexture);
-            _currentTexture =   nullptr;
-        }
+        _frame  =   nullptr;
         if (_native)
         {
             wgpuSurfaceRelease(_native);
             _native =   nullptr;
         }
-        _images.clear();
-        _frames.clear();
     }
 
-    void WGSwapchain::initSurface(void* platformHandle,void* platformWindow)
+    void    WGSwapchain::initSurface(void* platformHandle,void* platformWindow)
     {
+
         WGPUSurfaceDescriptor surfaceDesc = {};
         surfaceDesc.nextInChain =   nullptr;
 
@@ -40,7 +35,7 @@ namespace   FE
         _native         =   wgpuInstanceCreateSurface(renderSys.instance(),&surfaceDesc);
     }
 
-    bool WGSwapchain::create(const CreateInfo& info)
+    bool    WGSwapchain::create(const CreateInfo& info)
     {
         _cInfo =   info;
 
@@ -51,19 +46,20 @@ namespace   FE
 
         if (!_native)
             return false;
+        auto&       wgDevice        =   (WGDevice&)(_ctx.device());
+        WGPUAdapter physicalDevice  =   (WGPUAdapter)wgDevice.physicalDevice();
 
-        auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
+        WGPUSurfaceCapabilities     surfaceCapabilities = {0};
+        wgpuSurfaceGetCapabilities(_native, (physicalDevice), &surfaceCapabilities);
 
         WGPUSurfaceConfiguration config = {};
-        config.nextInChain =   nullptr;
+        config.nextInChain      =   nullptr;
         config.device           =   wgDevice.device();
         config.format           =   _colorFormat;
         config.usage            =   WGPUTextureUsage_RenderAttachment;
         config.width            =   info._width;
         config.height           =   info._height;
-        config.viewFormatCount  =   0;
-        config.viewFormats      =   nullptr;
-        config.alphaMode        =   WGPUCompositeAlphaMode_Opaque;
+        config.alphaMode        =   surfaceCapabilities.alphaModes ?  surfaceCapabilities.alphaModes[0]: WGPUCompositeAlphaMode_Opaque;
         config.presentMode      =   WGPUPresentMode_Fifo;
 
         wgpuSurfaceConfigure(_native,&config);
@@ -75,33 +71,33 @@ namespace   FE
         (void)timeout;
         if (!_native)
             return nullptr;
-
-        if (_currentTexture)
-        {
-            wgpuTextureRelease(_currentTexture);
-            _currentTexture =   nullptr;
-        }
-
-        WGPUSurfaceTexture surfaceTexture;
+        if (_frame == nullptr)
+            _frame  =   new FEFrame(_ctx);
+        WGPUSurfaceTexture  surfaceTexture  =   {};
         wgpuSurfaceGetCurrentTexture(_native,&surfaceTexture);
 
         if (surfaceTexture.status == WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal ||
             surfaceTexture.status == WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal)
         {
-            _currentTexture     =   surfaceTexture.texture;
-            _currentImageIndex  =   0;
-            return nullptr;
+            WGPUTextureView wGWiew    =   wgpuTextureCreateView(surfaceTexture.texture, nullptr);
+            if (_frame->_imageViewer == nullptr)
+            {
+                _frame->_imageViewer    =   new WGGImageView(_ctx,wGWiew);
+            }
+            else
+            {
+                _frame->_imageViewer->destroy(); 
+                auto    view    =   _frame->_imageViewer->as<WGGImageView>();
+                if (view)
+                {
+                    view->attach(wGWiew);
+                }
+            }
         }
-
-        return nullptr;
+        return _frame;
     }
 
-    Frames  WGSwapchain::frames() const
-    {
-        return _frames;
-    }
-
-    bool WGSwapchain::queuePresent(const PresentInfo& pInfo)
+    bool    WGSwapchain::queuePresent(const PresentInfo& pInfo)
     {
         (void)pInfo;
         if (!_native)

@@ -25,14 +25,14 @@ namespace   FE
         auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
 
         WGPUTextureViewDescriptor viewDesc = {};
-        viewDesc.nextInChain =   nullptr;
-        viewDesc.format =   wgDevice.getWGPUTextureFormat(wgImage->cInfo()._format);
-        viewDesc.dimension =   WGPUTextureViewDimension_2D;
-        viewDesc.aspect =   WGPUTextureAspect_All;
-        viewDesc.baseMipLevel =   0;
-        viewDesc.mipLevelCount =   1;
-        viewDesc.baseArrayLayer =   0;
-        viewDesc.arrayLayerCount =   1;
+        viewDesc.nextInChain        =   nullptr;
+        viewDesc.format             =   wgDevice.getWGPUTextureFormat(wgImage->cInfo()._format);
+        viewDesc.dimension          =   WGPUTextureViewDimension_2D;
+        viewDesc.aspect             =   WGPUTextureAspect_All;
+        viewDesc.baseMipLevel       =   0;
+        viewDesc.mipLevelCount      =   1;
+        viewDesc.baseArrayLayer     =   0;
+        viewDesc.arrayLayerCount    =   1;
 
         _native =   wgpuTextureCreateView((WGPUTexture)wgImage->native(),&viewDesc);
         return _native != nullptr;

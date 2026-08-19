@@ -41,6 +41,10 @@ namespace   FE
             return;
         updateTransform(true);
         updateAabb(true);
+        for (auto& var: _coms)
+        {
+
+        }
     }
     void   FENode::fireChanged()
     {

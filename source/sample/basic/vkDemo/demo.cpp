@@ -20,28 +20,28 @@ namespace   FE
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
         _scene->setup(_app);
-        _scene->test();
+        /// _scene->test();
 
         //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
-        String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\AnimatedTriangle\glTF-Embedded/AnimatedTriangle.gltf)";
-        FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
-
-        auto    reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);
-        if (reader)
-        {
-            auto    objects =   reader->readFiles({gltfFile});
-            Nodes   nodes;
-            for (auto var : objects)
-            {   
-                Node    node    =   var->cast<FENode>();
-                if (node == nullptr)
-                    continue;
-                else
-                    nodes.push_back(node);
-            }
-            _scene->addNodesToFactory(nodes);
-            _scene->addNodesToTree(nodes);
-        }
+        /// String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\AnimatedTriangle\glTF-Embedded/AnimatedTriangle.gltf)";
+        /// FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
+        /// 
+        /// auto    reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);
+        /// if (reader)
+        /// {
+        ///     auto    objects =   reader->readFiles({gltfFile});
+        ///     Nodes   nodes;
+        ///     for (auto var : objects)
+        ///     {   
+        ///         Node    node    =   var->cast<FENode>();
+        ///         if (node == nullptr)
+        ///             continue;
+        ///         else
+        ///             nodes.push_back(node);
+        ///     }
+        ///     _scene->addNodesToFactory(nodes);
+        ///     _scene->addNodesToTree(nodes);
+        /// }
         _prepared   =   true;
     }
 

@@ -39,28 +39,33 @@ namespace   FE
             return _queue;
         }
 
+        inline  auto        physicalDevice() const
+        {
+            return  _gpuInfo.gpu;
+        }
+
         virtual FEResult    create(const CreateInfo& cInfo) override;
 
-        virtual Queue    queueGraphic() override;
-        virtual Queue    queueCompute() override;
-        virtual Queue    queueTransfer() override;
+        virtual Queue       queueGraphic() override;
+        virtual Queue       queueCompute() override;
+        virtual Queue       queueTransfer() override;
 
-        virtual void    waitIdle() override;
-        virtual Fence    createFence() override;
-        virtual Semaphore    createSemaphore() override;
+        virtual void        waitIdle() override;
+        virtual Fence       createFence() override;
+        virtual Semaphore   createSemaphore() override;
 
-        virtual CMDPool    createCmdPool() override;
-        virtual FBOPtr    createFrameBuffer() override;
-        virtual Shader    createShader() override;
-        virtual RenderPass    createRenderPass() override;
-        virtual GPipeline    createGPipeline() override;
-        virtual Swapchain    createSwapchain() override;
-        virtual GImage    createGImage() override;
+        virtual CMDPool     createCmdPool() override;
+        virtual FBOPtr      createFrameBuffer() override;
+        virtual Shader      createShader() override;
+        virtual RenderPass  createRenderPass() override;
+        virtual GPipeline   createGPipeline() override;
+        virtual Swapchain   createSwapchain() override;
+        virtual GImage      createGImage() override;
 
-        virtual DSetLayout    createDSLayout() override;
-        DSetLayout    createDSLayoutFromShaders(const std::vector<Shader>& shaders);
+        virtual DSetLayout  createDSLayout() override;
+        DSetLayout          createDSLayoutFromShaders(const std::vector<Shader>& shaders);
         virtual DSetPool    createDSetPool() override;
-        virtual DSet    createDSet() override;
+        virtual DSet        createDSet() override;
 
         virtual VBO    createVBO() override;
         virtual IBO    createIBO() override;

@@ -19,6 +19,7 @@ if (POLICY CMP0141)
 endif()
 
 if (MSVC)
+	add_compile_options("-utf-8")
    # target_compile_options(${TARGET} PRIVATE /W4)
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # target_compile_options(${TARGET} PRIVATE -Wall -Wextra)  # 对应 /W4 的级别

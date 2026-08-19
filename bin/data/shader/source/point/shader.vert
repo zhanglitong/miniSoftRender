@@ -24,7 +24,7 @@ layout (location = 0) out vec4  outColor;
 
 void main() 
 {
-    mat4 matLocal = mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
+    mat4    matLocal    =   mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
     
     outColor            =   inColor;
     float   pointMin    =   float((_point._point >> 16) & 0xFFu);

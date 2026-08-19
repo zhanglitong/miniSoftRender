@@ -53,7 +53,7 @@ namespace   FE
         struct  CreateInfo
         {
             Buffer          _buffer;
-            FEShaderType    _shaderType;
+            ShaderTypes     _shaderType;
         };
     public:
         FEShader(FEContext& ctx)

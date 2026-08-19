@@ -12,7 +12,7 @@ namespace   FE
     {
         if (_native)
         {
-            wgpuCommandBufferRelease(_native);
+            wgpuCommandEncoderRelease(_native);
             _native =   nullptr;
         }
     }
@@ -20,32 +20,29 @@ namespace   FE
     bool WGCmdBuffer::create(const CreateInfo& cInf)
     {
         _cInfo =   cInf;
+
+        auto&   wgDevice    =   (WGDevice&)(_ctx.device());
+        _native             =   wgpuDeviceCreateCommandEncoder(wgDevice.device(), nullptr);
+
         return true;
     }
 
     FEResult WGCmdBuffer::reset()
     {
+        auto&   wgDevice    =   (WGDevice&)(_ctx.device());
         if (_native)
-        {
-            wgpuCommandBufferRelease(_native);
-            _native =   nullptr;
-        }
+            wgpuCommandEncoderRelease(_native);
+        _native     =   wgpuDeviceCreateCommandEncoder(wgDevice.device(), nullptr);
         return FEResult::ER_SUCCESS;
     }
 
     FEResult WGCmdBuffer::begin(bool oneTimeSubmit)
     {
         (void)oneTimeSubmit;
-        auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
-
-        WGPUCommandEncoderDescriptor encoderDesc;
-        encoderDesc.label = { "Command Encoder",15 };
-
-        _encoder =   wgpuDeviceCreateCommandEncoder(wgDevice.device(),&encoderDesc);
-        if (!_encoder)
+        if (_native == nullptr)
             return FEResult::ER_FAILED;
-
-        return FEResult::ER_SUCCESS;
+        else
+            return FEResult::ER_SUCCESS;
     }
 
     FEResult WGCmdBuffer::setViewport(uint first,uint cnt,const Viewport* viewports)
@@ -53,8 +50,17 @@ namespace   FE
         (void)first;
         (void)cnt;
         (void)viewports;
-        if (!_encoder)
-            return FEResult::ER_FAILED;
+        if (viewports)
+        {
+            auto&   viewport    =   viewports[0];
+            wgpuRenderPassEncoderSetViewport(   _renderPassEncoder
+                                                ,viewport.x
+                                                ,viewport.y
+                                                ,viewport.width
+                                                ,viewport.height
+                                                ,viewport.minDepth
+                                                ,viewport.maxDepth);
+        }
         return FEResult::ER_SUCCESS;
     }
 
@@ -63,44 +69,55 @@ namespace   FE
         (void)first;
         (void)cnt;
         (void)scissors;
-        if (!_encoder)
+        if (!_native || !_renderPassEncoder)
             return FEResult::ER_FAILED;
+        
+        wgpuRenderPassEncoderSetScissorRect(_renderPassEncoder
+                                            ,scissors->left()
+                                            ,scissors->top()
+                                            ,scissors->width()
+                                            ,scissors->height());
         return FEResult::ER_SUCCESS;
+
     }
 
     FEResult WGCmdBuffer::beginRender(const RenderInfo& rs)
     {
-        if (!_encoder)
+        if (!_native)
             return FEResult::ER_FAILED;
 
         WGPURenderPassDescriptor renderPassDesc = {};
-        renderPassDesc.nextInChain =   nullptr;
+        renderPassDesc.nextInChain      =   nullptr;
 
-        WGPUTextureView attachments[1] = {};
-        WGPUTextureView depthAttachment =   nullptr;
+        WGPUTextureView attachments[1]  =   {};
+        WGPUTextureView depthAttachment =   rs._depth ? (WGPUTextureView)rs._depth->native() : nullptr;
+        if (!rs._colors.empty())
+        {
+            attachments[0]  =   (WGPUTextureView)rs._colors.front()->native();
+        }
 
         WGPURenderPassColorAttachment colorAttachment = {};
-        colorAttachment.view =   attachments[0];
-        colorAttachment.resolveTarget =   nullptr;
-        colorAttachment.clearValue = { rs._clearColor.x,rs._clearColor.y,rs._clearColor.z,rs._clearColor.w };
-        colorAttachment.loadOp =   WGPULoadOp_Clear;
-        colorAttachment.storeOp =   WGPUStoreOp_Store;
+        colorAttachment.view                =   attachments[0];
+        colorAttachment.resolveTarget       =   nullptr;
+        colorAttachment.clearValue          =   { rs._clearColor.x,rs._clearColor.y,rs._clearColor.z,rs._clearColor.w };
+        colorAttachment.loadOp              =   WGPULoadOp_Clear;
+        colorAttachment.storeOp             =   WGPUStoreOp_Store;
 
         renderPassDesc.colorAttachmentCount =   1;
-        renderPassDesc.colorAttachments =   &colorAttachment;
+        renderPassDesc.colorAttachments     =   &colorAttachment;
 
         WGPURenderPassDepthStencilAttachment depthStencilAttachment = {};
-        depthStencilAttachment.view =   depthAttachment;
-        depthStencilAttachment.depthClearValue =   rs._clearDepth;
-        depthStencilAttachment.depthLoadOp =   WGPULoadOp_Clear;
-        depthStencilAttachment.depthStoreOp =   WGPUStoreOp_Store;
-        depthStencilAttachment.stencilClearValue =   rs._clearStencil;
-        depthStencilAttachment.stencilLoadOp =   WGPULoadOp_Clear;
-        depthStencilAttachment.stencilStoreOp =   WGPUStoreOp_Store;
+        depthStencilAttachment.view             =   depthAttachment;
+        depthStencilAttachment.depthClearValue  =   rs._clearDepth;
+        depthStencilAttachment.depthLoadOp      =   WGPULoadOp_Clear;
+        depthStencilAttachment.depthStoreOp     =   WGPUStoreOp_Store;
+        depthStencilAttachment.stencilClearValue=   rs._clearStencil;
+        depthStencilAttachment.stencilLoadOp    =   WGPULoadOp_Clear;
+        depthStencilAttachment.stencilStoreOp   =   WGPUStoreOp_Store;
 
         renderPassDesc.depthStencilAttachment =   &depthStencilAttachment;
 
-        _renderPassEncoder =   wgpuCommandEncoderBeginRenderPass(_encoder,&renderPassDesc);
+        _renderPassEncoder =   wgpuCommandEncoderBeginRenderPass(_native,   &renderPassDesc);
         if (!_renderPassEncoder)
             return FEResult::ER_FAILED;
 
@@ -216,19 +233,23 @@ namespace   FE
         (void)offset;
         (void)size;
         (void)data;
-        return FEResult::ER_FAILED;
+        if (!_renderPassEncoder )
+            return FEResult::ER_FAILED;
+        wgpuRenderPassEncoderSetImmediates(_renderPassEncoder,offset,data,size);
+
+        return FEResult::ER_SUCCESS;
     }
 
     FEResult WGCmdBuffer::copyBuffer(GPUBuffer srcBuf,GPUBuffer dstBuf,uint64 length,uint64 srcOff,uint64 dstOff)
     {
-        if (!_encoder || !srcBuf || !dstBuf)
+        if (!_native || !srcBuf || !dstBuf)
             return FEResult::ER_FAILED;
 
         auto* srcWg = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(srcBuf.get()));
         auto* dstWg = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(dstBuf.get()));
         if (srcWg && dstWg)
         {
-            wgpuCommandEncoderCopyBufferToBuffer(_encoder,
+            wgpuCommandEncoderCopyBufferToBuffer(_native,
                 (WGPUBuffer)srcWg->native(),srcOff,
                 (WGPUBuffer)dstWg->native(),dstOff,
                 length);
@@ -320,11 +341,6 @@ namespace   FE
 
     FEResult WGCmdBuffer::end()
     {
-        if (_encoder)
-        {
-            _native =   wgpuCommandEncoderFinish(_encoder,nullptr);
-            _encoder =   nullptr;
-        }
         return _native ? FEResult::ER_SUCCESS : FEResult::ER_FAILED;
     }
 
@@ -332,9 +348,8 @@ namespace   FE
     {
         if (!_native || !queue)
             return FEResult::ER_FAILED;
-
-        FEQueue::SubmitInfo submitInfo;
-        submitInfo._frame   =   nullptr;
-        return queue->submit(1,&submitInfo) ? FEResult::ER_SUCCESS : FEResult::ER_FAILED;
+        auto    cmdBuf  =   wgpuCommandEncoderFinish(_native,nullptr);
+        wgpuQueueSubmit((WGPUQueue)queue->native(), 1, &cmdBuf);
+        return  FEResult::ER_SUCCESS;
     }
 }

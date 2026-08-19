@@ -5,32 +5,10 @@ namespace   FE
 {
     static void log_callback(WGPULogLevel level,WGPUStringView message,void* userdata)
     {
-        const char* level_str = "";
-        switch (level)
-        {
-        case WGPULogLevel_Error:
-            level_str = "error";
-            break;
-        case WGPULogLevel_Warn:
-            level_str = "warn";
-            break;
-        case WGPULogLevel_Info:
-            level_str = "info";
-            break;
-        case WGPULogLevel_Debug:
-            level_str = "debug";
-            break;
-        case WGPULogLevel_Trace:
-            level_str = "trace";
-            break;
-        default:
-            level_str = "unknown_level";
-        }
-
         WGRenderSystem* pRenderSys = (WGRenderSystem*)userdata;
-        if (pRenderSys)
+        if (pRenderSys && message.length)
         {
-            pRenderSys->debug(message.data);
+            pRenderSys->debug(level,message.data);
         }
     }
 
@@ -73,18 +51,38 @@ namespace   FE
         return new WGDevice(_ctx,*this);
     }
 
-    void WGRenderSystem::debug(const char* msg)
+    void WGRenderSystem::debug(WGPULogLevel level,const char* msg)
     {
-        LOG_DBG("wgpu: %s",msg);
+        switch (level)
+        {
+        case WGPULogLevel_Error:
+            LOG_ERR("wgpu: %s",msg);
+            break;
+        case WGPULogLevel_Warn:
+            LOG_WAR("wgpu: %s",msg);
+            break;
+        case WGPULogLevel_Info:
+            LOG_INF("wgpu: %s",msg);
+            break;
+        case WGPULogLevel_Debug:
+            LOG_DBG("wgpu: %s",msg);
+            break;
+        case WGPULogLevel_Trace:
+            LOG_DBG("wgpu: %s",msg);
+            break;
+        }
     }
 
     void WGRenderSystem::destroy()
     {
-        if (_adapter)
+        for (auto& gpu : _gpus)
         {
-            wgpuAdapterRelease(_adapter);
-            _adapter =   nullptr;
+            if (gpu.gpu)
+            {
+                wgpuAdapterRelease(static_cast<WGPUAdapter>(gpu.gpu));
+            }
         }
+        _gpus.clear();
         if (_native)
         {
             wgpuInstanceRelease(_native);
@@ -98,12 +96,18 @@ namespace   FE
         if (!_native)
             return {};
 
-        GPUs    gpus;
+        GPUs            gpus;
+        WGPUAdapter     defaultAdapter  =   nullptr;
+        bool            foundDiscrete   =   false;
 
-        size_t  adapterCnt  =   wgpuInstanceEnumerateAdapters(_native, nullptr, nullptr);
+        WGPUInstanceEnumerateAdapterOptions enumOpts = {};
+        enumOpts.nextInChain =   nullptr;
+        enumOpts.backends    =   WGPUInstanceBackend_Vulkan;
+
+        size_t  adapterCnt  =   wgpuInstanceEnumerateAdapters(_native, &enumOpts, nullptr);
         auto    adapters    =   new WGPUAdapter[adapterCnt];
         assert(adapters);
-        wgpuInstanceEnumerateAdapters(_native, nullptr, adapters);
+        wgpuInstanceEnumerateAdapters(_native, &enumOpts, adapters);
 
         for (size_t i = 0; i < adapterCnt; i++) 
         {
@@ -126,23 +130,50 @@ namespace   FE
             default:
                 gpuInf.type =   DEV_TYPE_OTHER;
             }
+            String  btype   =   "Unknown GPU";
+            switch (info.backendType)
+            {
+            case WGPUBackendType_Null    :  btype   =   "Null/";        break;
+            case WGPUBackendType_WebGPU  :  btype   =   "WebGPU/";      break;
+            case WGPUBackendType_D3D11   :  btype   =   "D3D11/";       break;
+            case WGPUBackendType_D3D12   :  btype   =   "D3D12/";       break;
+            case WGPUBackendType_Metal   :  btype   =   "Metal/";       break;
+            case WGPUBackendType_Vulkan  :  btype   =   "Vulkan/";      break;
+            case WGPUBackendType_OpenGL  :  btype   =   "OpenGL/";      break;
+            case WGPUBackendType_OpenGLES:  btype   =   "OpenGLES/";    break;
+            default:
+                break;
+            }
+            if (info.device.length > 0 && info.device.data)
+                gpuInf.name =   btype + info.device.data;
+            else
+                gpuInf.name =   btype;
 
-            gpuInf.name =   info.vendor.data ? info.vendor.data : "Unknown GPU";
             gpuInf.gpuId._32[0] =   info.vendorID;
             gpuInf.gpuId._32[1] =   info.deviceID;
             gpuInf.gpuId._32[2] =   info.backendType;
-            gpuInf.gpuId._32[3] =   info.subgroupMaxSize;
+            gpuInf.gpuId._32[3] =   info.adapterType;
             gpuInf.gpu          =   adapter;
 
             wgpuAdapterInfoFreeMembers(info);
 
             gpus.push_back(gpuInf);
 
-            wgpuAdapterRelease(adapter);
+            // 优先选择独立显卡作为默认 adapter，否则选第一个
+            if (!foundDiscrete)
+            {
+                if (gpuInf.type == DEV_TYPE_DISCRETE_GPU)
+                {
+                    defaultAdapter  =   adapter;
+                    foundDiscrete   =   true;
+                }
+                else if (defaultAdapter == nullptr)
+                {
+                    defaultAdapter  =   adapter;
+                }
+            }
         }
-
         delete  []adapters;
-
         return gpus;
     }
 }

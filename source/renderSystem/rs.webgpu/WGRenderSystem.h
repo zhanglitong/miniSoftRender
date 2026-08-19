@@ -22,11 +22,6 @@ public:
         {
             return  _native;
         }
-        inline  auto    adapter() const
-        {
-            return  _adapter;
-        }
-
         /// <summary>
         /// ???????????งน??
         /// </summary>
@@ -66,15 +61,14 @@ public:
         /// <param name="info"></param>
         /// <returns></returns>
         virtual FEResult    create()            override;
-        virtual Device       createDevice()      override;
+        virtual Device      createDevice()      override;
     public:
-        void            debug(const char* msg);
+        void            debug(WGPULogLevel level,const char* msg);
     protected:
         GPUs            gpuListImpl() const;
 
     protected:
         WGPUInstance    _native    =   nullptr;
-        mutable WGPUAdapter     _adapter   =   nullptr;
         GPUs            _gpus;
     };
 }

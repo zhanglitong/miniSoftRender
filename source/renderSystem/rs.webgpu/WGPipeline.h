@@ -19,16 +19,16 @@ namespace   FE
 
         virtual ~WGPipeline();
 
-        virtual bool    create(const CreateInfo& info) override;
-        virtual DSets    createDSets() override;
-        virtual Handle    nativeLayout() const override
+        virtual bool        create(const CreateInfo& info) override;
+        virtual DSets       createDSets() override;
+        virtual Handle      nativeLayout() const override
         {
             return Handle(_layout);
         }
 
     protected:
-        WGPUPipelineLayout    _layout    =   nullptr;
-        std::vector<WGDSetLayout*>    _dsLayouts;
-        std::vector<DSetPool>    _pools;
+        WGPUPipelineLayout          _layout    =   nullptr;
+        DSetLayouts                 _dsLayouts;
+        std::vector<DSetPool>       _pools;
     };
 }

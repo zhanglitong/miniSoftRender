@@ -26,7 +26,7 @@ namespace   FE
     using   CLSId           =   FEUuid;
     using   OBJId           =   FEUuid;
     using   FECreator       =   std::function<Object(FEContext&,const FEAllocator&)>;
-    using   CLSVar          =   std::variant<std::monostate,bool,int16,uint16,int32,uint32,int64,uint64,float,real,String,Strings,Object,FEUuid>;
+    using   CLSVar          =   std::variant<std::monostate,bool,int16,uint16,int32,uint32,int64,uint64,float,float2,float3,float4,real,real2,real3,real4,String,Strings,Object,FEUuid>;
     using   CLSProp         =   FEKeyValues<String,CLSVar>;
     
     struct  CLSProperty                                        
@@ -338,6 +338,29 @@ namespace   FE
         /// <returns>返回以来的对象个数</returns>
         virtual size_t      queryDepends(ObjectUSet& uSet) const;
         /// <summary>
+        /// 通用设置对象属性接口，子类实现
+        /// </summary>
+        virtual void        beginSetProp()
+        {}
+        /// <summary>
+        /// 设置属性
+        /// </summary>
+        /// <param name="prop">属性索引(别名)</param>
+        /// <param name="value">属性值</param>
+        /// <returns>true,表示修改成功,否则没有修改</returns>
+        virtual bool        setProperty(int prop,const CLSVar& value)
+        {
+            UNUSED(prop);
+            UNUSED(value);
+            return  false;
+        }
+        /// <summary>
+        /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
+        /// </summary>
+        /// <param name="bModify"></param>
+        virtual void        endSetProp(bool bModify)
+        {}
+        /// <summary>
         /// 直接转换，有风险，在确定的情况下使用，性能更好
         /// </summary>
         /// <typeparam name="TAsTo"></typeparam>
@@ -367,12 +390,13 @@ namespace   FE
         {
             return  dynamic_cast<const TCastTo*>(this);
         }
+        
     protected:
-        FEContext&          _ctx;
+        FEContext&  _ctx;
         /// <summary>
         /// 对象的Id 惟一
         /// </summary>
-        FEUuid              _id;
+        FEUuid      _id;
     };
 
     using   Object      =   SharedPtr<FEObject>;

@@ -27,9 +27,9 @@ layout  (location = 5)  in  vec4    aModelC3;
 
 struct  CameraInfo
 {
-    /// �۲���� view
+    /// view
     mat4        _v;
-    /// ͶӰ���� projection
+    /// projection
     mat4        _p;
     /// mv
     mat4        _vp;
@@ -72,7 +72,7 @@ out gl_PerVertex
 
 void main() 
 {
-	mat4    aModel = mat4(aModelC0, aModelC1, aModelC2, aModelC3);
+	mat4    aModel  =   mat4(aModelC0, aModelC1, aModelC2, aModelC3);
 	vec4    world   =   aModel * vec4(aPos, 1.0);
     // Use normal matrix as transpose of inverse (assuming uniform scale)
     outNormal       =   (aModel * vec4(aNormal, 0.0)).xyz;  

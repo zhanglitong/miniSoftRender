@@ -22,7 +22,7 @@ namespace   FE
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
         _app        =   app;
-        _renderSys  =   FERenderSystem::create(_ctx,RS_VULKAN);
+        _renderSys  =   FERenderSystem::create(_ctx,RS_WEBGPU);
         assert(_renderSys != nullptr);
         if (_renderSys == nullptr)
             return  false;
@@ -61,14 +61,6 @@ namespace   FE
             FEDevice::CreateInfo    infor   =   {};
             infor.deviceId  =   gpuList[0].gpuId;
             _device->create(infor);
-        }
-        {
-            _renderPass     =   _device->createRenderPass();
-            FERenderPass::CreateInfo infor   =   {};
-            infor._colorFmt =   FMT_R8G8B8A8_UNORM;
-            _renderPass->create(infor);
-            LOG_INF("FE::_device::createRenderPass cost %lf",timestamp.milliSec());
-            timestamp.update();
         }
         {
             _cmdPool    =   _device->graphicCmdPool();
@@ -265,15 +257,11 @@ namespace   FE
         {
             _frame->_cmd->end();
         }
-
         auto    queue   =   _device->queueGraphic();
-
         FEQueue::SubmitInfo smInfo;
         smInfo._frame   =   _frame;
-
         queue->submit(1,&smInfo);
         FESwapchain::PresentInfo    info    =   {};
-
         info._frame     =   _frame;
         info._queue     =   queue;
         _swapchain->queuePresent(info);
@@ -338,13 +326,11 @@ namespace   FE
             _device->waitIdle();
         }
         _swapchain  =   nullptr;
-        _renderPass =   nullptr;
         _updateQueue.queue().clear();
 
         _mousePoint =   nullptr;
 
         _cmdPool    =   nullptr;
-        _frame      =   nullptr;
         _frame      =   nullptr;
         _imgDepth   =   nullptr;
         _depthView  =   nullptr;
@@ -541,7 +527,7 @@ namespace   FE
             infor._width    =   width;
             infor._height   =   height;
             infor._appInst  =   _app ? _app->cInfo()._appInst : nullptr;
-            infor._window   =   _app ?  _app->cInfo()._window : nullptr;
+            infor._window   =   _app ? _app->cInfo()._window  : nullptr;
             _swapchain->create(infor);
         }
 

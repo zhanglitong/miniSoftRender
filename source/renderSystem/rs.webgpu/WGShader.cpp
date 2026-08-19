@@ -57,9 +57,9 @@ namespace   FE
         if (hasPassthrough)
         {
             WGPUShaderModuleDescriptorSpirV spirvDesc = {};
-            spirvDesc.label = { nullptr, 0 };
-            spirvDesc.source = source;
-            spirvDesc.sourceSize = sourceSize;
+            spirvDesc.label     =   { nullptr, 0 };
+            spirvDesc.source    =   source;
+            spirvDesc.sourceSize=   sourceSize;
 
             WGPUShaderModule module = wgpuDeviceCreateShaderModuleSpirV(device, &spirvDesc);
             if (module != nullptr)
@@ -77,16 +77,16 @@ namespace   FE
         // Fallback: use standard WebGPU API with WGPUShaderSourceSPIRV
         {
             WGPUShaderSourceSPIRV spirvSource = {};
-            spirvSource.chain.sType = WGPUSType_ShaderSourceSPIRV;
-            spirvSource.chain.next = nullptr;
-            spirvSource.codeSize = sourceSize;
-            spirvSource.code = source;
+            spirvSource.chain.sType     =   WGPUSType_ShaderSourceSPIRV;
+            spirvSource.chain.next      =   nullptr;
+            spirvSource.codeSize        =   sourceSize;
+            spirvSource.code            =   source;
 
             WGPUShaderModuleDescriptor shaderDesc = {};
-            shaderDesc.nextInChain = reinterpret_cast<WGPUChainedStruct*>(&spirvSource);
-            shaderDesc.label = { nullptr, 0 };
+            shaderDesc.nextInChain      =   reinterpret_cast<WGPUChainedStruct*>(&spirvSource);
+            shaderDesc.label            =   { nullptr, 0 };
 
-            WGPUShaderModule module = wgpuDeviceCreateShaderModule(device, &shaderDesc);
+            WGPUShaderModule    module  =   wgpuDeviceCreateShaderModule(device, &shaderDesc);
             if (module != nullptr)
             {
                 LOG_INF("WGShader: created shader module via standard SPIR-V");
@@ -100,25 +100,25 @@ namespace   FE
 
     void WGShader::reflectShaderSPIRV(const CreateInfo& info)
     {
-        using SRDSetBinds = std::vector<SpvReflectDescriptorBinding*>;
-        using SRInputs = std::vector<SpvReflectInterfaceVariable*>;
-        using SRConstants = std::vector<SpvReflectBlockVariable*>;
+        using SRDSetBinds       =   std::vector<SpvReflectDescriptorBinding*>;
+        using SRInputs          =   std::vector<SpvReflectInterfaceVariable*>;
+        using SRConstants       =   std::vector<SpvReflectBlockVariable*>;
 
-        const auto* pCode = reinterpret_cast<const uint32_t*>(info._buffer->data());
-        uint32_t codeSize = static_cast<uint32_t>(info._buffer->length() / sizeof(uint32_t));
+        const auto* pCode       =   reinterpret_cast<const uint32_t*>(info._buffer->data());
+        uint32_t    codeSize    =   info._buffer->length();
 
-        SpvReflectShaderModule module = {};
-        SpvReflectResult result = spvReflectCreateShaderModule(codeSize, pCode, &module);
+        SpvReflectShaderModule  module  =   {};
+        SpvReflectResult        result  =   spvReflectCreateShaderModule(codeSize, pCode, &module);
         if (result != SPV_REFLECT_RESULT_SUCCESS)
         {
             LOG_ERR("WGShader: spvReflectCreateShaderModule failed: %d", result);
-            _reflectData._stage = info._shaderType;
-            _reflectData._stageFlags = 0;
+            _reflectData._stages        =   info._shaderType;
+            _reflectData._stageFlags    =   0;
             return;
         }
 
-        uint32_t bindingCount = 0;
-        result = spvReflectEnumerateDescriptorBindings(&module, &bindingCount, nullptr);
+        uint32_t    bindingCount    =   0;
+        result  =   spvReflectEnumerateDescriptorBindings(&module, &bindingCount, nullptr);
         if (result != SPV_REFLECT_RESULT_SUCCESS)
         {
             spvReflectDestroyShaderModule(&module);
@@ -133,34 +133,33 @@ namespace   FE
             return;
         }
 
-        FEShaderType stageFlags = FEShaderType::ST_VERTEX_BIT;
-        if (module.entry_point_count > 0 && module.entry_points != nullptr)
+        uint32_t    stageFlags  =   0;
+        for (uint32_t i = 0; i < module.entry_point_count ; i++)
         {
-            switch (module.entry_points[0].shader_stage)
+            switch (module.entry_points[i].shader_stage)
             {
-            case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: stageFlags = ST_VERTEX_BIT; break;
-            case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: stageFlags = ST_FRAGMENT_BIT; break;
-            case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT: stageFlags = ST_COMPUTE_BIT; break;
+            case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT:   stageFlags  |= ST_VERTEX_BIT;     break;
+            case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: stageFlags  |= ST_FRAGMENT_BIT;   break;
+            case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT:  stageFlags  |= ST_COMPUTE_BIT;    break;
             default: break;
             }
         }
 
-        _reflectData._stage = stageFlags;
-        _reflectData._stageFlags = stageFlags;
-        _cInfo._shaderType = stageFlags;
+        _reflectData._stages        =   stageFlags;
+        _reflectData._stageFlags    =   stageFlags;
+        _cInfo._shaderType          =   stageFlags;
 
         for (const auto& binding : bindings)
         {
             ReflectBinding reflectBinding;
-            reflectBinding._binding = binding->binding;
-            reflectBinding._descriptorType = static_cast<FEDescType>(binding->descriptor_type);
-            reflectBinding._stageFlags = stageFlags;
-            reflectBinding._name = binding->name ? binding->name : "";
+            reflectBinding._binding         =   binding->binding;
+            reflectBinding._descriptorType  =   static_cast<FEDescType>(binding->descriptor_type);
+            reflectBinding._stageFlags      =   stageFlags;
+            reflectBinding._name            =   binding->name ? binding->name : "";
             if (reflectBinding._name.empty() && binding->block.type_description && binding->block.type_description->members)
             {
-                reflectBinding._name = binding->block.type_description->members->struct_member_name;
+                reflectBinding._name        =   binding->block.type_description->members->struct_member_name;
             }
-
             _reflectData._bindings.push_back(reflectBinding);
         }
 
@@ -172,7 +171,6 @@ namespace   FE
             SRConstants pushConsts(pushConstCount);
             result = spvReflectEnumeratePushConstantBlocks(&module, &pushConstCount, pushConsts.data());
         }
-
         spvReflectDestroyShaderModule(&module);
     }
 
@@ -185,10 +183,10 @@ namespace   FE
         for (const auto& binding : _reflectData._bindings)
         {
             FEDSetBinding layoutBinding;
-            layoutBinding._binding = binding._binding;
-            layoutBinding._descriptorType = binding._descriptorType;
-            layoutBinding._stageFlags = _reflectData._stageFlags;
-            layoutBinding._name = binding._name;
+            layoutBinding._binding          =   binding._binding;
+            layoutBinding._descriptorType   =   binding._descriptorType;
+            layoutBinding._stageFlags       =   _reflectData._stageFlags;
+            layoutBinding._name             =   binding._name;
             info._bindings.push_back(layoutBinding);
         }
 

@@ -19,8 +19,7 @@ layout (location = 0) out vec3 outPos;
 layout (location = 1) out vec3 outNor;
 void main() 
 {
-    mat4 matLocal = mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
-    
+    mat4    matLocal=   mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
     gl_PointSize    =   1;
     vec4    tmp     =   (matLocal * vec4(inPos.xyz, 1.0));
     // Use normal matrix as transpose of inverse (assuming uniform scale)

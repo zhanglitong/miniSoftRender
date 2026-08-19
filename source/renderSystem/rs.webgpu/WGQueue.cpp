@@ -24,18 +24,17 @@ namespace   FE
         
         if (pInfo && pInfo->_frame->_cmd)
         {
-            auto* wgCmd = const_cast<WGCmdBuffer*>(static_cast<const WGCmdBuffer*>(pInfo->_frame->_cmd.get()));
+            auto    wgCmd =   (WGCmdBuffer*)(pInfo->_frame->_cmd.get());
             if (wgCmd)
             {
-                commandBuffers.push_back((WGPUCommandBuffer)wgCmd->native());
+                auto    cmdBuf  =   wgpuCommandEncoderFinish((WGPUCommandEncoder)wgCmd->native(),nullptr);
+                commandBuffers.push_back(cmdBuf);
             }
         }
-        
+        WGPUCommandBuffer*  pBuffer =   commandBuffers.empty() ? nullptr : commandBuffers.data();
+        uint32_t            nCount  =   (uint32_t)commandBuffers.size();
 
-        WGPUCommandBuffer* cBuffers =   commandBuffers.empty() ? nullptr : commandBuffers.data();
-        uint32_t cBufferCount =   (uint32_t)commandBuffers.size();
-
-        wgpuQueueSubmit(_native,cBufferCount,cBuffers);
+        wgpuQueueSubmit(_native,nCount,pBuffer);
 
         if (pInfo && pInfo->_frame->_fenceWait)
         {

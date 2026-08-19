@@ -29,8 +29,7 @@ vec4   instColor()
 
 void main() 
 {
-    mat4 matLocal = mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
-    
+    mat4    matLocal    =   mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
     outColor            =   inColor  * instColor() ;
     flagBits            =   instanceFlagBits;
     gl_Position         =   _camera._p * _camera._v  * matLocal * vec4(inPos.xyz, 1.0);

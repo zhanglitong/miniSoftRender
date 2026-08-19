@@ -15,11 +15,6 @@ namespace   FE
         return  nullptr;
     }
 
-    Frames  SWSwapchain::frames() const
-    {
-        return  {};
-    }
-
     bool    SWSwapchain::create(const SWSwapchain::CreateInfo& info)
     {
         _cInfo  =   info;

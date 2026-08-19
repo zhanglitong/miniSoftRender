@@ -25,8 +25,5 @@ namespace   FE
         virtual bool    resize(uint64 length) override;
         virtual void*   lock(uint64 length,uint64 offset = 0) override;
         virtual void    unlock() override;
-    protected:
-        bool     _mapped     =   false;
-        void*    _mappedData =   nullptr;
     };
 }

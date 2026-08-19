@@ -159,7 +159,25 @@ namespace   FE
         default                             :   return  VK_SHADER_STAGE_VERTEX_BIT                  ;
         }
     }
-
+    inline  static  auto  system2Native(ShaderTypes val)
+    {   
+        uint32_t    bits    =   {};
+        if (val.hasFlag(ST_VERTEX_BIT                  ))   bits    |=  VK_SHADER_STAGE_VERTEX_BIT                  ;
+        if (val.hasFlag(ST_TESSELLATION_CONTROL_BIT    ))   bits    |=  VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT    ;
+        if (val.hasFlag(ST_TESSELLATION_EVALUATION_BIT ))   bits    |=  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT ;
+        if (val.hasFlag(ST_GEOMETRY_BIT                ))   bits    |=  VK_SHADER_STAGE_GEOMETRY_BIT                ;
+        if (val.hasFlag(ST_FRAGMENT_BIT                ))   bits    |=  VK_SHADER_STAGE_FRAGMENT_BIT                ;
+        if (val.hasFlag(ST_COMPUTE_BIT                 ))   bits    |=  VK_SHADER_STAGE_COMPUTE_BIT                 ;
+        if (val.hasFlag(ST_RAYGEN_BIT                  ))   bits    |=  VK_SHADER_STAGE_RAYGEN_BIT_KHR              ;
+        if (val.hasFlag(ST_ANY_HIT_BIT                 ))   bits    |=  VK_SHADER_STAGE_ANY_HIT_BIT_KHR             ;
+        if (val.hasFlag(ST_CLOSEST_HIT_BIT             ))   bits    |=  VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR         ;
+        if (val.hasFlag(ST_MISS_BIT                    ))   bits    |=  VK_SHADER_STAGE_MISS_BIT_KHR                ;
+        if (val.hasFlag(ST_INTERSECTION_BIT            ))   bits    |=  VK_SHADER_STAGE_INTERSECTION_BIT_KHR        ;
+        if (val.hasFlag(ST_CALLABLE_BIT                ))   bits    |=  VK_SHADER_STAGE_CALLABLE_BIT_KHR            ;
+        if (val.hasFlag(ST_TASK_BIT                    ))   bits    |=  VK_SHADER_STAGE_TASK_BIT_EXT                ;
+        if (val.hasFlag(ST_MESH_BIT                    ))   bits    |=  VK_SHADER_STAGE_MESH_BIT_EXT                ;
+        return  bits;
+    }
 
     inline  static  auto  system2Native(GBType fmt)
     {

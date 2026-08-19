@@ -225,10 +225,6 @@ namespace   FE
             return  frame;
     }
 
-    Frames      VKSwapchain::frames() const 
-    {
-        return  _frames;
-    }
     
     bool        VKSwapchain::create(const VKSwapchain::CreateInfo& info)
     {

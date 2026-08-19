@@ -19,6 +19,30 @@
 
 namespace   FE
 {
+    // WebGPU validation/device-lost 回调，把错误信息打到 stdout
+    static void wgUncapturedErrorCb(WGPUDevice const* device,WGPUErrorType type,WGPUStringView msg,void* ud1,void* ud2)
+    {
+        (void)device; (void)ud1; (void)ud2;
+        const char* typeStr = "Unknown";
+        switch (type)
+        {
+        case WGPUErrorType_Validation:       typeStr = "Validation";       break;
+        case WGPUErrorType_OutOfMemory:     typeStr = "OutOfMemory";       break;
+        case WGPUErrorType_Internal:        typeStr = "Internal";           break;
+        case WGPUErrorType_Unknown:         typeStr = "Unknown";           break;
+        default: break;
+        }
+        printf("[WGPU UncapturedError][%s] %.*s\n",typeStr,(int)msg.length,msg.data ? msg.data : "");
+        fflush(stdout);
+    }
+
+    static void wgDeviceLostCb(WGPUDevice const* device,WGPUDeviceLostReason reason,WGPUStringView msg,void* ud1,void* ud2)
+    {
+        (void)device; (void)ud1; (void)ud2;
+        printf("[WGPU DeviceLost][reason=%d] %.*s\n",(int)reason,(int)msg.length,msg.data ? msg.data : "");
+        fflush(stdout);
+    }
+
     WGDevice::~WGDevice()
     {
         if (_destroyNotify) _destroyNotify(*this);
@@ -49,28 +73,42 @@ namespace   FE
         LOG_INF("GPU.name = %s",gpu.name.c_str());
         LOG_INF("GPU.type = %s",FERenderSystem::nameOf(gpu.type));
 
-        _gpuInfo =   gpu;
-
-        auto adapter = _renderSys.adapter();
+        _gpuInfo            =   gpu;
+        WGPUAdapter adapter =   (WGPUAdapter)gpu.gpu;
         if (!adapter)
             return FEResult::ER_FAILED;
 
         // Query adapter features to enable PassthroughShaders for SPIR-V passthrough
         // Also request Depth32FloatStencil8 feature for depth-stencil textures
-        WGPUFeatureName requiredFeatures[] = {
+        // VertexWritableStorage: required when vertex shader accesses storage buffer
+        WGPUFeatureName requiredFeatures[] =
+        {
             (WGPUFeatureName)0x00030036,  // PassthroughShaders
-            WGPUFeatureName_Depth32FloatStencil8
+            WGPUFeatureName_Depth32FloatStencil8,
+            (WGPUFeatureName)0x00030005   // VertexWritableStorage
         };
 
         WGPUDeviceDescriptor deviceDesc = {};
-        deviceDesc.nextInChain =   nullptr;
-        deviceDesc.label = { "Device",6 };
-        deviceDesc.requiredFeatureCount =   2;
-        deviceDesc.requiredFeatures =   requiredFeatures;
-        deviceDesc.requiredLimits =   nullptr;
-        deviceDesc.defaultQueue = {};
+        deviceDesc.nextInChain              =   nullptr;
+        deviceDesc.label                    =   { "Device",6 };
+        deviceDesc.requiredFeatureCount     =   3;
+        deviceDesc.requiredFeatures         =   requiredFeatures;
+        deviceDesc.requiredLimits           =   nullptr;
+        deviceDesc.defaultQueue             =   {};
         deviceDesc.defaultQueue.nextInChain =   nullptr;
-        deviceDesc.defaultQueue.label = { "Default Queue",13 };
+        deviceDesc.defaultQueue.label       =   { "Default Queue",13 };
+
+        // 在 DeviceDescriptor 里注册 validation/device-lost 回调
+        deviceDesc.deviceLostCallbackInfo.nextInChain =   nullptr;
+        deviceDesc.deviceLostCallbackInfo.mode        =   WGPUCallbackMode_AllowProcessEvents;
+        deviceDesc.deviceLostCallbackInfo.callback     =   wgDeviceLostCb;
+        deviceDesc.deviceLostCallbackInfo.userdata1   =   nullptr;
+        deviceDesc.deviceLostCallbackInfo.userdata2   =   nullptr;
+
+        deviceDesc.uncapturedErrorCallbackInfo.nextInChain =   nullptr;
+        deviceDesc.uncapturedErrorCallbackInfo.callback    =   wgUncapturedErrorCb;
+        deviceDesc.uncapturedErrorCallbackInfo.userdata1   =   nullptr;
+        deviceDesc.uncapturedErrorCallbackInfo.userdata2   =   nullptr;
 
         struct DeviceRequestResult
         {

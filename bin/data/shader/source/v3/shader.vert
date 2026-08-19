@@ -21,7 +21,7 @@ layout(push_constant) uniform   PushConsts
 
 void main() 
 {
-    mat4 matLocal = mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
+    mat4    matLocal    =   mat4(matLocalC0, matLocalC1, matLocalC2, matLocalC3);
     
     float   pointMin    =   float((_point._point >> 16) & 0xFFu);
     float   pointMax    =   float((_point._point >> 8)  & 0xFFu);

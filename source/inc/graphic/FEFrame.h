@@ -20,6 +20,7 @@ namespace   FE
         friend  class   VKSwapchain;
         friend  class   FEScene;
         friend  class   WGQueue;
+        friend  class   WGSwapchain;
     public:
         FEFrame(FEContext& ctx)
             :FEObject(ctx)

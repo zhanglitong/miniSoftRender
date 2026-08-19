@@ -5,19 +5,19 @@
 
 namespace   FE
 {
-    class   WGCmdBuffer :public TRSObject<WGPUCommandBuffer, FECmdBuffer>
+    class   WGCmdBuffer :public TRSObject<WGPUCommandEncoder, FECmdBuffer>
     {
     public:
         WGCmdBuffer(FEContext& ctx)
-            :TRSObject<WGPUCommandBuffer, FECmdBuffer>(ctx)
+            :TRSObject<WGPUCommandEncoder, FECmdBuffer>(ctx)
         {}
         WGCmdBuffer(const WGCmdBuffer& other)
-            :TRSObject<WGPUCommandBuffer, FECmdBuffer>(other)
+            :TRSObject<WGPUCommandEncoder, FECmdBuffer>(other)
         {}
 
         virtual ~WGCmdBuffer();
 
-        virtual bool    create(const CreateInfo& cInf) override;
+        virtual bool        create(const CreateInfo& cInf) override;
         virtual FEResult    reset() override;
         virtual FEResult    begin(bool oneTimeSubmit) override;
         virtual FEResult    setViewport(uint first,uint cnt,const Viewport*) override;
@@ -75,12 +75,11 @@ namespace   FE
         virtual FEResult    end() override;
         virtual FEResult    submit(Queue) override;
 
-    protected:
-        WGPUCommandEncoder    _encoder              =   nullptr;
-        WGPURenderPassEncoder _renderPassEncoder    =   nullptr;
-        WGPUComputePassEncoder _computePassEncoder  =   nullptr;
-        WGPURenderPipeline    _currentPipeline     =   nullptr;
-        WGPUBindGroup         _currentBindGroup     =   nullptr;
-        std::vector<WGPUBindGroup>    _bindGroups;
+    public:
+        WGPURenderPassEncoder       _renderPassEncoder      =   nullptr;
+        WGPUComputePassEncoder      _computePassEncoder     =   nullptr;
+        WGPURenderPipeline          _currentPipeline        =   nullptr;
+        WGPUBindGroup               _currentBindGroup       =   nullptr;
+        std::vector<WGPUBindGroup>  _bindGroups;
     };
 }

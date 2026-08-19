@@ -23,17 +23,19 @@ namespace   FE
         return flags;
     }
 
-    bool createBuffer(WGPUDevice device,const FEGPUBuffer::CreateInfo& info,BufferUsages usage,WGPUBuffer& buffer)
+    bool    createBuffer(WGPUDevice device,const FEGPUBuffer::CreateInfo& info,BufferUsages usage,WGPUBuffer& buffer)
     {
-        buffer =   nullptr;
-        BufferUsages bufUsages =   info._bufUsages | usage;
+        buffer                  =   nullptr;
+        BufferUsages bufUsages  =   info._bufUsages | usage;
 
         WGPUBufferDescriptor bufferDesc = {};
-        bufferDesc.size =   info._length;
-        bufferDesc.usage =   getWGPUBufferUsageFlags(bufUsages);
-        bufferDesc.mappedAtCreation =   false;
-
-        buffer =   wgpuDeviceCreateBuffer(device,&bufferDesc);
+        bufferDesc.size             =   info._length;
+        bufferDesc.usage            =   getWGPUBufferUsageFlags(bufUsages);
+        if (info._memUsages.hasFlag(HOST_VISIBLE_BIT))
+            bufferDesc.mappedAtCreation =   true;
+        else
+            bufferDesc.mappedAtCreation =   false;
+        buffer                      =   wgpuDeviceCreateBuffer(device,&bufferDesc);
 
         return buffer != nullptr;
     }
@@ -68,84 +70,48 @@ namespace   FE
         }
     }
 
-    bool WGGPUBuffer::create(const CreateInfo& info)
+    bool    WGGPUBuffer::create(const CreateInfo& info)
     {
-        _cInfo =   info;
-        auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
-        return createBuffer(wgDevice.device(),info,_bufferUsage,_native);
+        _cInfo              =   info;
+        auto&   wgDevice    =   static_cast<WGDevice&>(_ctx.device());
+        return  createBuffer(wgDevice.device(),info,_bufferUsage,_native);
     }
 
-    bool WGGPUBuffer::update(const void* pData,uint64 length,uint64 offset)
+    bool    WGGPUBuffer::update(const void* pData,uint64 length,uint64 offset)
     {
         if (!_native || !pData)
             return FEResult::ER_FAILED;
 
-        auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
-        auto queue = wgDevice.queue();
-
+        auto&   wgDevice    =   const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
+        auto    queue       =   wgDevice.queue();
         wgpuQueueWriteBuffer(queue,_native,offset,pData,length);
         return FEResult::ER_SUCCESS;
     }
 
-    bool WGGPUBuffer::resize(uint64 length)
+    bool    WGGPUBuffer::resize(uint64 length)
     {
         if (_native)
         {
             wgpuBufferDestroy(_native);
             _native =   nullptr;
         }
-        _cInfo._length =   length;
-        auto& wgDevice = const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
-        return createBuffer(wgDevice.device(),_cInfo,_bufferUsage,_native);
+        _cInfo._length      =   length;
+        auto&   wgDevice    =   (WGDevice&)(_ctx.device());
+        return  createBuffer(wgDevice.device(),_cInfo,_bufferUsage,_native);
     }
 
-    void* WGGPUBuffer::lock(uint64 size,uint64 offset)
+    void*   WGGPUBuffer::lock(uint64 size,uint64 offset)
     {
         if (!_native)
             return nullptr;
-
-        if (_mapped)
-            return _mappedData;
-
-        WGPUMapMode mapMode =   WGPUMapMode_Read | WGPUMapMode_Write;
-
-        auto mapCallback = [](WGPUMapAsyncStatus status,WGPUStringView message,void* userdata1,void* userdata2) {
-            (void)message;
-            (void)userdata2;
-            if (status == WGPUMapAsyncStatus_Success)
-            {
-                auto* buffer = static_cast<WGGPUBuffer*>(userdata1);
-                if (buffer)
-                {
-                    buffer->_mapped =   true;
-                }
-            }
-        };
-
-        WGPUBufferMapCallbackInfo callbackInfo = {};
-        callbackInfo.nextInChain =   nullptr;
-        callbackInfo.callback =   mapCallback;
-        callbackInfo.userdata1 =   this;
-        callbackInfo.userdata2 =   nullptr;
-
-        wgpuBufferMapAsync(_native,mapMode,offset,size,callbackInfo);
-
-        void* ptr =   wgpuBufferGetMappedRange(_native,offset,size);
-        if (ptr)
-        {
-            _mapped =   true;
-            _mappedData =   ptr;
-        }
-        return ptr;
+        return  wgpuBufferGetMappedRange(_native, offset, size);
     }
 
-    void WGGPUBuffer::unlock()
+    void    WGGPUBuffer::unlock()
     {
-        if (_native && _mapped)
+        if (_native)
         {
             wgpuBufferUnmap(_native);
-            _mapped =   false;
-            _mappedData =   nullptr;
         }
     }
 }

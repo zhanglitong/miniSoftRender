@@ -18,19 +18,15 @@ namespace   FE
         {}
         virtual ~WGSwapchain();
 
-        virtual Frame   acquireNextFrame(uint64 timeout) override;
-        virtual Frames  frames() const override;
-        virtual bool    create(const CreateInfo& info) override;
-        virtual bool    queuePresent(const PresentInfo& pInfo) override;
+        virtual Frame       acquireNextFrame(uint64 timeout) override;
+        virtual bool        create(const CreateInfo& info) override;
+        virtual bool        queuePresent(const PresentInfo& pInfo) override;
         virtual FEFormat    colorFormat() const override;
 
         void    initSurface(void* platformHandle,void* platformWindow);
 
     protected:
-        GImages         _images;
-        Frames          _frames;
-        uint32_t        _currentImageIndex    =   0;
-        WGPUTexture     _currentTexture       =   nullptr;
-        WGPUTextureFormat    _colorFormat    =   WGPUTextureFormat_BGRA8Unorm;
+        Frame               _frame;
+        WGPUTextureFormat   _colorFormat    =   WGPUTextureFormat_BGRA8Unorm;
     };
 }

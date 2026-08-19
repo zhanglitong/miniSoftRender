@@ -18,6 +18,19 @@ namespace   FE
         {}
         virtual ~WGGImageView();
 
+        virtual void    destroy() override
+        {
+            if (_native)
+            {
+                wgpuTextureViewRelease(_native);
+                _native =   nullptr;
+            }
+        }
+        void    attach(WGPUTextureView viewer)
+        {
+            _native =   viewer;
+        }   
+
         virtual bool    create(const CreateInfo& info) override;
     };
 }

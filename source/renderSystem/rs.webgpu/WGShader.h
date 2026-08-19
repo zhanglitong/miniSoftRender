@@ -21,8 +21,8 @@ namespace   FE
 
         struct ReflectData
         {
-            ReflectBindings    _bindings;
-            FEShaderType        _stage;
+            ReflectBindings     _bindings;
+            ShaderTypes         _stages;
             uint32_t            _stageFlags    =   0;
         };
     public:

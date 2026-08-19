@@ -41,13 +41,10 @@ namespace   FE
             return  _cInfo;
         }
     public:
-        virtual Frame       acquireNextFrame(uint64 timeout)   =   0;
-        virtual Frames      frames() const = 0;
-        virtual bool        create(const CreateInfo& info)  =   0;
-
+        virtual Frame       acquireNextFrame(uint64 timeout)    =   0;
+        virtual bool        create(const CreateInfo& info)      =   0;
         virtual bool        queuePresent(const PresentInfo& pInfo)    =   0;
         virtual FEFormat    colorFormat() const     =   0;
-
     };
 
 

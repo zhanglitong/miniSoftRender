@@ -132,7 +132,7 @@ namespace   FE
                         input.slot          =   FEInputSlotHelper::enumFromName(slots[i].c_str());
                         input.format        =   FEFormatHelper::formatFromName(fmts[i].c_str());
                         input.location      =   baseLoc + uint(i);
-                        /// ???????,????????
+                        /// 
                         if (!offsets.empty())
                             input.offset    =   atoi(offsets[i].c_str());
                         else
@@ -145,7 +145,7 @@ namespace   FE
             cInfo._binds.emplace_back(desc);
         }
 
-        /// ????????????¨´??
+        /// 
         XMLNode*    xmlPL   =   root->first_node("pipeline");
         Pipelines   result;
         for ( ; xmlPL ; xmlPL = xmlPL->next_sibling())
@@ -159,11 +159,7 @@ namespace   FE
                
             result.emplace_back(pileline.get());
         }
-        /// 
-        /// 
-        /// 
-        /// 
-        /// 
+        
         if (aUsingDef && atoi(aUsingDef->value()))
         {
             for (uint8_t i = 0; i < EPrimitive::PRI_MAX; ++i)
