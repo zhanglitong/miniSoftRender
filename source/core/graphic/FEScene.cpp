@@ -89,7 +89,7 @@ namespace   FE
             Material    mat     =   new FEMaterialPoint(_ctx);
             node->setMaterial(mat);
             _mousePoint         =   node;
-            addNodesToFactory({node});
+            dispatchNodesToSystem({node});
         }
 
         /// 鍒涘缓 viewer,viewer鏄竴涓覆鏌撳櫒锛岃礋璐ｇ鐞嗗満鏅腑鐨勬墍鏈夊璞★紝澶勭悊杈撳叆浜嬩欢锛屽苟涓庢覆鏌撶郴缁熻繘琛屼氦浜?
@@ -150,19 +150,10 @@ namespace   FE
         }
     }
    
-    RFactorys   FEScene::addNodesToFactory(const Nodes& nodeList)
+    void    FEScene::dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result)
     {
-        auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodeList);
-        for (auto& var : results)
-        {
-            _factorys.addObject(var);
-        }
-        return  results;
-    }
-
-    void    FEScene::addNodesToSystem(const Nodes& nodeList)
-    {
-        addToSystem<FEAnimation>(_comSysMgr,nodeList);
+        addNodesToFactory(nodeList,result);
+        dispatchToSystem<FEAnimation>(_comSysMgr,nodeList);
     }
 
     void    FEScene::onFrameStart()
@@ -362,6 +353,18 @@ namespace   FE
         _renderSys      =   nullptr;
     }
 
+    void    FEScene::addNodesToFactory(const Nodes& nodeList,DispatchResult* result)
+    {
+        auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodeList);
+        for (auto& var : results)
+        {
+            _factorys.addObject(var);
+        }
+        if (result)
+        {
+            result->rFactorys   =   results;
+        }
+    }
 
     void    FEScene::loadPipelines()
     {

@@ -27,6 +27,10 @@
 
 namespace   FE
 {
+    struct  DispatchResult
+    {
+        RFactorys   rFactorys;
+    };
     class   FEScene 
         :public FEObject
         ,public FEInput
@@ -107,17 +111,13 @@ namespace   FE
         /// 节点加入到系统下，只是挂在节点上，并不做渲染
         /// </summary>
         virtual void    addNodesToTree(const Nodes& nodeList);
+        
         /// <summary>
-        /// 节点加入到系统中,函数会把根绝规则把节点分配到不同的工厂中
+        /// 函数会把节点数据以及组件数据分发到对应的系统中
         /// </summary>
         /// <param name="nodeList"></param>
-        /// <returns></returns>
-        RFactorys       addNodesToFactory(const Nodes& nodeList);
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="nodeList"></param>
-        void            addNodesToSystem(const Nodes& nodeList);
+        /// <param name="result"></param>
+        void            dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result = nullptr);
     public:
         virtual void    onFrameStart();
         virtual void    onFrameUpdate();
@@ -136,6 +136,12 @@ namespace   FE
     protected:
         virtual void    onClose();
     protected:
+        /// <summary>
+        /// 节点加入到系统中,函数会把根绝规则把节点分配到不同的工厂中
+        /// </summary>
+        /// <param name="nodeList"></param>
+        /// <returns></returns>
+        void    addNodesToFactory(const Nodes& nodeList,DispatchResult* result);
         /// <summary>
         /// 默认加载管线
         /// </summary>
@@ -191,7 +197,7 @@ namespace   FE
         /// <param name="nodes">节点对象集合</param>
         /// <returns>返回加到系统中的组件数</returns>
         template<typename TObject>
-        static  size_t  addToSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
+        static  size_t  dispatchToSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
         {
             uint        nCount  =   FEComponentSys::countObjects<TObject>(nodes);
             if (nCount == 0)

@@ -39,7 +39,7 @@ namespace   FE
                 else
                     nodes.push_back(node);
             }
-            auto    factorys    =   _scene->addNodesToFactory(nodes);
+            _scene->dispatchNodesToSystem(nodes);
             _scene->addNodesToTree(nodes);
         }
         _prepared   =   true;
