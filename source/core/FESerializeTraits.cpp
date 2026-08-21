@@ -193,7 +193,9 @@ namespace   FE
             auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
             if (object == nullptr)
                 continue;
-            addObject(object);
+            auto    com     =   object->cast<FEComponent>();
+            if ( com != nullptr)
+                addComponent(com);
         }
     }
 

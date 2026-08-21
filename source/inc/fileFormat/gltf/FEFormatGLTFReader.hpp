@@ -7,6 +7,7 @@
 #include    "../../FEFileInfor.hpp"
 #include    "../../FEFileSystem.hpp"
 #include    "../../material/FEMaterialLibrary.hpp"
+#include    "../../animation/FEAnimation.hpp"
 #include    "FEFormatGLTF.hpp"
 
 
@@ -27,6 +28,8 @@ namespace   FE
     public:
         using   MeshsIndex      =   std::map<int,Meshs>;
         using   MaterialIndex   =   std::map<int,Material>;
+        using   NodeIndex       =   std::map<int,Node>;
+        using   AnimatonIndex   =   std::map<int,Animation>;
     public:
         IMPLEMENT_CLASS_REFLECT(FEFormatGLTFReader)
     public:
@@ -196,10 +199,14 @@ namespace   FE
                     continue;
                 MeshsIndex          meshMap;
                 MaterialIndex       matMap;
+                AnimatonIndex       animations;
+                NodeIndex           nodeMap;
                 gltfMesh2Mesh(gltfModel,meshMap);
                 gltfMat2Material(gltfModel,matMap);
-                auto    nodes   =   parseNodes(gltfModel,meshMap,matMap);
+                auto    nodes   =   parseNodes(gltfModel,meshMap,matMap,nodeMap);
+                /// animation;
                 results.reserve(results.size() + nodes.size());
+                gltf2Animation(gltfModel,animations,nodeMap);
 
                 for (auto& node : nodes)
                 {
@@ -328,6 +335,115 @@ namespace   FE
             {
                 Material    pMat    =   parseMaterialPBR(model,int(i));
                 matMap[int(i)]      =   pMat;
+            }
+        }
+        void        gltf2Animation(tinygltf::Model& model,AnimatonIndex& animas,NodeIndex& nodeMap)
+        {   
+            auto&       gltfAnim    =   model.animations;
+            
+            for (auto& var : gltfAnim)
+            {   
+                Animation   anim        =   nullptr;
+                /// clip 对应 多个chanel
+                AnimClip    clip        =   nullptr; 
+                Node        node        =   nullptr;
+                
+                for (auto& channel: var.channels)
+                {
+                    auto    itr    =   nodeMap.find(channel.target_node);
+                    if (itr != nodeMap.end())
+                        node    =   itr->second;
+                    else    
+                        continue;
+                    anim    =   animas[channel.target_node];
+                    if (anim == nullptr)
+                    {
+                        anim    =   new FEAnimation(_ctx);
+                        clip    =   new FEAnimClip(_ctx); 
+                        anim->setClip(clip);
+                        anim->attach(node.get());
+                        animas[channel.target_node] =   anim;
+                    }
+                    const auto  samplerId       =   channel.sampler;
+                    const auto& sampler         =   var.samplers[samplerId];
+
+                    const auto& inputAccessor   =   model.accessors[sampler.input];
+                    const auto& inputView       =   model.bufferViews[inputAccessor.bufferView];
+                    const auto& inputBuffer     =   model.buffers[inputView.buffer];
+
+                    const auto& outputAccessor  =   model.accessors[sampler.output];
+                    const auto& outputView      =   model.bufferViews[outputAccessor.bufferView];
+                    const auto& outputBuffer    =   model.buffers[outputView.buffer];
+
+                    /// time 
+                    const auto  inputPtr        =   &inputBuffer.data[inputView.byteOffset   + inputAccessor.byteOffset];
+                    /// value
+                    const auto  outputPtr       =   &outputBuffer.data[outputView.byteOffset + outputAccessor.byteOffset];
+                    
+                    RealsObject times           =   nullptr;
+                    uint        dims            =   1;
+                    
+                    switch (inputAccessor.type)
+                    {
+                    case TINYGLTF_TYPE_SCALAR:
+                        switch (inputAccessor.componentType)
+                        {
+                        case TINYGLTF_PARAMETER_TYPE_FLOAT:
+                            {   
+                                size_t  stride  =   inputAccessor.ByteStride(inputView);
+                                times   =   new TValueArray<real>(_ctx);
+                                times->values().resize(inputAccessor.count);
+                                for (size_t i = 0; i < inputAccessor.count; i++)
+                                {
+                                    auto    address     =   (float*)(inputPtr + (i * stride));
+                                    times->values()[i]  =   *address;
+                                }
+                            }
+                            break;
+                        }
+                        break;
+                    }
+                    if (times == nullptr)
+                        continue;
+                    PropertyIndex   propStart   =   TRANSFORM_X;
+                    if (channel.target_path == "translation")
+                        propStart    =   TRANSFORM_X;
+                    else if (channel.target_path == "rotation")
+                        propStart    =   QUAT_X;
+                    else if (channel.target_path == "scale")
+                        propStart    =   ROTATE_X;
+                    switch (outputAccessor.type)
+                    {
+                    case TINYGLTF_TYPE_SCALAR:  dims    =   1;  break;
+                    case TINYGLTF_TYPE_VEC2:    dims    =   2;  break;
+                    case TINYGLTF_TYPE_VEC3:    dims    =   3;  break;
+                    case TINYGLTF_TYPE_VEC4:    dims    =   4;  break;
+                    }
+                    switch (outputAccessor.componentType)
+                    {
+                    case TINYGLTF_PARAMETER_TYPE_FLOAT:
+                        {
+                            size_t  stride  =   outputAccessor.ByteStride(inputView)/sizeof(float);
+                            for (uint c = 0; c < dims; ++ c)
+                            {
+                                float*          pData   =   (float*)(outputPtr + c * sizeof(float));
+                                KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                                RealsObject     values  =   new TValueArray<real>(_ctx);
+                                track->setTimeObject(times);
+                                track->setValueObject(values);
+                                track->setPropertyIndex(propStart + c);
+                                values->values().resize(outputAccessor.count);
+                                for (size_t i = 0; i < outputAccessor.count; i++)
+                                {
+                                    values->values()[i] =   *pData;
+                                    pData               +=  stride;
+                                }
+                                clip->addTrack(track);
+                            }
+                        }
+                        break;
+                    }
+                }
             }
         }
 
@@ -472,7 +588,7 @@ namespace   FE
             printf("progress:%lf\n", val * 100.0);
         }
     protected:
-        inline  Nodes       parseNodes(tinygltf::Model& model,MeshsIndex& meshMap,MaterialIndex& matMap)
+        inline  Nodes       parseNodes(tinygltf::Model& model,MeshsIndex& meshMap,MaterialIndex& matMap,NodeIndex& nodeMap)
         {
             Nodes   results;
             results.reserve(model.nodes.size());
@@ -485,15 +601,21 @@ namespace   FE
 
                     if(nodeId < 0 || nodeId > model.nodes.size())
                         continue;
-                    auto&   gltfNode    =   model.nodes[scene.nodes[i]];
-                    auto    node        =   parseNode(model,gltfNode,nullptr,meshMap,matMap);
+                    auto&   gltfNode    =   model.nodes[nodeId];
+                    auto    node        =   parseNode(model,gltfNode,nullptr,meshMap,matMap,nodeMap);
+                    nodeMap[nodeId]     =   node;
                     results.push_back(node);
                 }
             }
             return  results;
         }
 
-        inline  Node    parseNode(tinygltf::Model& model,const tinygltf::Node& node,Node parent,MeshsIndex& meshMap,MaterialIndex& matMap)
+        inline  Node    parseNode(   tinygltf::Model& model
+                                    ,const tinygltf::Node& node
+                                    ,Node           parent
+                                    ,MeshsIndex&    meshMap
+                                    ,MaterialIndex& matMap
+                                    ,NodeIndex&     nodeMap)
         {
             Node    pNode   =   new FENode(_ctx);
             pNode->setName(node.name);
@@ -576,7 +698,8 @@ namespace   FE
             for (auto nodeId: node.children)
             {
                 auto&   gltfNode    =   model.nodes[nodeId];
-                parseNode(model,gltfNode,pNode,meshMap,matMap);
+                auto    result      =   parseNode(model,gltfNode,pNode,meshMap,matMap,nodeMap);
+                nodeMap[nodeId]     =   result;
             }
             return  pNode;
         }
@@ -867,9 +990,7 @@ namespace   FE
                 }
             }
             return  result;
-        };
-
-        
+        }
     public:
         static  Formats formatList()
         {

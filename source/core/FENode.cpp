@@ -35,7 +35,7 @@ namespace   FE
         _coms       =   FEObjectHelper::clone(other._coms);
     }
 
-    void    FENode::update()
+    void    FENode::update(const real& tmDelta)
     {
         if (!flags().hasFlag(FLAG_UPDATE))
             return;
@@ -43,14 +43,17 @@ namespace   FE
         updateAabb(true);
         for (auto& var: _coms)
         {
-            UNUSED(var);
+            if (!var->isEnable() || var->isActor())
+                continue;
+            else
+                var->update(tmDelta);
         }
+        /// 清除标记
+        /// flags().removeFlags(ModifyValue);
     }
     void   FENode::fireChanged()
     {
-        if (   flags().hasFlag(FLAG_PROP_TRANS) 
-            || flags().hasFlag(FLAG_PROP_SCALE)
-            || flags().hasFlag(FLAG_PROP_ROT))
+        if ( flags().hasFlags(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT) )
         {
             if (_ctx.scene())
             {

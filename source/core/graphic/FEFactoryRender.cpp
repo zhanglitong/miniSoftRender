@@ -20,7 +20,7 @@ namespace   FE
 
         object->flags().removeFlag(FENode::FLAG_PROP_TRANS | FENode::FLAG_PROP_SCALE | FENode::FLAG_PROP_ROT);
 
-        flags().addFlag(FLAG_ADD_CHILD);
+        flags().addFlag(FENode::FLAG_ADD_CHILD);
 
         return  1;
     }
@@ -45,7 +45,7 @@ namespace   FE
             (*itr)->flags().removeFlag(FENode::FLAG_PROP_TRANS | FENode::FLAG_PROP_SCALE | FENode::FLAG_PROP_ROT);
         }
             
-        flags().addFlag(FLAG_ADD_CHILD);
+        flags().addFlag(FENode::FLAG_ADD_CHILD);
 
         return  _objects.size() - oldSize;
     }
@@ -69,7 +69,7 @@ namespace   FE
         for (auto& object : _objects)
             _aabb.merge(object->globalAabb());
 
-        flags().addFlag(FLAG_REMOVE_CHILD);
+        flags().addFlag(FENode::FLAG_REMOVE_CHILD);
 
         return  _objects.size() - nOld;
     }
@@ -90,7 +90,7 @@ namespace   FE
         for (auto& object : _objects)
             _aabb.merge(object->globalAabb());
 
-        flags().addFlag(FLAG_REMOVE_CHILD);
+        flags().addFlag(FENode::FLAG_REMOVE_CHILD);
 
         return  _objects.size() - nOld;
     }
@@ -125,8 +125,8 @@ namespace   FE
 
     void    GroupNode::resetFlags()
     {
-        flags() .removeFlag(FLAG_ADD_CHILD)
-                .removeFlag(FLAG_REMOVE_CHILD)
+        flags() .removeFlag(FENode::FLAG_ADD_CHILD)
+                .removeFlag(FENode::FLAG_REMOVE_CHILD)
                 .removeFlag(FENode::FLAG_PROP_ROT)
                 .removeFlag(FENode::FLAG_PROP_TRANS)
                 .removeFlag(FENode::FLAG_PROP_SCALE);
@@ -195,7 +195,7 @@ namespace   FE
             pGroup->addNodes(itrStart,nodes.end());
         }
         if (result)
-            flags().addFlag(FLAG_ADD_CHILD);
+            flags().addFlag(FENode::FLAG_ADD_CHILD);
         return  result;
     }
 
@@ -232,7 +232,7 @@ namespace   FE
             result  +=  pGroup->removeNode(node);
         }
         if (result)
-            flags().addFlag(FLAG_REMOVE_CHILD);
+            flags().addFlag(FENode::FLAG_REMOVE_CHILD);
         return  result;
     }
 
@@ -336,8 +336,8 @@ namespace   FE
         {
             for (auto& var : _groupNode)
             {
-                needUpdateVBO   |=  var->flags().hasFlag(FLAG_ADD_CHILD);
-                needUpdateVBO   |=  var->flags().hasFlag(FLAG_REMOVE_CHILD);
+                needUpdateVBO   |=  var->flags().hasFlag(FENode::FLAG_ADD_CHILD);
+                needUpdateVBO   |=  var->flags().hasFlag(FENode::FLAG_REMOVE_CHILD);
 
                 needUpdateVBO   |=  needUpdateVBO;
 
@@ -375,8 +375,8 @@ namespace   FE
         /// 清除标记
         for (auto& var : _groupNode)
         {
-            var->flags().removeFlag(FLAG_ADD_CHILD)
-                        .removeFlag(FLAG_REMOVE_CHILD)
+            var->flags().removeFlag(FENode::FLAG_ADD_CHILD)
+                        .removeFlag(FENode::FLAG_REMOVE_CHILD)
                         .removeFlag(FENode::FLAG_PROP_ROT)
                         .removeFlag(FENode::FLAG_PROP_TRANS)
                         .removeFlag(FENode::FLAG_PROP_SCALE);

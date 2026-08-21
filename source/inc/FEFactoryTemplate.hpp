@@ -24,7 +24,7 @@ namespace   FE
         /// 获取对象列表
         /// </summary>
         /// <returns></returns>
-        const   TObjects&   objects() const
+        const   auto&   objects() const
         {
             return  _objects;
         }

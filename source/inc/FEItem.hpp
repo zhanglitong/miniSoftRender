@@ -57,7 +57,7 @@ namespace   FE
                 return  false;
             _childs.emplace_back(child);
             child->setParent(this);
-            flags().addFlag(FLAG_ADD_CHILD);
+            onAddChildren();
             return  true;
         }
         /// <summary>
@@ -65,7 +65,7 @@ namespace   FE
         /// </summary>
         /// <param name="objects">被添加item对象列表</param>
         /// <returns></returns>
-        virtual size_t  addChilds(const Items& objects)
+        virtual size_t  addChildren(const Items& objects)
         {
             size_t  result  =   0;
             for (auto var: objects)
@@ -79,7 +79,7 @@ namespace   FE
             }
             if (result)
             {
-                flags().addFlag(FLAG_ADD_CHILD);
+                onAddChildren();
             }
             return  result;
         }
@@ -96,7 +96,7 @@ namespace   FE
             _childs.erase(itr);
             (*itr)->setParent(nullptr);
 
-            flags().addFlag(FLAG_REMOVE_CHILD);
+            onRemoveChildren();
             return  true;
         }
         /// <summary>
@@ -114,7 +114,7 @@ namespace   FE
                 return  false;
             _childs.erase(itr);
             (*itr)->setParent(nullptr);
-            flags().addFlag(FLAG_REMOVE_CHILD);
+            onRemoveChildren();
             return  true;
         }
         /// <summary>
@@ -122,7 +122,7 @@ namespace   FE
         /// </summary>
         /// <param name="objects"></param>
         /// <returns></returns>
-        virtual size_t  removeChilds(const Items& objects)
+        virtual size_t  removeChildren(const Items& objects)
         {
             size_t  result  =   0;
             for (auto var: objects)
@@ -136,23 +136,25 @@ namespace   FE
             }
             if (result)
             {
-                flags().addFlag(FLAG_REMOVE_CHILD);
+                onRemoveChildren();
             }
             return  result;
         }
         /// <summary>
         /// 移除所有子item
         /// </summary>
-        virtual void    removeAllChild()
+        virtual void    removeAllChildren()
         {
             for (auto& var : _childs)
             {
                 var->setParent(nullptr);
             }
             _childs.clear();
-            flags().addFlag(FLAG_REMOVE_CHILD);
+            onRemoveChildren();
         }
     protected:
+        virtual void    onAddChildren()     =   0;
+        virtual void    onRemoveChildren()  =   0;
         /// <summary>
         /// 设置父对象
         /// 如果要修改父节，则需要调用parent()->addChild / parent()->removeChilds 实现

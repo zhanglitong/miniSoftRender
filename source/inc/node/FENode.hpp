@@ -8,6 +8,7 @@
 #include    "../geometry/FEGeometry.hpp"
 #include    "../FEPickup.hpp"
 #include    "../FEMathUtil.hpp"
+#include    "../FEComponent.hpp"
   
 
 namespace   FE
@@ -24,7 +25,20 @@ namespace   FE
             /// 会触发更新 IS_INSTANCE_MAT_C0,IS_INSTANCE_MAT_C1,IS_INSTANCE_MAT_C2,IS_INSTANCE_MAT_C3
             /// 该状态会在节点所在工厂中消费后移除
             /// </summary>
-            FLAG_PROP_TRANS     =   FLAG_LAST,
+            /// <summary>
+            /// 添加对象
+            /// </summary>
+            FLAG_ADD_CHILD      =   ((FLAG_LAST)<<1),
+            /// <summary>
+            /// 移除对象
+            /// </summary>
+            FLAG_REMOVE_CHILD   =   ((FLAG_ADD_CHILD)<<1),
+            /// <summary>
+            /// 对象修改
+            /// </summary>
+            FLAG_MODIFY_CHILD   =   ((FLAG_REMOVE_CHILD)<<1),
+
+            FLAG_PROP_TRANS     =   ((FLAG_MODIFY_CHILD)<<1),
             FLAG_PROP_SCALE     =   (FLAG_PROP_TRANS<<1),
             FLAG_PROP_ROT       =   (FLAG_PROP_SCALE<<1),
             /// <summary>
@@ -40,15 +54,25 @@ namespace   FE
             /// mesh 有可能存在lod信息,有可能没有，如果么有lod LOD_INDEX == -1,其他则是有效值
             /// 系统会收集所有lod信息到一个统一的数组中,
             /// </summary>
-            FLAG_PROP_LOD       =   (FLAG_PROP_COLOR<<1),
+            FLAG_PROP_LOD       =   (FLAG_PROP_STATE<<1),
             /// <summary>
             /// 影响绘制的 vbo,ibo,ito
             /// 该状态会在节点所在工厂中消费后移除
             /// </summary>
             FLAG_PROP_MESH      =   (FLAG_PROP_STATE<<1),
-
-            
         };
+        enum    EModify
+        {
+            ModifyValue = FLAG_ADD_CHILD 
+                        | FLAG_REMOVE_CHILD
+                        | FLAG_MODIFY_CHILD 
+                        | FLAG_PROP_TRANS
+                        | FLAG_PROP_SCALE
+                        | FLAG_PROP_ROT
+                        | FLAG_PROP_COLOR
+                        | FLAG_PROP_LOD
+                        | FLAG_PROP_MESH
+        };   
         using   RenderFlags =   FEFlags<RenderFlag,uint32>;
     public:
         IMPLEMENT_CLASS_REFLECT(FENode)
@@ -181,9 +205,13 @@ namespace   FE
         /// 几何体
         /// </summary>
         /// <returns></returns>
-        inline auto     mesh() const
+        inline  auto    mesh() const
         {
             return  _mesh;
+        }
+        inline  auto&   components() const
+        {
+            return  _coms;
         }
         virtual void    setMaterial(FEMaterial* pMat)
         {
@@ -193,7 +221,7 @@ namespace   FE
         {
             _mesh   =   mesh;
         } 
-        virtual void    addObject(Object object)
+        virtual void    addComponent(Component object)
         {
             _coms.push_back(object);
         }
@@ -209,8 +237,8 @@ namespace   FE
         /// <summary>
         /// 检测更新
         /// </summary>
-        virtual void    update();
-        virtual  void   fireChanged();
+        virtual void    update(const real& tmDelta = 0.0);
+        virtual void    fireChanged();
         /// <summary>
         /// 更新包围盒信息，不检测是否需要，直接计算
         /// </summary>
@@ -261,6 +289,14 @@ namespace   FE
             return  _aabb;
         }
     protected:
+        virtual void    onAddChildren() override
+        {
+            flags().addFlag(FENode::FLAG_ADD_CHILD);
+        }
+        virtual void    onRemoveChildren() override
+        {
+            flags().addFlag(FLAG_REMOVE_CHILD);
+        }
         /// <summary>
         /// 子类实现
         /// </summary>
@@ -309,7 +345,7 @@ namespace   FE
         Mesh        _mesh;
         Material    _material;
         FEString    _name;
-        Objects     _coms;
+        Components  _coms;
     };
 
     using   Node    =   SharedPtr<FENode>;

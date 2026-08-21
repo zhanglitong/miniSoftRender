@@ -100,6 +100,7 @@ namespace   FE
     #define     V1_0_0_0                    MAKE_VERSION(1,0,0,0)
 
   
+    #define     ComSysId                    "_comSysId"
 }
 
 

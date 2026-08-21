@@ -185,7 +185,7 @@ namespace   FE
             rInfo.sType                 =   VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
             rInfo.renderArea            =   {(int)rect.left(), (int)rect.top(), rect.width(), rect.height() };
             rInfo.layerCount            =   1;
-            rInfo.colorAttachmentCount  =   nCnt;
+            rInfo.colorAttachmentCount  =   (uint32_t)nCnt;
             rInfo.pColorAttachments     =   cAttachments;
             rInfo.pDepthAttachment      =   &dsAttachment;
             rInfo.pStencilAttachment    =   &dsAttachment;

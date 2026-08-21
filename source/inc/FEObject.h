@@ -27,7 +27,7 @@ namespace   FE
     using   OBJId           =   FEUuid;
     using   FECreator       =   std::function<Object(FEContext&,const FEAllocator&)>;
     using   CLSVar          =   std::variant<std::monostate,bool,int16,uint16,int32,uint32,int64,uint64,float,float2,float3,float4,real,real2,real3,real4,String,Strings,Object,FEUuid>;
-    using   CLSProp         =   FEKeyValues<String,CLSVar>;
+    using   CLSProp         =   FEKeyValues<String,CLSVar,std::unordered_map<String,CLSVar>>;
     
     struct  CLSProperty                                        
     {                                                           
@@ -180,21 +180,13 @@ namespace   FE
         /// </summary>
         FLAG_EXPAND         =   ((FLAG_SERIAL)<<1 ),
         /// <summary>
-        /// 添加对象
+        /// 是否可用，处于活动状态
         /// </summary>
-        FLAG_ADD_CHILD      =   ((FLAG_EXPAND)<<1),
-        /// <summary>
-        /// 移除对象
-        /// </summary>
-        FLAG_REMOVE_CHILD   =   ((FLAG_ADD_CHILD)<<1),
-        /// <summary>
-        /// 对象修改
-        /// </summary>
-        FLAG_MODIFY_CHILD   =   ((FLAG_REMOVE_CHILD)<<1),
+        FLAG_ENABLE         =   ((FLAG_EXPAND)<<1 ),
         /// <summary>
         /// 必须在最后，其他的子定义会从该值开始
         /// </summary>
-        FLAG_LAST           =   (FLAG_MODIFY_CHILD<<1)
+        FLAG_LAST           =   (FLAG_ENABLE<<1)
     };
 
     using   Flags       =   FEFlags<FlagBit,int32_t>;

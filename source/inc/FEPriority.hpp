@@ -4,7 +4,7 @@ namespace   FE
 {
     enum    EPriority : uint16_t
     {
-        /// 先绘制
+        /// 先执行
         EP_Fist,
         /// 其次
         EP_Second,

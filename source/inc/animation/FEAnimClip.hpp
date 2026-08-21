@@ -4,36 +4,40 @@
 
 namespace FE
 {
-    DEFINE_CLASS_UUID(FEClip, "{0AFD2EDB-C83A-49F4-ACC6-52E6060D54E4}");
+    DEFINE_CLASS_UUID(FEAnimClip, "{4DC5CFDD-59F2-4715-A852-10C8A76D06E6}");
 
     class   FEAnimtion;
 
-    class   FEClip : public FEObject
+    class   FEAnimClip : public FEObject
     {
     public:
-        IMPLEMENT_CLASS_REFLECT(FEClip)
+        IMPLEMENT_CLASS_REFLECT(FEAnimClip)
     public:
-        FEClip(FEContext& ctx)  
+        FEAnimClip(FEContext& ctx)  
             :FEObject(ctx)
         {
         }
-        FEClip(const FEClip& other)
+        FEAnimClip(const FEAnimClip& other)
             :FEObject(other)
         {
             _tracks     =   other._tracks;
         }
-        ~FEClip()   =   default;
+        ~FEAnimClip()   =   default;
     public:
         /// <summary>
         /// 鑾峰彇甯ц寖鍥?
         /// </summary>
         /// <returns></returns>
-        uint2       range() const
+        real2       range() const
         {
-            uint2   result(0,0);
-            for (auto& track : _tracks)
+            real2   result(-1,-1);
+            if (_tracks.empty())
+                return  result;
+            else
+                result  =   _tracks.front()->range();
+            for (size_t i = 1; i < _tracks.size(); ++i)
             {
-                auto    tmp =   track->range();
+                auto    tmp =   _tracks[i]->range();
                 result.x    =   (std::min)(result.x,tmp.x);
                 result.y    =   (std::max)(result.y,tmp.y);
             }
@@ -64,7 +68,7 @@ namespace FE
             _tracks.insert(_tracks.end(),tracks.begin(),tracks.end());
         }
         /// <summary>
-        /// 鏇存柊鎵€鏈夎建閬撳€?
+        /// 
         /// </summary>
         /// <param name="frame"></param>
         void        update(const real& frame,TrackResults& results)
@@ -81,6 +85,7 @@ namespace FE
         KeyFrameTracks  _tracks;
     };
 
-    using   ClipPtr     =   SharedPtr<FEClip>;
-    using   ClipPtrs    =   std::vector<ClipPtr>;
+
+    using   AnimClip    =   SharedPtr<FEAnimClip>;
+    using   AnimClips   =   std::vector<AnimClip>;
 }

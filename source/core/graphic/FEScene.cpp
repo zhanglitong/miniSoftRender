@@ -12,10 +12,10 @@
 #include    "../inc/graphic/FEPipelineHelper.h"
 #include    "../inc/graphic/FELightMgr.h"
 
-
-
 namespace   FE
 {
+    
+
     bool    FEScene::setup(App app)
     {
         FETimestamp     timestamp;
@@ -158,6 +158,11 @@ namespace   FE
             _factorys.addObject(var);
         }
         return  results;
+    }
+
+    void    FEScene::addNodesToSystem(const Nodes& nodeList)
+    {
+        addToSystem<FEAnimation>(_comSysMgr,nodeList);
     }
 
     void    FEScene::onFrameStart()
@@ -344,7 +349,7 @@ namespace   FE
 
         for (auto node: _nodeTree.topLevelNodes())
         {
-            node->removeAllChild();
+            node->removeAllChildren();
         }
         _nodeTree.clear();
 
@@ -356,6 +361,7 @@ namespace   FE
         _device         =   nullptr;
         _renderSys      =   nullptr;
     }
+
 
     void    FEScene::loadPipelines()
     {

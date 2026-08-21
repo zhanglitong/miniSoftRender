@@ -1,23 +1,24 @@
-#pragma     once
+#pragma     once  
+#include    "../FEComponentSys.hpp"
 #include    "FEAction.hpp"
-namespace FE
-{
-    DEFINE_CLASS_UUID(FEActionGroup, "{536BDD3A-F2BD-43DA-B5AB-AA7E6EC7F9C3}");
+namespace   FE 
+{      
+    DEFINE_CLASS_UUID(FEAnimationSys, "{B9034F58-6040-45E5-AA5D-6954A55971AD}");
 
-    class   FEActionGroup : public FEObject
-    {
+    class   FEAnimationSys :public FEComponentSys     
+    {    
     public:
         using   ActionMap   =   std::map<String, Action>;
     public:
-        IMPLEMENT_CLASS_REFLECT(FEActionGroup)
+        IMPLEMENT_CLASS_REFLECT(FEAnimationSys)
     public:
-        FEActionGroup(FEContext& ctx)  
-            :FEObject(ctx)
+    public:         
+        FEAnimationSys(FEContext& ctx)
+            :FEComponentSys(ctx)   
+        {}         
+        FEAnimationSys(const FEAnimationSys& other)            
+            :FEComponentSys(other)         
         {}
-        FEActionGroup(const FEActionGroup& other)
-            :FEObject(other)
-        {}
-        ~FEActionGroup()   =   default;
     public:
         auto&   actions()
         {
@@ -45,7 +46,7 @@ namespace FE
         /// 
         /// </summary>
         /// <param name="frame"></param>
-        void    update(const real& tmDelta)
+        void    update(const real& tmDelta) override
         {
             for (auto& var : _actions)
             {
@@ -55,5 +56,6 @@ namespace FE
     protected:
         ActionMap   _actions;
     };
-    using   ActionGroup   =   SharedPtr<FEActionGroup>;
+
+    using   AnimSys   =   SharedPtr<FEAnimationSys>;
 }

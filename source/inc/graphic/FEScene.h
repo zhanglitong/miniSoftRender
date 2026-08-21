@@ -21,6 +21,7 @@
 #include    "FEDSetLayout.h"
 #include    "FEFactoryMgr.hpp"
 #include    "FEViewerMgr.hpp"
+#include    "FEComponentSysMgr.hpp"
 #include    "FEFrame.h"
 #include    "../animation/FEActionGroup.hpp"
 
@@ -43,6 +44,7 @@ namespace   FE
             ,_nodeTree(ctx)
             ,_factorys(ctx)
             ,_viewerMgr(ctx)
+            ,_comSysMgr(ctx)
             ,_actionGrp(ctx)
         {
         }
@@ -51,6 +53,7 @@ namespace   FE
             ,_nodeTree(other._nodeTree)
             ,_factorys(other._factorys)
             ,_viewerMgr(other._viewerMgr)
+            ,_comSysMgr(other._comSysMgr)
             ,_actionGrp(other._actionGrp)
         {}
         inline  auto&   updateQueue()
@@ -70,11 +73,11 @@ namespace   FE
         {
             return  _camera;
         }
-        inline auto&   nodeTree()
+        inline  auto&   nodeTree()
         {
             return  _nodeTree;
         }
-        inline auto&   nodeTree() const
+        inline  auto&   nodeTree() const
         {
             return  _nodeTree;
         }
@@ -94,7 +97,7 @@ namespace   FE
         {
             return  _viewerMgr;
         }
-        inline  Frame  currentFrame() const
+        inline  Frame   currentFrame() const
         {
             return  _frame;
         }
@@ -110,7 +113,11 @@ namespace   FE
         /// <param name="nodeList"></param>
         /// <returns></returns>
         RFactorys       addNodesToFactory(const Nodes& nodeList);
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="nodeList"></param>
+        void            addNodesToSystem(const Nodes& nodeList);
     public:
         virtual void    onFrameStart();
         virtual void    onFrameUpdate();
@@ -143,10 +150,23 @@ namespace   FE
         Nodes   loadNode(Material mat);
         Node    createGrid(Material mat);
     protected:
-        App                 _app;   
+        App                 _app;  
+        /// <summary>
+        /// 节点树，通过节点树，可以获取系统的数据
+        /// </summary>
         FENodeTree          _nodeTree;
+        /// <summary>
+        /// 管理所有渲染工厂
+        /// </summary>
         FEFactoryMgr        _factorys;
+        /// <summary>
+        /// 管理所有viewer
+        /// </summary>
         FEViewerMgr         _viewerMgr;
+        /// <summary>
+        /// 管理所有系统，例如动画系统，物理系统，脚本系统,粒子系统
+        /// </summary>
+        FEComponentSysMgr   _comSysMgr;
         FEActionGroup       _actionGrp;
         FEUpdateQueue       _updateQueue;
         Camera              _camera;
@@ -160,6 +180,44 @@ namespace   FE
         Frame               _frame;
         Node                _mousePoint;
         aabb3dr             _aabb;
+    public:
+        /// <summary>
+        /// 实现组件到系统见系统的分发功能
+        /// 函数收集指定类型的组件，然后分发到对应的组件系统
+        /// 典型应用场景: addToSystem<FEAnimation>(...);
+        /// </summary>
+        /// <typeparam name="TObject">类型，例如FEAnimation </typeparam>
+        /// <param name="sysMgr">组件系统管理</param>
+        /// <param name="nodes">节点对象集合</param>
+        /// <returns>返回加到系统中的组件数</returns>
+        template<typename TObject>
+        static  size_t  addToSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
+        {
+            uint        nCount  =   FEComponentSys::countObjects<TObject>(nodes);
+            if (nCount == 0)
+                return  0;
+            Components  coms;
+            coms.reserve(nCount);
+            FEComponentSys::collectObjects<FEAnimation>(nodes,coms);
+
+            Component   com     =   coms.front();
+            CLSVar      prop;
+            bool        result  =   com->property().query(ComSysId,prop);
+            assert(result);
+            if (!result)
+                return  0;
+            assert(std::holds_alternative<FEUuid>(prop));
+
+            if (!std::holds_alternative<FEUuid>(prop))
+                return  0;
+            FEUuid      comSysId    =   std::get<FEUuid>(prop);
+            auto        comSys      =   sysMgr.query(comSysId);
+            assert(comSys != nullptr);
+            if (comSys == nullptr)
+                return  0;
+            else
+                return  comSys->addObjects(coms);
+        }
     };
 
     using   Scene =   SharedPtr<FEScene>;

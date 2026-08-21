@@ -1,6 +1,6 @@
 #pragma     once
 #include    <functional>
-#include    "FEClip.hpp"
+#include    "FEAnimClip.hpp"
 #include    "FEAnimation.hpp"
 #include    "FEObjectsTemplate.hpp"
 
@@ -30,26 +30,26 @@ namespace FE
         enum    PlayMode :uint8_t
         {
             /// <summary>
-            /// 鎾斁涓€娆?
+            /// 播放一次
             /// </summary>
             PT_Once,
             /// <summary>
-            /// 寰幆鎾斁锛屽彲璁剧疆寰幆娆℃暟
+            /// 循环播放，可设置循环次数
             /// </summary>
             PT_Loop,
             /// <summary>
-            /// 涔掍箵寰幆妯″紡锛屽彲浠ヨ缃惊鐜鏁?
+            /// 乒乓循环模式，可以设置循环次数
             /// </summary>
             PT_PingPong
         };
         enum    TimeMode:uint8_t
         {
             /// <summary>
-            /// 姝ｅ悜鎾斁
+            /// 正向播放
             /// </summary>
             TM_Default,
             /// <summary>
-            /// 鍊掓斁
+            /// 倒放
             /// </summary>
             TM_Invert
         };
@@ -71,9 +71,8 @@ namespace FE
             _playMode       =   PT_Once;
             _timeMode       =   TM_Default;
             _status         =   PS_Stoped;
+            _elapseTime     =   0.0;
             _startTime      =   0.0;
-            _clipFrame      =   0;
-            _weight         =   1;
             _timeScale      =   1;
             _clipTime       =   0;
             _range          =   {};
@@ -85,9 +84,8 @@ namespace FE
             _playMode       =   other._playMode;
             _timeMode       =   other._timeMode;
             _status         =   other._status;
+            _elapseTime     =   other._elapseTime;
             _startTime      =   other._startTime;
-            _clipFrame      =   other._clipFrame;
-            _weight         =   other._weight;
             _timeScale      =   other._timeScale;
             _clipTime       =   other._clipTime;
             _range          =   other._range;
@@ -95,28 +93,28 @@ namespace FE
         ~FEAction()   =   default;
     public:
         /// <summary>
-        /// 鎾斁鍔ㄧ敾
+        /// 播放
         /// </summary>
         void        play()
         {
             _status =   PS_Running;
         }
         /// <summary>
-        /// 鍋滄鎾斁
+        /// 停止
         /// </summary>
         void        stop()
         {
             _status =   PS_Stoped;
         }
         /// <summary>
-        /// 鏆傚仠鎾斁
+        /// 暂停
         /// </summary>
         void        pause()
         {
             _status =   PS_Pause;
         }
         /// <summary>
-        /// 鑾峰彇鐘舵€?
+        /// 播放状态
         /// </summary>
         /// <returns></returns>
         auto        status() const
@@ -144,46 +142,53 @@ namespace FE
                 _clipTime   -=  deltaTime;
                 break;
             }
-            _clipFrame  =   _clipTime * _fps;
 
             switch (_playMode)
             {
             case PT_Once:
                 {
-                    if (_clipFrame > _range.y)
+                    if (_clipTime > _range.y)
                     {
-                        _clipFrame  =   _range.y;
-                        _clipTime   =   real(_clipFrame)/real(_fps);
+                        _clipTime   =   _range.y;
                         _status     =   PS_Stoped;
                     }   
-                    else if (_clipFrame < _range.x)
+                    else if (_clipTime < _range.x)
                     {
-                        _clipFrame  =   _range.x;
-                        _clipTime   =   real(_clipFrame)/real(_fps);
+                        _clipTime   =   _range.x;
                         _status     =   PS_Stoped;
                     }
                 }
                 break;
             case PT_Loop:
                 {
-                    if (_clipFrame > _range.y)
+                    if (_clipTime > _range.y)
                     {
-                        _clipFrame  =   _range.x;
-                        _clipTime   =   real(_clipFrame)/real(_fps);
+                        _clipTime   =   _range.x;
                     }
-                    else if (_clipFrame < _range.x)
+                    else if (_clipTime < _range.x)
                     {
-                        _clipFrame  =   _range.y;
-                        _clipTime   =   real(_clipFrame)/real(_fps);
+                        _clipTime   =   _range.y;
                     }
                 }
                 break;
             case PT_PingPong:
+                {
+                    if (_timeMode == TM_Default && _clipTime > _range.y)
+                    {
+                        _clipTime   =   _range.y;
+                        _timeMode   =   TM_Invert;
+                    }
+                    else if (_timeMode == TM_Invert && _clipTime < _range.x)
+                    {
+                        _clipTime   =   _range.x;
+                        _timeMode   =   TM_Default;
+                    }
+                }
                 break;
             }
             for (auto& var :_objects)
             {
-                var->update(_clipFrame);
+                var->update(_clipTime);
             }
         }
     protected:
@@ -202,15 +207,20 @@ namespace FE
             _range  =   calcRange();
         }
         /// <summary>
-        /// 璁＄畻甯ц寖鍥?
+        /// 计算范围
         /// </summary>
         /// <returns></returns>
-        uint2       calcRange()
+        real2       calcRange()
         {
-            uint2   result(0,0);
-            for (auto& var : _objects)
+            real2   result(-1,-1);
+            if (_objects.empty())
+                return  result;
+            else
+                result  =   _objects.front()->clip()->range();
+
+            for (size_t i = 1 ;i < _objects.size(); ++ i)
             {
-                auto    rng =   var->clip()->range();
+                auto    rng =   _objects[i]->clip()->range();
                 result.x    =   (std::min)(result.x,rng.x);
                 result.y    =   (std::max)(result.y,rng.y);
             }
@@ -221,34 +231,25 @@ namespace FE
         TimeMode        _timeMode;
         PlayStatus      _status;
         /// <summary>
-        /// 甯х巼,姣忕鎾斁鍔ㄧ敾鐨勫抚鐜?
-        /// </summary>
-        uint            _fps    =   30;
-        /// <summary>
-        /// 鏍规嵁 _clipTime 璁＄畻鍑烘潵鐨勫疄闄呭抚
-        /// </summary>
-        real            _clipFrame;
-        /// <summary>
-        /// 浠庝粈涔堟椂闂村紑濮嬫挱鏀?褰撹皟鐢ㄤ簡play鍑芥暟鍚庯紝寮€濮嬭绠?
+        /// 从什么时间开始播放,当调用了play函数后，开始计算
         /// </summary>
         real            _startTime;
         /// <summary>
-        /// 浠庡紑濮嬫挱鏀惧埌鍋滄缁忚繃杩囩殑鎵€鏈夋椂闂村拰
+        /// 从开始播放到停止经过过的所有时间和,真实时间
         /// </summary>
         real            _elapseTime;
-        real            _weight;
         /// <summary>
-        /// 鏃堕棿绾跨缉鏀撅紝蹇斁锛屾參鏀?
+        /// 时间线缩放，快放，慢放
         /// </summary>
         real            _timeScale;
         /// <summary>
-        /// 浠?寮€濮嬭绠?
+        /// 从播放开始计算,不是真实的时间，是逻辑时间，带有缩放控制信息
         /// </summary>
         real            _clipTime;
         /// <summary>
-        /// 甯ц寖鍥?
+        /// 帧时间范围
         /// </summary>
-        uint2           _range;
+        real2           _range;
         TrackResults    _result; 
     };
 

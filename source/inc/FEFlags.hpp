@@ -251,6 +251,10 @@ namespace   FE
             else
                 return removeFlags(flags);
         }
+        inline  bool   hasFlags(DataType flags)
+        {
+            return  (_flags & flags) ? true : false;
+        }
         /// <summary>
         /// 所有的 flag 均被包含时返回 true, 否则返回false
         /// </summary>
