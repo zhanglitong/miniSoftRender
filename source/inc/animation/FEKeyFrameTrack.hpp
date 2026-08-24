@@ -2,7 +2,6 @@
 
 #include    "../FEPropertyIndex.hpp"
 #include    "FETrackResult.hpp"
-#include    "TValueArray.hpp"
 
 namespace FE
 {
@@ -25,6 +24,8 @@ namespace FE
 
     using   PropIndex       =   int;
     DEFINE_CLASS_UUID(FEKeyFrameTrack, "{474DC049-28C0-4F79-AB66-CDCA4707DD8B}");
+
+    
 
     class   FEKeyFrameTrack : public FEObject
     {
@@ -58,15 +59,15 @@ namespace FE
             _propIndex  =   other._propIndex;
             _times      =   other._times;
             _values     =   other._values;
+            _type       =   other._type;
         }
-        ~FEKeyFrameTrack() 
-        {}
+        ~FEKeyFrameTrack()  =   default;
     public:
         /// <summary>
         /// 范围
         /// </summary>
         /// <returns></returns>
-        real2       range() const
+        real2   range() const
         {
             if (_times == nullptr || _times->values().empty())
                 return  real2(-1,-1);
@@ -78,7 +79,7 @@ namespace FE
         /// 是否有效 
         /// </summary>
         /// <returns></returns>
-        bool        isValid() const
+        bool    isValid() const
         {
             return (_times && !_times->values().empty());
         }
@@ -86,15 +87,19 @@ namespace FE
         /// 设置属性索引
         /// </summary>
         /// <param name="index"></param>
-        void        setPropertyIndex(const PropIndex& index)
+        void    setPropertyIndex(const PropIndex& index)
         {
             _propIndex  =   index;
         }
-        void        setTimeObject(RealsObject timeObject)
+        auto    propertyIndex() const
+        {
+            return  _propIndex;
+        }
+        void    setTimeObject(RealsObject timeObject)
         {
             _times  =   timeObject;
         }
-        void        setValueObject(RealsObject valueObject)
+        void    setValueObject(ValueObject valueObject)
         {
             _values  =   valueObject;
         }
@@ -102,7 +107,7 @@ namespace FE
         /// 获取时间信息
         /// </summary>
         /// <returns></returns>
-        auto        times() const
+        auto    times() const
         {
             return _times;
         }
@@ -110,156 +115,110 @@ namespace FE
         /// 获取数据信息
         /// </summary>
         /// <returns></returns>
-        auto&       values()
+        auto&   values()
         {
             return _values;
         }
         /// <summary>
-        /// 第一帧信息
-        /// </summary>
-        /// <returns></returns>
-        real2       front() const
-        {
-            if (   _values == nullptr 
-                || _times == nullptr 
-                || _values->values().empty() 
-                || _times->values().empty())
-                return  real2(0,0);
-            else
-                return  real2(_times->values().front(),_values->values().front());
-        }
-        /// <summary>
-        /// 最后一帧数据
-        /// </summary>
-        /// <returns></returns>
-        real2       back() const
-        {
-            if (   _values == nullptr 
-                || _times == nullptr 
-                || _values->values().empty() 
-                || _times->values().empty())
-                return  real2(0,0);
-            else
-                return  real2(_times->values().back(),_values->values().back());
-        }
-        /// <summary>
-        /// 添加关键帧
-        /// </summary>
-        /// <param name="keyFrame"></param>
-        /// <returns></returns>
-        bool        addKeyFrame(const real& tm,const real& value)
-        {
-            /// 查找插入位置
-            auto    itr =   std::lower_bound(_times->values().begin(), _times->values().end(), tm, [](const real& l, const real& r)
-            {
-                return l < r;
-            });
-            /// 没有找到
-            if (itr == _times->values().end())
-            {
-                _times->values().push_back(tm);
-                _values->values().push_back(value);
-            } 
-            /// 找到插入位置
-            else if((*itr)  != tm)
-            {
-                const auto  dist    =   std::distance(_times->values().begin(),itr);
-                _times->values().insert(itr,tm);
-                auto vItr   =   _values->values().begin() + dist;
-                _values->values().insert(vItr,value);
-            }
-            else
-                return  false;
-            return  true;
-        }
-        /// <summary>
-        /// 追加关键帧
-        /// </summary>
-        /// <param name="frames"></param>
-        void        appendKeyFrames(const real2s& frames)
-        {
-            _times->values().reserve(_times->values().size() + frames.size());
-            _values->values().reserve(_values->values().size() + frames.size());
-            for (auto& frame : frames)
-            {
-                _times->values().push_back(frame.x);
-                _values->values().push_back(frame.y);
-            }
-        }
-        /// <summary>
-        /// 根据索引获取关键帧数据
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns>real2(-1,-1) 无效/returns>
-        real2       keyFrame(size_t index) const
-        {
-            if (index < _times->values().size())
-                return  real2(_times->values().at(index),_values->values().at(index));
-            else
-                return  real2(-1,-1);
-        }
-        /// <summary>
         /// 需要手动调用
         /// </summary>
-        void        sortKeyFames()
+        void    sortKeyFames()
         {
-            auto&   times   =   _times->values();
-            auto&   values  =   _values->values();
-            assert(times.size() == values.size());
-            if (times.size() != values.size())
+            switch(_values.index())
             {
-                return;
-            }
-            real2s  frames(values.size());
-            for (size_t i = 0; i < values.size(); i++)
-            {
-                frames[i].x =   times[i];
-                frames[i].y =   values[i];
-            }
-            std::sort(frames.begin(), frames.end(), [&](const real2& l, const real2& r) 
-            {
-                return l.x < r.x;
-            });
-            for (size_t i = 0; i < values.size(); i++)
-            {
-                times[i]    =   frames[i].x;
-                values[i]   =   frames[i].y;
+            case 1:     return  sortImpl(std::get<RealsObject>(_values));
+            case 2:     return  sortImpl(std::get<Real2sObject>(_values));
+            case 3:     return  sortImpl(std::get<Real3sObject>(_values));
+            case 4:     return  sortImpl(std::get<Real4sObject>(_values));
+            case 5:     return  sortImpl(std::get<QuatrsObject>(_values));
+            case 6:     return  sortImpl(std::get<FloatsObject>(_values));
+            case 7:     return  sortImpl(std::get<Float2sObject>(_values));
+            case 8:     return  sortImpl(std::get<Float3sObject>(_values));
+            case 9:     return  sortImpl(std::get<Float4sObject>(_values));
+            case 10:    return  sortImpl(std::get<QuatfsObject>(_values));
+            case 11:    return  sortImpl(std::get<BoolsObject>(_values));
             }
         }
         /// <summary>
         /// 每一帧更新
         /// </summary>
         /// <param name="frame"></param>
-        bool        update(const real& tm,FETrackResult& result)
+        bool    update(const real& tm,FETrackResult& result)
         {
             if (!isValid())
                 return  false;
+            switch(_values.index())
+            {
+            case 1:     return  updateImpl(tm,result,std::get<RealsObject>(_values));
+            case 2:     return  updateImpl(tm,result,std::get<Real2sObject>(_values));
+            case 3:     return  updateImpl(tm,result,std::get<Real3sObject>(_values));
+            case 4:     return  updateImpl(tm,result,std::get<Real4sObject>(_values));
+            case 5:     return  updateImpl(tm,result,std::get<QuatrsObject>(_values));
+            case 6:     return  updateImpl(tm,result,std::get<FloatsObject>(_values));
+            case 7:     return  updateImpl(tm,result,std::get<Float2sObject>(_values));
+            case 8:     return  updateImpl(tm,result,std::get<Float3sObject>(_values));
+            case 9:     return  updateImpl(tm,result,std::get<Float4sObject>(_values));
+            case 10:    return  updateImpl(tm,result,std::get<QuatfsObject>(_values));
+            case 11:    return  updateImpl(tm,result,std::get<BoolsObject>(_values));
+            default:    return  false;
+            }
+        }
+    protected:
+        template<typename TValueObject>
+        void    sortImpl(TValueObject& vObject)
+        {
+            using   TValue  =   typename TValueObject::TValue::ValueType;
+
+            auto&   times   =   _times->values();
+            auto&   values  =   vObject->values();
+            assert(times.size() == values.size());
+            if (times.size() != values.size())
+                return;
+            FrameValues frames(values.size());
+            for (size_t i = 0; i < values.size(); i++)
+            {
+                frames[i]._t    =   times[i];
+                frames[i]._v    =   values[i];
+            }
+            std::sort(frames.begin(), frames.end(), [&](const FrameValue& l, const FrameValue& r) 
+            {
+                return l._t < r._t;
+            });
+            for (size_t i = 0; i < values.size(); i++)
+            {
+                times[i]    =   frames[i]._t;
+                values[i]   =   std::get<TValue>(frames[i]._v);
+            }
+        }
+        template<typename TValueObject>
+        bool    updateImpl(const real& tm,FETrackResult& result,const TValueObject& values)
+        {
             auto    rng =   range();
             if (tm < rng.x)
-                result._value   =   _values->values().front();
+                result._value   =   values->values().front();
             else if(tm > rng.y)
-                result._value   =   _values->values().back();
+                result._value   =   values->values().back();
             else
             {
                 auto    itr =   std::lower_bound(_times->values().begin(), _times->values().end(), tm, [](const real& l, const real& tm)
-                {
-                    return l < tm;
-                });
+                    {
+                        return l < tm;
+                    });
                 if (itr == _times->values().end())
                 {
-                    result._value   =   _values->values().back();
+                    result._value   =   values->values().back();
                 } 
                 else if (itr == _times->values().begin())
                 {
-                    result._value   =   _values->values().front();
+                    result._value   =   values->values().front();
                 }
                 else
                 {
-                    auto    dist        =   std::distance(_times->values().begin(),itr);
-                    auto    itrEnd      =   _values->values().begin() + dist;
-                    real2   startFrame  =   real2(*(itr-1), *(itrEnd-1));
-                    real2   endFrame    =   real2(*itr,     *itrEnd);
-                    result._value       =   interpolate(_type,tm,startFrame,endFrame,_tension);
+                    auto        dist        =   std::distance(_times->values().begin(),itr);
+                    auto        itrEnd      =   values->values().begin() + dist;
+                    FrameValue  startFrame  =   {*(itr-1), *(itrEnd-1)};
+                    FrameValue  endFrame    =   {*itr,     *itrEnd};
+                    result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
                 }
             } 
             return  true;
@@ -272,41 +231,42 @@ namespace FE
         /// <param name="eFrame">另一个关键帧</param>
         /// <param name="tension">贝塞尔插值有效</param>
         /// <returns></returns>
-        static  real    interpolate(InterpolateType type,const real& dTime, const real2& startFrame,const real2& endFrame,real tension = MD_EASE) 
+        static  KFValue interpolate(InterpolateType type,const real& dTime, const FrameValue& startFrame,const FrameValue& endFrame,real tension = MD_EASE) 
         {
             /// 如果时间超过了结束帧范围，使用结束帧值
-            if (dTime >= endFrame.x)
-                return  endFrame.y;
+            if (dTime >= endFrame._t)
+                return  endFrame._v;
             /// 如果开始帧与结束帧一样，返回开始帧值
-            if (startFrame.x == endFrame.x) 
-                return  startFrame.y;
+            if (startFrame._t == endFrame._t) 
+                return  startFrame._v;
             switch (type)
             {
             case IT_Bezier:
                 {
-                    real    t   =   real(dTime - startFrame.x) / real(endFrame.x - startFrame.x);
+                    real    t   =   real(dTime - startFrame._t) / real(endFrame._t - startFrame._t);
                             t   =   std::clamp(t,0.0,1.0);
                     /// 使用三次贝塞尔实现缓入缓出
                     /// 控制点根据tension参数调整曲线形状
-                    real    p0  =   startFrame.y;
-                    real    p3  =   endFrame.y;
-                    real    p1  =   startFrame.y + (endFrame.y - startFrame.y) * (0.5 - tension * 0.3);
-                    real    p2  =   startFrame.y + (endFrame.y - startFrame.y) * (0.5 + tension * 0.3);
+                    auto    p0  =   startFrame._v;
+                    auto    p3  =   endFrame._v;
+                    auto    p1  =   startFrame._v + (endFrame._v - startFrame._v) * (0.5 - tension * 0.3);
+                    auto    p2  =   startFrame._v + (endFrame._v - startFrame._v) * (0.5 + tension * 0.3);
                     return  cubicBezierInterpolate(p0,p1,p2,p3,t);
                 }
             case IT_Linear:
                 {
-                    real    t   =   real(dTime - startFrame.x) / real(endFrame.x - startFrame.x);
-                    return  (1.0 - t) * startFrame.y + t * endFrame.y;
+                    real    t   =   real(dTime - startFrame._t) / real(endFrame._t - startFrame._t);
+                    if (std::holds_alternative<quatf>(startFrame._v))
+                        return  slerp(std::get<quatf>(startFrame._v),std::get<quatf>(endFrame._v),float(t));
+                    else if (std::holds_alternative<quatr>(startFrame._v))
+                        return  slerp(std::get<quatr>(startFrame._v),std::get<quatr>(endFrame._v),real(t));
+                    else
+                        return  (1.0 - t) * startFrame._v + t * endFrame._v;
                 }
             case IT_Constant:
-                {
-                    /// if (dTime >= endFrame.x)
-                    ///     return  endFrame.y;
-                    return startFrame.y;
-                }
+                return startFrame._v;
             default:
-                return startFrame.y;
+                return startFrame._v;
             }
         }
         /// <summary>
@@ -321,7 +281,7 @@ namespace FE
         template<class TValue>
         static  TValue  cubicBezierInterpolate(TValue p0, TValue p1, TValue p2, TValue p3, real t) 
         {
-            // 三次贝塞尔公式: B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
+            /// 三次贝塞尔公式: B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
             real    u   =   1.0 - t;
             return  u * u * u * p0 + 
                     3.0 * u * u * t * p1 + 
@@ -330,10 +290,12 @@ namespace FE
         }
     public:
         RealsObject     _times;
-        RealsObject     _values;
+        ValueObject     _values;
         real            _tension    =   MD_EASE;
         PropIndex       _propIndex  =   -1;
-        InterpolateType _type;
+        InterpolateType _type       =   IT_Linear;
+
+        
     };
 
     using   KeyFrameTrack       =   SharedPtr<FEKeyFrameTrack>;

@@ -68,9 +68,9 @@ namespace FE
             :FEObject(ctx)
             ,FEObjectsTemplate<Animation, AnimationLess>(AnimationLessFunc)
         {
-            _playMode       =   PT_Once;
+            _playMode       =   PT_Loop;
             _timeMode       =   TM_Default;
-            _status         =   PS_Stoped;
+            _status         =   PS_Running;
             _elapseTime     =   0.0;
             _startTime      =   0.0;
             _timeScale      =   1;

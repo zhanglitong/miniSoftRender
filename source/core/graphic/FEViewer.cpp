@@ -118,8 +118,17 @@ namespace   FE
         cmd->setViewport(0,  1,  &viewPort);
         cmd->setScissor(0,   1,  &rect);
 
-        auto&       factorys    =   _ctx.scene()->factoryMgr().objects();
-        ViewerUsage usageList[] =   
+        auto        factorys    =   _ctx.scene()->factoryMgr().objects();
+        std::sort(factorys.begin(),factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
+        {
+            auto    prioLeft    =   left->priority(FEFactory::PT_Render);
+            auto    prioRight   =   right->priority(FEFactory::PT_Render);
+            if(prioLeft.priority() == prioRight.priority())
+                return  prioLeft.order() < prioRight.order();
+            else
+                return  prioLeft.priority() <  prioRight.priority();
+        });
+        static  constexpr ViewerUsage usageList[] =   
         {
             USAGE_Background ,
             USAGE_Shadow  ,
@@ -172,9 +181,9 @@ namespace   FE
             node->intersect(ray,results);
         }
         std::sort(results.begin(),results.end(),[](const FEPickup& left,const FEPickup& right)
-            {
-                return  left.time < right.time;
-            });
+        {
+            return  left.time < right.time;
+        });
         if (!results.empty())
         {
             _ctx.anchor().setPickup(results.front());

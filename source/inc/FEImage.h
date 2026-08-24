@@ -1,6 +1,7 @@
 #pragma     once
 #include    <string>
 #include    "FEObject.h"
+#include    "FEComponent.hpp"
 #include    "FEMath.hpp"
 #include    "FEColor.hpp"
 #include    "FEFlags.hpp"

@@ -23,7 +23,7 @@
 #include    "FEViewerMgr.hpp"
 #include    "FEComponentSysMgr.hpp"
 #include    "FEFrame.h"
-#include    "../animation/FEActionGroup.hpp"
+#include    "FETimestamp.hpp"
 
 namespace   FE
 {
@@ -49,7 +49,6 @@ namespace   FE
             ,_factorys(ctx)
             ,_viewerMgr(ctx)
             ,_comSysMgr(ctx)
-            ,_actionGrp(ctx)
         {
         }
         FEScene(const FEScene& other)
@@ -58,7 +57,6 @@ namespace   FE
             ,_factorys(other._factorys)
             ,_viewerMgr(other._viewerMgr)
             ,_comSysMgr(other._comSysMgr)
-            ,_actionGrp(other._actionGrp)
         {}
         inline  auto&   updateQueue()
         {
@@ -157,6 +155,7 @@ namespace   FE
         Node    createGrid(Material mat);
     protected:
         App                 _app;  
+        FETimestamp         _timestamp;
         /// <summary>
         /// 节点树，通过节点树，可以获取系统的数据
         /// </summary>
@@ -173,7 +172,6 @@ namespace   FE
         /// 管理所有系统，例如动画系统，物理系统，脚本系统,粒子系统
         /// </summary>
         FEComponentSysMgr   _comSysMgr;
-        FEActionGroup       _actionGrp;
         FEUpdateQueue       _updateQueue;
         Camera              _camera;
         

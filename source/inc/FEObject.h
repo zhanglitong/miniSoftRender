@@ -13,6 +13,7 @@
 #include    "FEKeyValues.hpp"
 #include    "FEChunkInf.hpp"
 #include    "FESerializeCtx.h"
+#include    "FEPropertyIndex.hpp"
 
 namespace   FE
 {
@@ -26,9 +27,10 @@ namespace   FE
     using   CLSId           =   FEUuid;
     using   OBJId           =   FEUuid;
     using   FECreator       =   std::function<Object(FEContext&,const FEAllocator&)>;
-    using   CLSVar          =   std::variant<std::monostate,bool,int16,uint16,int32,uint32,int64,uint64,float,float2,float3,float4,real,real2,real3,real4,String,Strings,Object,FEUuid>;
+    using   CLSVar          =   std::variant<std::monostate,bool,int16,uint16,int32,uint32,int64,uint64,float,float2,float3,float4,quatf,real,real2,real3,real4,quatr,String,Strings,Object,FEUuid>;
     using   CLSProp         =   FEKeyValues<String,CLSVar,std::unordered_map<String,CLSVar>>;
-    
+
+
     struct  CLSProperty                                        
     {                                                           
         CLSProperty(const CLSId& id)                           
@@ -189,7 +191,7 @@ namespace   FE
         FLAG_LAST           =   (FLAG_ENABLE<<1)
     };
 
-    using   Flags       =   FEFlags<FlagBit,int32_t>;
+    using   Flags       =   FEFlags<FlagBit,uint32_t>;
 
 
    
@@ -330,23 +332,26 @@ namespace   FE
         /// <returns>返回以来的对象个数</returns>
         virtual size_t      queryDepends(ObjectUSet& uSet) const;
         /// <summary>
+        /// 动画系统独有接口
         /// 通用设置对象属性接口，子类实现
         /// </summary>
         virtual void        beginSetProp()
         {}
         /// <summary>
+        /// 动画系统独有接口
         /// 设置属性
         /// </summary>
         /// <param name="prop">属性索引(别名)</param>
         /// <param name="value">属性值</param>
         /// <returns>true,表示修改成功,否则没有修改</returns>
-        virtual bool        setProperty(int prop,const CLSVar& value)
+        virtual bool        setProperty(int prop,const KFValue& value)
         {
             UNUSED(prop);
             UNUSED(value);
             return  false;
         }
         /// <summary>
+        /// 动画系统独有接口
         /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>
         /// <param name="bModify"></param>

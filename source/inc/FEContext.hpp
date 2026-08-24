@@ -125,11 +125,24 @@ namespace FE
         {
             _window =   window;
         }
+        real        deltaTime() const
+        {
+            return  _deltaTime;
+        }
+        auto&       setDeltaTime(const real& tm)
+        {
+            _deltaTime  =   tm;
+            return  *this;
+        }
     public:
         static  FFReader&   readers();
         static  FFWriter&   writers();
         static  FECreators& creators();
     protected:
+        /// <summary>
+        /// 一帧花费的时间，第一帧肯定是0，
+        /// </summary>
+        real        _deltaTime  =   0;
         LogPtr      _log;
         Device      _device;
         Anchor      _anchor;

@@ -47,7 +47,7 @@ namespace   FE
         /// 添加对象,返回0,已经存在,返回1,添加成功
         /// </summary>
         /// <param name="object"></param>
-        /// <returns></returns>
+        /// <returns>添加成功对象数</returns>
         virtual size_t  addObject(const TObject& object)
         {
             auto    itr     =   std::lower_bound(_objects.begin(), _objects.end(), object,_sortFunc);

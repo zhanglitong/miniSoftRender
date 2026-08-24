@@ -167,7 +167,13 @@ namespace   FE
             cAttachments[i].imageLayout         =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             cAttachments[i].loadOp              =   VK_ATTACHMENT_LOAD_OP_CLEAR;
             cAttachments[i].storeOp             =   VK_ATTACHMENT_STORE_OP_STORE;
-            cAttachments[i].clearValue.color    =   {0.0f,0.0f,0.0f,0.0f};
+            cAttachments[i].clearValue.color    =   
+            {
+                rs._clearColor.r,
+                rs._clearColor.g,
+                rs._clearColor.b,
+                rs._clearColor.a
+            };
         }
 			
         VkRenderingAttachmentInfoKHR dsAttachment   =   {};

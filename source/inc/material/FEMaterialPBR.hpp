@@ -58,6 +58,35 @@ namespace   FE
         {
             return  _pbr;
         }
+    public:
+        /// <summary>
+        /// 动画系统独有接口
+        /// 通用设置对象属性接口，子类实现
+        /// </summary>
+        virtual void        beginSetProp()
+        {}
+        /// <summary>
+        /// 动画系统独有接口
+        /// 设置属性
+        /// </summary>
+        /// <param name="prop">属性索引(别名)</param>
+        /// <param name="value">属性值</param>
+        /// <returns>true,表示修改成功,否则没有修改</returns>
+        virtual bool        setProperty(int prop,const KFValue& value)
+        {
+            UNUSED(prop);
+            UNUSED(value);
+            return  false;
+        }
+        /// <summary>
+        /// 动画系统独有接口
+        /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
+        /// </summary>
+        /// <param name="bModify"></param>
+        virtual void        endSetProp(bool bModify)
+        {
+            UNUSED(bModify);
+        }
     protected:
         TBlock<PBRData>  _pbr;
     };

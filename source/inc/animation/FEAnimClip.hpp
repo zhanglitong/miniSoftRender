@@ -78,6 +78,7 @@ namespace FE
             {
                 auto        track   =   _tracks[i];
                 results[i]._track   =   track;
+                results[i]._prop    =   track->propertyIndex();
                 results[i]._valid   =   track->update(frame,results[i]);
             }
         }

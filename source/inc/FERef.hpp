@@ -6,6 +6,8 @@ namespace   FE
     class   FERef
     {
     public:
+        using   TValue  =   T;
+    public:
         /// Create a nullptr
         FERef()
             :_ptr(nullptr)

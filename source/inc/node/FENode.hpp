@@ -40,6 +40,9 @@ namespace   FE
 
             FLAG_PROP_TRANS     =   ((FLAG_MODIFY_CHILD)<<1),
             FLAG_PROP_SCALE     =   (FLAG_PROP_TRANS<<1),
+            /// <summary>
+            /// 数据是四元数
+            /// </summary>
             FLAG_PROP_ROT       =   (FLAG_PROP_SCALE<<1),
             /// <summary>
             /// 节点颜色修改,影响绘制的instance,触发更新:IS_INSTANCE_COLOR
@@ -60,6 +63,7 @@ namespace   FE
             /// 该状态会在节点所在工厂中消费后移除
             /// </summary>
             FLAG_PROP_MESH      =   (FLAG_PROP_STATE<<1),
+            
         };
         enum    EModify
         {
@@ -72,6 +76,7 @@ namespace   FE
                         | FLAG_PROP_COLOR
                         | FLAG_PROP_LOD
                         | FLAG_PROP_MESH
+                        | FLAG_UPDATE
         };   
         using   RenderFlags =   FEFlags<RenderFlag,uint32>;
     public:
@@ -221,9 +226,38 @@ namespace   FE
         {
             _mesh   =   mesh;
         } 
-        virtual void    addComponent(Component object)
+        /// <summary>
+        /// 添加组件
+        /// </summary>
+        /// <param name="com"></param>
+        /// <returns></returns>
+        virtual bool    addComponent(Component com)
         {
-            _coms.push_back(object);
+            if (com == nullptr)
+                return  false;
+            auto    itr =   std::find(_coms.begin(),_coms.end(),com);
+            if (itr != _coms.end()) 
+                return  false;
+            com->attach(this);
+            _coms.push_back(com);
+            return  true;
+        }
+        /// <summary>
+        /// 移除组件
+        /// </summary>
+        /// <param name="com"></param>
+        /// <returns></returns>
+        virtual bool    removeComponent(Component com)
+        {
+            if (com == nullptr)
+                return  false;
+            auto    itr =   std::find(_coms.begin(),_coms.end(),com);
+            if (itr == _coms.end()) 
+                return  false;
+            else
+                _coms.erase(itr);
+            com->detach();
+            return  true;
         }
         /// <summary>
         /// 添加需要更新标记
@@ -317,16 +351,23 @@ namespace   FE
         /// </summary>
         /// <param name="uset"></param>
         /// <returns>返回以来的对象个数</returns>
-        virtual size_t  queryDepends(ObjectUSet& uset) const
-        {
-            const auto  vSize   =   uset.size();
-            FEObject::queryDepends(uset);
-            for (auto var : _coms)
-            {
-                uset.emplace(var);
-            }
-            return  uset.size() - vSize;
-        }
+        virtual size_t  queryDepends(ObjectUSet& uset) const override;
+        /// <summary>
+        /// 通用设置对象属性接口，子类实现
+        /// </summary>
+        virtual void    beginSetProp() override;
+        /// <summary>
+        /// 设置属性
+        /// </summary>
+        /// <param name="prop">属性索引(别名)</param>
+        /// <param name="value">属性值</param>
+        /// <returns>true,表示修改成功,否则没有修改</returns>
+        virtual bool    setProperty(int prop,const KFValue& value) override;
+        /// <summary>
+        /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
+        /// </summary>
+        /// <param name="bModify"></param>
+        virtual void    endSetProp(bool bModify) override;
     protected:
         real3       _trans;
         /// <summary>

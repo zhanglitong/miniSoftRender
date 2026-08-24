@@ -43,7 +43,6 @@ int     main(int argc,char** argv)
     FEImageHelper::saveBmp(*image,"d:/x.bmp");
 
     Node    root    =   new FENode(ctx);
-    root->addObject(image.get());
 
     for (size_t i = 0; i < 100; i++)
     {

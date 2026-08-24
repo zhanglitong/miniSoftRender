@@ -11,11 +11,10 @@
 #include    "../inc/graphic/FEShaderDefine.h"
 #include    "../inc/graphic/FEPipelineHelper.h"
 #include    "../inc/graphic/FELightMgr.h"
+#include    "../inc/animation/FEAnimationSys.hpp"
 
 namespace   FE
 {
-    
-
     bool    FEScene::setup(App app)
     {
         FETimestamp     timestamp;
@@ -79,6 +78,12 @@ namespace   FE
         initializeQueue();
         /// 
         loadPipelines();
+        /// 注册动画系统
+        {
+            AnimSys animSys =   new FEAnimationSys(_ctx);
+            _comSysMgr.addObject(animSys.get());
+        }
+
         LOG_EVT("start cost:%lf ms",timestamp.milliSec());
 
         {
@@ -91,25 +96,24 @@ namespace   FE
             _mousePoint         =   node;
             dispatchNodesToSystem({node});
         }
-
-        /// 鍒涘缓 viewer,viewer鏄竴涓覆鏌撳櫒锛岃礋璐ｇ鐞嗗満鏅腑鐨勬墍鏈夊璞★紝澶勭悊杈撳叆浜嬩欢锛屽苟涓庢覆鏌撶郴缁熻繘琛屼氦浜?
         {
             auto    viewer = new FEViewer(_ctx,_camera,nullptr,ViewerUsage::USAGE_Classic);
             _viewerMgr.addObject(viewer);
             _viewerMgr.setActiveViewer(viewer);
         }
-        /// 鍏宠仈anchor
-        /// anchor 鍙戠敓鍙樺寲鍚庯紝缁樺埗鍚屾鏇存柊
+        /// anchor
+        /// anchor 增加通知
         _ctx.anchor().addNotify(this,[this](Object object)
+        {
+            UNUSED(object);
+            if (_mousePoint)
             {
-                UNUSED(object);
-                if (_mousePoint)
-                {
-                    _mousePoint->setLocalTranslation(_ctx.anchor().point());
-                    _mousePoint->update();
-                    _mousePoint->fireChanged();
-                }
-            });
+                _mousePoint->setLocalTranslation(_ctx.anchor().point());
+                _mousePoint->update();
+                _mousePoint->fireChanged();
+            }
+        });
+       
         return  true;
     }
 
@@ -161,6 +165,8 @@ namespace   FE
         if (_swapchain == nullptr)
             return;
         _frame  =   _swapchain->acquireNextFrame(UINT64_MAX);
+        _ctx.setDeltaTime(_timestamp.second()); 
+        _timestamp.update();
 
         if (_frame == nullptr)
             return;
@@ -178,8 +184,27 @@ namespace   FE
     }
     void    FEScene::onFrameUpdate()
     {
+        /// all componentSys for update
+        /// 复制一份
+        auto    comSyss     =   _comSysMgr.objects();
+        /// 按照优先级排序
+        std::sort(comSyss.begin(),comSyss.end(),[](const ComponentSys& left,const ComponentSys& right)
+        {
+            auto    prioLeft    =   left->priority(FEFactory::PT_Update);
+            auto    prioRight   =   right->priority(FEFactory::PT_Update);
+            if(prioLeft.priority() == prioRight.priority())
+                return  prioLeft.order() < prioRight.order();
+            else
+                return  prioLeft.priority() <  prioRight.priority();
+        });
+        /// 所有组件系统更新
+        for (auto& var : comSyss)
+        {
+            var->update(_ctx.deltaTime());
+        }
+        /// 渲染工厂
         auto    factorys    =   _factorys.objects();
-       
+        /// 按照优先级排序
         std::sort(factorys.begin(),factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
         {
             auto    prioLeft    =   left->priority(FEFactory::PT_Update);
@@ -189,6 +214,7 @@ namespace   FE
             else
                 return  prioLeft.priority() <  prioRight.priority();
         });
+        /// 更新
         aabb3dr aabb;
         for (auto& var : factorys)
         {
@@ -208,37 +234,15 @@ namespace   FE
     {
         if (_frame == nullptr)
             return;
-
         uint    width       =   _app->cInfo()._width;
         uint    height      =   _app->cInfo()._height;
         FECmdBuffer::RenderInfo  rsInfo  =   {};
         rsInfo._depth       =   _depthView;
         rsInfo._colors      =   {_frame->_imageViewer};
+        rsInfo._clearColor  =   float4(1,1,1,1);
         rsInfo._rect.set(0,0,width,height);
 
         _frame->_cmd->beginRender(rsInfo);
-
-        FECmdBuffer::Viewport   viewPort    =   
-        {
-            0.0f,0.0f,(float)width,(float)height,0.0f,1.0f
-        };
-        RectU32     rect(0,0,width,height);
-        
-        _frame->_cmd->setViewport(0,  1,  &viewPort);
-        _frame->_cmd->setScissor(0,   1,  &rect);
-
-        RFactorys   factorys    =   _factorys.objects();
-        {
-            std::sort(factorys.begin(),factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
-            {
-                auto    prioLeft    =   left->priority(FEFactory::PT_Render);
-                auto    prioRight   =   right->priority(FEFactory::PT_Render);
-                if(prioLeft.priority() == prioRight.priority())
-                    return  prioLeft.order() < prioRight.order();
-                else
-                    return  prioLeft.priority() <  prioRight.priority();
-            });
-        }
 
         for (auto viewer : _viewerMgr.objects())
         {

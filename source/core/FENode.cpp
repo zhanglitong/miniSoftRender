@@ -1,6 +1,8 @@
 
 #include    "../inc/node/FENode.hpp"
 #include    "../inc/graphic/FEScene.h"
+#include    "../inc/FEPropertyIndex.hpp"
+#include    "../inc/FEEulerObject.hpp"
 
 namespace   FE
 {
@@ -37,7 +39,7 @@ namespace   FE
 
     void    FENode::update(const real& tmDelta)
     {
-        if (!flags().hasFlag(FLAG_UPDATE))
+        if (!flags().hasFlags(ModifyValue))
             return;
         updateTransform(true);
         updateAabb(true);
@@ -48,12 +50,10 @@ namespace   FE
             else
                 var->update(tmDelta);
         }
-        /// 清除标记
-        /// flags().removeFlags(ModifyValue);
     }
     void   FENode::fireChanged()
     {
-        if ( flags().hasFlags(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT) )
+        if ( flags().hasFlags(ModifyValue) )
         {
             if (_ctx.scene())
             {
@@ -79,7 +79,7 @@ namespace   FE
         for(auto& child : chs)
         {
             auto    node    =   child->as<FENode>();
-            tmp.merge(node->updateAabb(true));
+            tmp.merge(node->updateAabb(recursion));
         }
         _aabb.merge(tmp);
         return  _aabb;
@@ -87,8 +87,6 @@ namespace   FE
     
     void    FENode::updateTransform(bool recursion)
     {
-        if (!flags().hasFlag(FLAG_UPDATE))
-            return;
         auto    pParent =   parent() ? parent()->as<FENode>() : nullptr;
         if (pParent != nullptr)
             _transform  =   pParent->_transform * makeTransform(_trans, real3(_scale), FE::quatr(_rotate));
@@ -102,7 +100,7 @@ namespace   FE
         {
             auto    node    =   child->as<FENode>();
             node->flags().addFlag(FLAG_UPDATE);
-            node->updateTransform(true);
+            node->updateTransform(recursion);
         }
     }
 
@@ -154,6 +152,99 @@ namespace   FE
                 node->intersect(ray,result);
         }
         return  result.object != nullptr ? 1: 0;
+    }
+    size_t  FENode::queryDepends(ObjectUSet& uset) const 
+    {
+        const auto  vSize   =   uset.size();
+        FEObject::queryDepends(uset);
+        for (auto var : _coms)
+        {
+            uset.emplace(var);
+        }
+        return  uset.size() - vSize;
+    }
+
+    void    FENode::beginSetProp() 
+    {}
+
+    bool    FENode::setProperty(int prop,const KFValue& value) 
+    {
+        UNUSED(prop);
+        UNUSED(value);
+        switch(prop)
+        {
+        case PROP_TRANSFORM_X:
+            _trans.x    =   std::get<real>(value);
+            flags().addFlag(FLAG_PROP_TRANS);
+            return  true;
+        case PROP_TRANSFORM_Y:
+            _trans.y    =   std::get<real>(value);
+            flags().addFlag(FLAG_PROP_TRANS);
+            return  true;
+        case PROP_TRANSFORM_Z:
+            _trans.z    =   std::get<real>(value);
+            flags().addFlag(FLAG_PROP_TRANS);
+            return  true;
+        case PROP_TRANSFORM_XYZ:
+            _trans      =   std::get<real3>(value);
+            flags().addFlag(FLAG_PROP_TRANS);
+            return  true;
+
+        case PROP_SCALE_X:
+            _scale.x    =   (float)std::get<float>(value);
+            flags().addFlag(FLAG_PROP_SCALE);
+            return  true;
+        case PROP_SCALE_Y:
+            _scale.y    =   (float)std::get<float>(value);
+            flags().addFlag(FLAG_PROP_SCALE);
+            return  true;
+        case PROP_SCALE_Z:
+            _scale.z    =   (float)std::get<float>(value);
+            flags().addFlag(FLAG_PROP_SCALE);
+            return  true;
+        case PROP_SCALE_XYZ:
+            _scale      =   std::get<float3>(value);
+            flags().addFlag(FLAG_PROP_SCALE);
+            return  true;
+
+        case PROP_ROTATE_X:
+        case PROP_ROTATE_Y:
+        case PROP_ROTATE_Z:
+        case PROP_ROTATE_XYZ:
+            return  false;
+         
+        case PROP_QUAT:
+            flags().addFlag(FLAG_PROP_ROT); 
+            _rotate     =   std::get<quatf>(value);
+            return  true;
+         
+        case PROP_COLOR_RGB:
+            {
+                auto    color   =   std::get<float3>(value);
+                _color._value.r =   (uint8)(color.r * 255.0f);
+                _color._value.g =   (uint8)(color.g * 255.0f);
+                _color._value.b =   (uint8)(color.b * 255.0f);
+                flags().addFlag(FLAG_PROP_COLOR);
+            }
+            return  true;
+        case PROP_COLOR_ALPHA:
+            {
+                auto    alpha   =   std::get<float>(value);
+                _color._value.a =   (uint8)(alpha * 255.0f);
+                flags().addFlag(FLAG_PROP_COLOR);
+            }
+            return  true;
+        default:
+            assert(0!=0);
+            return  false;
+        }
+    }
+
+    void    FENode::endSetProp(bool bModify)
+    {
+        UNUSED(bModify);
+        update();
+        fireChanged();
     }
 }
 

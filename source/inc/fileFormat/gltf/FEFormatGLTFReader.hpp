@@ -206,7 +206,7 @@ namespace   FE
                 auto    nodes   =   parseNodes(gltfModel,meshMap,matMap,nodeMap);
                 /// animation;
                 results.reserve(results.size() + nodes.size());
-                gltf2Animation(gltfModel,animations,nodeMap);
+                createNodeAnimation(gltfModel,animations,nodeMap);
 
                 for (auto& node : nodes)
                 {
@@ -337,31 +337,34 @@ namespace   FE
                 matMap[int(i)]      =   pMat;
             }
         }
-        void        gltf2Animation(tinygltf::Model& model,AnimatonIndex& animas,NodeIndex& nodeMap)
+        void        createNodeAnimation(tinygltf::Model& model,AnimatonIndex& animas,NodeIndex& nodeMap)
         {   
+            using       MapTime     =   std::map<int,RealsObject>;
+
+            MapTime     timeMap;
             auto&       gltfAnim    =   model.animations;
-            
             for (auto& var : gltfAnim)
             {   
                 Animation   anim        =   nullptr;
                 /// clip 对应 多个chanel
                 AnimClip    clip        =   nullptr; 
                 Node        node        =   nullptr;
-                
                 for (auto& channel: var.channels)
                 {
                     auto    itr    =   nodeMap.find(channel.target_node);
                     if (itr != nodeMap.end())
                         node    =   itr->second;
-                    else    
+                    else 
                         continue;
+                   
                     anim    =   animas[channel.target_node];
                     if (anim == nullptr)
                     {
                         anim    =   new FEAnimation(_ctx);
                         clip    =   new FEAnimClip(_ctx); 
                         anim->setClip(clip);
-                        anim->attach(node.get());
+                        bool    result  =   node->addComponent(anim.get());
+                        assert(result);
                         animas[channel.target_node] =   anim;
                     }
                     const auto  samplerId       =   channel.sampler;
@@ -374,79 +377,358 @@ namespace   FE
                     const auto& outputAccessor  =   model.accessors[sampler.output];
                     const auto& outputView      =   model.bufferViews[outputAccessor.bufferView];
                     const auto& outputBuffer    =   model.buffers[outputView.buffer];
-
-                    /// time 
-                    const auto  inputPtr        =   &inputBuffer.data[inputView.byteOffset   + inputAccessor.byteOffset];
-                    /// value
-                    const auto  outputPtr       =   &outputBuffer.data[outputView.byteOffset + outputAccessor.byteOffset];
                     
-                    RealsObject times           =   nullptr;
-                    uint        dims            =   1;
-                    
-                    switch (inputAccessor.type)
+                    RealsObject timeLine        =   nullptr;
+                    auto        timeItr         =   timeMap.find(sampler.input);
+                    if (timeItr == timeMap.end())
                     {
-                    case TINYGLTF_TYPE_SCALAR:
-                        switch (inputAccessor.componentType)
-                        {
-                        case TINYGLTF_PARAMETER_TYPE_FLOAT:
-                            {   
-                                size_t  stride  =   inputAccessor.ByteStride(inputView);
-                                times   =   new TValueArray<real>(_ctx);
-                                times->values().resize(inputAccessor.count);
-                                for (size_t i = 0; i < inputAccessor.count; i++)
-                                {
-                                    auto    address     =   (float*)(inputPtr + (i * stride));
-                                    times->values()[i]  =   *address;
-                                }
-                            }
-                            break;
-                        }
-                        break;
+                        timeLine    =   createTimeLine(inputAccessor,inputView,inputBuffer);
+                        if (timeLine == nullptr)
+                            node->removeComponent(anim.get());
+                        else
+                            timeMap[sampler.input]  =   timeLine;
                     }
-                    if (times == nullptr)
+                    else
+                    {
+                        timeLine    =   timeItr->second;
+                    }
+                    if (timeLine == nullptr)
                         continue;
-                    PropertyIndex   propStart   =   TRANSFORM_X;
                     if (channel.target_path == "translation")
-                        propStart    =   TRANSFORM_X;
-                    else if (channel.target_path == "rotation")
-                        propStart    =   QUAT_X;
+                        createTransTrack(outputAccessor,outputView,outputBuffer,clip,timeLine);
                     else if (channel.target_path == "scale")
-                        propStart    =   ROTATE_X;
-                    switch (outputAccessor.type)
-                    {
-                    case TINYGLTF_TYPE_SCALAR:  dims    =   1;  break;
-                    case TINYGLTF_TYPE_VEC2:    dims    =   2;  break;
-                    case TINYGLTF_TYPE_VEC3:    dims    =   3;  break;
-                    case TINYGLTF_TYPE_VEC4:    dims    =   4;  break;
-                    }
-                    switch (outputAccessor.componentType)
-                    {
-                    case TINYGLTF_PARAMETER_TYPE_FLOAT:
-                        {
-                            size_t  stride  =   outputAccessor.ByteStride(inputView)/sizeof(float);
-                            for (uint c = 0; c < dims; ++ c)
-                            {
-                                float*          pData   =   (float*)(outputPtr + c * sizeof(float));
-                                KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                                RealsObject     values  =   new TValueArray<real>(_ctx);
-                                track->setTimeObject(times);
-                                track->setValueObject(values);
-                                track->setPropertyIndex(propStart + c);
-                                values->values().resize(outputAccessor.count);
-                                for (size_t i = 0; i < outputAccessor.count; i++)
-                                {
-                                    values->values()[i] =   *pData;
-                                    pData               +=  stride;
-                                }
-                                clip->addTrack(track);
-                            }
-                        }
-                        break;
+                        createScaleTrack(outputAccessor,outputView,outputBuffer,clip,timeLine);
+                    else if (channel.target_path == "rotation")
+                        createQuatTrack(outputAccessor,outputView,outputBuffer,clip,timeLine);
+                }
+            }
+        }
+        void        createMaterialAnim(const tinygltf::AnimationSampler&,const tinygltf::AnimationChannel& channel)
+        {
+            for (auto& var : channel.target_extensions)
+            {
+                const tinygltf::Value& extValue = var.second;
+
+                // 3. 尝试获取 "pointer" 字段
+                if (extValue.Has("pointer")) 
+                {
+                    // 4. 检查字段类型并获取字符串值
+                    const tinygltf::Value& pointerValue = extValue.Get("pointer");
+                    if (pointerValue.IsString()) {
+                        std::string pointer = pointerValue.Get<std::string>();
+                        std::cout << "Found animation pointer: " << pointer << std::endl;
+                        // 这里，你就可以用这个指针字符串去做进一步处理了
                     }
                 }
             }
         }
+        RealsObject createTimeLine(  const tinygltf::Accessor&      accessor
+                                    ,const tinygltf::BufferView&    view
+                                    ,const tinygltf::Buffer&        buffer)
+        {
+            RealsObject timeLine    =   nullptr;
+            switch (accessor.type)
+            {
+            case TINYGLTF_TYPE_SCALAR:
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {   
+                        timeLine    =   new TValueArray<real>(_ctx);
+                        readValues<real,float>(accessor,view,buffer,timeLine->values());
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        timeLine    =   new TValueArray<real>(_ctx);
+                        readValues<real,real>(accessor,view,buffer,timeLine->values());
+                    }
+                    break;
+                default:
+                    assert(0!=0 && "error!");
+                    break;
+                }
+                break;
+            }
+            return  timeLine;
+        }
 
+        bool    createTransTrack(const tinygltf::Accessor&      accessor
+                                ,const tinygltf::BufferView&    view
+                                ,const tinygltf::Buffer&        buffer
+                                ,AnimClip                       clip
+                                ,RealsObject                    times)
+        {
+            switch (accessor.type)
+            {
+            case TINYGLTF_TYPE_SCALAR:  
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        RealsObject     values  =   new TValueArray<real>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_TRANSFORM_X);
+                        readValues<real,float>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        RealsObject     values  =   new TValueArray<real>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_TRANSFORM_X);
+                        readValues<real,real>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                default:
+                    assert(0!=0);
+                    return  false;
+                }
+                break;
+            case TINYGLTF_TYPE_VEC2:
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Real2sObject    values  =   new TValueArray<real2>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_TRANSFORM_XY);
+                        readValues<real2,float2>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Real2sObject    values  =   new TValueArray<real2>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_TRANSFORM_XY);
+                        readValues<real2,real2>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                default:
+                    assert(0!=0);
+                    return  false;
+                }
+                break;
+            case TINYGLTF_TYPE_VEC3:
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Real3sObject    values  =   new TValueArray<real3>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_TRANSFORM_XYZ);
+                        readValues<real3,float3>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Real3sObject    values  =   new TValueArray<real3>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_TRANSFORM_XYZ);
+                        readValues<real3,real3>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                default:
+                    assert(0!=0);
+                    return  false;
+                }
+                break;
+            default:
+                assert(0!=0);
+                return  false;
+            }
+            return  true;
+        }
+        bool    createScaleTrack(const tinygltf::Accessor&      accessor
+                                ,const tinygltf::BufferView&    view
+                                ,const tinygltf::Buffer&        buffer
+                                ,AnimClip                       clip
+                                ,RealsObject                    times)
+        {
+            switch (accessor.type)
+            {
+            case TINYGLTF_TYPE_SCALAR:  
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        FloatsObject    values  =   new TValueArray<float>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_SCALE_X);
+                        readValues<float,float>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        FloatsObject    values  =   new TValueArray<float>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_SCALE_X);
+                        readValues<float,real>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                default:
+                    assert(0!=0);
+                    return  false;
+                }
+                break;
+            case TINYGLTF_TYPE_VEC2:
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Float2sObject   values  =   new TValueArray<float2>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_SCALE_XY);
+                        readValues<float2,float2>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Float2sObject   values  =   new TValueArray<float2>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_SCALE_XY);
+                        readValues<float2,real2>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                default:
+                    assert(0!=0);
+                    return  false;
+                }
+                break;
+            case TINYGLTF_TYPE_VEC3:
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Float3sObject   values  =   new TValueArray<float3>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_SCALE_XYZ);
+                        readValues<float3,float3>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        Float3sObject   values  =   new TValueArray<float3>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_SCALE_XYZ);
+                        readValues<float3,real3>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                default:
+                    assert(0!=0);
+                    return  false;
+                }
+                break;
+            default:
+                assert(0!=0);
+                return  false;
+            }
+            return  true;
+        }
+        bool    createQuatTrack( const tinygltf::Accessor&      accessor
+                                ,const tinygltf::BufferView&    view
+                                ,const tinygltf::Buffer&        buffer
+                                ,AnimClip                       clip
+                                ,RealsObject                    times)
+        {
+            switch (accessor.type)
+            {
+            case TINYGLTF_TYPE_VEC4:
+                switch (accessor.componentType)
+                {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        QuatfsObject    values  =   new TValueArray<quatf>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_QUAT);
+                        readValues<quatf,quatf>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                    {
+                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                        QuatfsObject    values  =   new TValueArray<quatf>(_ctx);
+                        track->setTimeObject(times);
+                        track->setValueObject(values);
+                        track->setPropertyIndex(PROP_QUAT);
+                        readValues<quatf,quatr>(accessor,view,buffer,values->values());
+                        clip->addTrack(track);
+                    }
+                    break;
+                default:
+                    assert(0!=0);
+                    return  false;
+                }
+                break;
+            default:
+                assert(0!=0);
+                return  false;
+            }
+            return  true;
+        }
+        
+        /// <summary>
+        /// 读取数据
+        /// </summary>
+        /// <typeparam name="TValue">存储类型</typeparam>
+        /// <typeparam name="SValue">数据源数据类型</typeparam>
+        /// <param name="accessor">访问器</param>
+        /// <param name="view">buffer view</param>
+        /// <param name="buffer">数据缓冲区</param>
+        /// <param name="values">结果数据</param>
+        template<typename TValue,typename SValue>
+        void    readValues(  const tinygltf::Accessor&      accessor
+                            ,const tinygltf::BufferView&    view
+                            ,const tinygltf::Buffer&        buffer
+                            ,std::vector<TValue>&           values)
+        {
+            const auto      pBuffer     =   &buffer.data[view.byteOffset + accessor.byteOffset];
+            const SValue*   pSource     =   (const SValue*)pBuffer;
+            values.resize(accessor.count);
+            for (size_t i = 0; i < accessor.count; ++i)
+            {
+                values[i]   =   pSource[i];
+            }
+        }
         Material    getOrCreate(MaterialIndex& matMap,const tinygltf::Model& model, int matIndex,Mesh mesh)
         { 
             auto    itr =   matMap.find(matIndex);
@@ -568,13 +850,23 @@ namespace   FE
             const auto& pbr         =   material.pbrMetallicRoughness;
             (void)pbr;
             auto        pbrMat      =   new FEMaterialPBR(_ctx);
-
+            
             pbrMat->data()._value._emissive     =   float4(1,1,1,1);
-
             pbrMat->data()._value._diffuse      =   float4(1,1,1,1);
-            pbrMat->data()._value._spacular     =   float4(1,1,1,1);    
+            pbrMat->data()._value._spacular     =   float4(1,1,1,1); 
             pbrMat->data()._value._roughness    =   0.3f;
             pbrMat->data()._value._metallic     =   0.7f;
+
+            for (size_t i = 0 ;i <  material.emissiveFactor.size(); ++ i)
+                pbrMat->data()._value._emissive[i]  =   (float)material.emissiveFactor[i];
+
+            for (size_t i = 0 ;i < material.pbrMetallicRoughness.baseColorFactor.size(); ++ i)
+                pbrMat->data()._value._diffuse[i]   =   (float)material.pbrMetallicRoughness.baseColorFactor[i];
+
+            pbrMat->data()._value._metallic     =   (float)material.pbrMetallicRoughness.metallicFactor;
+            pbrMat->data()._value._roughness    =   (float)material.pbrMetallicRoughness.roughnessFactor;
+
+            pbrMat->data().update();
 
             return      pbrMat;
 
@@ -583,12 +875,12 @@ namespace   FE
         /// 进度通知
         /// </summary>
         /// <param name="val"></param>
-        void        onProgress(real val)
+        inline  void    onProgress(real val)
         {
             printf("progress:%lf\n", val * 100.0);
         }
     protected:
-        inline  Nodes       parseNodes(tinygltf::Model& model,MeshsIndex& meshMap,MaterialIndex& matMap,NodeIndex& nodeMap)
+        inline  Nodes   parseNodes(tinygltf::Model& model,MeshsIndex& meshMap,MaterialIndex& matMap,NodeIndex& nodeMap)
         {
             Nodes   results;
             results.reserve(model.nodes.size());
@@ -711,19 +1003,19 @@ namespace   FE
             const auto&     indexBuffer     =    model.buffers[indexBufferView.buffer];
 
             auto    getHostPrimitiveType     =   [](const tinygltf::Primitive& primitive)
+            {
+                switch (primitive.mode)
                 {
-                    switch (primitive.mode)
-                    {
-                    case TINYGLTF_MODE_POINTS:          return  PRI_POINTS;
-                    case TINYGLTF_MODE_LINE:            return  PRI_LINES;
-                    case TINYGLTF_MODE_LINE_LOOP:       return  PRI_LINE_STRIP;
-                    case TINYGLTF_MODE_LINE_STRIP:      return  PRI_LINE_STRIP;
-                    case TINYGLTF_MODE_TRIANGLES:       return  PRI_TRIANGLES;
-                    case TINYGLTF_MODE_TRIANGLE_STRIP:  return  PRI_TRIANGLE_STRIP;
-                    case TINYGLTF_MODE_TRIANGLE_FAN:    return  PRI_TRIANGLE_FAN;
-                    default:                            return  PRI_POINTS;
-                    }
-                };
+                case TINYGLTF_MODE_POINTS:          return  PRI_POINTS;
+                case TINYGLTF_MODE_LINE:            return  PRI_LINES;
+                case TINYGLTF_MODE_LINE_LOOP:       return  PRI_LINE_STRIP;
+                case TINYGLTF_MODE_LINE_STRIP:      return  PRI_LINE_STRIP;
+                case TINYGLTF_MODE_TRIANGLES:       return  PRI_TRIANGLES;
+                case TINYGLTF_MODE_TRIANGLE_STRIP:  return  PRI_TRIANGLE_STRIP;
+                case TINYGLTF_MODE_TRIANGLE_FAN:    return  PRI_TRIANGLE_FAN;
+                default:                            return  PRI_POINTS;
+                }
+            };
 
             if(indexAccessor.count <= 0)
                 return nullptr;
