@@ -153,6 +153,13 @@ namespace   FE
     static const    uint    PLUGIN_##name   =  loadPlugin_##name()  \
 
 
+#define REG_COM_SYSTEM(com,sys)                                     \
+    static const    uint    CS##com##sys    =   CLS_PROPERTY(com).add(ComSysId,UUIDOF(sys));
+
+
+   
+
+
     DEFINE_CLASS_UUID(FEObject,"{00000000-1111-2222-3333-0123456789AB}");
 
     enum    FlagBit :uint32_t

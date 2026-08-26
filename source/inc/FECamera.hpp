@@ -26,7 +26,7 @@ namespace   FE
             FLAG_ROT_Z  =   1<<5,
         };
         using   Flags   =   FEFlags<CameraOption,uint>;
-    public:
+    protected:
         /// <summary>
         /// 基础信息
         /// </summary>
@@ -719,7 +719,6 @@ namespace   FE
         /// <param name="pos">推进点</param>
         /// <param name="persent">偏移系数，大于1则远离推进点，小于1则接近推进点</param>
         void        scaleCameraByPos(const real3& pos, real persent);
-
         /// <summary>
         ///  世界坐标转化为窗口坐标
         /// </summary>
@@ -834,6 +833,11 @@ namespace   FE
         /// <param name="aabb"></param>
         /// <param name="director"></param>
         void        lookAtTo(const aabb3dr& aabb,FaceDirs director = Front);
+        /// <summary>
+        /// 用于从视图矩阵和投影矩阵的乘积中提取并返回一个视锥体对象。
+        /// </summary>
+        /// <returns></returns>
+        FrustumR    extract();
         /// <summary>
         /// 根据屏幕空间的矩形范围生成裁剪锥体(坐标单位0-1)
         /// 需要把屏幕像素坐标映射到0-1

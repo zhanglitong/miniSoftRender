@@ -252,7 +252,6 @@ namespace   FE
             {
                 _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(-1,0,0));
                 _pickupNode->update();
-                _pickupNode->fireChanged();
             }
             break;
         case VK_RIGHT:
@@ -260,7 +259,6 @@ namespace   FE
             {
                 _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(+1,0,0));
                 _pickupNode->update();
-                _pickupNode->fireChanged();
             }
             break;
         case VK_UP:
@@ -268,7 +266,6 @@ namespace   FE
             {
                 _pickupNode->setLocalTranslation(_pickupNode->localTranslation() + real3(0,0,1));
                 _pickupNode->update();
-                _pickupNode->fireChanged();
             }
             break;
         case VK_DOWN:
@@ -276,7 +273,6 @@ namespace   FE
             {
                 _pickupNode->setLocalRotation(_pickupNode->localTranslation() + real3(0,0,-1));
                 _pickupNode->update();
-                _pickupNode->fireChanged();
             }
             break;
         }

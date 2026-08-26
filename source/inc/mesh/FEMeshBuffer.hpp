@@ -24,6 +24,12 @@ namespace   FE
             _buffer     =   other._buffer;
             _attrId     =   other._attrId;
         }
+        auto&   operator    =   (const FE::FEMeshBuffer& other)
+        {
+            _buffer     =   other._buffer;
+            _attrId     =   other._attrId;
+            return  *this;
+        }
         /// <summary>
         /// 返回字节数量
         /// </summary>

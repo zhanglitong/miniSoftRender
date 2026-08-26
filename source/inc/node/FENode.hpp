@@ -33,12 +33,14 @@ namespace   FE
             /// 移除对象
             /// </summary>
             FLAG_REMOVE_CHILD   =   ((FLAG_ADD_CHILD)<<1),
-            /// <summary>
-            /// 对象修改
-            /// </summary>
-            FLAG_MODIFY_CHILD   =   ((FLAG_REMOVE_CHILD)<<1),
 
-            FLAG_PROP_TRANS     =   ((FLAG_MODIFY_CHILD)<<1),
+            /// <summary>
+            /// 影响绘制的 vbo,ibo,ito
+            /// 该状态会在节点所在工厂中消费后移除
+            /// </summary>
+            FLAG_PROP_MESH      =   (FLAG_REMOVE_CHILD<<1),
+
+            FLAG_PROP_TRANS     =   (FLAG_PROP_MESH<<1),
             FLAG_PROP_SCALE     =   (FLAG_PROP_TRANS<<1),
             /// <summary>
             /// 数据是四元数
@@ -58,25 +60,25 @@ namespace   FE
             /// 系统会收集所有lod信息到一个统一的数组中,
             /// </summary>
             FLAG_PROP_LOD       =   (FLAG_PROP_STATE<<1),
-            /// <summary>
-            /// 影响绘制的 vbo,ibo,ito
-            /// 该状态会在节点所在工厂中消费后移除
-            /// </summary>
-            FLAG_PROP_MESH      =   (FLAG_PROP_STATE<<1),
-            
         };
         enum    EModify
         {
-            ModifyValue = FLAG_ADD_CHILD 
-                        | FLAG_REMOVE_CHILD
-                        | FLAG_MODIFY_CHILD 
-                        | FLAG_PROP_TRANS
-                        | FLAG_PROP_SCALE
-                        | FLAG_PROP_ROT
-                        | FLAG_PROP_COLOR
-                        | FLAG_PROP_LOD
-                        | FLAG_PROP_MESH
-                        | FLAG_UPDATE
+            ModifyValue     =   FLAG_ADD_CHILD 
+                                | FLAG_REMOVE_CHILD
+                                | FLAG_PROP_MESH
+                                | FLAG_PROP_TRANS
+                                | FLAG_PROP_SCALE
+                                | FLAG_PROP_ROT
+                                | FLAG_PROP_COLOR
+                                | FLAG_PROP_LOD
+                                | FLAG_UPDATE,
+
+            InstanceProps   =   FLAG_PROP_TRANS
+                                | FLAG_PROP_SCALE
+                                | FLAG_PROP_ROT
+                                | FLAG_PROP_COLOR
+                                | FLAG_PROP_LOD
+                                | FLAG_PROP_MESH,
         };   
         using   RenderFlags =   FEFlags<RenderFlag,uint32>;
     public:
@@ -89,6 +91,12 @@ namespace   FE
         inline  auto    color() const
         {
             return  _color;
+        }
+        inline  FENode& setColor(const Rgba8& color)
+        {
+            _color  =   color;
+            flags().addFlag(FLAG_PROP_COLOR);
+            return  *this;
         }
         
         inline  auto&   renderBits()
@@ -224,7 +232,10 @@ namespace   FE
         }
         virtual void    setMesh(FEMesh* mesh)
         {
+            if (_mesh.get() == mesh)
+                return;
             _mesh   =   mesh;
+            flags().addFlag(FLAG_PROP_MESH);
         } 
         /// <summary>
         /// 添加组件
@@ -269,8 +280,15 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// 检测更新
+        /// 修改了节点属性后调用该函数进行更新操作
+        /// 典型应用场景:
+        ///     setLocalTranslate(...);
+        ///     setLocalScale(...);
+        ///     update(); 其中参数告诉节点是否通知系统变更
+        //      再调用 fireChanged()
         /// </summary>
+        /// <param name="bFireChanged"></param>
+        /// <param name="tmDelta">一般情况下使用默认值(0),当需要每一帧调用该函数的情况下，使用系统时间</param>
         virtual void    update(const real& tmDelta = 0.0);
         virtual void    fireChanged();
         /// <summary>

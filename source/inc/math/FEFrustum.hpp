@@ -25,7 +25,7 @@ namespace   FE
         /// <param name="mvp"></param>
         inline  void    loadFrustum(const tmat4<T> &vp)
         {
-            const T*  dataPtr = vp.data();
+            const T*  dataPtr = (T*)&vp[0];
             _planes[FRUSTUM_LEFT]   =   tplane<T>(dataPtr[3] + dataPtr[0], dataPtr[7] + dataPtr[4], dataPtr[11] + dataPtr[8], dataPtr[15] + dataPtr[12]);
             _planes[FRUSTUM_RIGHT]  =   tplane<T>(dataPtr[3] - dataPtr[0], dataPtr[7] - dataPtr[4], dataPtr[11] - dataPtr[8], dataPtr[15] - dataPtr[12]);
 

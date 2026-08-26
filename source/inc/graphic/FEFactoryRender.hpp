@@ -22,6 +22,12 @@ namespace   FE
     /// mesh vbo 与工厂对应
     /// 工厂: 属性(mesh) + 绘制类型+ 图元类型
     /// </summary>
+    
+
+    /// <summary>
+    /// 节点更新，局部更新最大值，如果同时要更新的对象超过了 MAX_LOCAL_UPDATE值，则全部更新
+    /// </summary>
+    constexpr   uint    MAX_LOCAL_UPDATE    =   64;
     class   FEFactoryRender :public FEFactory
     {
     public:
@@ -45,14 +51,35 @@ namespace   FE
         struct  GroupNode :public FEObject
         {
         public:
+            friend  class   FEFactoryRender;
+        public:
+            struct  NodeUpdate
+            {
+                Node    node;
+                uint    offset;
+            };
+            using   NodeUpdates     =   std::vector<NodeUpdate>;
+        public:
             GroupNode(FEContext& ctx)
                 :FEObject(ctx)
-            {}
+            {
+                _updates.reserve(MAX_LOCAL_UPDATE);
+            }
         public:
             Material    _mat;
             Nodes       _objects;
             aabb3dr     _aabb;
+            /// <summary>
+            /// 相对于大数组中的偏移量,一个工厂有多个 GroupNode
+            /// _start 记录当前groupNode,在大数组中的其实位置
+            /// </summary>
             uint32      _start  =   0;
+            /// <summary>
+            /// 需要被更新的节点,每一帧会检测该数组中是否有数据
+            /// 如果有数据同步更新GPU 数据后，清空
+            /// 该数组大小是固定的,如果超过最大值,则全部更新
+            /// </summary>
+            NodeUpdates _updates;
         public:
             void    setMaterial(Material mat)   {   _mat    =   mat;    }
             void    setStart(uint32 start)      {   _start  =   start;  }
@@ -70,15 +97,33 @@ namespace   FE
             /// <returns></returns>
             size_t  nodePropChanged(Node node);
             /// <summary>
-            /// 修改顶点
-            /// </summary>
-            /// <param name="node"></param>
-            /// <returns></returns>
-            size_t  nodeMeshChanged(Node node);
-            /// <summary>
             /// 清除更新标记
             /// </summary>
             void    resetFlags();
+            void    clearUpdates();
+            
+        protected:
+            /// <summary>
+            /// 检测是否按局部更新.
+            /// 如果 _objects 数据量较少,且全部都需要更新,则使用全局更新
+            /// </summary>
+            /// <returns></returns>
+            bool    isLocalUpdate() const
+            {
+                return  _updates.size() <= MAX_LOCAL_UPDATE && _updates.size() < _objects.size();
+            }
+            void    addUpdateNode(Node node,size_t offset);
+            /// <summary>
+            /// 收集组内局部更新数据
+            /// </summary>
+            /// <param name="slots">需要更新的槽数据</param>
+            /// <param name="stride">一个元素大小</param>
+            /// <param name="regions">输出更新区域信息</param>
+            /// <param name="pStart">缓冲区首地址,用来计算拷贝偏移量使用</param>
+            /// <param name="pDst">数据输出缓冲区地址</param>
+            /// <returns>返回新的地址 = pDst + 拷贝的数据长度</returns>
+            uint8*  copyPartial(const uints& slots,uint stride,BufferCopys& regions,const uint8*pStart,uint8* pDst);
+            uint8*  copyFull(const uints& slots,uint startInst,uint8* pDst,uint removeFlagBits = 0);
         };
         using   Group       =   SharedPtr<GroupNode>;
         /// <summary>
@@ -171,8 +216,11 @@ namespace   FE
         virtual void    destroy();
     protected:
         virtual size_t  addNodesImpl(Nodes&  nodes);
+        /// <summary>
+        /// 更新函数
+        /// </summary>
+        /// <param name="cmd"></param>
         virtual void    updateImpl(CMDPtr cmd);
-        
         /// <summary>
         /// 节点关联的几何体mesh数据生成vbo /  vertex 非instance数据
         /// </summary>
@@ -184,7 +232,11 @@ namespace   FE
         /// </summary>
         /// <returns></returns>
         virtual VBinds  buildInstanceVBOs();
-        virtual void    updateInstanceVBOs();
+        /// <summary>
+        /// 按需部分更新
+        /// </summary>
+        /// <param name="slots"></param>
+        virtual void    updateInstanceLocal(uint slots);
         /// <summary>
         /// 收集并创建命令缓冲区
         /// </summary>
@@ -206,6 +258,8 @@ namespace   FE
             else
                 return  nullptr;
         }
+
+        
         /// <summary>
         /// 如果有，返回，没有插入
         /// </summary>
@@ -256,5 +310,4 @@ namespace   FE
     using   FactoryRender       =   RFactory;
     using   FactoryRenders      =   RFactorys;
     using   RFactoryMap         =   std::map<uint64,RFactory>;
-
 }

@@ -4,15 +4,6 @@
 
 namespace FE
 {   
-    /// <summary>
-    /// 关键帧
-    /// </summary>
-    struct  KeyFrame
-    {
-        real    _time;
-        KFValue _value;
-    };
-
     struct  FrameValue
     {
         real    _t  =   0;

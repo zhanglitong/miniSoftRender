@@ -4,7 +4,9 @@
 namespace   FE 
 {      
     DEFINE_CLASS_UUID(FEAnimationSys, "{B9034F58-6040-45E5-AA5D-6954A55971AD}");
-
+    /// <summary>
+    /// 管理多个Action
+    /// </summary>
     class   FEAnimationSys :public FEComponentSys     
     {    
     public:
@@ -20,11 +22,11 @@ namespace   FE
             :FEComponentSys(other)         
         {}
     public:
-        auto&   actions()
+        inline  auto&   actions()
         {
             return  _actions;
         }
-        auto&   actions() const
+        inline  auto&   actions() const
         {
             return  _actions;
         }
@@ -33,7 +35,7 @@ namespace   FE
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        auto    getOrCreate(const String& name = "default")
+        inline  auto    getOrCreate(const String& name = "default")
         {
             auto    itr     =   _actions.find(name);
             if (itr != _actions.end())
@@ -43,6 +45,11 @@ namespace   FE
             return  action;
         }
     public:
+        /// <summary>
+        /// 添加组件
+        /// </summary>
+        /// <param name="com"></param>
+        /// <returns></returns>
         virtual size_t  addObject(Component com) override
         {
             auto    action  =   getOrCreate();
@@ -58,16 +65,34 @@ namespace   FE
             }
             return  action->addObjects(anims);
         }
-
+        /// <summary>
+        /// 删除Animation
+        /// </summary>
+        /// <param name="com"></param>
+        /// <returns></returns>
         virtual size_t  removeObject(Component com) override
         {
-            UNUSED(com);
-            return  0;
+            if (com == nullptr)
+                return  0;
+            auto    action  =   getOrCreate();
+            return  action->removeObject(com->as<FEAnimation>());
         }
+        /// <summary>
+        /// 删除多个Animation
+        /// </summary>
+        /// <param name="coms"></param>
+        /// <returns></returns>
         virtual size_t  removeObjects(const Components& coms) override
         {
-            UNUSED(coms);
-            return  0;
+            if (coms.empty())
+                return  0;
+            auto        action  =   getOrCreate();
+            Animations  anims(coms.size());
+            for (size_t i = 0; i < coms.size(); ++i)
+            {
+                anims[i]    =   (FEAnimation*)(coms[i]->as<FEAnimation>());
+            }
+            return  action->removeObjects(anims);
         }
         /// <summary>
         /// 组件每一帧更新
@@ -82,7 +107,6 @@ namespace   FE
             }
         }
     protected:
-        Components  _objects;
         ActionMap   _actions;
     };
 

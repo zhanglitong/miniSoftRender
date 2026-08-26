@@ -110,7 +110,6 @@ namespace   FE
             {
                 _mousePoint->setLocalTranslation(_ctx.anchor().point());
                 _mousePoint->update();
-                _mousePoint->fireChanged();
             }
         });
        
@@ -303,20 +302,23 @@ namespace   FE
     void    FEScene::onNodePropChanged(FENode* node)
     {
         auto    mesh    =   node->mesh();
-        auto&   pris    =   mesh->primitives();
-        auto    slot    =   mesh->slotBits();
-        for (auto& var : pris)
+        if (mesh)
         {
-            MeshKey mkey;
-            mkey._drawType  =   var->type();
-            mkey._primitive =   var->primitive();
-            mkey._slotBits  =   slot;
-            auto    key     =   mkey.key();
-            /// 鏌ユ壘宸ュ巶瀵硅薄
-            auto    factory =   _factorys.findObject(key);
-            if (!factory)
-                continue;
-            factory->nodePropChanged(node);
+            auto&   pris    =   mesh->primitives();
+            auto    slot    =   mesh->slotBits();
+            for (auto& var : pris)
+            {
+                MeshKey mkey;
+                mkey._drawType  =   var->type();
+                mkey._primitive =   var->primitive();
+                mkey._slotBits  =   slot;
+                auto    key     =   mkey.key();
+                /// 鏌ユ壘宸ュ巶瀵硅薄
+                auto    factory =   _factorys.findObject(key);
+                if (!factory)
+                    continue;
+                factory->nodePropChanged(node);
+            }
         }
     }
 

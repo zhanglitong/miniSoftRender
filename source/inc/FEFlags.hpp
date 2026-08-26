@@ -95,6 +95,11 @@ namespace   FE
             _flags |= flag;
             return *this;
         }
+        inline  auto&   addFlags(DataType flag)
+        {
+            _flags |= flag;
+            return *this;
+        }
         /// <summary>
         /// 移除flag
         /// </summary>

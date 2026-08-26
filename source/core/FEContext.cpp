@@ -32,7 +32,7 @@ namespace   FE
 {
     void    regComSystemId(FEContext& )
     {
-        CLS_PROPERTY(FEAnimation).add(ComSysId,UUIDOF(FEAnimationSys));
+       CLS_PROPERTY(FEAnimation).add(ComSysId,UUIDOF(FEAnimationSys));
     }
     void    systemInitializeCreator(FEContext& ctx)
     {

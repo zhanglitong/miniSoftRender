@@ -38,13 +38,12 @@ namespace FE
         }
         ~FEAnimation()   =   default;
     public:
-
         /// <summary>
         /// 动画所属action,即被哪一个action控制
         /// 主要用作分组控制，一批动画可以播放，另一批停止
         /// </summary>
         /// <returns></returns>
-        Action      action() const
+        inline  Action  action() const
         {
             return  _action;
         }
@@ -52,7 +51,7 @@ namespace FE
         /// 设置action
         /// </summary>
         /// <param name="action"></param>
-        void        setAction(Action action)
+        inline  void    setAction(Action action)
         {
             _action =   action;
         }
@@ -60,15 +59,15 @@ namespace FE
         /// 是否有效
         /// </summary>
         /// <returns></returns>
-        bool        isValid() const
+        inline  bool    isValid() const
         {
             return  _clip != nullptr &&  owner() != nullptr;
         }
-        AnimClip    clip() const
+        inline  auto    clip() const
         {
             return  _clip;
         }
-        void        setClip(AnimClip clip)
+        inline  void    setClip(AnimClip clip)
         {
             _clip   =   clip;
         }

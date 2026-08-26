@@ -8,17 +8,16 @@ namespace FE
 {
     DEFINE_CLASS_UUID(FEAction, "{0AFD2EDB-C83A-49F4-ACC6-52E6060D54E4}");
 
-    /// lambda 琛ㄨ揪寮忎綔涓虹被鍨嬪埆鍚嶏紝纭繚姣旇緝鏂规硶
+    /// lambda
     constexpr   auto    AnimationLessFunc = [](const Animation& l, const Animation& r)
     {
         return  l < r ;
     };
-    /// 鍏堝畾涔夌被鍨嬪埆鍚嶏紝纭繚RFactoryLess鏄被鍨嬪悕
+    /// 推导出来类型
     using   AnimationLess   =   decltype(AnimationLessFunc);
 
     /// <summary>
-    /// action 鐢ㄦ潵鎺у埗鍔ㄧ敾鐨勬挱鏀句笌鍋滄
-    /// 涓€涓猘ction 涓彲浠ユ帶鍒跺涓姩鐢荤殑鎾斁锛屽彲浠ヨ涓烘槸瀵瑰姩鐢荤殑鍒嗙粍鎺у埗
+    /// 用来控制动画的播放
     /// </summary>
     class   FEAction 
         : public FEObject

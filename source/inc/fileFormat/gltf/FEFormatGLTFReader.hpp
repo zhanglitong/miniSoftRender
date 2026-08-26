@@ -403,6 +403,11 @@ namespace   FE
                 }
             }
         }
+        /// <summary>
+        /// 暂未实现
+        /// </summary>
+        /// <param name=""></param>
+        /// <param name="channel"></param>
         void        createMaterialAnim(const tinygltf::AnimationSampler&,const tinygltf::AnimationChannel& channel)
         {
             for (auto& var : channel.target_extensions)
@@ -726,7 +731,7 @@ namespace   FE
             values.resize(accessor.count);
             for (size_t i = 0; i < accessor.count; ++i)
             {
-                values[i]   =   pSource[i];
+                values[i]   =   (TValue)pSource[i];
             }
         }
         Material    getOrCreate(MaterialIndex& matMap,const tinygltf::Model& model, int matIndex,Mesh mesh)
@@ -875,12 +880,12 @@ namespace   FE
         /// 进度通知
         /// </summary>
         /// <param name="val"></param>
-        inline  void    onProgress(real val)
+        void        onProgress(real val)
         {
             printf("progress:%lf\n", val * 100.0);
         }
     protected:
-        inline  Nodes   parseNodes(tinygltf::Model& model,MeshsIndex& meshMap,MaterialIndex& matMap,NodeIndex& nodeMap)
+        Nodes       parseNodes(tinygltf::Model& model,MeshsIndex& meshMap,MaterialIndex& matMap,NodeIndex& nodeMap)
         {
             Nodes   results;
             results.reserve(model.nodes.size());
@@ -902,12 +907,12 @@ namespace   FE
             return  results;
         }
 
-        inline  Node    parseNode(   tinygltf::Model& model
-                                    ,const tinygltf::Node& node
-                                    ,Node           parent
-                                    ,MeshsIndex&    meshMap
-                                    ,MaterialIndex& matMap
-                                    ,NodeIndex&     nodeMap)
+        Node        parseNode(   tinygltf::Model& model
+                                ,const tinygltf::Node& node
+                                ,Node           parent
+                                ,MeshsIndex&    meshMap
+                                ,MaterialIndex& matMap
+                                ,NodeIndex&     nodeMap)
         {
             Node    pNode   =   new FENode(_ctx);
             pNode->setName(node.name);
@@ -995,7 +1000,7 @@ namespace   FE
             }
             return  pNode;
         }
-        inline  Primitive   parsePrimitive(const tinygltf::Primitive& primitive ,const tinygltf::Model& model)
+        Primitive   parsePrimitive(const tinygltf::Primitive& primitive ,const tinygltf::Model& model)
         {
             FE::Primitive   pri             =   nullptr;
             const auto&     indexAccessor   =    model.accessors[primitive.indices];
@@ -1069,6 +1074,7 @@ namespace   FE
             }
             return  nullptr;
         }
+    protected:
         template<uint COMS>
         static  floats      procData(const tinygltf::Accessor&   posAccessor,const tinygltf::BufferView& posView,const tinygltf::Buffer&  posBuffer)
         {

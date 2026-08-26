@@ -30,7 +30,6 @@ namespace   FE
             UNUSED(coms);
             return  0;
         }
-
         virtual size_t  removeObject(Component com)
         {
             UNUSED(com);

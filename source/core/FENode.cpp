@@ -212,7 +212,6 @@ namespace   FE
         case PROP_ROTATE_Z:
         case PROP_ROTATE_XYZ:
             return  false;
-         
         case PROP_QUAT:
             flags().addFlag(FLAG_PROP_ROT); 
             _rotate     =   std::get<quatf>(value);
@@ -243,8 +242,11 @@ namespace   FE
     void    FENode::endSetProp(bool bModify)
     {
         UNUSED(bModify);
-        update();
-        fireChanged();
+        if (bModify)
+        {
+            update();
+            fireChanged();
+        }
     }
 }
 

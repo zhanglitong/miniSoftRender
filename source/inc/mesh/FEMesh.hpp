@@ -34,10 +34,6 @@ namespace   FE
         /// </summary>
         EDrawType       _drawType   =   DRAW_ARRAY;
         /// <summary>
-        /// 
-        /// </summary>
-        uint32          _sn         =   0;
-        /// <summary>
         /// 有哪些槽
         /// </summary>
         InputSlotBits   _slotBits   =   InputSlotBits();
@@ -81,7 +77,9 @@ namespace   FE
         FEMesh(const FEMesh& other)
             :FEObject(other)
         {
-            _primitives  =   other._primitives;
+            _aabb       =   other._aabb;
+            _primitives =   other._primitives;
+            _buffers    =   other._buffers;
         }
         virtual ~FEMesh()
         {}

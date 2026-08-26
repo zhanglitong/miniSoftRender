@@ -29,7 +29,7 @@ namespace   FE
         _scene->test();
 
         //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
-        String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\AnimatedColorsCube\glTF\AnimatedColorsCube.gltf)";
+        String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
         FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
         
         auto            reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);

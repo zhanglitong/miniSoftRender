@@ -10,6 +10,11 @@ namespace   FE
     using   GroupNode   =   FEFactoryRender::GroupNode;
     using   VBinds      =   FEFactoryRender::VBinds;
 
+    constexpr   uint    instMatSlots    =   IS_INSTANCE_MAT_C0 | IS_INSTANCE_MAT_C1 | IS_INSTANCE_MAT_C2 | IS_INSTANCE_MAT_C3;
+    constexpr   uint    instStateSlots  =   IS_INSTANCE_FLAG;
+    constexpr   uint    instColorSlots  =   IS_INSTANCE_COLOR;
+    constexpr   uint    instLodSlots    =   IS_INSTANCE_LOD_INDEX;
+    
     size_t  GroupNode::addNode(Node object)
     {
         auto    itr =   std::lower_bound(_objects.begin(), _objects.end(), object);
@@ -21,6 +26,9 @@ namespace   FE
         object->flags().removeFlag(FENode::FLAG_PROP_TRANS | FENode::FLAG_PROP_SCALE | FENode::FLAG_PROP_ROT);
 
         flags().addFlag(FENode::FLAG_ADD_CHILD);
+
+        /// 如果有移除/添加, _updates 不可用
+        _updates.clear();
 
         return  1;
     }
@@ -47,6 +55,9 @@ namespace   FE
             
         flags().addFlag(FENode::FLAG_ADD_CHILD);
 
+        /// 如果有移除/添加, _updates 不可用
+        _updates.clear();
+
         return  _objects.size() - oldSize;
     }
 
@@ -71,6 +82,9 @@ namespace   FE
 
         flags().addFlag(FENode::FLAG_REMOVE_CHILD);
 
+        /// 如果有移除/添加, _updates 不可用
+        _updates.clear();
+
         return  _objects.size() - nOld;
     }
     size_t  GroupNode::removeNodes(Nodes& deletes)
@@ -92,6 +106,9 @@ namespace   FE
 
         flags().addFlag(FENode::FLAG_REMOVE_CHILD);
 
+        /// 如果有移除/添加, _updates 不可用
+        _updates.clear();
+
         return  _objects.size() - nOld;
     }
 
@@ -104,33 +121,100 @@ namespace   FE
         }
         else if((*itr) == node)
         {
-            if (node->flags().hasFlag(FENode::FLAG_PROP_TRANS))
-                flags().addFlag(FENode::FLAG_PROP_TRANS);
-            if (node->flags().hasFlag(FENode::FLAG_PROP_SCALE))
-                flags().addFlag(FENode::FLAG_PROP_SCALE);
-            if (node->flags().hasFlag(FENode::FLAG_PROP_ROT))
-                flags().addFlag(FENode::FLAG_PROP_ROT);
+            if (node->flags().containFlag(FENode::InstanceProps))
+            {
+                flags().addFlags(node->flags().data());
+                /// 添加到需要跟新的节点
+                addUpdateNode(node,std::distance(_objects.begin(),itr));
+            }
+            /// 需要整体更新，清除局部更新数据
+            if (node->flags().hasFlag(FENode::FLAG_PROP_MESH))
+            {
+                flags().addFlag(FENode::FLAG_PROP_MESH);
+                clearUpdates();
+            }
             return  1;
         }
-        else
-        {
-            return  0;
-        }
-    }
-
-    size_t  GroupNode::nodeMeshChanged(Node )
-    {
         return  0;
     }
-
     void    GroupNode::resetFlags()
     {
-        flags() .removeFlag(FENode::FLAG_ADD_CHILD)
-                .removeFlag(FENode::FLAG_REMOVE_CHILD)
-                .removeFlag(FENode::FLAG_PROP_ROT)
-                .removeFlag(FENode::FLAG_PROP_TRANS)
-                .removeFlag(FENode::FLAG_PROP_SCALE);
+        flags() .removeFlag(FENode::ModifyValue);
     }
+    void    GroupNode::clearUpdates()
+    {
+        for (auto& var : _updates)
+            var.node->flags().removeFlags(FENode::ModifyValue);
+        _updates.clear();
+    }
+
+    void    GroupNode::addUpdateNode(Node node,size_t offset)
+    {
+        if (_updates.size() > MAX_LOCAL_UPDATE)
+            return;
+        auto    itr =   std::lower_bound(_updates.begin(), _updates.end(), node,[](const GroupNode::NodeUpdate& left,const Node& right)
+        {
+            return  left.node.get() < right.get();
+        });
+        if (itr != _updates.end() && (*itr).node == node)
+            return;
+        _updates.push_back({node,uint(offset)});
+    }
+    uint8*  GroupNode::copyPartial(const uints& indexs,uint stride,BufferCopys& regions,const uint8*pStart,uint8* pDst)
+    {
+        FEInstance  inst    =   {};
+        uint8*      pSrc    =   (uint8*)&inst;
+        for (auto& uData: _updates)
+        {   
+            /// 节点在整个大数组中的偏移量
+            uint    instIdx =   start() + uData.offset;
+            auto&   node    =   uData.node;
+
+            inst._color         =   node->color();
+            inst._renderBits    =   node->renderBits().data();
+
+            inst.setTransform(node->globalTransform());
+            inst.setAabb(node->globalAabb());
+            inst.setInstance(instIdx);
+            /// 保存要拷贝的目标位置
+            BufferCopy  copy;
+            copy.srcOffset  =   pDst - pStart;
+            copy.dstOffset  =   (instIdx * stride);
+            copy.size       =   stride;
+            regions.emplace_back(copy);
+            for (auto index: indexs)
+            {
+                auto    nByte   =   FEInstanceHelper::instanceInputs[index].bytes;
+                memcpy(pDst,pSrc + FEInstanceHelper::offsets[index],nByte);
+                pDst    +=  nByte;
+            }
+        }
+        return  pDst;
+    }
+
+    uint8*  GroupNode::copyFull(const uints& indexs,uint startInst,uint8* pDst,uint removeFlagBits)
+    {
+        FEInstance  inst    =   {};
+        uint8*      pSrc    =   (uint8*)&inst;
+        for (auto& node: _objects)
+        {   
+            inst._color         =   node->color();
+            inst._renderBits    =   node->renderBits().data();
+            inst.setTransform(node->globalTransform());
+            inst.setAabb(node->globalAabb());
+            inst.setInstance(startInst ++ );
+            for (auto index: indexs)
+            {
+                auto    nByte   =   FEInstanceHelper::instanceInputs[index].bytes;
+                memcpy(pDst,pSrc + FEInstanceHelper::offsets[index],nByte);
+                pDst    +=  nByte;
+            }
+            if (removeFlagBits)
+                node->flags().removeFlags(removeFlagBits);
+        }
+        return  pDst;
+    }
+    
     size_t  FEFactoryRender::addNode(Node node)
     {
         uint    cnt =   countNode(node);
@@ -253,7 +337,6 @@ namespace   FE
         updateImpl(cmd);
     }
 
-
     void    FEFactoryRender::render(CMDPtr cmd)
     {
         if (_groupNode.empty())
@@ -331,14 +414,21 @@ namespace   FE
         bool    needUpdateVBO   =   false;
         bool    needUpdateIBO   =   false;
         bool    needUpdateInst  =   false;
+        /// 如果需要更新instance,系统中有可能有多个instance 数据;
+        /// 例如矩阵，例如状态Instance ，例如颜色Instance,例如lodIndex
+        /// 有可能同时更新多个binding
+        /// slots 保存了哪些slot需要更新,从而知道更新哪些bingding
+        uint    slots           =   0;
         bool    needUpdateITO   =   false;
+        /// 计算更新状态
         auto    updateVBO       =   [&]()
         {
             for (auto& var : _groupNode)
             {
                 needUpdateVBO   |=  var->flags().hasFlag(FENode::FLAG_ADD_CHILD);
                 needUpdateVBO   |=  var->flags().hasFlag(FENode::FLAG_REMOVE_CHILD);
-
+                needUpdateVBO   |=  var->flags().hasFlag(FENode::FLAG_PROP_MESH);
+                
                 needUpdateVBO   |=  needUpdateVBO;
 
                 needUpdateITO   |=  needUpdateVBO;
@@ -347,9 +437,28 @@ namespace   FE
                 needUpdateInst  |=  var->flags().hasFlag(FENode::FLAG_PROP_ROT);  
                 needUpdateInst  |=  var->flags().hasFlag(FENode::FLAG_PROP_TRANS); 
                 needUpdateInst  |=  var->flags().hasFlag(FENode::FLAG_PROP_SCALE); 
+                if (needUpdateInst)
+                {
+                    needUpdateInst  =   true;
+                    slots   |=  instMatSlots;
+                } 
+                if (var->flags().hasFlag(FENode::FLAG_PROP_COLOR))
+                {
+                    needUpdateInst  =   true;
+                    slots   |=  instColorSlots;
+                }  
+                if (var->flags().hasFlag(FENode::FLAG_PROP_STATE))
+                {
+                    needUpdateInst  =   true;
+                    slots   |=  instStateSlots;
+                }  
+                if (var->flags().hasFlag(FENode::FLAG_PROP_LOD))
+                {
+                    needUpdateInst  =   true;
+                    slots   |=  instLodSlots;
+                }
             }
         };
-
         updateVBO();
 
         if (needUpdateVBO || needUpdateIBO)
@@ -366,7 +475,7 @@ namespace   FE
         }
         else if(needUpdateInst) 
         {
-            updateInstanceVBOs();
+            updateInstanceLocal(slots);
         }
         if (needUpdateITO)
         {
@@ -375,14 +484,11 @@ namespace   FE
         /// 清除标记
         for (auto& var : _groupNode)
         {
-            var->flags().removeFlag(FENode::FLAG_ADD_CHILD)
-                        .removeFlag(FENode::FLAG_REMOVE_CHILD)
-                        .removeFlag(FENode::FLAG_PROP_ROT)
-                        .removeFlag(FENode::FLAG_PROP_TRANS)
-                        .removeFlag(FENode::FLAG_PROP_SCALE);
+            var->resetFlags();
+            var->clearUpdates();
         }
     }
-   
+
     uints   bufferIndexs(Mesh mesh,const InputDescs& inputs)
     {   
         uints   indexs;
@@ -457,7 +563,6 @@ namespace   FE
         copyVBinds(vboCPUs,vboGPUs);
         return  vboGPUs;
     }
-
 
     IBO     FEFactoryRender::buildVertexIBO(MeshUSet& meshSet)
     {
@@ -554,6 +659,22 @@ namespace   FE
         return  indexs;
     };
     
+    /// <summary>
+    /// inputs中的slot 是否在slots bits中
+    /// </summary>
+    /// <param name="slots"></param>
+    /// <param name="inputs"></param>
+    /// <returns></returns>
+    inline  bool    containSlot(uint slots,const InputDescs& inputs)
+    {
+        for (auto& input : inputs)
+        {
+            if (slots & input.slot)
+                return  true;
+        }
+        return  false;
+    }
+    
     VBinds  FEFactoryRender::buildInstanceVBOs()
     {
         Material    mat     =   _groupNode.front()->_mat; 
@@ -569,6 +690,7 @@ namespace   FE
             count   +=  (uint32)var->_objects.size();
         }
         VBinds      vboCPUs;
+        uint        flgBits =   FENode::ModifyValue;
         for (auto& bind : binds)
         {   
             if (bind.inputRate == V_INPUT_VERTEX)
@@ -586,28 +708,17 @@ namespace   FE
             auto        vbo     =   _device.createVBO();
             vBind._vbos.emplace_back(vbo);
             vbo->create({length,HOST_VISIBLE_BIT});
-            uint8*      pDst    =   (uint8*)vbo->lock(length,0);
-            FEInstance  inst    =   {};
-            uint8*      pSrc    =   (uint8*)&inst;
-            uint        instId  =   0;
+            uint8*      pDst        =   (uint8*)vbo->lock(length,0);
+            uint        instOffset  =   0;
             for (auto& var : _groupNode)
             {
-                for (auto& node: var->_objects)
-                {   
-                    inst._color         =   node->color();
-                    inst._renderBits    =   node->renderBits().data();
-                    inst.setTransform(node->globalTransform());
-                    inst.setAabb(node->globalAabb());
-                    inst.setInstance(instId++);
-                    for (auto index: indexs)
-                    {
-                        auto    nByte   =   FEInstanceHelper::instanceInputs[index].bytes;
-                        memcpy(pDst,pSrc + FEInstanceHelper::offsets[index],nByte);
-                        pDst    +=  nByte;
-                    }
-                }
+                pDst        =   var->copyFull(indexs,instOffset,pDst,flgBits);
+                instOffset  +=  (uint)var->_objects.size();
             }
-                
+            /// 只需要执行一次
+            /// copyFull 中移除节点的标志
+            flgBits =   0;
+
             vbo->unlock();
             vBind._binding  =   bind.binding;
             vboCPUs.emplace_back(vBind);
@@ -630,94 +741,138 @@ namespace   FE
         copyVBinds(vboCPUs,vboGPUs);
         return  vboGPUs;
     }
-
-    void    FEFactoryRender::updateInstanceVBOs()
+    void    FEFactoryRender::updateInstanceLocal(uint slots)
     {
         Material    mat     =   _groupNode.front()->_mat; 
         auto        pl      =   mat->pipeline(_key._primitive)->as<FEGPipeline>();
         auto&       binds   =   pl->cInfo()._binds;
         if (binds.empty())
             return;
-        /// instance数量
-        uint32  count   =   0;
+        /// 局部更新节点的数量
+        uint32  count       =   0;
+        /// 需要更新的组数量
+        uint32  grpCount    =   0;
+        uint    grpInstCnt  =   0;
         /// 统计有多少个instance 需要更新
-        auto    flags   =   FENode::FLAG_PROP_TRANS | FENode::FLAG_PROP_SCALE | FENode::FLAG_PROP_ROT;
+        /// 这里的问题是需要变量所有数据
+        /// 如果数据量很大，影响性能
+        /// 所以需要局部更新，即只更新发生变化了的数据
         for (auto& var : _groupNode)
         {
-            if (!var->flags().containFlag(flags))
+            if (!var->flags().containFlag(FENode::InstanceProps))
                 continue;
-            for (auto& node: var->_objects)
-                count   +=  node->flags().containFlag(flags) ? 1:0;
+            /// 首先检测是否超过最大范围,如果没有超过，计算个数
+            if (var->isLocalUpdate())
+                count   +=  (uint)var->_updates.size();
+            else
+            {
+                grpCount    +=  1;
+                grpInstCnt  +=  (uint)var->_objects.size();
+            }   
         }
-        VBinds      vboCPUs;
-        for (auto& bind : binds)
-        {   
-            if (bind.inputRate == V_INPUT_VERTEX)
-                continue;
-            VBind       vBind       =   {};
-            /// 找到需要更新属性的槽索引数组
-            uints       indexs  =   offfetIndex(bind.inputs);
-            /// 一个元素(顶点结构)的大小
-            uint        stride  =   0;
-            for (auto index : indexs)
-            {
-                stride  +=  FEInstanceHelper::instanceInputs[index].bytes;
-            }
-            uint64      length  =   count * stride;
-            auto        vbo     =   _device.createVBO();
-            BufferCopys regions;
-            regions.reserve(count);
-            vBind._vbos.emplace_back(vbo);
-
-            vbo->create({length,HOST_VISIBLE_BIT});
-            uint8*      pStart  =   (uint8*)vbo->lock(length,0);
-            uint8*      pDst    =   pStart;
-            FEInstance  inst    =   {};
-            uint8*      pSrc    =   (uint8*)&inst;
-            for (auto& var : _groupNode)
-            {
-                if (!var->flags().containFlag(flags))
+        /// 没有需要更新的，返回
+        if (count == 0 && grpCount == 0)
+            return;
+        /// 如果全部需要更新的数量不超过MAX_LOCAL_UPDATE * 4
+        /// 局部更新
+        if (count != 0)
+        {
+            VBinds      vboCPUs;
+            vboCPUs.reserve(_vboInstances.size());
+            for (auto& bind : binds)
+            {   
+                if (bind.inputRate == V_INPUT_VERTEX)
                     continue;
-                uint    instId  =   var->start();
-                for (auto& node: var->_objects)
-                {   
-                    /// 检测标记
-                    /// 使用完成后，需要清除标记
-                    /// 节点有可能被其他工厂引用，清除标记会引起错误
-                    /// 暂时没有考虑好
-                    if (node->flags().containFlag(flags))
-                    {
-                        inst._color         =   node->color();
-                        inst._renderBits    =   node->renderBits().data();
-
-                        inst.setTransform(node->globalTransform());
-                        inst.setAabb(node->globalAabb());
-                        inst.setInstance(instId);
-                        /// 保存要拷贝的目标位置
-                        BufferCopy  copy;
-                        copy.srcOffset  =   pDst - pStart;
-                        copy.dstOffset  =   (instId * stride);
-                        copy.size       =   stride;
-                        regions.emplace_back(copy);
-                        for (auto index: indexs)
-                        {
-                            auto    nByte   =   FEInstanceHelper::instanceInputs[index].bytes;
-                            memcpy(pDst,pSrc + FEInstanceHelper::offsets[index],nByte);
-                            pDst    +=  nByte;
-                        }
-
-                        node->flags().removeFlags(flags);
-                    }
-                    ++instId;
+                /// 如果要 bind,inputs 中 不在 slots 中,说明不需要更新
+                if (!containSlot(slots,bind.inputs))
+                    continue;
+                VBind       vBind       =   {};
+                vBind._binding          =   bind.binding;
+                /// 找到需要更新属性的槽索引数组
+                uints       indexs  =   offfetIndex(bind.inputs);
+                /// 一个元素(顶点结构)的大小
+                uint        stride  =   0;
+                for (auto index : indexs)
+                {
+                    stride  +=  FEInstanceHelper::instanceInputs[index].bytes;
                 }
-            }
-            vbo->unlock();
-            vBind._binding  =   bind.binding;
-            vBind._regions.emplace_back(regions);
+                uint64      length  =   count * stride;
+                auto        vbo     =   _device.createVBO();
+                BufferCopys regions;
+                regions.reserve(count);
+                vBind._vbos.emplace_back(vbo);
 
-            vboCPUs.emplace_back(vBind);
+                vbo->create({length,HOST_VISIBLE_BIT});
+                uint8*      pStart  =   (uint8*)vbo->lock(length,0);
+                uint8*      pDst    =   pStart;
+                for (auto& var : _groupNode)
+                {
+                    if (!var->flags().containFlag(FENode::InstanceProps))
+                        continue;
+                    pDst    =   var->copyPartial(indexs,stride,regions,pStart,pDst);
+                }
+                vbo->unlock();
+                vBind._regions.emplace_back(regions);
+                vboCPUs.emplace_back(vBind);
+            }
+            copyVBindsRegions(vboCPUs,_vboInstances);
         }
-        copyVBindsRegions(vboCPUs,_vboInstances);
+        /// 按组更新,有多少个组需要更新
+        if (grpCount != 0)
+        {
+            VBinds      vboCPUs;
+            uint        flgBits =   FENode::ModifyValue;
+            vboCPUs.reserve(_vboInstances.size());
+            for (auto& bind : binds)
+            {   
+                if (bind.inputRate == V_INPUT_VERTEX)
+                    continue;
+                /// 如果要 bind,inputs 中 不在 slots 中,说明不需要更新
+                if (!containSlot(slots,bind.inputs))
+                    continue;
+                VBind       vBind       =   {};
+                vBind._binding          =   bind.binding;
+                /// 找到需要更新属性的槽索引数组
+                uints       indexs  =   offfetIndex(bind.inputs);
+                /// 一个元素(顶点结构)的大小
+                uint        stride  =   0;
+                for (auto index : indexs)
+                {
+                    stride  +=  FEInstanceHelper::instanceInputs[index].bytes;
+                }
+                /// 需要跟新instance 缓冲区数据大小
+                uint64      length  =   grpInstCnt * stride;
+                /// 创建内存缓冲区
+                auto        vbo     =   _device.createVBO();
+                vbo->create({length,HOST_VISIBLE_BIT});
+                BufferCopys regions;
+                regions.reserve(grpCount);
+                vBind._vbos.emplace_back(vbo);
+
+                uint8*      pStart  =   (uint8*)vbo->lock(length,0);
+                uint8*      pDst    =   pStart;
+                for (auto& var : _groupNode)
+                {
+                    if (var->isLocalUpdate())
+                        continue;
+                    auto    pResult =   var->copyFull(indexs,var->start(),pDst,flgBits);
+                    BufferCopy  copy;
+                    copy.srcOffset  =   pDst - pStart;
+                    pDst            =   pResult; 
+
+                    copy.dstOffset  =   (var->start() * stride);
+                    copy.size       =   var->_objects.size() * stride;
+                    regions.emplace_back(copy);
+                }
+                /// copyFull 中移除节点的标志
+                /// 保证只执行一次
+                flgBits =   0;
+                vbo->unlock();
+                vBind._regions.emplace_back(regions);
+                vboCPUs.emplace_back(vBind);
+            }
+            copyVBindsRegions(vboCPUs,_vboInstances);
+        }
     }
   
     ITO     FEFactoryRender::buildIndirect()
@@ -925,11 +1080,12 @@ namespace   FE
             cmd->begin(true);
             for (size_t i = 0; i < vboCPUs.size(); i++)
             {
-                for (size_t v = 0; v < vboCPUs[i]._vbos.size(); ++ v)
+                for (auto& var : vboGPUs)
                 {
-                    cmd->copyBuffer( vboCPUs[i]._vbos[v]
-                                    ,vboGPUs[i]._vbos[v]
-                                    ,vboCPUs[i]._regions[v]);
+                    if (var._binding != vboCPUs[i]._binding)
+                        continue;
+                    for (size_t v = 0; v < vboCPUs[i]._vbos.size(); ++ v)
+                        cmd->copyBuffer( vboCPUs[i]._vbos[v],var._vbos[v],vboCPUs[i]._regions[v]);
                 }
             }
             cmd->end();
@@ -937,12 +1093,7 @@ namespace   FE
         }
     }
     
-    /// <summary>
-    /// 获取所有的index 个数 / 安字节计算大小
-    /// </summary>
-    /// <param name="meshSet"></param>
-    /// <returns></returns>
-    uint2    FEFactoryRender::indexCount(MeshUSet& meshSet,EPrimitive srcPri)
+    uint2   FEFactoryRender::indexCount(MeshUSet& meshSet,EPrimitive srcPri)
     {
         uint2   result  =   {0,0};
         for (auto var : meshSet)

@@ -201,9 +201,9 @@ namespace FE
             else
             {
                 auto    itr =   std::lower_bound(_times->values().begin(), _times->values().end(), tm, [](const real& l, const real& tm)
-                    {
-                        return l < tm;
-                    });
+                {
+                    return l < tm;
+                });
                 if (itr == _times->values().end())
                 {
                     result._value   =   values->values().back();
@@ -294,8 +294,6 @@ namespace FE
         real            _tension    =   MD_EASE;
         PropIndex       _propIndex  =   -1;
         InterpolateType _type       =   IT_Linear;
-
-        
     };
 
     using   KeyFrameTrack       =   SharedPtr<FEKeyFrameTrack>;

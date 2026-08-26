@@ -627,6 +627,14 @@ namespace FE
         setUp(up);
         update();
     }
+    FrustumR    FECamera::extract()
+    {
+        FrustumR    result;
+        mat4r       vp  =   _matView * _matProj;
+        result.loadFrustum(vp);
+        return      result;
+    }
+
 
     FrustumR    FECamera::extract(const real2& vMin,const real2& vMax,real3* vOutCorner)
     {

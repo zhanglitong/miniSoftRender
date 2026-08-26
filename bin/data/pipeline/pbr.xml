@@ -35,6 +35,22 @@
            formats   = "R32G32B32A32_FLOAT,R32G32B32A32_FLOAT,R32G32B32A32_FLOAT,R32G32B32A32_FLOAT"
            offsets   = "0,16,32,48"/>
     </binding>
+    <binding binding="2" inputRate="1">
+      <input
+           name      = "nodeColor"
+           location  = "6"
+           slots     = "IS_INSTANCE_COLOR"
+           formats   = "R8G8B8A8_UNORM"
+           offsets   = "0"/>
+    </binding>
+    <binding binding="3" inputRate="1">
+      <input
+           name      = "flagBits"
+           location  = "7"
+           slots     = "IS_INSTANCE_FLAG"
+           formats   = "R32_UINT"
+           offsets   = "0"/>
+    </binding>
   </bindings>
   <!--支持的特性-->
   <features></features>
