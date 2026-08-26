@@ -458,13 +458,18 @@ namespace   FE
     }
 
 
-   FEResult    VKCmdBuffer::setPrimitiveTopology(EPrimitive pri) 
-   {
-       if (!isValid())
-           return  FEResult::ER_FAILED;
-       vkCmdSetPrimitiveTopology(_native,system2Native(pri));
-       return  FEResult::ER_SUCCESS;
-   }
+    FEResult    VKCmdBuffer::setPrimitiveTopology(EPrimitive pri) 
+    {
+        if (!isValid())
+            return  FEResult::ER_FAILED;
+        vkCmdSetPrimitiveTopology(_native,system2Native(pri));
+        return  FEResult::ER_SUCCESS;
+    }
+    FEResult    VKCmdBuffer::dispatch(uint x,uint y,uint z) 
+    {
+        vkCmdDispatch(_native,x,y,z);
+        return  FEResult::ER_FAILED;
+    }
 
     FEResult    VKCmdBuffer::end()
     {

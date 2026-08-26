@@ -85,7 +85,7 @@ namespace   FE
                                                     uint32_t    stride) override;
 
         virtual FEResult    setPrimitiveTopology(EPrimitive pri)  override;
-
+        virtual FEResult    dispatch(uint x,uint y,uint z) override;
         virtual FEResult    end() override;
         virtual FEResult    submit(Queue) override;
     };

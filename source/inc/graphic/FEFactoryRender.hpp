@@ -80,6 +80,10 @@ namespace   FE
             /// 该数组大小是固定的,如果超过最大值,则全部更新
             /// </summary>
             NodeUpdates _updates;
+            /// <summary>
+            /// 裁剪所需要的材质
+            /// </summary>
+            Material    _cullMat;
         public:
             void    setMaterial(Material mat)   {   _mat    =   mat;    }
             void    setStart(uint32 start)      {   _start  =   start;  }
@@ -101,7 +105,6 @@ namespace   FE
             /// </summary>
             void    resetFlags();
             void    clearUpdates();
-            
         protected:
             /// <summary>
             /// 检测是否按局部更新.
@@ -198,6 +201,14 @@ namespace   FE
         {
             return  _usages;
         }
+        /// <summary>
+        /// 获取或者创建裁剪所需的材质
+        /// </summary>
+        Materials       getOrCreateCullMaterials();
+        bool            supportGPUCull() const
+        {
+            return  true;
+        }
     public:
         virtual size_t  addNode(Node  node);
         virtual size_t  addNodes(Nodes&  nodes);
@@ -258,8 +269,6 @@ namespace   FE
             else
                 return  nullptr;
         }
-
-        
         /// <summary>
         /// 如果有，返回，没有插入
         /// </summary>
@@ -300,8 +309,22 @@ namespace   FE
         Groups          _groupNode;
         VBinds          _vboVertexs;
         VBinds          _vboInstances;
+        /// <summary>
+        /// 所有mesh
+        /// </summary>
         IBO             _ibo;
+        /// <summary>
+        /// 绘制命令
+        /// </summary>
         ITO             _indirect;
+        /// <summary>
+        /// 包围球，用来计算裁剪
+        /// </summary>
+        IBO             _iboSphere;
+        /// <summary>
+        /// 命令数据，计算裁剪使用,裁剪后的命令存储到_indirect
+        /// </summary>
+        ITO             _indirectFull;
         Counts          _counts;
         ViewerUsages    _usages =   ViewerUsage::USAGE_Classic;
     };

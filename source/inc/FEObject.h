@@ -71,7 +71,7 @@ namespace   FE
     };
 
 
-    #define UNUSED(x) (void)(x)
+    #define UNUSED(...)         (void)(__VA_ARGS__)
 
     #define UUIDOF(CLASS)       FE::UUIDTraits<CLASS>::property().classId()
 

@@ -339,6 +339,12 @@ namespace   FE
         return FEResult::ER_SUCCESS;
     }
 
+    FEResult    WGCmdBuffer::dispatch(uint x,uint y,uint z)
+    {
+        UNUSED(x,y,z);
+        return FEResult::ER_SUCCESS;
+    }
+
     FEResult WGCmdBuffer::end()
     {
         return _native ? FEResult::ER_SUCCESS : FEResult::ER_FAILED;

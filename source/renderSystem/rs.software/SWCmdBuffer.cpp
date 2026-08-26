@@ -183,7 +183,11 @@ namespace   FE
         (void)pri;
         return  FEResult::ER_SUCCESS;
     }
-
+    FEResult    SWCmdBuffer::dispatch(uint x,uint y,uint z)
+    {
+        UNUSED(x,y,z);
+        return FEResult::ER_SUCCESS;
+    }
     FEResult    SWCmdBuffer::end()
     {
         return  FEResult::ER_SUCCESS;

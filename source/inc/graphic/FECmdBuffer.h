@@ -129,6 +129,7 @@ namespace   FE
                                                     uint32_t    stride) =   0;
 
         virtual FEResult    setPrimitiveTopology(EPrimitive pri)    =   0;
+        virtual FEResult    dispatch(uint x,uint y,uint z) =   0;
         virtual FEResult    end()   =   0;
         virtual FEResult    submit(Queue)=   0;
     };

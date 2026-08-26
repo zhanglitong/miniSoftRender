@@ -214,7 +214,19 @@ namespace   FE
         }
         return  pDst;
     }
-    
+    Materials   FEFactoryRender::getOrCreateCullMaterials()
+    {
+        Materials   result;
+        result.reserve(_groupNode.size());
+        for (auto& grp: _groupNode)
+        {
+            if (grp->_cullMat == nullptr)
+                grp->_cullMat   =   new FEMaterial(_ctx);  
+            result.emplace_back(grp->_cullMat);
+        }
+        return  result;
+    }
+
     size_t  FEFactoryRender::addNode(Node node)
     {
         uint    cnt =   countNode(node);

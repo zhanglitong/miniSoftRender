@@ -103,6 +103,11 @@ namespace   FE
             box.merge(var->aabb());
         }
         _aabb   =   box;
+        /// 执行GPU 裁剪
+        if (_ctx.scene()->gpuFrustCull())
+        {
+            _ctx.scene()->gpuFrustCull()->doCull(_camera,factorys);
+        }
     }
     void    FEViewer::onRender(const MsgRender& msg)
     {

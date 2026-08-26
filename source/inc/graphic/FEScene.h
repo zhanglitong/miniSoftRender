@@ -6,6 +6,7 @@
 #include    "../FEApp.hpp"
 #include    "../node/FENodeTree.hpp"
 #include    "FEFactoryRender.hpp"
+#include    "FEFrustumCull.h"
 #include    "FEUpdateQueue.hpp"
 #include    "FERenderSystem.h"
 #include    "FESwapchain.h"
@@ -23,7 +24,6 @@
 #include    "FEViewerMgr.hpp"
 #include    "FEComponentSysMgr.hpp"
 #include    "FEFrame.h"
-#include    "FETimestamp.hpp"
 
 namespace   FE
 {
@@ -74,6 +74,10 @@ namespace   FE
         inline  auto    camera() const
         {
             return  _camera;
+        }
+        inline  auto    gpuFrustCull() const
+        {
+            return  _frustCull;
         }
         inline  auto&   nodeTree()
         {
@@ -174,7 +178,7 @@ namespace   FE
         FEComponentSysMgr   _comSysMgr;
         FEUpdateQueue       _updateQueue;
         Camera              _camera;
-        
+        FrustumCull         _frustCull;
         RenderSys           _renderSys;
         Device              _device;
         Swapchain           _swapchain;
