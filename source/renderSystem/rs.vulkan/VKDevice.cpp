@@ -28,6 +28,7 @@ namespace   FE
     PCSTR       needExtensions[]    =   
     {
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE_1_EXTENSION_NAME,
         VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
         /// <summary>
         /// 使用动态渲染

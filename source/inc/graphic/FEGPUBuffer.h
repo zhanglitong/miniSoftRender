@@ -39,6 +39,7 @@ namespace   FE
         virtual bool    update(const void* data,uint64 length,uint64 offset)  =   0;
         virtual bool    resize(uint64 length)   =   0;
         virtual void*   lock(uint64 length,uint64 offset)   =   0;
+        virtual bool    flush(uint64 length,uint64 offset)  =   0;
         virtual void    unlock()    =   0;
         /// <summary>
         /// 模板方法，方便使用

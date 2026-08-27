@@ -4,6 +4,7 @@
 #include    "../FEKeyValues.hpp"
 #include    "../FEFactory.hpp"
 #include    "../node/FENode.hpp"
+#include    "../FECamera.hpp"
 #include    "FEDevice.h"
 #include    "FEGraphicEnums.h"
 
@@ -88,7 +89,7 @@ namespace   FE
             void    setMaterial(Material mat)   {   _mat    =   mat;    }
             void    setStart(uint32 start)      {   _start  =   start;  }
             uint32  start() const               {   return  _start;     }
-            uint32  count()  const              {   return  uint32(_objects.size());}
+            uint32  count();
             size_t  addNode(Node node);
             size_t  addNodes(Nodes::iterator nBegin, Nodes::iterator eEnd);
             size_t  addNodes(Nodes&  nodes);
@@ -137,6 +138,7 @@ namespace   FE
         struct  VBind
         {
             uint32          _binding    =   0;
+            uint32          _slots      =   0;
             VBOs            _vbos;
             BufferCopyss    _regions;
         };
@@ -203,11 +205,18 @@ namespace   FE
         }
         /// <summary>
         /// 获取或者创建裁剪所需的材质
+        /// 并用 camera 参数填充材质数据
         /// </summary>
-        Materials       getOrCreateCullMaterials();
-        bool            supportGPUCull() const
+        Materials       getOrCreateCullMaterials(Camera camera);
+        bool            supportGPUCull() const;
+
+        Groups&         groups() 
         {
-            return  true;
+            return  _groupNode;
+        }
+        const Groups&   groups() const
+        {
+            return  _groupNode;
         }
     public:
         virtual size_t  addNode(Node  node);
@@ -226,6 +235,7 @@ namespace   FE
         /// </summary>
         virtual void    destroy();
     protected:
+         
         virtual size_t  addNodesImpl(Nodes&  nodes);
         /// <summary>
         /// 更新函数
@@ -277,16 +287,21 @@ namespace   FE
         /// <param name="mat"></param>
         /// <returns></returns>
         GroupNode*      queryOrCreateGroup(Material mat);
-        virtual VBO     buildBuffer(MeshUSet& meshSet,FEInputSlot slot);
-        virtual VBO     buildBuffer(MeshUSet& meshSet,const uints& indexs);
+        Material        createCullMaterial(Group grp,Camera camera);
+        void            updateCullMaterial(Group grp,Camera camera);
+        VBO     buildBuffer(MeshUSet& meshSet,FEInputSlot slot);
+        VBO     buildBuffer(MeshUSet& meshSet,const uints& indexs);
         /// <summary>
         /// CPU数据上传到GPU上 
         /// </summary>
         /// <param name="cpuBinds"></param>
         /// <param name="gpuBinds"></param>
-        virtual void    copyVBinds(VBinds& cpuBinds,VBinds& gpuBinds);
-        virtual void    copyVBindsRegions(VBinds& cpuBinds,VBinds& gpuBinds);
-        virtual void    copyBuffer(VBO src,VBO dsts,const BufferCopys& );
+        void    copyVBinds(VBinds& cpuBinds,VBinds& gpuBinds);
+        void    copyVBindsRegions(VBinds& cpuBinds,VBinds& gpuBinds);
+        void    copyBuffer(VBO src,VBO dsts,const BufferCopys& );
+
+        VBO     boundSphereVBO()const;
+        VBO     flagBitsVBO() const;
     public:
         static  uint2   indexCount(MeshUSet& meshSet,EPrimitive srcPri);
         /// <summary>
@@ -319,15 +334,15 @@ namespace   FE
         /// <summary>
         /// 绘制命令
         /// </summary>
-        ITO             _indirect;
-        /// <summary>
-        /// 包围球，用来计算裁剪
-        /// </summary>
-        VBO             _vboSphere;
+        ITO             _indirectClip;
         /// <summary>
         /// 命令数据，计算裁剪使用,裁剪后的命令存储到_indirect
         /// </summary>
         ITO             _indirectFull;
+        /// <summary>
+        /// 包围球，用来计算裁剪
+        /// </summary>
+        VBO             _vboSphere;
         Counts          _counts;
         ViewerUsages    _usages =   ViewerUsage::USAGE_Classic;
     };

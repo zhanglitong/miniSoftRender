@@ -4,6 +4,7 @@
 #include    "../inc/graphic/FECmdBuffer.h"
 #include    "../inc/graphic/FEInstance.h"
 #include    "../inc/graphic/FEScene.h"
+#include    "../inc/material/FEMaterialCull.hpp"
 
 namespace   FE
 {
@@ -15,6 +16,21 @@ namespace   FE
     constexpr   uint    instColorSlots  =   IS_INSTANCE_COLOR;
     constexpr   uint    instLodSlots    =   IS_INSTANCE_LOD_INDEX;
     
+    uint32  GroupNode::count()        
+    {   
+        uint    nMax    =   uint32(_objects.size());
+        if (_cullMat == nullptr)
+            return  nMax;
+        auto    cull    =   _cullMat->as<FEMaterialCull>();
+        cull->_cullResult.gpu2cpu();
+        uint    nCnt   =   (std::min)(cull->_cullResult._value.clippedCount,nMax);
+        if (nCnt == 0)
+            nCnt    +=  0;
+        else
+            nCnt    +=  0;
+        return  nCnt;
+    }
+
     size_t  GroupNode::addNode(Node object)
     {
         auto    itr =   std::lower_bound(_objects.begin(), _objects.end(), object);
@@ -214,17 +230,25 @@ namespace   FE
         }
         return  pDst;
     }
-    Materials   FEFactoryRender::getOrCreateCullMaterials()
+    Materials   FEFactoryRender::getOrCreateCullMaterials(Camera camera)
     {
         Materials   result;
         result.reserve(_groupNode.size());
-        for (auto& grp: _groupNode)
+        for (auto grp : _groupNode)
         {
             if (grp->_cullMat == nullptr)
-                grp->_cullMat   =   new FEMaterial(_ctx);  
-            result.emplace_back(grp->_cullMat);
+                grp->_cullMat   =   createCullMaterial(grp,camera); 
+            else
+                updateCullMaterial(grp,camera);
+            if (grp->_cullMat)
+                result.push_back(grp->_cullMat);
         }
         return  result;
+    }
+
+    bool        FEFactoryRender::supportGPUCull() const
+    {
+        return  flagBitsVBO()!= nullptr;
     }
 
     size_t  FEFactoryRender::addNode(Node node)
@@ -346,6 +370,19 @@ namespace   FE
 
     void    FEFactoryRender::update(CMDPtr cmd)
     {
+        Camera  camera  =   _ctx.scene()->camera();
+        auto    frust   =   camera->extract();
+        for (auto& grp: _groupNode)
+        {
+            for (auto node : grp->_objects)
+            {
+                auto    box =   node->globalAabb();
+                if (!frust.boxInFrustum(box._minimum,box._maximum))
+                {
+                    int ii = 0;
+                }
+            }
+        }
         updateImpl(cmd);
     }
 
@@ -394,16 +431,16 @@ namespace   FE
             switch(_key._drawType)
             {
             case EDrawType::DRAW_ARRAY:
-                cmd->drawArrayIndirect(_indirect,   offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawArrayIndirect(_indirectClip,   offset, grp->count(),sizeof(FECmdIndex));
                 break;
             case EDrawType::DRAW_ELEMENT_UINT8:
-                cmd->drawIndexedIndirect(_indirect, offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawIndexedIndirect(_indirectClip, offset, grp->count(),sizeof(FECmdIndex));
                 break;
             case EDrawType::DRAW_ELEMENT_UINT16:
-                cmd->drawIndexedIndirect(_indirect, offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawIndexedIndirect(_indirectClip, offset, grp->count(),sizeof(FECmdIndex));
                 break;
             case EDrawType::DRAW_ELEMENT_UINT32:
-                cmd->drawIndexedIndirect(_indirect, offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawIndexedIndirect(_indirectClip, offset, grp->count(),sizeof(FECmdIndex));
                 break;
             }
         }
@@ -414,8 +451,10 @@ namespace   FE
         _groupNode.clear();
         _vboVertexs.clear();
         _vboInstances.clear();
-        _ibo        =   nullptr;
-        _indirect   =   nullptr;
+        _ibo            =   nullptr;
+        _indirectClip   =   nullptr;
+        _indirectFull   =   nullptr;
+        _vboSphere      =   nullptr;
     }
 
     void    FEFactoryRender::updateImpl(CMDPtr )
@@ -493,7 +532,7 @@ namespace   FE
         }
         if (needUpdateITO)
         {
-            buildIndirect(_indirectFull,_indirect);
+            buildIndirect(_indirectFull,_indirectClip);
         }
         /// 清除标记
         for (auto& var : _groupNode)
@@ -720,6 +759,11 @@ namespace   FE
             if (bind.inputRate == V_INPUT_VERTEX)
                 continue;
             VBind       vBind       =   {};
+            vBind._slots            =   0;
+            for (auto& var: bind.inputs)
+            {
+                vBind._slots   |=   var.slot;
+            }
             /// 找到需要更新属性的槽索引数组
             uints       indexs  =   offfetIndex(bind.inputs);
             /// 一个元素(顶点结构)的大小
@@ -752,6 +796,7 @@ namespace   FE
         for (size_t i = 0; i < vboCPUs.size(); i++)
         {
             vboGPUs[i]._binding =   vboCPUs[i]._binding;
+            vboGPUs[i]._slots   =   vboCPUs[i]._slots;
             for (size_t v = 0; v < vboCPUs[i]._vbos.size(); ++v)
             {
                 auto    cpu     =   vboCPUs[i]._vbos[v];
@@ -1128,6 +1173,93 @@ namespace   FE
         return  group;
     }
 
+    Material    FEFactoryRender::createCullMaterial(Group grp,Camera camera)
+    {
+        if (grp == nullptr || camera == nullptr)
+            return  nullptr;
+
+        FEMaterialCull* pCull       =   new FEMaterialCull(_ctx);
+        Material        pMat        =   pCull;
+        auto&           cullParam   =   pCull->_cullParam._value;
+        auto&           cullResult  =   pCull->_cullResult._value;
+        auto            rightDir    =   camera->getRight();
+
+        memset(&cullResult,0,sizeof(cullResult));
+        
+        cullParam._count            =   uint(grp->_objects.size());
+        cullParam._minVisiblePixels =   10;
+        cullParam._offset           =   grp->start();
+        cullParam._rightX           =   (float)rightDir.x;
+        cullParam._rightY           =   (float)rightDir.y;
+        cullParam._rightZ           =   (float)rightDir.z;
+        cullParam._viewSizeW        =   camera->viewportWidth<float>();
+        cullParam._viewSizeH        =   camera->viewportHeight<float>();
+        cullParam._mvp              =   camera->getProject() * camera->getView();
+        FrustumR    frustum         =   camera->extract();
+        for (size_t i = 0; i < 6; i++)
+        {
+            cullParam._planes[i].x  =   frustum._planes[i]._normal.x;
+            cullParam._planes[i].y  =   frustum._planes[i]._normal.y;
+            cullParam._planes[i].z  =   frustum._planes[i]._normal.z;
+            cullParam._planes[i].w  =   frustum._planes[i]._distance;
+        }
+        pCull->_cullResult.update();
+        pCull->_cullParam.update();
+
+        pCull->bind(0,0,{_vboSphere.get()});
+        pCull->bind(0,1,{_indirectFull.get()});
+        pCull->bind(0,2,{_indirectClip.get()});
+        pCull->bind(0,3,{flagBitsVBO().get()});
+        pCull->bind(0,4,{pCull->_cullResult._gpu.get()});
+        pCull->bind(0,5,{pCull->_cullParam._gpu.get()});
+        pCull->update();
+        return  pMat;
+    }
+    void        FEFactoryRender::updateCullMaterial(Group grp,Camera camera)
+    {
+        if (grp == nullptr || grp->_cullMat == nullptr || camera == nullptr)
+            return;
+        FEMaterialCull* pCull       =   grp->_cullMat->cast<FEMaterialCull>();
+        if (pCull == nullptr)
+            return;
+        auto&           cullParam   =   pCull->_cullParam._value;
+        auto&           cullResult  =   pCull->_cullResult._value;
+        auto            rightDir    =   camera->getRight();
+
+        memset(&cullResult,0,sizeof(cullResult));
+
+        cullParam._count            =   uint(grp->_objects.size());
+        cullParam._minVisiblePixels =   10;
+        cullParam._offset           =   grp->start();
+        cullParam._rightX           =   (float)rightDir.x;
+        cullParam._rightY           =   (float)rightDir.y;
+        cullParam._rightZ           =   (float)rightDir.z;
+        cullParam._viewSizeW        =   camera->viewportWidth<float>();
+        cullParam._viewSizeH        =   camera->viewportHeight<float>();
+        cullParam._mvp              =   camera->getProject() * camera->getView();
+
+        pCull->_cullParam.update();
+        pCull->_cullResult.update();
+        
+
+        FrustumR    frustum         =   camera->extract();
+        for (size_t i = 0; i < 6; i++)
+        {
+            cullParam._planes[i].x  =   frustum._planes[i]._normal.x;
+            cullParam._planes[i].y  =   frustum._planes[i]._normal.y;
+            cullParam._planes[i].z  =   frustum._planes[i]._normal.z;
+            cullParam._planes[i].w  =   frustum._planes[i]._distance;
+        }
+
+        pCull->bind(0,0,{_vboSphere.get()});
+        pCull->bind(0,1,{_indirectFull.get()});
+        pCull->bind(0,2,{_indirectClip.get()});
+        pCull->bind(0,3,{flagBitsVBO().get()});
+        pCull->bind(0,4,{pCull->_cullResult._gpu.get()});
+        pCull->bind(0,5,{pCull->_cullParam._gpu.get()});
+
+        pCull->update();
+    }
     VBO     FEFactoryRender::buildBuffer(MeshUSet& meshSet,FEInputSlot slot)
     {
         if (meshSet.empty())
@@ -1284,6 +1416,20 @@ namespace   FE
         }
     }
     
+    VBO     FEFactoryRender::boundSphereVBO()const
+    {
+        return  _vboSphere;
+    }
+    VBO     FEFactoryRender::flagBitsVBO() const
+    {
+        for (auto& var : _vboInstances)
+        {   
+            if (var._slots & IS_INSTANCE_FLAG)
+                return  var._vbos.front();
+        }
+        return  nullptr;
+    }
+
     uint2   FEFactoryRender::indexCount(MeshUSet& meshSet,EPrimitive srcPri)
     {
         uint2   result  =   {0,0};

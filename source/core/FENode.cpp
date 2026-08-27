@@ -17,6 +17,7 @@ namespace   FE
         /// 默认情况下颜色会 color x fragment 
         _color      =   Rgba8(255,255,255,255);
         _transform  =   FE::makeTransform<real>(_trans,_scale,_rotate);
+        _renderBits =   RF_VISIBLE;
     }
 
     FENode::FENode(const FENode& other)

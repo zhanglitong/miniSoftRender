@@ -42,8 +42,11 @@ namespace   FE
 
         FEMaterialPBR(const FEMaterialPBR& other)
             :FEMaterial(other)
-            ,_pbr(_ctx)
-        {}
+            ,_pbr(other._ctx)
+        {
+            _pbr._value   =   other._pbr._value;
+            _pbr.update();
+        }
         virtual ~FEMaterialPBR()
         {}
         /// <summary>

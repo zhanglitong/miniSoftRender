@@ -79,7 +79,9 @@ const   int     LightTypeSpot   =   2;
 struct  CullParam
 {
     float4      _planes[6];
-    float4      _rightDir;
+    float       _rightX;
+    float       _rightY;
+    float       _rightZ;
     /// <summary>
     ///  视口的宽度
     /// </summary>
@@ -92,7 +94,21 @@ struct  CullParam
     /// 最小可见像素
     /// </summary>
     float       _minVisiblePixels;
+    /// 元素个数
+    uint        _count;
+    /// 在总数组上索引偏移量
+    uint        _offset;
     mat4        _mvp;
+};
+
+struct  CullResult
+{
+    /// 输出个数,在计算前,确保原始数据是0
+    uint    clippedCount;
+    /// 保留,对齐
+    uint    reserver0;
+    uint    reserver1;
+    uint    reserver2;
 };
 
 struct  LightData

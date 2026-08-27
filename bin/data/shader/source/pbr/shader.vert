@@ -31,6 +31,6 @@ void main()
     outPos          =   tmp.xyz;
     outFlagBits     =   flagBits;
     outColor        =   nodeColor;
-    outNor          =   normalize(matLocal * vec4(inNor, 0.0)).xyz;
+    outNor          =   normalize(mat3(matLocal) * inNor);
     gl_Position     =   _camera._p * _camera._v  * tmp;
 }

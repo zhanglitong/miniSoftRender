@@ -103,8 +103,7 @@ namespace   FE
     public:
         VKGPipeline(FEContext& ctx)
             :TRSObject<VkPipeline,FEGPipeline>(ctx)
-        {
-        }
+        {}
         VKGPipeline(const VKGPipeline& other)
             :TRSObject<VkPipeline,FEGPipeline>(other)
         {}

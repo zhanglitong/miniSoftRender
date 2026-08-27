@@ -101,6 +101,8 @@ namespace   FE
             _viewerMgr.addObject(viewer);
             _viewerMgr.setActiveViewer(viewer);
         }
+        _frustCull  =   new FEFrustumCull(_ctx);
+
         /// anchor
         /// anchor 增加通知
         _ctx.anchor().addNotify(this,[this](Object object)
@@ -228,6 +230,13 @@ namespace   FE
         _camera->update();
 
         _updateQueue.update(_frame->_cmd);
+
+        for (auto viewer : _viewerMgr.objects())
+        {
+            FEFramInfo  info    =  {0,_frame->_cmd};
+            viewer->onMessage(MsgUpdate(info));
+        }
+
     }
     void    FEScene::onFrameRender()
     {

@@ -50,11 +50,14 @@ namespace   FE
 
     void*   SWGPUBuffer::lock(uint64 size,uint64 offset)
     {
-        (void)size;
-        (void)offset;
+        UNUSED(size,offset);
         return  nullptr;
     }
-
+    bool    SWGPUBuffer::flush(uint64 length,uint64 offset)
+    {
+        UNUSED(length,offset);
+        return  true;
+    }
     void    SWGPUBuffer::unlock()
     {
     }

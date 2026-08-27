@@ -24,6 +24,7 @@ namespace   FE
         virtual bool    update(const void* data,uint64 length,uint64 offset) override;
         virtual bool    resize(uint64 length) override;
         virtual void*   lock(uint64 length,uint64 offset = 0) override;
+        virtual bool    flush(uint64 length,uint64 offset)  override;
         virtual void    unlock() override;
     };
 }

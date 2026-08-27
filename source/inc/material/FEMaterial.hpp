@@ -8,14 +8,14 @@
 
 namespace   FE
 {
-    template<typename UType>
+    template<typename UType,MemoryUsage usage = DEVICE_DEFAULT_BIT>
     class   TBlock
     {
     public:
         TBlock(FEContext& ctx)
         {
             _gpu    =   ctx.device().createUBO();
-            _gpu->create({sizeof(UType),DEVICE_DEFAULT_BIT});
+            _gpu->create({sizeof(UType),usage});
         }
         void    update()
         {
@@ -25,6 +25,41 @@ namespace   FE
         UType       _value;
         GPUBuffer   _gpu;
     };
+    template<typename UType,MemoryUsage usage = DEVICE_DEFAULT_BIT>
+    class   TStorge
+    {
+    public:
+        TStorge(FEContext& ctx)
+        {
+            _value  =   {};
+            _gpu    =   ctx.device().createSBO();
+            _gpu->create({sizeof(UType),usage});
+        }
+        void    update()
+        {
+            _gpu->update(&_value,sizeof(_value),0);
+        }
+        /// <summary>
+        /// 同步显卡数据到内存端
+        /// </summary>
+        /// <returns></returns>
+        bool    gpu2cpu()
+        {
+            static_assert(usage == HOST_COHERENT_BIT);
+            if constexpr (usage != HOST_COHERENT_BIT)
+                return  false;
+            auto    ptr =   _gpu->lock(sizeof(_value),0);
+            if (ptr == nullptr)
+                return  false;
+            memcpy(&_value,ptr,sizeof(_value));
+            _gpu->unlock();
+            return  true;
+        }
+    public:
+        UType       _value;
+        GPUBuffer   _gpu;
+    };
+
     class   FEDevice;
     DEFINE_CLASS_UUID(FEMaterial,"{E3982354-7576-4F9A-BC38-5697DB03EEB3}");
     class   FEMaterial:public FEObject

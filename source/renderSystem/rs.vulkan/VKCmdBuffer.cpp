@@ -45,16 +45,35 @@ namespace   FE
     {
         if (!isValid() || cnt == 0 || vps == nullptr || cnt > 8)
             return  FEResult::ER_FAILED;
+
         VkViewport  viewports[8]    =   {};
-        for (uint i = first; i < first + cnt; ++i)
+        VkViewport viewport{};
+        constexpr bool invertY  =   true;
+        if (true)
         {
-            viewports[i].x          =   vps[i].x;
-            viewports[i].y          =   vps[i].y;
-            viewports[i].width      =   vps[i].width;
-            viewports[i].height     =   vps[i].height;
-            viewports[i].minDepth   =   vps[i].minDepth;
-            viewports[i].maxDepth   =   vps[i].maxDepth;
+            for (uint i = first; i < first + cnt; ++i)
+            {
+                viewports[i].x          =   vps[i].x;
+                viewports[i].y          =   vps[i].height - vps[i].y;
+                viewports[i].width      =   vps[i].width;
+                viewports[i].height     =   -vps[i].height;
+                viewports[i].minDepth   =   vps[i].minDepth;
+                viewports[i].maxDepth   =   vps[i].maxDepth;
+            }
         }
+        else
+        {
+            for (uint i = first; i < first + cnt; ++i)
+            {
+                viewports[i].x          =   vps[i].x;
+                viewports[i].y          =   vps[i].y;
+                viewports[i].width      =   vps[i].width;
+                viewports[i].height     =   vps[i].height;
+                viewports[i].minDepth   =   vps[i].minDepth;
+                viewports[i].maxDepth   =   vps[i].maxDepth;
+            }
+        }
+        
         vkCmdSetViewport(_native, first, cnt, viewports);
 
         return  FEResult::ER_SUCCESS;
@@ -249,8 +268,21 @@ namespace   FE
     {
         if (!isValid() || pl == nullptr || pl->native() == nullptr)
             return  FEResult::ER_FAILED;
-        else
-            vkCmdBindPipeline(_native, VK_PIPELINE_BIND_POINT_GRAPHICS, (VkPipeline)pl->native());
+        switch(pl->type())
+        {
+        case PL_GRAPIC:
+            vkCmdBindPipeline(_native, VK_PIPELINE_BIND_POINT_GRAPHICS,         (VkPipeline)pl->native());
+            break;
+        case PL_COMPUTE:
+            vkCmdBindPipeline(_native, VK_PIPELINE_BIND_POINT_COMPUTE,          (VkPipeline)pl->native());
+            break;
+        case PL_RAY_TRACING:
+            vkCmdBindPipeline(_native, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,  (VkPipeline)pl->native());
+            break;
+        default:
+            return  FEResult::ER_FAILED;
+        }
+
         return  FEResult::ER_SUCCESS;
     }
     FEResult    VKCmdBuffer::bindDescriptors(const DSetBind& info) 

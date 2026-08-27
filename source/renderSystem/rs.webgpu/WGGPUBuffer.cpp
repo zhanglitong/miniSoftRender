@@ -107,6 +107,12 @@ namespace   FE
         return  wgpuBufferGetMappedRange(_native, offset, size);
     }
 
+    bool    WGGPUBuffer::flush(uint64 length,uint64 offset) 
+    {
+        UNUSED(length,offset);
+        return  true;
+    }
+
     void    WGGPUBuffer::unlock()
     {
         if (_native)

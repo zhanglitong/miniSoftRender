@@ -1,18 +1,17 @@
 
 #include    "../inc/graphic/FEFrustumCull.h"
+#include    "../inc/material/FEMaterialCull.hpp"
 
 namespace   FE
 {
-    void    FEFrustumCull::doCull(Camera camera,const RFactorys& factorys)
+    void    FEFrustumCull::compute(Camera camera,const RFactorys& factorys)
     {
-        return;
-        UNUSED(camera);
         Materials   mats;
         for (auto  var : factorys)
         {
             if (!var->supportGPUCull())
                 continue;
-            auto    result  =   var->getOrCreateCullMaterials();
+            auto    result  =   var->getOrCreateCullMaterials(camera);
             if (result.empty()) 
                 continue;
             mats.insert(mats.end(),result.begin(),result.end());
@@ -28,7 +27,21 @@ namespace   FE
             cmd->bindPipeline(pl);
             for (auto& var: mats)
             {
-                cmd->dispatch(1,1,1);
+                auto    cullMat =   var->as<FEMaterialCull>();
+                uint    nLength =   cullMat->_cullParam._value._count;
+                uint    xGrp    =   nLength/uint(CULL_GROUP_X);
+                if ( nLength % uint(CULL_GROUP_X))
+                    xGrp    +=  1;
+
+                FECmdBuffer::DSetBind   binds   =   {};
+                binds.dSets         =   var->dsets();
+                binds.firstSet      =   0;
+                binds.offsetCount   =   0;
+                binds.offsets       =   nullptr;
+                binds.plBindPoint   =   PL_COMPUTE;
+                binds.plLayout      =   pl->nativeLayout();
+                cmd->bindDescriptors(binds);
+                cmd->dispatch(xGrp,1,1);
             }
         }
         cmd->end();

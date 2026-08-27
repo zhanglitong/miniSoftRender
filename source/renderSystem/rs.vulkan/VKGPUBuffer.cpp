@@ -23,7 +23,7 @@ namespace   FE
         allocInfo.memoryTypeIndex   =   0;
         bufferInfo.sType            =   VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size             =   info._length;
-        bufferInfo.usage            =   system2Native(bufUsages) | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        bufferInfo.usage            =   system2Native(bufUsages) | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
         VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
 
@@ -90,6 +90,7 @@ namespace   FE
                     return  FEResult::ER_FAILED;
                 memcpy(ptr,pData,length);
                 unlock();
+                flush(length,offset);
                 return  FEResult::ER_SUCCESS;
             }
         case MemoryUsage::DEVICE_LOCAL_BIT      :
@@ -140,12 +141,29 @@ namespace   FE
         void*           ptr     =   nullptr;
         VkDeviceSize    devSize =   size == 0 ?  _cInfo._length - offset :size;
         auto            result  =   vkMapMemory(device, _memory, offset, devSize, 0, &ptr);
+
         return          result == VK_SUCCESS ? ptr : nullptr;
+    }
+    bool    VKGPUBuffer::flush(uint64 length,uint64 offset)
+    {
+        auto&           vkDevice    =   (VKDevice&)_ctx.device();
+        auto            device      =   vkDevice.logicalDevice();
+        VkMappedMemoryRange mappedRange; 
+        {
+            mappedRange.sType   =    VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+            mappedRange.pNext   =   nullptr;
+            mappedRange.memory  =   _memory,
+            mappedRange.offset  =   offset,
+            mappedRange.size    =   length;
+        };
+        return vkFlushMappedMemoryRanges(device, 1, &mappedRange) == VkResult::VK_SUCCESS;
     }
     void    VKGPUBuffer::unlock()
     {
         auto&       vkDevice    =   (VKDevice&)_ctx.device();
         auto        device      =   vkDevice.logicalDevice();
+
+        
         vkUnmapMemory(device,  _memory);
     }
 }

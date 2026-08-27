@@ -20,7 +20,7 @@ namespace   FE
         /// </summary>
         /// <param name="camer"></param>
         /// <param name="factorys"></param>
-        void    doCull(Camera camer,const RFactorys& factorys);
+        void    compute(Camera camer,const RFactorys& factorys);
     };
     using   FrustumCull =   SharedPtr<FEFrustumCull>;
 }

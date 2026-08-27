@@ -106,7 +106,7 @@ namespace   FE
         /// 执行GPU 裁剪
         if (_ctx.scene()->gpuFrustCull())
         {
-            _ctx.scene()->gpuFrustCull()->doCull(_camera,factorys);
+            _ctx.scene()->gpuFrustCull()->compute(_camera,factorys);
         }
     }
     void    FEViewer::onRender(const MsgRender& msg)

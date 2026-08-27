@@ -11,7 +11,6 @@
 
 namespace   FE
 {
-
     class   FEPipeline :public RSObject
     {
     public:

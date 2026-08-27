@@ -71,6 +71,7 @@ namespace   FE
                                 | FLAG_PROP_ROT
                                 | FLAG_PROP_COLOR
                                 | FLAG_PROP_LOD
+                                | FLAG_PROP_STATE
                                 | FLAG_UPDATE,
 
             InstanceProps   =   FLAG_PROP_TRANS
@@ -78,7 +79,7 @@ namespace   FE
                                 | FLAG_PROP_ROT
                                 | FLAG_PROP_COLOR
                                 | FLAG_PROP_LOD
-                                | FLAG_PROP_MESH,
+                                | FLAG_PROP_STATE,
         };   
         using   RenderFlags =   FEFlags<RenderFlag,uint32>;
     public:

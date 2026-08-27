@@ -118,7 +118,7 @@ namespace   FE
 
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
         inputAssemblyStateCI.sType      =   VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssemblyStateCI.topology   =   system2Native(_cInfo._inputAssemblyState._primitive);//VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssemblyStateCI.topology   =   system2Native(_cInfo._inputAssemblyState._primitive);
 
         // Rasterization state
         VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
