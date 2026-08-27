@@ -243,16 +243,18 @@ namespace   FE
         /// </summary>
         /// <returns></returns>
         virtual VBinds  buildInstanceVBOs();
+        virtual VBO     buildSphereVBO();
         /// <summary>
         /// 按需部分更新
         /// </summary>
         /// <param name="slots"></param>
         virtual void    updateInstanceLocal(uint slots);
+        virtual void    updateInstanceBSphere();
         /// <summary>
         /// 收集并创建命令缓冲区
         /// </summary>
         /// <returns></returns>
-        virtual ITO     buildIndirect();
+        virtual ITO     buildIndirect(ITO&  gpuFull,ITO& gpuDraw);
         /// <summary>
         /// 根据材质获取节点所在的组
         /// </summary>
@@ -284,6 +286,7 @@ namespace   FE
         /// <param name="gpuBinds"></param>
         virtual void    copyVBinds(VBinds& cpuBinds,VBinds& gpuBinds);
         virtual void    copyVBindsRegions(VBinds& cpuBinds,VBinds& gpuBinds);
+        virtual void    copyBuffer(VBO src,VBO dsts,const BufferCopys& );
     public:
         static  uint2   indexCount(MeshUSet& meshSet,EPrimitive srcPri);
         /// <summary>
@@ -320,7 +323,7 @@ namespace   FE
         /// <summary>
         /// 包围球，用来计算裁剪
         /// </summary>
-        IBO             _iboSphere;
+        VBO             _vboSphere;
         /// <summary>
         /// 命令数据，计算裁剪使用,裁剪后的命令存储到_indirect
         /// </summary>

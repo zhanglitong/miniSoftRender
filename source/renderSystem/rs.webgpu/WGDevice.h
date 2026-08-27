@@ -54,15 +54,16 @@ namespace   FE
         virtual Fence       createFence() override;
         virtual Semaphore   createSemaphore() override;
 
-        virtual CMDPool     createCmdPool() override;
+        virtual CMDPool     createCmdPool()     override;
         virtual FBOPtr      createFrameBuffer() override;
-        virtual Shader      createShader() override;
-        virtual RenderPass  createRenderPass() override;
-        virtual GPipeline   createGPipeline() override;
-        virtual Swapchain   createSwapchain() override;
-        virtual GImage      createGImage() override;
+        virtual Shader      createShader()      override;
+        virtual RenderPass  createRenderPass()  override;
+        virtual GPipeline   createGPipeline()   override;
+        virtual Pipeline    createCPipeline()   override;
+        virtual Swapchain   createSwapchain()   override;
+        virtual GImage      createGImage()      override;
 
-        virtual DSetLayout  createDSLayout() override;
+        virtual DSetLayout  createDSLayout()    override;
         DSetLayout          createDSLayoutFromShaders(const std::vector<Shader>& shaders);
         virtual DSetPool    createDSetPool() override;
         virtual DSet        createDSet() override;

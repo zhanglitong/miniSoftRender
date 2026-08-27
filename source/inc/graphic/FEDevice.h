@@ -103,6 +103,7 @@ namespace   FE
         virtual Shader      createShader()          =   0;
         virtual RenderPass  createRenderPass()      =   0;
         virtual GPipeline   createGPipeline()       =   0;
+        virtual Pipeline    createCPipeline()       =   0;
         virtual Swapchain   createSwapchain()       =   0;
         virtual GImage      createGImage()          =   0;
         virtual DSetLayout  createDSLayout()        =   0;
@@ -113,6 +114,15 @@ namespace   FE
         virtual UBO         createUBO()             =   0;
         virtual ITO         createITO()             =   0;
         virtual SBO         createSBO()             =   0;
+
+        inline  Pipeline    createPipeline(const char* typeName)
+        {
+            if (_stricmp(typeName,"compute") == 0)  
+                return  createCPipeline().get();
+            else
+                return  createGPipeline().get();;
+
+        }
         /// <summary>
         /// cpu buffer for trans src
         /// </summary>

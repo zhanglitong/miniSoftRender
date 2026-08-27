@@ -18,7 +18,7 @@ namespace   FE
         }
     }
 
-    DSetLayout  createDSLayoutFromShaders(FEContext& ctx,FEDevice& device,const std::vector<Shader>& shaders)
+    DSetLayout  createDSLayoutFromShaders(FEContext& ctx,FEDevice& device,const Shaders& shaders)
     {
         (void)device;
         std::vector<FEDSetBinding>        allBindings;
@@ -124,7 +124,7 @@ namespace   FE
         VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
         rasterizationStateCI.sType                      =   VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizationStateCI.polygonMode                =   VK_POLYGON_MODE_FILL;
-        rasterizationStateCI.cullMode                   =   VK_CULL_MODE_NONE;
+        rasterizationStateCI.cullMode                   =   VK_CULL_MODE_BACK_BIT;
         rasterizationStateCI.frontFace                  =   VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizationStateCI.depthClampEnable           =   VK_FALSE;
         rasterizationStateCI.rasterizerDiscardEnable    =   VK_FALSE;

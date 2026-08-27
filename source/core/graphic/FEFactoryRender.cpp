@@ -484,14 +484,16 @@ namespace   FE
         if (needUpdateITO && needUpdateVBO && needUpdateInst)
         {
             _vboInstances   =   buildInstanceVBOs();
+            _vboSphere      =   buildSphereVBO();
         }
         else if(needUpdateInst) 
         {
             updateInstanceLocal(slots);
+            updateInstanceBSphere();
         }
         if (needUpdateITO)
         {
-            _indirect       =   buildIndirect();
+            buildIndirect(_indirectFull,_indirect);
         }
         /// 清除标记
         for (auto& var : _groupNode)
@@ -657,7 +659,7 @@ namespace   FE
         return  gpu;
     }
 
-    auto    offfetIndex(const InputDescs& inputs)
+    inline  auto    offfetIndex(const InputDescs& inputs)
     {
         uints   indexs;
         for (auto& input: inputs)
@@ -667,6 +669,16 @@ namespace   FE
                 if (input.slot == FEInstanceHelper::instanceInputs[i].slot)
                     indexs.push_back(uint(i));
             }
+        }
+        return  indexs;
+    };
+    inline  auto    offfetIndex(uint slot)
+    {
+        uints   indexs;
+        for (size_t i = 0 ;i < sizeof(FEInstanceHelper::instanceInputs) / sizeof(FEInstanceHelper::instanceInputs[0]); ++ i )
+        {
+            if (slot == FEInstanceHelper::instanceInputs[i].slot)
+                indexs.push_back(uint(i));
         }
         return  indexs;
     };
@@ -753,6 +765,50 @@ namespace   FE
         copyVBinds(vboCPUs,vboGPUs);
         return  vboGPUs;
     }
+    VBO     FEFactoryRender::buildSphereVBO()
+    {
+        /// instance数量
+        uint32      count   =   0;
+        for (auto& var : _groupNode)
+        {
+            var->setStart(count);
+            count   +=  (uint32)var->_objects.size();
+        }
+        VBO     vboCPU  =   _device.createVBO();
+        VBO     vboGPU  =   _device.createVBO();
+        /// 找到需要更新属性的槽索引数组
+        uints       indexs  =   offfetIndex(IS_INSTANCE_BOUNDSPHERE);
+        /// 一个元素(顶点结构)的大小
+        uint        stride  =   0;
+        for (auto index : indexs)
+        {
+            stride  +=  FEInstanceHelper::instanceInputs[index].bytes;
+        }
+        uint64      length  =   count * stride;
+        vboGPU->create({length,DEVICE_DEFAULT_BIT});
+        vboCPU->create({length,HOST_VISIBLE_BIT});
+        uint8*      pDst        =   (uint8*)vboCPU->lock(length,0);
+        uint        instOffset  =   0;
+        for (auto& var : _groupNode)
+        {
+            pDst        =   var->copyFull(indexs,instOffset,pDst,0);
+            instOffset  +=  (uint)var->_objects.size();
+        }
+        vboCPU->unlock();
+
+        auto    cmdPool =   _device.transferCmdPool();
+        assert(cmdPool != nullptr);
+        if (cmdPool != nullptr)
+        {
+            CMDPtr      cmd     =   cmdPool->createCmd();
+            cmd->begin(true);
+            cmd->copyBuffer(vboCPU,vboGPU,{});
+            cmd->end();
+            cmd->submit(_device.queueTransfer());
+        }
+        return  vboGPU;
+    }
+
     void    FEFactoryRender::updateInstanceLocal(uint slots)
     {
         Material    mat     =   _groupNode.front()->_mat; 
@@ -834,6 +890,7 @@ namespace   FE
         {
             VBinds      vboCPUs;
             uint        flgBits =   FENode::ModifyValue;
+            /// 增加包围球计算
             vboCPUs.reserve(_vboInstances.size());
             for (auto& bind : binds)
             {   
@@ -886,8 +943,109 @@ namespace   FE
             copyVBindsRegions(vboCPUs,_vboInstances);
         }
     }
+
+    void    FEFactoryRender::updateInstanceBSphere()
+    {
+        Material    mat     =   _groupNode.front()->_mat; 
+        auto        pl      =   mat->pipeline(_key._primitive)->as<FEGPipeline>();
+        auto&       binds   =   pl->cInfo()._binds;
+        if (binds.empty())
+            return;
+        /// 局部更新节点的数量
+        uint32  count       =   0;
+        /// 需要更新的组数量
+        uint32  grpCount    =   0;
+        uint    grpInstCnt  =   0;
+        /// 统计有多少个instance 需要更新
+        /// 这里的问题是需要变量所有数据
+        /// 如果数据量很大，影响性能
+        /// 所以需要局部更新，即只更新发生变化了的数据
+        for (auto& var : _groupNode)
+        {
+            if (!var->flags().containFlag(FENode::InstanceProps))
+                continue;
+            /// 首先检测是否超过最大范围,如果没有超过，计算个数
+            if (var->isLocalUpdate())
+                count   +=  (uint)var->_updates.size();
+            else
+            {
+                grpCount    +=  1;
+                grpInstCnt  +=  (uint)var->_objects.size();
+            }   
+        }
+        /// 没有需要更新的，返回
+        if (count == 0 && grpCount == 0)
+            return;
+        /// 如果全部需要更新的数量不超过MAX_LOCAL_UPDATE * 4
+        /// 局部更新
+        if (count != 0)
+        {
+            /// 找到需要更新属性的槽索引数组
+            uints       indexs  =   offfetIndex(IS_INSTANCE_BOUNDSPHERE);
+            /// 一个元素(顶点结构)的大小
+            uint        stride  =   0;
+            for (auto index : indexs)
+            {
+                stride  +=  FEInstanceHelper::instanceInputs[index].bytes;
+            }
+            uint64      length  =   count * stride;
+            auto        vbo     =   _device.createVBO();
+            BufferCopys regions;
+            regions.reserve(count);
+
+            vbo->create({length,HOST_VISIBLE_BIT});
+            uint8*      pStart  =   (uint8*)vbo->lock(length,0);
+            uint8*      pDst    =   pStart;
+            for (auto& var : _groupNode)
+            {
+                if (!var->flags().containFlag(FENode::InstanceProps))
+                    continue;
+                pDst    =   var->copyPartial(indexs,stride,regions,pStart,pDst);
+            }
+            vbo->unlock();
+            copyBuffer(vbo,_vboSphere,regions);
+        }
+        /// 按组更新,有多少个组需要更新
+        if (grpCount != 0)
+        {
+            /// 找到需要更新属性的槽索引数组
+            uints       indexs  =   offfetIndex(IS_INSTANCE_BOUNDSPHERE);
+            /// 一个元素(顶点结构)的大小
+            uint        stride  =   0;
+            for (auto index : indexs)
+            {
+                stride  +=  FEInstanceHelper::instanceInputs[index].bytes;
+            }
+            /// 需要跟新instance 缓冲区数据大小
+            uint64      length  =   grpInstCnt * stride;
+            /// 创建内存缓冲区
+            auto        vbo     =   _device.createVBO();
+            vbo->create({length,HOST_VISIBLE_BIT});
+            BufferCopys regions;
+            regions.reserve(grpCount);
+
+            uint8*      pStart  =   (uint8*)vbo->lock(length,0);
+            uint8*      pDst    =   pStart;
+            for (auto& var : _groupNode)
+            {
+                if (var->isLocalUpdate())
+                    continue;
+                auto    pResult =   var->copyFull(indexs,var->start(),pDst,0);
+                BufferCopy  copy;
+                copy.srcOffset  =   pDst - pStart;
+                pDst            =   pResult; 
+
+                copy.dstOffset  =   (var->start() * stride);
+                copy.size       =   var->_objects.size() * stride;
+                regions.emplace_back(copy);
+            }
+            vbo->unlock();;
+            
+            copyBuffer(vbo,_vboSphere,regions);
+        }
+    }
   
-    ITO     FEFactoryRender::buildIndirect()
+    ITO     FEFactoryRender::buildIndirect(ITO&  gpuAll,ITO& gpuDraw)
     {
         uint32      cmdCount    =   0;
         for (auto& var : _groupNode)
@@ -909,8 +1067,10 @@ namespace   FE
 
         ITO         cpuBuf  =   _device.createITO(); 
         ITO         gpuBuf  =   _device.createITO(); 
+        ITO         gpuFull =   _device.createITO(); 
         cpuBuf->create({length, HOST_VISIBLE_BIT});
         gpuBuf->create({length, DEVICE_DEFAULT_BIT}); 
+        gpuFull->create({length, DEVICE_DEFAULT_BIT}); 
 
         auto        pCmdIdx =   (FECmdIndex*)cpuBuf->lock(length,0);
         size_t      instId  =   0;
@@ -940,11 +1100,15 @@ namespace   FE
         {
             CMDPtr      cmd     =   cmdPool->createCmd();
             cmd->begin(true);
-            cmd->copyBuffer(cpuBuf,gpuBuf,length,0,0);
+            cmd->copyBuffer(cpuBuf,gpuBuf,  length,0,0);
+            cmd->copyBuffer(cpuBuf,gpuFull, length,0,0);
+            
             cmd->end();
             cmd->submit(_device.queueTransfer());
         }
 
+        gpuDraw =   gpuBuf;
+        gpuAll  =   gpuBuf;
         return  gpuBuf;
     }
 
@@ -1100,6 +1264,21 @@ namespace   FE
                         cmd->copyBuffer( vboCPUs[i]._vbos[v],var._vbos[v],vboCPUs[i]._regions[v]);
                 }
             }
+            cmd->end();
+            cmd->submit(_device.queueTransfer());
+        }
+    }
+
+    void    FEFactoryRender::copyBuffer(VBO src,VBO dst,const BufferCopys& regions)
+    {
+        /// 拷贝数据到显卡
+        auto    cmdPool =   _device.transferCmdPool();
+        assert(cmdPool != nullptr);
+        if (cmdPool != nullptr)
+        {
+            CMDPtr      cmd     =   cmdPool->createCmd();
+            cmd->begin(true);
+            cmd->copyBuffer( src,dst,regions);
             cmd->end();
             cmd->submit(_device.queueTransfer());
         }

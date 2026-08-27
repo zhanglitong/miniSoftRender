@@ -70,8 +70,14 @@ namespace   FE
         }
     };
 
-
-    #define UNUSED(...)         (void)(__VA_ARGS__)
+    /// #define UNUSED(...)         (void)(__VA_ARGS__)
+    /// C++17 （利用折叠表达式）
+    template <typename... Args>
+    inline void UNUSED(Args&&... args) 
+    {
+        /// 逐个将参数转为 void，从左到右求值
+        ((void)(args), ...); 
+    }
 
     #define UUIDOF(CLASS)       FE::UUIDTraits<CLASS>::property().classId()
 
@@ -152,16 +158,7 @@ namespace   FE
     extern          uint    loadPlugin_##name();                    \
     static const    uint    PLUGIN_##name   =  loadPlugin_##name()  \
 
-
-#define REG_COM_SYSTEM(com,sys)                                     \
-    static const    uint    CS##com##sys    =   CLS_PROPERTY(com).add(ComSysId,UUIDOF(sys));
-
-
-   
-
-
-    DEFINE_CLASS_UUID(FEObject,"{00000000-1111-2222-3333-0123456789AB}");
-
+    
     enum    FlagBit :uint32_t
     {
         /// <summary>
@@ -200,8 +197,7 @@ namespace   FE
 
     using   Flags       =   FEFlags<FlagBit,uint32_t>;
 
-
-   
+    DEFINE_CLASS_UUID(FEObject,"{00000000-1111-2222-3333-0123456789AB}");
     class   FE_API  FEObject :public FEReference<Flags>
     {
     public:
@@ -353,8 +349,7 @@ namespace   FE
         /// <returns>true,表示修改成功,否则没有修改</returns>
         virtual bool        setProperty(int prop,const KFValue& value)
         {
-            UNUSED(prop);
-            UNUSED(value);
+            UNUSED(prop,value);
             return  false;
         }
         /// <summary>

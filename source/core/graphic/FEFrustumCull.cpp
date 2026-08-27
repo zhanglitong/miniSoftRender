@@ -5,6 +5,7 @@ namespace   FE
 {
     void    FEFrustumCull::doCull(Camera camera,const RFactorys& factorys)
     {
+        return;
         UNUSED(camera);
         Materials   mats;
         for (auto  var : factorys)

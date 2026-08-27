@@ -1,26 +1,27 @@
+
+
 #ifndef FE_SHADER_DEFINE_HPP
 #define FE_SHADER_DEFINE_HPP 1
 
 #ifdef __cplusplus
-#include    "../FEFlags.hpp"
-#include    "../FEStringHelper.hpp"
-#include    "../FEMath.hpp"
-using   namespace   FE;
-
+    #include    "../FEFlags.hpp"
+    #include    "../FEStringHelper.hpp"
+    #include    "../FEMath.hpp"
+    using   namespace   FE;
 #else
-#define     float2  vec2
-#define     float3  vec3
-#define     float4  vec4
+    #define     float2  vec2
+    #define     float3  vec3
+    #define     float4  vec4
 
-#define     int2    ivec2
-#define     int3    ivec3
-#define     int4    ivec4
+    #define     int2    ivec2
+    #define     int3    ivec3
+    #define     int4    ivec4
 
-#define     uint2   uvec2
-#define     uint3   uvec3
-#define     uint4   uvec4
-#define     quatf   vec4
-#define     matrix4 mat4
+    #define     uint2   uvec2
+    #define     uint3   uvec3
+    #define     uint4   uvec4
+    #define     quatf   vec4
+    #define     matrix4 mat4
 
 #endif
 
@@ -41,6 +42,8 @@ using   namespace   FE;
     #define  SB_Material    4
 #endif
 
+
+
 /// <summary>
 /// 骞宠鍏?
 /// </summary>
@@ -54,21 +57,43 @@ const   int     LightTypePoint  =   1;
 /// </summary>
 const   int     LightTypeSpot   =   2;
 
+#define CULL_GROUP_X    256
+
 #ifdef __cplusplus
     enum    RenderFlag
     {
-        RF_RECEIVE_SHADOW   =   1,
+        RF_VISIBLE          =   1,
+        RF_RECEIVE_SHADOW   =   (RF_VISIBLE)        <<1,
         RF_CAST_SHADOW      =   (RF_RECEIVE_SHADOW) <<1,
         RF_RECEIVE_LIGHT    =   (RF_CAST_SHADOW)    <<1,
         RF_COLOR            =   (RF_RECEIVE_LIGHT)  <<1,
     };
 #else
-    const   uint    RF_RECEIVE_SHADOW   =   1;
-    const   uint    RF_CAST_SHADOW      =   2;
-    const   uint    RF_RECEIVE_LIGHT    =   4;
-    const   uint    RF_COLOR            =   8;
+    const   uint    RF_VISIBLE          =   (1<<0);
+    const   uint    RF_RECEIVE_SHADOW   =   (1<<1);
+    const   uint    RF_CAST_SHADOW      =   (1<<2);
+    const   uint    RF_RECEIVE_LIGHT    =   (1<<3);
+    const   uint    RF_COLOR            =   (1<<4);
 #endif
 
+struct  CullParam
+{
+    float4      _planes[6];
+    float4      _rightDir;
+    /// <summary>
+    ///  视口的宽度
+    /// </summary>
+    float       _viewSizeW;
+    /// <summary>
+    /// 视口的高度
+    /// </summary>
+    float       _viewSizeH;
+    /// <summary>
+    /// 最小可见像素
+    /// </summary>
+    float       _minVisiblePixels;
+    mat4        _mvp;
+};
 
 struct  LightData
 {

@@ -85,6 +85,11 @@ namespace   FE
         LOG_DBG("SWDevice.createGPipeline");
         return  new SWGPipeline(_ctx);
     }
+    Pipeline    SWDevice::createCPipeline()
+    {
+        LOG_DBG("SWDevice.createCPipeline");
+        return  nullptr;
+    }
 
     Swapchain   SWDevice::createSwapchain()
     {

@@ -57,6 +57,7 @@ namespace   FE
         virtual Shader      createShader()      override;
         virtual RenderPass  createRenderPass()  override;
         virtual GPipeline   createGPipeline()   override;
+        virtual Pipeline    createCPipeline()   override;
         virtual Swapchain   createSwapchain()   override;
         virtual GImage      createGImage()      override;
 

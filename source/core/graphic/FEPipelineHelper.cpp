@@ -3,8 +3,6 @@
 #include    "../inc/FEFileInfor.hpp"
 #include    "../inc/graphic/FEPipelineHelper.h"
 
-
-
 namespace   FE
 {
     Pipelines   FEPipelineHelper::create(FEContext& ctx,FEDevice& device,RenderPass renderPass,const char* fileName)
@@ -38,10 +36,13 @@ namespace   FE
         auto    xmlShaders  =   root->first_node("shaders");
         auto    xmlBinds    =   root->first_node("bindings");
         auto    xmlStates   =   root->first_node("dynamicStates");
+        auto    attrType    =   root->first_attribute("type");
+
+        auto    plType      =   attrType ? attrType->value() : "graphic";
 
         auto    aUsingDef   =   root->first_attribute("using_defult");
       
-        if (xmlShaders == nullptr || xmlBinds == nullptr)
+        if (xmlShaders == nullptr)
             return  {};
         FEPipeline::CreateInfo  cInfo;
         cInfo._renderPass   =   renderPass;
@@ -81,76 +82,78 @@ namespace   FE
                 cInfo._shaders.emplace_back(shader);
             }
         }
-        
-        auto    xmlBind     =   xmlBinds->first_node("binding");
-        for (; xmlBind ; xmlBind = xmlBind->next_sibling())
+        if (xmlBinds)
         {
-            FEInputBindDesc desc    =   {};
-            XMLAttr*        pBind   =   xmlBind->first_attribute("binding");
-            XMLAttr*        pRate   =   xmlBind->first_attribute("inputRate");
-            desc.binding            =   uint16(pBind ? atoi(pBind->value()) : 0);
-            desc.inputRate          =   FEInputRate(pRate ? atoi(pRate->value()) : 0);
-            desc.stride             =   0;
-            auto            xmlInput=   xmlBind->first_node("input");
-            for ( ; xmlInput; xmlInput = xmlInput->next_sibling() )
+            auto    xmlBind     =   xmlBinds->first_node("binding");
+            for (; xmlBind ; xmlBind = xmlBind->next_sibling())
             {
-                FEInputDesc input   =   {};
-
-                XMLAttr*    aLoc    =   xmlInput->first_attribute("location");
-                XMLAttr*    aSlot   =   xmlInput->first_attribute("slots");
-                XMLAttr*    aFormat =   xmlInput->first_attribute("formats");
-                XMLAttr*    aOffset =   xmlInput->first_attribute("offsets");
-
-                input.binding       =   desc.binding;
-                input.location      =   uint16(aLoc ? atoi(aLoc->value()) : 0);
-
-                String      valSlot =   (aSlot   ? aSlot->value()   : "");
-                String      valFmt  =   (aFormat ? aFormat->value() : "");
-                String      valOff  =   (aOffset ? aOffset->value() : "");
-
-                Strings     slots   =   FEStringHelper::split(valSlot);
-                Strings     fmts    =   FEStringHelper::split(valFmt);
-                Strings     offsets =   FEStringHelper::split(valOff);
-                assert(slots.size() > 0 && fmts.size() > 0);
-                if (slots.size() == 1)
+                FEInputBindDesc desc    =   {};
+                XMLAttr*        pBind   =   xmlBind->first_attribute("binding");
+                XMLAttr*        pRate   =   xmlBind->first_attribute("inputRate");
+                desc.binding            =   uint16(pBind ? atoi(pBind->value()) : 0);
+                desc.inputRate          =   FEInputRate(pRate ? atoi(pRate->value()) : 0);
+                desc.stride             =   0;
+                auto            xmlInput=   xmlBind->first_node("input");
+                for ( ; xmlInput; xmlInput = xmlInput->next_sibling() )
                 {
-                    input.slot      =   FEInputSlotHelper::enumFromName(slots.front().c_str());
-                    input.format    =   FEFormatHelper::formatFromName(fmts.front().c_str());
-                    if (!offsets.empty())
-                        input.offset    =   atoi(offsets.front().c_str());
-                    else
-                        input.offset    =   desc.stride;
-                    desc.inputs.emplace_back(input);
-                    desc.stride         +=  FEFormatHelper::sizeOf(input.format);
-                }
-                else if(!slots.empty())
-                {
-                    auto    baseLoc =   input.location;
+                    FEInputDesc input   =   {};
 
-                    for (size_t i = 0 ;i < slots.size(); ++ i )
+                    XMLAttr*    aLoc    =   xmlInput->first_attribute("location");
+                    XMLAttr*    aSlot   =   xmlInput->first_attribute("slots");
+                    XMLAttr*    aFormat =   xmlInput->first_attribute("formats");
+                    XMLAttr*    aOffset =   xmlInput->first_attribute("offsets");
+
+                    input.binding       =   desc.binding;
+                    input.location      =   uint16(aLoc ? atoi(aLoc->value()) : 0);
+
+                    String      valSlot =   (aSlot   ? aSlot->value()   : "");
+                    String      valFmt  =   (aFormat ? aFormat->value() : "");
+                    String      valOff  =   (aOffset ? aOffset->value() : "");
+
+                    Strings     slots   =   FEStringHelper::split(valSlot);
+                    Strings     fmts    =   FEStringHelper::split(valFmt);
+                    Strings     offsets =   FEStringHelper::split(valOff);
+                    assert(slots.size() > 0 && fmts.size() > 0);
+                    if (slots.size() == 1)
                     {
-                        input.slot          =   FEInputSlotHelper::enumFromName(slots[i].c_str());
-                        input.format        =   FEFormatHelper::formatFromName(fmts[i].c_str());
-                        input.location      =   baseLoc + uint(i);
-                        /// 
+                        input.slot      =   FEInputSlotHelper::enumFromName(slots.front().c_str());
+                        input.format    =   FEFormatHelper::formatFromName(fmts.front().c_str());
                         if (!offsets.empty())
-                            input.offset    =   atoi(offsets[i].c_str());
+                            input.offset    =   atoi(offsets.front().c_str());
                         else
                             input.offset    =   desc.stride;
                         desc.inputs.emplace_back(input);
                         desc.stride         +=  FEFormatHelper::sizeOf(input.format);
                     }
-                }
-            }
-            cInfo._binds.emplace_back(desc);
-        }
+                    else if(!slots.empty())
+                    {
+                        auto    baseLoc =   input.location;
 
+                        for (size_t i = 0 ;i < slots.size(); ++ i )
+                        {
+                            input.slot          =   FEInputSlotHelper::enumFromName(slots[i].c_str());
+                            input.format        =   FEFormatHelper::formatFromName(fmts[i].c_str());
+                            input.location      =   baseLoc + uint(i);
+                            /// 
+                            if (!offsets.empty())
+                                input.offset    =   atoi(offsets[i].c_str());
+                            else
+                                input.offset    =   desc.stride;
+                            desc.inputs.emplace_back(input);
+                            desc.stride         +=  FEFormatHelper::sizeOf(input.format);
+                        }
+                    }
+                }
+                cInfo._binds.emplace_back(desc);
+            }
+        }
+        
         /// 
         XMLNode*    xmlPL   =   root->first_node("pipeline");
         Pipelines   result;
         for ( ; xmlPL ; xmlPL = xmlPL->next_sibling())
         {
-            auto    pileline    =   createPipeline(_ctx,device,renderPass,cInfo,xmlPL,prefix);
+            auto    pileline    =   createPipeline(_ctx,device,renderPass,cInfo,xmlPL,prefix,plType);
             if(pileline == nullptr)
             {
                 LOG_ERR("createPipeline(%s) return nullptr!",prefix.c_str());
@@ -177,12 +180,12 @@ namespace   FE
                 String  name        =   prefix + "/" + nameOfEnum(cInfo._inputAssemblyState._primitive);
                 /// 
                 auto    itr         =   std::find_if(result.begin(),result.end(),[&](Pipeline pl)
-                    {
-                        return  pl->name() == name;
-                    });
+                {
+                    return  pl->name() == name;
+                });
                 if (itr != result.end())
                     continue;
-                auto    pileline    =   device.createGPipeline();
+                auto    pileline    =   device.createPipeline(plType);
                 pileline->setName(name);
                 if(!pileline->create(cInfo))
                 {   
@@ -196,7 +199,7 @@ namespace   FE
     }
 
 
-    Pipeline    FEPipelineHelper::createPipeline(FEContext& ctx,FEDevice& device,RenderPass renderPass,FEPipeline::CreateInfo& cInfo,XMLNode* node,const String& prefix)
+    Pipeline    FEPipelineHelper::createPipeline(FEContext& ctx,FEDevice& device,RenderPass renderPass,FEPipeline::CreateInfo& cInfo,XMLNode* node,const String& prefix,const char* plType)
     {
         (void)ctx;
         (void)renderPass;
@@ -226,14 +229,17 @@ namespace   FE
         String  name;
         if (aName != nullptr)
             name    =   aName->value();
-        else
+        else if(xmlIAState)
             name    =   prefix + "/" + nameOfEnum(cInfo._inputAssemblyState._primitive);
-        auto    pileline    =   device.createGPipeline();
+        
+        Pipeline    pileline    =   device.createPipeline(plType);
         pileline->setName(name);
         if(!pileline->create(cInfo))
             return  nullptr;
         else
             return  pileline.get();
+       
+       
     }
 
     Shader      FEPipelineHelper::createShader(FEContext& ctx,FEDevice& device,const String& path)

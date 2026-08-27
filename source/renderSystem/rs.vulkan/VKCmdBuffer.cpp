@@ -468,7 +468,7 @@ namespace   FE
     FEResult    VKCmdBuffer::dispatch(uint x,uint y,uint z) 
     {
         vkCmdDispatch(_native,x,y,z);
-        return  FEResult::ER_FAILED;
+        return  FEResult::ER_SUCCESS;
     }
 
     FEResult    VKCmdBuffer::end()

@@ -214,16 +214,22 @@ namespace   FE
         return new WGShader(_ctx);
     }
 
-    RenderPass WGDevice::createRenderPass()
+    RenderPass  WGDevice::createRenderPass()
     {
         LOG_DBG("WGDevice.createRenderPass");
         return new WGRenderPass(_ctx);
     }
 
-    GPipeline WGDevice::createGPipeline()
+    GPipeline   WGDevice::createGPipeline()
     {
         LOG_DBG("WGDevice.createGPipeline");
-        return new WGPipeline(_ctx);
+        return new WGPipeline(_ctx); 
+    }
+    Pipeline    WGDevice::createCPipeline()
+    {
+        LOG_DBG("WGDevice.createCPipeline");
+        assert(0!=0);
+        return  nullptr;
     }
 
     Swapchain WGDevice::createSwapchain()

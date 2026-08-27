@@ -21,6 +21,7 @@
 #include    "VKFence.h"
 #include    "VKSemaphore.h"
 #include    "VKGPUBuffer.h"
+#include    "VKCPipeline.h"
 
 namespace   FE
 {
@@ -151,6 +152,12 @@ namespace   FE
         LOG_DBG("VKRenderSystem.createGPipeline");
         return  new VKGPipeline(_ctx);
     }
+    Pipeline    VKDevice::createCPipeline()   
+    {
+        LOG_DBG("VKRenderSystem.createCPipeline");
+        return  new VKCPipeline(_ctx);
+    }
+    
     Swapchain   VKDevice::createSwapchain()        
     {
         LOG_DBG("VKRenderSystem.Swapchain");
