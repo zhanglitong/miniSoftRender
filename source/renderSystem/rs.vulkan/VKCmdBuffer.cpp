@@ -125,7 +125,6 @@ namespace   FE
 
     }
     
-
     FEResult    VKCmdBuffer::beginRender(const RenderInfo& rs)
     {
         constexpr   size_t  nMax    =   32;
@@ -254,7 +253,6 @@ namespace   FE
         }
         return  FEResult::ER_SUCCESS;
     }
-
 
     FEResult    VKCmdBuffer::endRenderPass()
     {
@@ -388,7 +386,6 @@ namespace   FE
         return  FEResult::ER_SUCCESS;
     }
 
-
     FEResult    VKCmdBuffer::copyBuffer(GPUBuffer srcBuf,GPUBuffer dstBuf,uint64 length,uint64 srcOff,uint64 dstOff) 
     {
         if (   !isValid() 
@@ -429,7 +426,6 @@ namespace   FE
 
         return  FEResult::ER_SUCCESS;
     }
-
 
     FEResult    VKCmdBuffer::updateBuffer(GPUBuffer dstBuf,const void* data,uint64 length,uint64 dstOff)
     {
@@ -488,7 +484,6 @@ namespace   FE
         vkCmdDrawIndexedIndirect(_native,(VkBuffer)buffer->native(),offset,drawCount,stride);
         return  FEResult::ER_SUCCESS;
     }
-
 
     FEResult    VKCmdBuffer::setPrimitiveTopology(EPrimitive pri) 
     {
