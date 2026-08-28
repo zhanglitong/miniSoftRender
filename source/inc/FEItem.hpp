@@ -52,9 +52,9 @@ namespace   FE
         /// <returns></returns>
         virtual bool    addChild(Item child)
         {
-            auto    itr =   std::find(_childs.begin(),_childs.end(),child);
-            if (itr != _childs.end())
-                return  false;
+            /// auto    itr =   std::find(_childs.begin(),_childs.end(),child);
+            /// if (itr != _childs.end())
+            ///     return  false;
             _childs.emplace_back(child);
             child->setParent(this);
             onAddChildren();

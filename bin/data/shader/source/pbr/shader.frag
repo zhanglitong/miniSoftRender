@@ -21,11 +21,11 @@ layout(std140, binding = SB_Light) readonly buffer LightsBlock
     LightData    _lights[];
 };
 
+
 void main() 
 {
-    fragColor   =   vec4(0,0,0,1);
-    
-    vec3    diff    =   inFlagBits == 0 ? _pbr._diffuse.rgb : inNodeColor.rgb * 0.1 + _pbr._diffuse.rgb * 0.9;
+    fragColor       =   vec4(0,0,0,1);
+    vec3    diff    =   hasNodeColor(inFlagBits) ? inNodeColor.rgb : _pbr._diffuse.rgb;
     int numLights = _lights.length();
     for(int i = 0; i < numLights; ++i)
     {
@@ -33,7 +33,7 @@ void main()
         vec3    lColor  =   vec3(_lights[i].r,_lights[i].g,_lights[i].b);
         
         float   NdotL   =   max(0.1, dot(normalize(inNor), lDir));
-        vec3    diffuse =   diff * (lColor * NdotL) + _pbr._emissive.rgb ;
+        vec3    diffuse =   diff * (NdotL) + _pbr._emissive.rgb ;
 
         fragColor.xyz   +=  diffuse;
     }

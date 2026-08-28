@@ -385,6 +385,7 @@ namespace   FE
 
     void    FEFactoryRender::update(CMDPtr cmd)
     {
+#if 0
         Camera  camera  =   _ctx.scene()->camera();
         auto    frust   =   camera->extract();
         for (auto& grp: _groupNode)
@@ -398,6 +399,7 @@ namespace   FE
                 }
             }
         }
+#endif 
         updateImpl(cmd);
     }
 
@@ -443,7 +445,7 @@ namespace   FE
             binds.plBindPoint   =   PL_GRAPIC;
             binds.plLayout      =   pl->nativeLayout();
             cmd->bindDescriptors(binds);
-            uint64  offset      =   grp->start() * sizeof(FECmdIndex);
+            uint64  offset      =   grp->cmdOffset() * sizeof(FECmdIndex);
             uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
             if (nCmd == 0)
                 continue;
@@ -1177,7 +1179,7 @@ namespace   FE
         }
 
         gpuDraw =   gpuBuf;
-        gpuAll  =   gpuBuf;
+        gpuAll  =   gpuFull;
         return  gpuBuf;
     }
 
@@ -1207,12 +1209,16 @@ namespace   FE
         auto&           cullParam   =   pCull->_cullParam._value;
         auto&           cullResult  =   pCull->_cullResult._value;
         auto            rightDir    =   camera->getRight();
+        auto            offCmd      =   grp->cmdOffset();
+        auto            cntCmd      =   grp->cmdCount();
 
         memset(&cullResult,0,sizeof(cullResult));
-        
-        cullParam._count            =   grp->cmdCount();
+                    
+        cullParam._offset           =   offCmd;
+        cullParam._count            =   cntCmd;
+
         cullParam._minVisiblePixels =   10;
-        cullParam._offset           =   grp->cmdOffset();
+       
         cullParam._rightX           =   (float)rightDir.x;
         cullParam._rightY           =   (float)rightDir.y;
         cullParam._rightZ           =   (float)rightDir.z;
@@ -1230,10 +1236,12 @@ namespace   FE
         pCull->_cullResult.update();
         pCull->_cullParam.update();
 
-        pCull->bind(0,0,{_vboSphere.get()});
+
+        pCull->bind(0,0,{_vboSphere.get()}   );
         pCull->bind(0,1,{_indirectFull.get()});
         pCull->bind(0,2,{_indirectClip.get()});
         pCull->bind(0,3,{flagBitsVBO().get()});
+
         pCull->bind(0,4,{pCull->_cullResult._gpu.get()});
         pCull->bind(0,5,{pCull->_cullParam._gpu.get()});
         pCull->update();
@@ -1252,9 +1260,10 @@ namespace   FE
 
         memset(&cullResult,0,sizeof(cullResult));
 
+        cullParam._offset           =   grp->cmdOffset();
         cullParam._count            =   grp->cmdCount();
         cullParam._minVisiblePixels =   10;
-        cullParam._offset           =   grp->cmdOffset();
+        
         cullParam._rightX           =   (float)rightDir.x;
         cullParam._rightY           =   (float)rightDir.y;
         cullParam._rightZ           =   (float)rightDir.z;
@@ -1265,7 +1274,6 @@ namespace   FE
         pCull->_cullParam.update();
         pCull->_cullResult.update();
         
-
         FrustumR    frustum         =   camera->extract();
         for (size_t i = 0; i < 6; i++)
         {
@@ -1274,11 +1282,11 @@ namespace   FE
             cullParam._planes[i].z  =   frustum._planes[i]._normal.z;
             cullParam._planes[i].w  =   frustum._planes[i]._distance;
         }
-
-        pCull->bind(0,0,{_vboSphere.get()});
+        pCull->bind(0,0,{_vboSphere.get()}   );
         pCull->bind(0,1,{_indirectFull.get()});
         pCull->bind(0,2,{_indirectClip.get()});
         pCull->bind(0,3,{flagBitsVBO().get()});
+
         pCull->bind(0,4,{pCull->_cullResult._gpu.get()});
         pCull->bind(0,5,{pCull->_cullParam._gpu.get()});
 

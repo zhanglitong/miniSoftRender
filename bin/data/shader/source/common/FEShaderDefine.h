@@ -22,7 +22,6 @@
     #define     uint4   uvec4
     #define     quatf   vec4
     #define     matrix4 mat4
-
 #endif
 
 #ifdef __cplusplus
@@ -74,6 +73,11 @@ const   int     LightTypeSpot   =   2;
     const   uint    RF_CAST_SHADOW      =   (1<<2);
     const   uint    RF_RECEIVE_LIGHT    =   (1<<3);
     const   uint    RF_COLOR            =   (1<<4);
+
+    bool    hasNodeColor(uint flag)
+    {
+        return  (flag & RF_COLOR)  != 0;
+    }
 #endif
 
 struct  CullParam
@@ -94,10 +98,10 @@ struct  CullParam
     /// 最小可见像素
     /// </summary>
     float       _minVisiblePixels;
-    /// 元素个数
-    uint        _count;
     /// 在总数组上索引偏移量
     uint        _offset;
+    /// 元素个数
+    uint        _count;
     mat4        _mvp;
 };
 
@@ -240,18 +244,24 @@ struct  PBRData
     float4              _spacular;    
     float               _roughness;
     float               _metallic;
+    KHRMatTransmission  _transmission;
     KHRMatIridescence   _iri;
     KHRMatClearcoat     _clearcoat;
-    KHRMatTransmission  _transmission;
     KHRMatVolume        _volume;
+    uint                _reserver0;
+    uint                _reserver1;
+    uint                _reserver2;
+    uint                _reserver3;
+    uint                _reserver4;
+    uint                _reserver5;
 #ifdef __cplusplus
     PBRData()
     {
         _roughness  =   0.5f;
         _metallic   =   0.5f;
-        _emissive   =   float4(1,1,1,1);
-        _diffuse    =   float4(1,0,0,1);
-        _spacular   =   float4(1,1,1,1);
+        _emissive   =   float4(0.1f,0.1f,0.1f,1.0f);
+        _diffuse    =   float4(1.0f,0.0f,0.0f,1.0f);
+        _spacular   =   float4(0.1f,0.1f,0.1f,1.0f);
     }
 #endif
 };

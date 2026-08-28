@@ -58,7 +58,7 @@ namespace   FE
         };
         {
             FEDevice::CreateInfo    infor   =   {};
-            infor.deviceId  =   gpuList[0].gpuId;
+            infor.deviceId  =   gpuList[1].gpuId;
             _device->create(infor);
         }
         {
@@ -123,22 +123,23 @@ namespace   FE
         Material    material    =   new FEMaterialV3C4(_ctx);
         Material    matLine     =   new FEMaterialV3C4(_ctx);
         auto        nodes       =   loadNode(material);
-        for (auto& node : nodes)
-        {
-            _nodeTree.addToplevelNode(node);
-        }
-        {
-            auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodes);
-            for (auto& var : factorys)
-            {
-                _factorys.addObject(var);
-            }
-        }
+        //for (auto& node : nodes)
+        //{
+        //    _nodeTree.addToplevelNode(node);
+        //}
+        //{
+        //    auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodes);
+        //    for (auto& var : factorys)
+        //    {
+        //        _factorys.addObject(var);
+        //    }
+        //}
         {
             auto    node        =   createGrid(matLine);
             auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{node});
             for (auto& var : factorys)
             {
+                var->setGPUCull(false);
                 _factorys.addObject(var);
             }
         }

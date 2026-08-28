@@ -14,8 +14,8 @@ namespace   FE
         static  Primitive   createIndex(FEContext& ctx, const std::vector<T>& data)
         {
             auto    nMax    =   maxValue(data);
-            if (nMax < (std::numeric_limits<uint8>::max)())
-                return  createIndex8(ctx,data);
+            //if (nMax < (std::numeric_limits<uint8>::max)())
+            //    return  createIndex8(ctx,data);
             if (nMax < (std::numeric_limits<uint16>::max)())
                 return  createIndex16(ctx,data);
             else

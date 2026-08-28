@@ -89,8 +89,8 @@ namespace   FE
                 if (ptr == nullptr)
                     return  FEResult::ER_FAILED;
                 memcpy(ptr,pData,length);
-                unlock();
                 flush(length,offset);
+                unlock();
                 return  FEResult::ER_SUCCESS;
             }
         case MemoryUsage::DEVICE_LOCAL_BIT      :

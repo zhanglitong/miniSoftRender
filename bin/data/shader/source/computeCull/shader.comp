@@ -1,0 +1,173 @@
+#version    450
+
+#include "FEShaderDefine.h"
+
+#define GROUP_SIZE_X    CULL_GROUP_X
+#define GROUP_SIZE_Y    1
+#define GROUP_SIZE_Z    1
+
+
+layout(local_size_x = GROUP_SIZE_X, local_size_y = GROUP_SIZE_Y, local_size_z = GROUP_SIZE_Z) in;
+
+struct DrawElement
+{
+    uint count;
+    uint primCount;
+    uint firstIndex;
+    int  baseVertex;
+    uint baseInstance;
+};
+
+layout(std430, binding = 0) buffer InstanceBuffer
+{
+    vec4    _bSpheres[];
+};
+
+layout(std430, binding = 1) buffer  InputBuffer
+{
+    DrawElement _allCommands [];
+};
+
+layout(std430, binding = 2) buffer  OutputBuffer
+{
+    DrawElement _clippedCmds [];
+};
+layout(std430, binding = 3) buffer  State
+{
+    uint        _flags[];
+};
+layout(std430, binding = 4) buffer  OutputResult
+{
+    CullResult      _result;
+};
+layout(binding = 5)         uniform CullParamBuffer
+{
+    CullParam       _cullParam;
+};
+
+bool    checkFrustumIn(vec3 sphereCenter, float sphereRadius)
+{
+    for (int i = 0; i < 6; ++i)
+    {
+        float distance = dot(vec4(sphereCenter, 1.0), _cullParam._planes[i]);
+        if (distance < -sphereRadius)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool    checkMinPixels(vec3 center, float radius)
+{
+    /// 如果值小于0,则不检测最小可见性
+    if (_cullParam._minVisiblePixels <= 0.0)
+        return  true;
+    /// 投影中心点
+    vec4    clip0       =   _cullParam._mvp * vec4(center, 1.0);
+    /// 沿右方向移动半径距离
+    vec3    rightPos    =   center + radius * vec3(_cullParam._rightX,_cullParam._rightY,_cullParam._rightZ);
+    vec4    clip1       =   _cullParam._mvp * vec4(rightPos, 1.0);
+
+    /// 避免除零（点在相机后方）
+    if (clip0.w <= 0.0 || clip1.w <= 0.0)
+        return false;
+    vec2    ndc0        =   clip0.xy / clip0.w;
+    vec2    ndc1        =   clip1.xy / clip1.w;
+    float   pixelDist   =   length((ndc1 - ndc0) * _cullParam._viewSizeW); 
+    return  pixelDist >= _cullParam._minVisiblePixels;
+}
+bool    checkVisible(uint flagBits)
+{
+    return  (flagBits & RF_VISIBLE) != 0;
+}
+
+#if 1
+    /// 共享内存方式性能比下面的直接原子技术性能高50% 
+    /// (测试数据量100万) 
+    /// 共享方式用时0.32ms 
+    /// 原子技术方式用时0.48ms
+    shared  uint        resultBits[GROUP_SIZE_X] ;
+    shared  DrawElement localCmds[GROUP_SIZE_X];
+
+    void main()
+    {
+        uint localID_X          =   gl_LocalInvocationID.x;
+        uint localID_Y          =   gl_LocalInvocationID.y;
+        uint localID            =   localID_Y * GROUP_SIZE_X + localID_X;
+        uint offset             =   _cullParam._offset;
+        resultBits[localID_X]   =   0u;
+
+        /// 
+        /// 一次dispatch 对应一个组的数据 globalID == 0~_cullParam._count
+        /// 
+        uint globalID   =   gl_WorkGroupID.x * GROUP_SIZE_X * GROUP_SIZE_Y + localID ;
+    
+        if (globalID < _cullParam._count)
+        {
+            /// 
+            /// 获取绘制命令,是一个工厂内的多个材质对应的数据
+            /// offset 是该组在 大缓冲区中的位置
+            /// 
+            DrawElement     cmd     =   _allCommands[globalID + offset];
+            uint            instId  =   cmd.baseInstance;
+            vec4            sphere  =   _bSpheres[instId];
+            vec3            center  =   sphere.xyz;
+            float           radius  =   sphere.w;
+        
+            if (checkVisible(_flags[instId]) && checkFrustumIn(center, radius) && checkMinPixels(center, radius))
+            {
+                resultBits[localID_X] =   1;
+                localCmds[localID_X]  =   cmd;
+            }
+        }
+        barrier();
+        if (localID_X == 0)
+        {
+            uint    nCnt    =   0;
+            for (uint b = 0; b < GROUP_SIZE_X ; ++b)
+            {
+                nCnt += resultBits[b];
+            }
+            /// 当前组结果加到_result.clippedCount
+            uint    nIndex  =   atomicAdd(_result.clippedCount, nCnt) + offset;
+            for (uint b = 0; b < GROUP_SIZE_X ; ++b)
+            {
+                if(resultBits[b] != 0u)
+                    _clippedCmds[nIndex ++]  =   localCmds[b];
+            }
+        }
+    }
+#else
+    void main()
+    {
+        uint localID_X  =   gl_LocalInvocationID.x;
+        uint localID_Y  =   gl_LocalInvocationID.y;
+        uint localID    =   localID_Y * GROUP_SIZE_X + localID_X;
+        uint offset     =   _cullParam._offset;
+        /// 
+        /// 一次dispatch 对应一个组的数据 globalID == 0~_cullParam._count
+        /// 
+        uint globalID   =   gl_WorkGroupID.x * GROUP_SIZE_X * GROUP_SIZE_Y + localID ;
+        if (globalID < _cullParam._count)
+        {
+            /// 
+            /// 获取绘制命令,是一个工厂内的多个材质对应的数据
+            /// offset 是该组在 大缓冲区中的位置
+            /// 
+            DrawElement     cmd     =   _allCommands[globalID + offset];
+            uint            instId  =   cmd.baseInstance;
+            vec4            sphere  =   _bSpheres[instId];
+            vec3            center  =   sphere.xyz;
+            float           radius  =   sphere.w;
+            /// 执行剔除
+            if (checkVisible(_flags[instId]) && checkFrustumIn(center, radius) && checkMinPixels(center, radius))
+            {
+                // 4. 原子分配输出位置
+                uint    writePos                =   atomicAdd(_result.clippedCount, 1);
+                _clippedCmds[offset + writePos] =   cmd;
+            }
+        }
+    }
+#endif
+

@@ -97,6 +97,7 @@ namespace   FE
             void    setMaterial(Material mat)   {   _mat    =   mat;    }
             void    setStart(uint32 start)      {   _start  =   start;  }
             uint32  start() const               {   return  _start;     }
+            uint    count() const               {   return  uint(_objects.size());}
             /// <summary>
             /// 绘制命令数量,裁剪过后的命令数量
             /// </summary>
