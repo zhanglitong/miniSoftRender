@@ -8,7 +8,7 @@
 
 namespace   FE
 {
-    template<typename UType,MemoryUsage usage = DEVICE_DEFAULT_BIT>
+    template<typename UType,MemoryUsage usage = HOST_COHERENT_BIT>
     class   TBlock
     {
     public:

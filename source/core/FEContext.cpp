@@ -14,7 +14,7 @@
 #include    "../inc/mesh/FEDrawElementUint16.hpp"
 #include    "../inc/mesh/FEDrawElementUint32.hpp"
 #include    "../inc/mesh/FEMesh.hpp"
-#include    "../inc/mesh/FEMeshBuffer.hpp"
+#include    "../inc/mesh/FEAttribyteBuffer.hpp"
 
 #include    "../inc/node/FENode.hpp"
 #include    "../inc/FEEntryList.hpp"

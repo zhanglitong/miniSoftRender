@@ -16,14 +16,13 @@ namespace   FE
     constexpr   uint    instColorSlots  =   IS_INSTANCE_COLOR;
     constexpr   uint    instLodSlots    =   IS_INSTANCE_LOD_INDEX;
     
-    uint32  GroupNode::count()        
+    uint32  GroupNode::cullCount()        
     {   
-        uint    nMax    =   uint32(_objects.size());
         if (_cullMat == nullptr)
-            return  nMax;
+            return  _cmdCount;
         auto    cull    =   _cullMat->as<FEMaterialCull>();
         cull->_cullResult.gpu2cpu();
-        uint    nCnt   =   (std::min)(cull->_cullResult._value.clippedCount,nMax);
+        uint    nCnt   =   (std::min)(cull->_cullResult._value.clippedCount,_cmdCount);
         if (nCnt == 0)
             nCnt    +=  0;
         else
@@ -230,6 +229,19 @@ namespace   FE
         }
         return  pDst;
     }
+
+    FEFactoryRender::FEFactoryRender(FEContext& ctx,FEDevice& device)
+        :FEFactory(ctx)
+        ,_device(device)
+    {
+        _gpuCull    =   true;
+    }
+
+    FEFactoryRender::FEFactoryRender(const FEFactoryRender& other)
+        :FEFactory(other)
+        ,_device(other._device)
+    {}
+
     Materials   FEFactoryRender::getOrCreateCullMaterials(Camera camera)
     {
         Materials   result;
@@ -246,9 +258,12 @@ namespace   FE
         return  result;
     }
 
-    bool        FEFactoryRender::supportGPUCull() const
+    bool    FEFactoryRender::supportGPUCull() const
     {
-        return  flagBitsVBO()!= nullptr;
+        if (!_gpuCull)
+            return  false;
+        else
+            return  flagBitsVBO()!= nullptr;
     }
 
     size_t  FEFactoryRender::addNode(Node node)
@@ -417,6 +432,7 @@ namespace   FE
             cmd->bindIBO(_ibo,0,FEIndexType::INDEX_UINT32);
             break;
         }
+        bool    gpuCull =   supportGPUCull();
         for (auto& grp : _groupNode)
         {
             FECmdBuffer::DSetBind   binds   =   {};
@@ -428,19 +444,22 @@ namespace   FE
             binds.plLayout      =   pl->nativeLayout();
             cmd->bindDescriptors(binds);
             uint64  offset      =   grp->start() * sizeof(FECmdIndex);
+            uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
+            if (nCmd == 0)
+                continue;
             switch(_key._drawType)
             {
             case EDrawType::DRAW_ARRAY:
-                cmd->drawArrayIndirect(_indirectClip,   offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawArrayIndirect(_indirectClip,   offset, nCmd,sizeof(FECmdIndex));
                 break;
             case EDrawType::DRAW_ELEMENT_UINT8:
-                cmd->drawIndexedIndirect(_indirectClip, offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawIndexedIndirect(_indirectClip, offset, nCmd,sizeof(FECmdIndex));
                 break;
             case EDrawType::DRAW_ELEMENT_UINT16:
-                cmd->drawIndexedIndirect(_indirectClip, offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawIndexedIndirect(_indirectClip, offset, nCmd,sizeof(FECmdIndex));
                 break;
             case EDrawType::DRAW_ELEMENT_UINT32:
-                cmd->drawIndexedIndirect(_indirectClip, offset, grp->count(),sizeof(FECmdIndex));
+                cmd->drawIndexedIndirect(_indirectClip, offset, nCmd,sizeof(FECmdIndex));
                 break;
             }
         }
@@ -1092,9 +1111,11 @@ namespace   FE
   
     ITO     FEFactoryRender::buildIndirect(ITO&  gpuAll,ITO& gpuDraw)
     {
-        uint32      cmdCount    =   0;
+        uint32      cmdOffset   =   0;
         for (auto& var : _groupNode)
         {
+            var->setCmdOffset(cmdOffset);
+            uint    nCmd    =   0;
             for (auto& node: var->_objects)
             {
                 auto    mesh    =   node->mesh();
@@ -1104,11 +1125,14 @@ namespace   FE
                     if (pri->primitive() != _key._primitive)
                         continue;
                     else
-                        ++cmdCount;
+                        ++nCmd;
                 }
             }
+            var->setCmdCount(nCmd);
+            cmdOffset   +=  nCmd;
+
         }
-        uint64      length  =   sizeof(FECmdIndex) * cmdCount;
+        uint64      length  =   sizeof(FECmdIndex) * cmdOffset;
 
         ITO         cpuBuf  =   _device.createITO(); 
         ITO         gpuBuf  =   _device.createITO(); 
@@ -1186,9 +1210,9 @@ namespace   FE
 
         memset(&cullResult,0,sizeof(cullResult));
         
-        cullParam._count            =   uint(grp->_objects.size());
+        cullParam._count            =   grp->cmdCount();
         cullParam._minVisiblePixels =   10;
-        cullParam._offset           =   grp->start();
+        cullParam._offset           =   grp->cmdOffset();
         cullParam._rightX           =   (float)rightDir.x;
         cullParam._rightY           =   (float)rightDir.y;
         cullParam._rightZ           =   (float)rightDir.z;
@@ -1215,7 +1239,7 @@ namespace   FE
         pCull->update();
         return  pMat;
     }
-    void        FEFactoryRender::updateCullMaterial(Group grp,Camera camera)
+    void    FEFactoryRender::updateCullMaterial(Group grp,Camera camera)
     {
         if (grp == nullptr || grp->_cullMat == nullptr || camera == nullptr)
             return;
@@ -1228,9 +1252,9 @@ namespace   FE
 
         memset(&cullResult,0,sizeof(cullResult));
 
-        cullParam._count            =   uint(grp->_objects.size());
+        cullParam._count            =   grp->cmdCount();
         cullParam._minVisiblePixels =   10;
-        cullParam._offset           =   grp->start();
+        cullParam._offset           =   grp->cmdOffset();
         cullParam._rightX           =   (float)rightDir.x;
         cullParam._rightY           =   (float)rightDir.y;
         cullParam._rightZ           =   (float)rightDir.z;

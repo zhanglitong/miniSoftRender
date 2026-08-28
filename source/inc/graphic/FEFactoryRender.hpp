@@ -74,7 +74,15 @@ namespace   FE
             /// 相对于大数组中的偏移量,一个工厂有多个 GroupNode
             /// _start 记录当前groupNode,在大数组中的其实位置
             /// </summary>
-            uint32      _start  =   0;
+            uint32      _start      =   0;
+            /// <summary>
+            /// 命令偏移量,一个节点有可能会产生多个cmd,一个mesh 对应多个primative
+            /// </summary>
+            uint32      _cmdOffset  =   0;
+            /// <summary>
+            /// 全部命令的总数
+            /// </summary>
+            uint        _cmdCount   =   0;
             /// <summary>
             /// 需要被更新的节点,每一帧会检测该数组中是否有数据
             /// 如果有数据同步更新GPU 数据后，清空
@@ -89,7 +97,35 @@ namespace   FE
             void    setMaterial(Material mat)   {   _mat    =   mat;    }
             void    setStart(uint32 start)      {   _start  =   start;  }
             uint32  start() const               {   return  _start;     }
-            uint32  count();
+            /// <summary>
+            /// 绘制命令数量,裁剪过后的命令数量
+            /// </summary>
+            /// <returns></returns>
+            uint32  cullCount();
+            /// <summary>
+            /// 命令的起始偏移量(对象于整个总命令缓冲区)
+            /// </summary>
+            /// <returns></returns>
+            uint32  cmdOffset() const
+            {
+                return  _cmdOffset;
+            }
+            /// <summary>
+            /// 全部可用命令，没有被裁剪之前的数据
+            /// </summary>
+            /// <returns></returns>
+            uint32  cmdCount() const
+            {
+                return  _cmdCount;
+            }
+            void    setCmdCount(uint32 cnt)
+            {
+                _cmdCount   =   cnt;
+            }
+            void    setCmdOffset(uint32 offset)
+            {
+                _cmdOffset  =   offset;
+            }
             size_t  addNode(Node node);
             size_t  addNodes(Nodes::iterator nBegin, Nodes::iterator eEnd);
             size_t  addNodes(Nodes&  nodes);
@@ -144,14 +180,10 @@ namespace   FE
         };
         using   VBinds    =   std::vector<VBind>;
     public:
-        FEFactoryRender(FEContext& ctx,FEDevice& device)
-            :FEFactory(ctx)
-            ,_device(device)
-        {}
-        FEFactoryRender(const FEFactoryRender& other)
-            :FEFactory(other)
-            ,_device(other._device)
-        {}
+        FEFactoryRender(FEContext& ctx,FEDevice& device);
+
+        FEFactoryRender(const FEFactoryRender& other);
+
     public:
         inline  uint64  key()   const
         {
@@ -209,6 +241,10 @@ namespace   FE
         /// </summary>
         Materials       getOrCreateCullMaterials(Camera camera);
         bool            supportGPUCull() const;
+        void            setGPUCull(bool bFlag)
+        {
+            _gpuCull    =   bFlag;
+        }
 
         Groups&         groups() 
         {
@@ -344,7 +380,8 @@ namespace   FE
         /// </summary>
         VBO             _vboSphere;
         Counts          _counts;
-        ViewerUsages    _usages =   ViewerUsage::USAGE_Classic;
+        ViewerUsages    _usages     =   ViewerUsage::USAGE_Classic;
+        bool            _gpuCull    =   true;
     };
     using   RFactory            =   SharedPtr<FEFactoryRender>;
     using   RFactorys           =   std::vector<RFactory>;

@@ -9,22 +9,22 @@
 
 namespace   FE
 {
-    struct  FEMeshBuffer
+    struct  FEAttribyteBuffer
     {
     public:
-        FEMeshBuffer(FEContext& ctx,Buffer buf,FEAttribute id)
+        FEAttribyteBuffer(FEContext& ctx,Buffer buf,FEAttribute id)
             :_ctx(ctx)
         {
             _buffer     =   buf;
             _attrId     =   id;
         }
-        FEMeshBuffer(const FEMeshBuffer& other)
+        FEAttribyteBuffer(const FEAttribyteBuffer& other)
             :_ctx(other._ctx)
         {
             _buffer     =   other._buffer;
             _attrId     =   other._attrId;
         }
-        auto&   operator    =   (const FE::FEMeshBuffer& other)
+        auto&   operator    =   (const FE::FEAttribyteBuffer& other)
         {
             _buffer     =   other._buffer;
             _attrId     =   other._attrId;

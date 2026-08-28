@@ -404,6 +404,27 @@ namespace   FE
         copy.size       =   length;
         vkCmdCopyBuffer(_native,(VkBuffer)srcBuf->native(),(VkBuffer)dstBuf->native(),1,&copy);
 
+        VkBufferMemoryBarrier barrier = {};
+        barrier.sType           =   VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        barrier.srcAccessMask   =   VK_ACCESS_TRANSFER_WRITE_BIT;   /// 等待写入完成
+        barrier.dstAccessMask   =   VK_ACCESS_TRANSFER_READ_BIT;    /// 允许后续读取
+        barrier.buffer          =   (VkBuffer)dstBuf->native();
+        barrier.offset          =   dstOff;
+        barrier.size            =   length;
+        ///
+        /// 注意：如果是在同一个Queue家族，src/dstQueueFamilyIndex 设为 VK_QUEUE_FAMILY_IGNORED
+        /// 避免没有拷贝完，就被读取使用
+        vkCmdPipelineBarrier(_native,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,   // 源阶段：传输写入
+            VK_PIPELINE_STAGE_TRANSFER_BIT,   // 目标阶段：传输读取
+            0,
+            0, 
+            nullptr,
+            1, 
+            &barrier,
+            0, 
+            nullptr);
+
         return  FEResult::ER_SUCCESS;
     }
 

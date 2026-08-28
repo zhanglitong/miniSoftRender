@@ -26,53 +26,27 @@ namespace   FE
                 return  nullptr;
             if (indices.empty())
                 return  nullptr;
-
             MeshPtr mesh        =   new FEMesh(_ctx);
             /// 遍历所有属性
             for (auto& var : inputs)
             {
-                Buffer  buffer  =   new FEBuffer(_ctx);
-                size_t  stride  =   var.stride();
-                /// 获取实际元素格式,确保不为空
-                size_t  count   =   (std::max)(poss.size(),normals.size());
-                        count   =   (std::max)(poss.size(),count);
-                buffer->cInfo()._buffer.resize(stride * uvs.size());
-                auto    pData   =   buffer->cInfo()._buffer.data();
+                auto&   subMesh     =   mesh->getOrCreate(var);
+                
                 if (var.slot() & (IS_VERTEX_POS))
                 {
-                    auto    pStart  =   pData;
-                    for (auto& var1 : poss)
-                    {
-                        memcpy(pStart,&var1,sizeof(var1));
-                        pStart  +=  stride;
-                    }
+                    subMesh.setBuffer(poss.data(),      poss.size()  * sizeof(float));
                 }
                 if (var.slot() & (IS_VERTEX_NOR))
                 {
-                    auto    pStart  =   pData;
-                    for (auto& var1 :normals)
-                    {
-                        memcpy(pStart,&var1,sizeof(var1));
-                        pStart  +=  stride;
-                    }
+                    subMesh.setBuffer(normals.data(),   normals.size()  * sizeof(float));
                 }
                 if (var.slot() & (IS_VERTEX_COLOR0))
                 {
-                    auto    pStart  =   pData;
-                    for (auto& var1 : colors)
-                    {
-                        memcpy(pStart,&var,sizeof(var1));
-                        pStart  +=  stride;
-                    }
+                    subMesh.setBuffer(colors.data(),   colors.size()  * sizeof( Rgba8));
                 }
-                if (var.slot() & (IS_VERTEX_TEXCOORD0))
+                if (var.slot() & (IS_VERTEX_COLOR0))
                 {
-                    auto    pStart  =   pData;
-                    for (auto& var1 : uvs)
-                    {
-                        memcpy(pStart,&var,sizeof(var1));
-                        pStart  +=  stride;
-                    }
+                    subMesh.setBuffer(uvs.data(),       uvs.size()  * sizeof(float));
                 }
             }
             auto    pri =   FEPrimitiveHelper::createIndex(_ctx,indices);

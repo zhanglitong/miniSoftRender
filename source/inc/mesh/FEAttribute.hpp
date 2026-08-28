@@ -19,11 +19,11 @@ namespace   FE
         /// <summary>
         /// 业务层命名，POS,NORMAL,UV,COLOR...
         /// </summary>
-        FEInputSlot _slot   =   IS_VERTEX_POS;
+        FEInputSlot _slot;
         /// <summary>
         /// 属性数据的数据格式
         /// </summary>
-        FEFormat    _format =   FMT_R8G8B8A8_UNORM;
+        FEFormat    _format;
     public:
         auto        slot() const
         {

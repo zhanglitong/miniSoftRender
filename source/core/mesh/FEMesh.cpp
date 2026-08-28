@@ -25,7 +25,7 @@ namespace   FE
                 cmd.firstIndex      =   pDraw->start() + pri->vertexOffset();
                 cmd.baseVertex      =   instId;
                 /// cs 拾取中会使用到 /compute shader 已经处理
-                cmd.baseInstance    =   0xFFFFFFFF;
+                cmd.baseInstance    =   instId;
                 return  2;
             }
             break;

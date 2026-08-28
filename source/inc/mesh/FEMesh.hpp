@@ -17,7 +17,7 @@
 #include    "FEDrawElementUint32.hpp"
 
 #include    "FEAttribute.hpp"
-#include    "FEMeshBuffer.hpp"
+#include    "FEAttribyteBuffer.hpp"
 namespace   FE
 {
     /// <summary>
@@ -69,7 +69,7 @@ namespace   FE
     {
         IMPLEMENT_CLASS_REFLECT(FEMesh)
     public:
-        using   MeshBuffers =   std::vector<FEMeshBuffer> ;
+        using   AttrBuffers =   std::vector<FEAttribyteBuffer> ;
     public:
         FEMesh(FEContext& ctx)
             :FEObject(ctx)
@@ -128,19 +128,38 @@ namespace   FE
                 if (var.attr().slot() == attr.slot())
                     return  &var;
             }
-            return  (FEMeshBuffer*)nullptr;
+            return  (FEAttribyteBuffer*)nullptr;
+        }
+        /// <summary>
+        /// 设置mesh属性 数据
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="attr">属性</param>
+        /// <param name="buffer">数据</param>
+        template<class T>
+        inline  void    setAttribute(FEAttribute attr,const std::vector<T>& buffer)
+        {
+            auto    result  =   get(attr);
+            if (result)
+            {
+                FEAttribyteBuffer    newBuf  =  {_ctx,nullptr,attr};
+                _buffers.emplace_back(newBuf);
+                result  =   &_buffers.back();
+            }
+            result->setAttr(attr);
+            result->setBuffer(buffer.data(),buffer.size());   
         }
         /// <summary>
         /// 获取或者插入
         /// </summary>
         /// <param name="attrId"></param>
         /// <returns></returns>
-        FEMeshBuffer&   getOrCreate(FEAttribute attr)
+        inline  auto&   getOrCreate(FEAttribute attr)
         {
             auto    result  =   get(attr);
             if (result)
                 return  *result;
-            FEMeshBuffer    newBuf  =  {_ctx,nullptr,attr};
+            FEAttribyteBuffer    newBuf  =  {_ctx,nullptr,attr};
             _buffers.emplace_back(newBuf);
             return  _buffers.back();
         }
@@ -253,7 +272,7 @@ namespace   FE
         /// <summary>
         /// 缓冲区数据
         /// </summary>
-        MeshBuffers     _buffers;
+        AttrBuffers     _buffers;
        
     };
     using   Mesh        =   SharedPtr<FEMesh>;

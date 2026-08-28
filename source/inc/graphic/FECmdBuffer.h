@@ -121,11 +121,11 @@ namespace   FE
                                         )   =   0;
         virtual FEResult    drawArrayIndirect(      ITO         buffer,
                                                     uint64      offset,
-                                                    uint32_t    drawCount,
+                                                    uint32_t    cullCount,
                                                     uint32_t    stride) =   0;
         virtual FEResult    drawIndexedIndirect(    ITO         buffer,
                                                     uint64      offset,
-                                                    uint32_t    drawCount,
+                                                    uint32_t    cullCount,
                                                     uint32_t    stride) =   0;
 
         virtual FEResult    setPrimitiveTopology(EPrimitive pri)    =   0;

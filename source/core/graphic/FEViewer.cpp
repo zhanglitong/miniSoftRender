@@ -221,7 +221,7 @@ namespace   FE
             real3   up          =   _camera->getUp();
             real3   eye         =   _camera->getEye();
             real2   deltaD      =   _camera->calcWowrldPScreen(point) * real2(offset);
-            real3   eyeDelta    =   ((right * (double)deltaD.x) + (up * (double)deltaD.y));
+            real3   eyeDelta    =   ((right * (double)deltaD.x) + (up * -(double)deltaD.y));
                     eye         +=  eyeDelta;
 
             _camera->setEye(eye);

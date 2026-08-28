@@ -250,7 +250,7 @@ struct  PBRData
         _roughness  =   0.5f;
         _metallic   =   0.5f;
         _emissive   =   float4(1,1,1,1);
-        _diffuse    =   float4(1,1,1,1);
+        _diffuse    =   float4(1,0,0,1);
         _spacular   =   float4(1,1,1,1);
     }
 #endif
