@@ -25,10 +25,15 @@ namespace FE
     using   PropIndex       =   int;
     DEFINE_CLASS_UUID(FEKeyFrameTrack, "{474DC049-28C0-4F79-AB66-CDCA4707DD8B}");
 
-    
 
     class   FEKeyFrameTrack : public FEObject
     {
+    public:
+        struct  KFOff
+        {
+            size_t  index   =   ~0ULL;
+            real    tm      =   0.0;
+        };
     public:
         IMPLEMENT_CLASS_REFLECT(FEKeyFrameTrack)
     public:
@@ -140,6 +145,38 @@ namespace FE
             }
         }
         /// <summary>
+        /// 计算帧索引偏移,返回帧号 + 相对当前帧的时间偏移
+        /// </summary>
+        KFOff   calcFrameOffset(const real& tm) const
+        {
+            KFOff   result;
+            result.tm   =   tm;
+            if (!isValid())
+                return  result;
+            auto    rng =   range();
+            if (tm <= rng.x)
+            {
+                result.index    =   0;
+                return  result;
+            }
+            else if(tm >= rng.y)
+            {
+                result.index    =   _times->values().size() - 1;
+                return  result;
+            }
+            auto    itr =   std::lower_bound(_times->values().begin(), _times->values().end(), tm, [](const real& l, const real& tm)
+            {
+                return l < tm;
+            });
+            if (itr == _times->values().end())
+                result.index    =   _times->values().size() - 1;
+            else if (itr == _times->values().begin())
+                result.index    =   0;
+            else
+                result.index    =   std::distance(_times->values().begin(),itr) - 1;
+            return  result;
+        }
+        /// <summary>
         /// 每一帧更新
         /// </summary>
         /// <param name="frame"></param>
@@ -163,7 +200,6 @@ namespace FE
             default:    return  false;
             }
         }
-
         /// <summary>
         /// 每一帧更新
         /// </summary>
@@ -229,22 +265,11 @@ namespace FE
                 {
                     return l < tm;
                 });
-                if (itr == _times->values().end())
-                {
-                    result._value   =   values->values().back();
-                } 
-                else if (itr == _times->values().begin())
-                {
-                    result._value   =   values->values().front();
-                }
-                else
-                {
-                    auto        dist        =   std::distance(_times->values().begin(),itr);
-                    auto        itrEnd      =   values->values().begin() + dist;
-                    FrameValue  startFrame  =   {*(itr-1), *(itrEnd-1)};
-                    FrameValue  endFrame    =   {*itr,     *itrEnd};
-                    result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
-                }
+                auto        dist        =   std::distance(_times->values().begin(),itr);
+                auto        itrEnd      =   values->values().begin() + dist;
+                FrameValue  startFrame  =   {*(itr-1), *(itrEnd-1)};
+                FrameValue  endFrame    =   {*itr,     *itrEnd};
+                result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
             } 
             return  true;
         }
@@ -255,15 +280,23 @@ namespace FE
             auto&   values  =   vObject->values();
             auto&   times   =   _times->values();
 
-            if (keyFrame == 0 && tm == 0)
+            if (tm <= times.front())
+            {
                 result._value   =   values.front();
-            else if(keyFrame >= values.size() - 1)
+                return  true;
+            } 
+            else if(tm >= times.back())
+            {
                 result._value   =   values.back();
-
-            FrameValue  startFrame  =   {times[keyFrame + 0],values[keyFrame + 0]};
-            FrameValue  endFrame    =   {times[keyFrame + 1],values[keyFrame + 1]};
-            result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
-            return  true;
+                return  true;
+            }
+            else
+            {
+                FrameValue  startFrame  =   {times[keyFrame + 0],values[keyFrame + 0]};
+                FrameValue  endFrame    =   {times[keyFrame + 1],values[keyFrame + 1]};
+                result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
+                return  true;
+            }
         }
        
     protected:
