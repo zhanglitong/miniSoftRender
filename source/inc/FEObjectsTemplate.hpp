@@ -54,8 +54,7 @@ namespace   FE
             if (itr != _objects.end() && *itr == object)
                 return  0;
             _objects.insert(itr, object);
-            onAddObjects();
-
+            onAddObject(object);
             return  1;
         }
         /// <summary>
@@ -69,16 +68,27 @@ namespace   FE
             auto    nOld    =   _objects.size();
             _objects.insert(_objects.end(),objects.begin(),objects.end());
             /// 排序
-            std::sort(_objects.begin(),_objects.end());
+            std::sort(_objects.begin(),_objects.end(),_sortFunc);
             /// unique 会把重复的放到后面
             auto    newEnd  =   std::unique(_objects.begin(),_objects.end());
             /// 删除重复的
             _objects.erase(newEnd, _objects.end());
             auto    result  =   _objects.size() - nOld;
-            if (result != 0)
+            if (result == 0)
+                return  result;
+            else if (result == objects.size())
             {
-                onAddObjects();
-            }  
+                for (auto& var : objects)
+                    onAddObject(var);
+            } 
+            else
+            {
+                for (auto& var : objects)
+                {
+                    if (exists(var))
+                        onAddObject(var);
+                }
+            } 
             return  result;
         }
         virtual size_t  removeObject(const TObject& object)
@@ -121,20 +131,23 @@ namespace   FE
         {
             if (!_objects.empty())
             {
+                for (auto& var: _objects)
+                {
+                    onRemoveObject(var);
+                }
                 _objects.clear();
-                onRemoveObjects();
             }
         }
     protected:
         /// <summary>
         /// 子类可以重写，添加对象的回调函数
         /// </summary>
-        virtual void    onAddObjects()
+        virtual void    onAddObject (TObject)
         {}
         /// <summary>
         /// 移除对象通知，子类重写
         /// </summary>
-        virtual void    onRemoveObjects()
+        virtual void    onRemoveObject(TObject)
         {}
     protected:
         inline  size_t  removeObjectImpl(const TObject& needDelete)
@@ -143,7 +156,7 @@ namespace   FE
             if (itr == _objects.end()  || *itr != needDelete)
                 return  0;
             _objects.erase(itr);
-            onRemoveObjects();
+            onRemoveObject(needDelete);
             return  1;
         }
         /// <summary>
@@ -159,14 +172,16 @@ namespace   FE
             /// 删除逻辑：如果当前值在 deletes 里能找到，就删除(返回 true)
             auto    newEnd  =   std::remove_if(_objects.begin(), _objects.end(), [&](const TObject& object) 
             {
-                return  std::binary_search(deletes.begin(), deletes.end(), object);
+                auto    result  =   std::binary_search(deletes.begin(), deletes.end(), object);
+                return  result;
             });
             _objects.erase(newEnd, _objects.end());
-            auto    result  =   _objects.size() - nOld;
-            if (result != 0)
+
+            for (auto itr = newEnd; itr != _objects.end(); ++ itr)
             {
-                onRemoveObjects();
+                onRemoveObject(*itr);
             }
+            auto    result  =   _objects.size() - nOld;
             return  result;
         }
     protected:

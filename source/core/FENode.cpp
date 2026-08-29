@@ -55,10 +55,14 @@ namespace   FE
     void   FENode::fireChanged()
     {
         if ( flags().hasFlags(ModifyValue) )
-        {
-            if (_ctx.scene())
+        {   
+            if (_ctx.scene() == nullptr)
+                return;
+            _ctx.scene()->onNodePropChanged(this);
+            auto&   childs  =   _childs;
+            for (auto& var : _childs)
             {
-                _ctx.scene()->onNodePropChanged(this);
+                var->fireChanged();
             }
         }
     }
@@ -100,7 +104,7 @@ namespace   FE
         for(auto& child : chs)
         {
             auto    node    =   child->as<FENode>();
-            node->flags().addFlag(FLAG_UPDATE);
+            node->flags().addFlag(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT);
             node->updateTransform(recursion);
         }
     }

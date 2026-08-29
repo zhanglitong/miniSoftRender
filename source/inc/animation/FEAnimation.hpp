@@ -25,6 +25,14 @@ namespace FE
     class   FEAnimation : public FEComponent
     {
     public:
+        enum    ClipFlag
+        {
+            /// <summary>
+            /// 标记数据变更
+            /// </summary>
+            AnimationChanged    =   (FLAG_ACTOR <<1),
+        };
+    public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)
     public:
         FEAnimation(FEContext& ctx)  
@@ -35,9 +43,40 @@ namespace FE
         {
             _clip       =   other._clip;
             _results    =   other._results;
+            _offset     =   other._offset;
         }
         ~FEAnimation()   =   default;
     public:
+        /// <summary>
+        /// 关联所有者
+        /// </summary>
+        /// <param name="owner"></param>
+        virtual void    attach(Object owner) override
+        {
+            _owner  =   owner;
+            flags().addFlag(AnimationChanged);
+        }
+        /// <summary>
+        /// 取消关键
+        /// </summary>
+        virtual void    detach() override
+        {
+            _owner  =   nullptr;
+            flags().addFlag(AnimationChanged);
+        }
+        /// <summary>
+        /// 是否发生变更
+        /// </summary>
+        /// <returns></returns>
+        inline  bool    isChanged() const
+        {
+            if (flags().hasFlag(AnimationChanged))
+                return  true;
+            else if(_clip)
+                return  _clip->isChanged();
+            else
+                return  false;
+        }
         /// <summary>
         /// 动画所属action,即被哪一个action控制
         /// 主要用作分组控制，一批动画可以播放，另一批停止
@@ -54,6 +93,35 @@ namespace FE
         inline  void    setAction(Action action)
         {
             _action =   action;
+            flags().addFlag(AnimationChanged);
+        }
+        /// <summary>
+        /// 获取起始时间,对于时间线
+        /// </summary>
+        /// <returns></returns>
+        inline  real    offset() const
+        {
+            return  _offset;
+        }
+        /// <summary>
+        /// 设置起始播放时间,相对于时间线
+        /// </summary>
+        /// <param name="offset"></param>
+        inline  void    setOffset(const real& offset)
+        {
+            _offset =   offset;
+            flags().addFlag(AnimationChanged);
+        }
+        /// <summary>
+        /// 获取范围,时间播放的范围
+        /// </summary>
+        /// <returns></returns>
+        inline  real2   range() const
+        {
+            if (_clip == nullptr)
+                return  real2();
+            else
+                return  _clip->range() + real2(_offset,_offset);
         }
         /// <summary>
         /// 是否有效
@@ -70,6 +138,11 @@ namespace FE
         inline  void    setClip(AnimClip clip)
         {
             _clip   =   clip;
+            flags().addFlag(AnimationChanged);
+        }
+        inline  void    clearChanged() 
+        {
+            flags().removeFlag(AnimationChanged);
         }
         /// <summary>
         /// 组件每一帧更新
@@ -97,8 +170,18 @@ namespace FE
             return  bModify;
         }
     public:
+        /// <summary>
+        /// 表示一个 Action 类型的成员变量，用于存储要执行的操作。
+        /// </summary>
         Action          _action;
+        /// <summary>
+        /// AnimClip 类型的变量，用于保存动画剪辑。
+        /// </summary>
         AnimClip        _clip;
+        /// <summary>
+        /// 动画在大时间线上的起始时间，标记了动画从什么时间开始播放
+        /// </summary>
+        real            _offset    =    0;
         TrackResults    _results; 
     };
 

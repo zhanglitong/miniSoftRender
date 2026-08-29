@@ -25,14 +25,35 @@ namespace FE
     using   PropIndex       =   int;
     DEFINE_CLASS_UUID(FEKeyFrameTrack, "{474DC049-28C0-4F79-AB66-CDCA4707DD8B}");
 
+    /// <summary>
+    /// 设计上要求clip可以被重用，例如车的四个轮子对象,clip是一样的
+    /// 但如果每一个轮子开始转动的时间不一样，其他行为一样，需要把track的时间轴局部化,把起始时间作为被动画对象的属性数据
+    /// 创建track时候,开始时间都是从0开始
+    /// 就可以实现一份数据，在不同的时间上，被多次复用
+    /// </summary>
 
     class   FEKeyFrameTrack : public FEObject
     {
     public:
+        enum    TrackFlag
+        {
+            /// <summary>
+            /// 标记数据变更
+            /// </summary>
+            TrackChanged    =   FLAG_LAST,
+        };
+    public:
         struct  KFOff
         {
-            size_t  index   =   ~0ULL;
-            real    tm      =   0.0;
+            size_t  index       =   ~0ULL;
+            /// <summary>
+            /// 时间线时间
+            /// </summary>
+            real    clipTm      =   0.0;
+            /// <summary>
+            /// 相对于当前帧(index) 偏移时间,用来计算插值
+            /// </summary>
+            real    offsetTm    =   0.0;
         };
     public:
         IMPLEMENT_CLASS_REFLECT(FEKeyFrameTrack)
@@ -89,6 +110,18 @@ namespace FE
             return (_times && !_times->values().empty());
         }
         /// <summary>
+        /// 是否发生变更
+        /// </summary>
+        /// <returns></returns>
+        bool    isChanged() const
+        {
+            return  flags().hasFlag(TrackChanged);
+        }
+        void    clearChanged() 
+        {
+            flags().removeFlag(TrackChanged);
+        }
+        /// <summary>
         /// 设置属性索引
         /// </summary>
         /// <param name="index"></param>
@@ -103,10 +136,12 @@ namespace FE
         void    setTimeObject(RealsObject timeObject)
         {
             _times  =   timeObject;
+            flags().addFlag(TrackChanged);
         }
         void    setValueObject(ValueObject valueObject)
         {
             _values  =   valueObject;
+            flags().addFlag(TrackChanged);
         }
         /// <summary>
         /// 获取时间信息
@@ -115,6 +150,15 @@ namespace FE
         auto    times() const
         {
             return _times;
+        }
+
+        /// <summary>
+        /// 获取数据信息
+        /// </summary>
+        /// <returns></returns>
+        auto&   values() const
+        {
+            return _values;
         }
         /// <summary>
         /// 获取数据信息
@@ -147,56 +191,58 @@ namespace FE
         /// <summary>
         /// 计算帧索引偏移,返回帧号 + 相对当前帧的时间偏移
         /// </summary>
-        KFOff   calcFrameOffset(const real& tm) const
+        KFOff   calcFrameOffset(const real& clipTime) const
         {
             KFOff   result;
-            result.tm   =   tm;
+            result.clipTm   =   clipTime;
             if (!isValid())
                 return  result;
-            auto    rng =   range();
-            if (tm <= rng.x)
+            auto    rng     =   range();
+            auto&   times   =   _times->values();
+            if (clipTime <= rng.x)
             {
                 result.index    =   0;
                 return  result;
             }
-            else if(tm >= rng.y)
+            else if(clipTime >= rng.y)
             {
-                result.index    =   _times->values().size() - 1;
+                result.index    =   times.size() - 1;
                 return  result;
             }
-            auto    itr =   std::lower_bound(_times->values().begin(), _times->values().end(), tm, [](const real& l, const real& tm)
+            auto    itr =   std::lower_bound(times.begin(), times.end(), clipTime, [](const real& l, const real& tm)
             {
                 return l < tm;
             });
-            if (itr == _times->values().end())
-                result.index    =   _times->values().size() - 1;
-            else if (itr == _times->values().begin())
-                result.index    =   0;
-            else
-                result.index    =   std::distance(_times->values().begin(),itr) - 1;
+            
+            result.index    =   std::distance(times.begin(),itr) - 1;
+
+            real    startTime   =   times[result.index + 0];
+            real    endTime     =   times[result.index + 1];
+            real    offset      =   real(clipTime - startTime) / real(endTime - startTime);
+            result.offsetTm     =   std::clamp(offset,0.0,1.0);
             return  result;
         }
         /// <summary>
         /// 每一帧更新
         /// </summary>
         /// <param name="frame"></param>
-        bool    update(const real& tm,FETrackResult& result)
+        bool    update(const real& clipTm,FETrackResult& result)
         {
             if (!isValid())
                 return  false;
             switch(_values.index())
             {
-            case 1:     return  updateImpl(tm,result,std::get<RealsObject>(_values));
-            case 2:     return  updateImpl(tm,result,std::get<Real2sObject>(_values));
-            case 3:     return  updateImpl(tm,result,std::get<Real3sObject>(_values));
-            case 4:     return  updateImpl(tm,result,std::get<Real4sObject>(_values));
-            case 5:     return  updateImpl(tm,result,std::get<QuatrsObject>(_values));
-            case 6:     return  updateImpl(tm,result,std::get<FloatsObject>(_values));
-            case 7:     return  updateImpl(tm,result,std::get<Float2sObject>(_values));
-            case 8:     return  updateImpl(tm,result,std::get<Float3sObject>(_values));
-            case 9:     return  updateImpl(tm,result,std::get<Float4sObject>(_values));
-            case 10:    return  updateImpl(tm,result,std::get<QuatfsObject>(_values));
-            case 11:    return  updateImpl(tm,result,std::get<BoolsObject>(_values));
+            case 1:     return  updateImpl(clipTm,result,std::get<RealsObject>(_values));
+            case 2:     return  updateImpl(clipTm,result,std::get<Real2sObject>(_values));
+            case 3:     return  updateImpl(clipTm,result,std::get<Real3sObject>(_values));
+            case 4:     return  updateImpl(clipTm,result,std::get<Real4sObject>(_values));
+            case 5:     return  updateImpl(clipTm,result,std::get<QuatrsObject>(_values));
+            case 6:     return  updateImpl(clipTm,result,std::get<FloatsObject>(_values));
+            case 7:     return  updateImpl(clipTm,result,std::get<Float2sObject>(_values));
+            case 8:     return  updateImpl(clipTm,result,std::get<Float3sObject>(_values));
+            case 9:     return  updateImpl(clipTm,result,std::get<Float4sObject>(_values));
+            case 10:    return  updateImpl(clipTm,result,std::get<QuatfsObject>(_values));
+            case 11:    return  updateImpl(clipTm,result,std::get<BoolsObject>(_values));
             default:    return  false;
             }
         }
@@ -204,23 +250,23 @@ namespace FE
         /// 每一帧更新
         /// </summary>
         /// <param name="frame"></param>
-        bool    update(size_t keyFrame,const real& tm,FETrackResult& result)
+        bool    update(const KFOff& kfOff,FETrackResult& result)
         {
             if (!isValid())
                 return  false;
             switch(_values.index())
             {
-            case 1:     return  updateImpl(keyFrame,tm,result,std::get<RealsObject>(_values));
-            case 2:     return  updateImpl(keyFrame,tm,result,std::get<Real2sObject>(_values));
-            case 3:     return  updateImpl(keyFrame,tm,result,std::get<Real3sObject>(_values));
-            case 4:     return  updateImpl(keyFrame,tm,result,std::get<Real4sObject>(_values));
-            case 5:     return  updateImpl(keyFrame,tm,result,std::get<QuatrsObject>(_values));
-            case 6:     return  updateImpl(keyFrame,tm,result,std::get<FloatsObject>(_values));
-            case 7:     return  updateImpl(keyFrame,tm,result,std::get<Float2sObject>(_values));
-            case 8:     return  updateImpl(keyFrame,tm,result,std::get<Float3sObject>(_values));
-            case 9:     return  updateImpl(keyFrame,tm,result,std::get<Float4sObject>(_values));
-            case 10:    return  updateImpl(keyFrame,tm,result,std::get<QuatfsObject>(_values));
-            case 11:    return  updateImpl(keyFrame,tm,result,std::get<BoolsObject>(_values));
+            case 1:     return  updateImpl(kfOff,result,std::get<RealsObject>(_values));
+            case 2:     return  updateImpl(kfOff,result,std::get<Real2sObject>(_values));
+            case 3:     return  updateImpl(kfOff,result,std::get<Real3sObject>(_values));
+            case 4:     return  updateImpl(kfOff,result,std::get<Real4sObject>(_values));
+            case 5:     return  updateImpl(kfOff,result,std::get<QuatrsObject>(_values));
+            case 6:     return  updateImpl(kfOff,result,std::get<FloatsObject>(_values));
+            case 7:     return  updateImpl(kfOff,result,std::get<Float2sObject>(_values));
+            case 8:     return  updateImpl(kfOff,result,std::get<Float3sObject>(_values));
+            case 9:     return  updateImpl(kfOff,result,std::get<Float4sObject>(_values));
+            case 10:    return  updateImpl(kfOff,result,std::get<QuatfsObject>(_values));
+            case 11:    return  updateImpl(kfOff,result,std::get<BoolsObject>(_values));
             default:    return  false;
             }
         }
@@ -252,16 +298,16 @@ namespace FE
             }
         }
         template<typename TValueObject>
-        bool    updateImpl(const real& tm,FETrackResult& result,const TValueObject& values)
+        bool    updateImpl(const real& clipTime,FETrackResult& result,const TValueObject& values)
         {
             auto    rng =   range();
-            if (tm <= rng.x)
+            if (clipTime <= rng.x)
                 result._value   =   values->values().front();
-            else if(tm >= rng.y)
+            else if(clipTime >= rng.y)
                 result._value   =   values->values().back();
             else
             {
-                auto    itr =   std::lower_bound(_times->values().begin(), _times->values().end(), tm, [](const real& l, const real& tm)
+                auto    itr =   std::lower_bound(_times->values().begin(), _times->values().end(), clipTime, [](const real& l, const real& tm)
                 {
                     return l < tm;
                 });
@@ -269,36 +315,37 @@ namespace FE
                 auto        itrEnd      =   values->values().begin() + dist;
                 FrameValue  startFrame  =   {*(itr-1), *(itrEnd-1)};
                 FrameValue  endFrame    =   {*itr,     *itrEnd};
-                result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
+                real    offset          =   real(clipTime - startFrame._t) / real(endFrame._t - startFrame._t);
+                        offset          =   std::clamp(offset,0.0,1.0);
+                result._value           =   interpolate(_type,offset,startFrame,endFrame,_tension);
             } 
             return  true;
         }
 
         template<typename TValueObject>
-        bool    updateImpl(size_t keyFrame,const real& tm,FETrackResult& result,const TValueObject& vObject)
+        bool    updateImpl(const KFOff& kfOff,FETrackResult& result,const TValueObject& vObject)
         {
             auto&   values  =   vObject->values();
             auto&   times   =   _times->values();
-
-            if (tm <= times.front())
+            
+            if (kfOff.clipTm <= times.front())
             {
                 result._value   =   values.front();
                 return  true;
             } 
-            else if(tm >= times.back())
+            else if(kfOff.clipTm >= times.back())
             {
                 result._value   =   values.back();
                 return  true;
             }
             else
             {
-                FrameValue  startFrame  =   {times[keyFrame + 0],values[keyFrame + 0]};
-                FrameValue  endFrame    =   {times[keyFrame + 1],values[keyFrame + 1]};
-                result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
+                FrameValue  startFrame  =   {times[kfOff.index + 0],values[kfOff.index + 0]};
+                FrameValue  endFrame    =   {times[kfOff.index + 1],values[kfOff.index + 1]};
+                result._value           =   interpolate(_type,kfOff.offsetTm,startFrame,endFrame,_tension);
                 return  true;
             }
         }
-       
     protected:
         /// <summary>
         /// 计算差值
@@ -309,35 +356,27 @@ namespace FE
         /// <returns></returns>
         static  KFValue interpolate(InterpolateType type,const real& dTime, const FrameValue& startFrame,const FrameValue& endFrame,real tension = MD_EASE) 
         {
-            /// 如果时间超过了结束帧范围，使用结束帧值
-            if (dTime >= endFrame._t)
-                return  endFrame._v;
-            /// 如果开始帧与结束帧一样，返回开始帧值
-            if (startFrame._t == endFrame._t) 
-                return  startFrame._v;
+          
             switch (type)
             {
             case IT_Bezier:
                 {
-                    real    t   =   real(dTime - startFrame._t) / real(endFrame._t - startFrame._t);
-                            t   =   std::clamp(t,0.0,1.0);
                     /// 使用三次贝塞尔实现缓入缓出
                     /// 控制点根据tension参数调整曲线形状
                     auto    p0  =   startFrame._v;
                     auto    p3  =   endFrame._v;
                     auto    p1  =   startFrame._v + (endFrame._v - startFrame._v) * (0.5 - tension * 0.3);
                     auto    p2  =   startFrame._v + (endFrame._v - startFrame._v) * (0.5 + tension * 0.3);
-                    return  cubicBezierInterpolate(p0,p1,p2,p3,t);
+                    return  cubicBezierInterpolate(p0,p1,p2,p3,dTime);
                 }
             case IT_Linear:
                 {
-                    real    t   =   real(dTime - startFrame._t) / real(endFrame._t - startFrame._t);
                     if (std::holds_alternative<quatf>(startFrame._v))
-                        return  slerp(std::get<quatf>(startFrame._v),std::get<quatf>(endFrame._v),float(t));
+                        return  slerp(std::get<quatf>(startFrame._v),std::get<quatf>(endFrame._v),float(dTime));
                     else if (std::holds_alternative<quatr>(startFrame._v))
-                        return  slerp(std::get<quatr>(startFrame._v),std::get<quatr>(endFrame._v),real(t));
+                        return  slerp(std::get<quatr>(startFrame._v),std::get<quatr>(endFrame._v),real(dTime));
                     else
-                        return  (1.0 - t) * startFrame._v + t * endFrame._v;
+                        return  (1.0 - dTime) * startFrame._v + dTime * endFrame._v;
                 }
             case IT_Constant:
                 return startFrame._v;
