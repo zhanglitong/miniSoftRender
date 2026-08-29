@@ -58,7 +58,7 @@ namespace   FE
         };
         {
             FEDevice::CreateInfo    infor   =   {};
-            infor.deviceId  =   gpuList[1].gpuId;
+            infor.deviceId  =   gpuList[0].gpuId;
             _device->create(infor);
         }
         {
@@ -267,6 +267,14 @@ namespace   FE
         {
             _frame->_cmd->end();
         }
+        /// 获取所有渲染工厂
+        auto&   factorys    =   _factorys.objects();
+        /// 清除所有标记
+        /// 不能在工厂中清除,一个节点可能被多个工厂引用
+        for (auto var : factorys)
+        {
+            var->clearFlagBits();
+        }
         auto    queue   =   _device->queueGraphic();
         FEQueue::SubmitInfo smInfo;
         smInfo._frame   =   _frame;
@@ -450,11 +458,31 @@ namespace   FE
             auto    pData   =   (CameraData*)uData._cpu->lock(sizeof(CameraData),0);
             if (pData)
             {
-                pData->_v             =   _camera->getView();
-                pData->_p             =   _camera->getProject();
-                pData->_position      =   float4(float3(_camera->getEye()),   0.0f);
-                pData->_upDir         =   float4(float3(_camera->getUp()),    0.0f);  
-                pData->_rightDir      =   float4(float3(_camera->getRight()), 0.0f); 
+                mat4r       view        =   _camera->getView();
+                mat4r       proj        =   _camera->getProject();
+                mat4r       vp          =   proj * view;
+                real3       eye         =   _camera->getEye();
+
+                pData->_v               =   view;
+                pData->_p               =   proj;
+                pData->_vp              =   vp;
+                /// 相机部分,整数部分
+                pData->_offset.x        =   (int)eye.x;
+                pData->_offset.y        =   (int)eye.y;
+                pData->_offset.z        =   (int)eye.z;
+                pData->_offset.w        =   0;
+                /// 相机位置小数部分
+                pData->_decimal.x       =   float(eye.x - pData->_offset.x);
+                pData->_decimal.y       =   float(eye.y - pData->_offset.y);
+                pData->_decimal.z       =   float(eye.z - pData->_offset.z);
+                pData->_decimal.w       =   0;
+
+                mat4r   matOffset       =   glm::translate(mat4r(1),real3(pData->_offset.x, pData->_offset.y, pData->_offset.z));
+                mat4r   vpOffset        =   vp * matOffset;
+                pData->_offsetVp        =   vpOffset;
+
+                pData->_upDir           =   float4(float3(_camera->getUp()),    0.0f);  
+                pData->_rightDir        =   float4(float3(_camera->getRight()), 0.0f); 
                 uData._cpu->unlock();
             }
             if (uData._gpu && uData._cpu)

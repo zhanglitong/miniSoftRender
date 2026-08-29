@@ -385,21 +385,6 @@ namespace   FE
 
     void    FEFactoryRender::update(CMDPtr cmd)
     {
-#if 0
-        Camera  camera  =   _ctx.scene()->camera();
-        auto    frust   =   camera->extract();
-        for (auto& grp: _groupNode)
-        {
-            for (auto node : grp->_objects)
-            {
-                auto    box =   node->globalAabb();
-                if (!frust.boxInFrustum(box._minimum,box._maximum))
-                {
-                    int ii = 0;
-                }
-            }
-        }
-#endif 
         updateImpl(cmd);
     }
 
@@ -476,6 +461,15 @@ namespace   FE
         _indirectClip   =   nullptr;
         _indirectFull   =   nullptr;
         _vboSphere      =   nullptr;
+    }
+    void    FEFactoryRender::clearFlagBits()
+    {
+        /// 清除标记
+        for (auto& var : _groupNode)
+        {
+            var->resetFlags();
+            var->clearUpdates();
+        }
     }
 
     void    FEFactoryRender::updateImpl(CMDPtr )
@@ -554,12 +548,6 @@ namespace   FE
         if (needUpdateITO)
         {
             buildIndirect(_indirectFull,_indirectClip);
-        }
-        /// 清除标记
-        for (auto& var : _groupNode)
-        {
-            var->resetFlags();
-            var->clearUpdates();
         }
     }
 

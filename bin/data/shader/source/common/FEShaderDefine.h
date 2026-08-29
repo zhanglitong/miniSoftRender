@@ -271,10 +271,17 @@ struct  CameraData
     mat4        _p;
     mat4        _vp;
     mat4        _offsetVp;
-    float4      _position;
+    /// <summary>
+    /// 相机位置小数部分
+    /// </summary>
+    float4      _decimal;
+    /// <summary>
+    /// 声明一个名为 _offset 的 4 字节整型变量
+    /// </summary>
     int4        _offset;
     float4      _upDir;
     float4      _rightDir;
+    
 };
 
 struct  ClipData

@@ -255,6 +255,7 @@ namespace   FE
         {
             return  _groupNode;
         }
+        
     public:
         virtual size_t  addNode(Node  node);
         virtual size_t  addNodes(Nodes&  nodes);
@@ -271,6 +272,7 @@ namespace   FE
         /// 才能正确的释放数据
         /// </summary>
         virtual void    destroy();
+        virtual void    clearFlagBits();
     protected:
          
         virtual size_t  addNodesImpl(Nodes&  nodes);

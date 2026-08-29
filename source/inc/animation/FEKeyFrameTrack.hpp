@@ -163,6 +163,31 @@ namespace FE
             default:    return  false;
             }
         }
+
+        /// <summary>
+        /// 每一帧更新
+        /// </summary>
+        /// <param name="frame"></param>
+        bool    update(size_t keyFrame,const real& tm,FETrackResult& result)
+        {
+            if (!isValid())
+                return  false;
+            switch(_values.index())
+            {
+            case 1:     return  updateImpl(keyFrame,tm,result,std::get<RealsObject>(_values));
+            case 2:     return  updateImpl(keyFrame,tm,result,std::get<Real2sObject>(_values));
+            case 3:     return  updateImpl(keyFrame,tm,result,std::get<Real3sObject>(_values));
+            case 4:     return  updateImpl(keyFrame,tm,result,std::get<Real4sObject>(_values));
+            case 5:     return  updateImpl(keyFrame,tm,result,std::get<QuatrsObject>(_values));
+            case 6:     return  updateImpl(keyFrame,tm,result,std::get<FloatsObject>(_values));
+            case 7:     return  updateImpl(keyFrame,tm,result,std::get<Float2sObject>(_values));
+            case 8:     return  updateImpl(keyFrame,tm,result,std::get<Float3sObject>(_values));
+            case 9:     return  updateImpl(keyFrame,tm,result,std::get<Float4sObject>(_values));
+            case 10:    return  updateImpl(keyFrame,tm,result,std::get<QuatfsObject>(_values));
+            case 11:    return  updateImpl(keyFrame,tm,result,std::get<BoolsObject>(_values));
+            default:    return  false;
+            }
+        }
     protected:
         template<typename TValueObject>
         void    sortImpl(TValueObject& vObject)
@@ -194,9 +219,9 @@ namespace FE
         bool    updateImpl(const real& tm,FETrackResult& result,const TValueObject& values)
         {
             auto    rng =   range();
-            if (tm < rng.x)
+            if (tm <= rng.x)
                 result._value   =   values->values().front();
-            else if(tm > rng.y)
+            else if(tm >= rng.y)
                 result._value   =   values->values().back();
             else
             {
@@ -223,6 +248,24 @@ namespace FE
             } 
             return  true;
         }
+
+        template<typename TValueObject>
+        bool    updateImpl(size_t keyFrame,const real& tm,FETrackResult& result,const TValueObject& vObject)
+        {
+            auto&   values  =   vObject->values();
+            auto&   times   =   _times->values();
+
+            if (keyFrame == 0 && tm == 0)
+                result._value   =   values.front();
+            else if(keyFrame >= values.size() - 1)
+                result._value   =   values.back();
+
+            FrameValue  startFrame  =   {times[keyFrame + 0],values[keyFrame + 0]};
+            FrameValue  endFrame    =   {times[keyFrame + 1],values[keyFrame + 1]};
+            result._value           =   interpolate(_type,tm,startFrame,endFrame,_tension);
+            return  true;
+        }
+       
     protected:
         /// <summary>
         /// 计算差值
