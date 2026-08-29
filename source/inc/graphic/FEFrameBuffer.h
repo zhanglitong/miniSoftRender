@@ -1,7 +1,6 @@
 #pragma     once
 
 #include    "../FEImage.h"
-#include    "../FESmallVector.h"
 
 #include    "FEPBuffer.h"
 #include    "FERenderPass.h"

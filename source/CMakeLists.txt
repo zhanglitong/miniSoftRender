@@ -1,4 +1,5 @@
-﻿add_subdirectory ("tools")
+﻿
+add_subdirectory ("tools")
 add_subdirectory ("core")
 add_subdirectory ("sample")
 add_subdirectory ("test")

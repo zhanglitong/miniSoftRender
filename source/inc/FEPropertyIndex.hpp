@@ -143,7 +143,7 @@ namespace   FE
                 return  KFValue{Common(a * y)};
             }
             else if constexpr (std::is_same_v<TValue,T>) 
-                return KFValue{a * b};
+                return KFValue{a * y};
             else if constexpr (!std::is_arithmetic_v<T>) 
                 return KFValue{a * T::value_type(y)};
             else
@@ -164,7 +164,7 @@ namespace   FE
                 return  KFValue{Common(a * y)};
             }
             else if constexpr (std::is_same_v<TValue,T>) 
-                return KFValue{a * b};
+                return KFValue{a * y};
             else if constexpr (!std::is_arithmetic_v<T>) 
                 return KFValue{a * T::value_type(y)};
             else

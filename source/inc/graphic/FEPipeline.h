@@ -7,6 +7,7 @@
 #include    "FEDSetLayout.h"
 #include    "FERenderPass.h"
 #include    "FEGraphicEnums.h"
+#include    "../mesh/FEPrimitive.hpp"
 
 
 namespace   FE

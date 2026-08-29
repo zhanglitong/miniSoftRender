@@ -88,11 +88,6 @@ namespace   FE
         {}
         virtual ~FEMaterial()
         {}
-        template<typename TValue>
-        inline  TValue*     constantAs() 
-        {
-            return  (TValue*)_const;
-        }
         const   Pipeline    pipeline(EPrimitive pri) const
         {
             return  _pipelines[pri];

@@ -1,17 +1,15 @@
 #pragma     once
 #include    <string>
 #include    "FEObject.h"
-#include    "FEComponent.hpp"
 #include    "FEMath.hpp"
 #include    "FEColor.hpp"
 #include    "FEFlags.hpp"
-#include    "FESmallVector.h"
 #include    "FEBuffer.hpp"
 #include    "FEFormatHelper.hpp"
-
 #include    "graphic/FEPBuffer.h"
 #include    "FEImageSource.hpp"
 
+#include    "FEFormat.hpp"
 namespace   FE
 {
     DEFINE_CLASS_UUID(FEImage,"{CACB6053-A4DB-4479-9BBD-D9D4433263AD}");
@@ -78,16 +76,6 @@ namespace   FE
         /// <param name="info"></param>
         /// <returns></returns>
         bool        create(const FEImage::CreateInfo& info);
-        template<class T>
-        inline  T*  dataAs()
-        {
-            return  (T*)_cInfo._buffer;
-        }
-        template<class T>
-        const   T*  dataAs() const
-        {
-            return  (T*)_cInfo._buffer;
-        }
         /// <summary>
         /// 
         /// </summary>
@@ -290,12 +278,12 @@ namespace   FE
             case FMT_R8_SINT             :  return  convert<TFrom,TypeOfFormat<FMT_R8_SINT              >::type>(pBuffer,color);
             case FMT_R4G4_UNORM          :  return  convert<TFrom,TypeOfFormat<FMT_R4G4_UNORM           >::type>(pBuffer,color);
 
-            case FMT_RG8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_RG8_UNORM            >::type>(pBuffer,color);
-            case FMT_RG8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_RG8_SNORM            >::type>(pBuffer,color);
-            case FMT_RG8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_RG8_USCALED          >::type>(pBuffer,color);
-            case FMT_RG8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_RG8_SSCALED          >::type>(pBuffer,color);
-            case FMT_RG8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_RG8_UINT             >::type>(pBuffer,color);
-            case FMT_RG8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_RG8_SINT             >::type>(pBuffer,color);
+            case FMT_R8G8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UNORM            >::type>(pBuffer,color);
+            case FMT_R8G8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SNORM            >::type>(pBuffer,color);
+            case FMT_R8G8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_USCALED          >::type>(pBuffer,color);
+            case FMT_R8G8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SSCALED          >::type>(pBuffer,color);
+            case FMT_R8G8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UINT             >::type>(pBuffer,color);
+            case FMT_R8G8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SINT             >::type>(pBuffer,color);
 
             case FMT_R4G4B4A4_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_R4G4B4A4_UNORM       >::type>(pBuffer,color);
             case FMT_B4G4R4A4_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_B4G4R4A4_UNORM       >::type>(pBuffer,color);
@@ -305,19 +293,19 @@ namespace   FE
             case FMT_B5G5R5A1_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_B5G5R5A1_UNORM       >::type>(pBuffer,color);
             case FMT_A1R5G5B5_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A1R5G5B5_UNORM       >::type>(pBuffer,color);
 
-            case FMT_RGB8_UNORM          :  return  convert<TFrom,TypeOfFormat<FMT_RGB8_UNORM           >::type>(pBuffer,color);
-            case FMT_RGB8_SNORM          :  return  convert<TFrom,TypeOfFormat<FMT_RGB8_SNORM           >::type>(pBuffer,color);
-            case FMT_RGB8_USCALED        :  return  convert<TFrom,TypeOfFormat<FMT_RGB8_USCALED         >::type>(pBuffer,color);
-            case FMT_RGB8_SSCALED        :  return  convert<TFrom,TypeOfFormat<FMT_RGB8_SSCALED         >::type>(pBuffer,color);
-            case FMT_RGB8_UINT           :  return  convert<TFrom,TypeOfFormat<FMT_RGB8_UINT            >::type>(pBuffer,color);
-            case FMT_RGB8_SINT           :  return  convert<TFrom,TypeOfFormat<FMT_RGB8_SINT            >::type>(pBuffer,color);
+            case FMT_R8G8B8_UNORM          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UNORM           >::type>(pBuffer,color);
+            case FMT_R8G8B8_SNORM          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SNORM           >::type>(pBuffer,color);
+            case FMT_R8G8B8_USCALED        :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_USCALED         >::type>(pBuffer,color);
+            case FMT_R8G8B8_SSCALED        :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SSCALED         >::type>(pBuffer,color);
+            case FMT_R8G8B8_UINT           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UINT            >::type>(pBuffer,color);
+            case FMT_R8G8B8_SINT           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SINT            >::type>(pBuffer,color);
 
-            case FMT_RGBA8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_RGBA8_UNORM          >::type>(pBuffer,color);
-            case FMT_RGBA8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_RGBA8_SNORM          >::type>(pBuffer,color);
-            case FMT_RGBA8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_RGBA8_USCALED        >::type>(pBuffer,color);
-            case FMT_RGBA8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_RGBA8_SSCALED        >::type>(pBuffer,color);
-            case FMT_RGBA8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_RGBA8_UINT           >::type>(pBuffer,color);
-            case FMT_RGBA8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_RGBA8_SINT           >::type>(pBuffer,color);
+            case FMT_R8G8B8A8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UNORM          >::type>(pBuffer,color);
+            case FMT_R8G8B8A8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SNORM          >::type>(pBuffer,color);
+            case FMT_R8G8B8A8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_USCALED        >::type>(pBuffer,color);
+            case FMT_R8G8B8A8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SSCALED        >::type>(pBuffer,color);
+            case FMT_R8G8B8A8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UINT           >::type>(pBuffer,color);
+            case FMT_R8G8B8A8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SINT           >::type>(pBuffer,color);
 
             case FMT_A2B10G10R10_UNORM   :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UNORM    >::type>(pBuffer,color);
             case FMT_A2B10G10R10_SNORM   :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SNORM    >::type>(pBuffer,color);
@@ -333,48 +321,48 @@ namespace   FE
             case FMT_R16_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16_UINT             >::type>(pBuffer,color);
             case FMT_R16_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16_SINT             >::type>(pBuffer,color);
 
-            case FMT_RG16_UNORM          :  return  convert<TFrom,TypeOfFormat<FMT_RG16_UNORM           >::type>(pBuffer,color);
-            case FMT_RG16_SNORM          :  return  convert<TFrom,TypeOfFormat<FMT_RG16_SNORM           >::type>(pBuffer,color);
-            case FMT_RG16_USCALED        :  return  convert<TFrom,TypeOfFormat<FMT_RG16_USCALED         >::type>(pBuffer,color);
-            case FMT_RG16_SSCALED        :  return  convert<TFrom,TypeOfFormat<FMT_RG16_SSCALED         >::type>(pBuffer,color);
-            case FMT_RG16_UINT           :  return  convert<TFrom,TypeOfFormat<FMT_RG16_UINT            >::type>(pBuffer,color);
-            case FMT_RG16_SINT           :  return  convert<TFrom,TypeOfFormat<FMT_RG16_SINT            >::type>(pBuffer,color);
+            case FMT_R16G16_UNORM          :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UNORM           >::type>(pBuffer,color);
+            case FMT_R16G16_SNORM          :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SNORM           >::type>(pBuffer,color);
+            case FMT_R16G16_USCALED        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_USCALED         >::type>(pBuffer,color);
+            case FMT_R16G16_SSCALED        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SSCALED         >::type>(pBuffer,color);
+            case FMT_R16G16_UINT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UINT            >::type>(pBuffer,color);
+            case FMT_R16G16_SINT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SINT            >::type>(pBuffer,color);
 
-            case FMT_RGB16_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_RGB16_UNORM          >::type>(pBuffer,color);
-            case FMT_RGB16_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_RGB16_SNORM          >::type>(pBuffer,color);
-            case FMT_RGB16_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_RGB16_USCALED        >::type>(pBuffer,color);
-            case FMT_RGB16_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_RGB16_SSCALED        >::type>(pBuffer,color);
-            case FMT_RGB16_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_RGB16_UINT           >::type>(pBuffer,color);
-            case FMT_RGB16_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_RGB16_SINT           >::type>(pBuffer,color);
+            case FMT_R16G16B16_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UNORM          >::type>(pBuffer,color);
+            case FMT_R16G16B16_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SNORM          >::type>(pBuffer,color);
+            case FMT_R16G16B16_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_USCALED        >::type>(pBuffer,color);
+            case FMT_R16G16B16_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SSCALED        >::type>(pBuffer,color);
+            case FMT_R16G16B16_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UINT           >::type>(pBuffer,color);
+            case FMT_R16G16B16_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SINT           >::type>(pBuffer,color);
 
-            case FMT_RGBA16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_RGBA16_UNORM         >::type>(pBuffer,color);
-            case FMT_RGBA16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_RGBA16_SNORM         >::type>(pBuffer,color);
-            case FMT_RGBA16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_RGBA16_USCALED       >::type>(pBuffer,color);
-            case FMT_RGBA16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_RGBA16_SSCALED       >::type>(pBuffer,color);
-            case FMT_RGBA16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_RGBA16_UINT          >::type>(pBuffer,color);
-            case FMT_RGBA16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_RGBA16_SINT          >::type>(pBuffer,color);
+            case FMT_R16G16B16A16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UNORM         >::type>(pBuffer,color);
+            case FMT_R16G16B16A16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SNORM         >::type>(pBuffer,color);
+            case FMT_R16G16B16A16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_USCALED       >::type>(pBuffer,color);
+            case FMT_R16G16B16A16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SSCALED       >::type>(pBuffer,color);
+            case FMT_R16G16B16A16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UINT          >::type>(pBuffer,color);
+            case FMT_R16G16B16A16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SINT          >::type>(pBuffer,color);
 
             case FMT_R32_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32_UINT             >::type>(pBuffer,color);
             case FMT_R32_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32_SINT             >::type>(pBuffer,color);
 
-            case FMT_RG32_UINT           :  return  convert<TFrom,TypeOfFormat<FMT_RG32_UINT            >::type>(pBuffer,color);
-            case FMT_RG32_SINT           :  return  convert<TFrom,TypeOfFormat<FMT_RG32_SINT            >::type>(pBuffer,color);
+            case FMT_R32G32_UINT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_UINT            >::type>(pBuffer,color);
+            case FMT_R32G32_SINT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_SINT            >::type>(pBuffer,color);
 
-            case FMT_RGB32_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_RGB32_UINT           >::type>(pBuffer,color);
-            case FMT_RGB32_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_RGB32_SINT           >::type>(pBuffer,color);
+            case FMT_R32G32B32_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_UINT           >::type>(pBuffer,color);
+            case FMT_R32G32B32_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_SINT           >::type>(pBuffer,color);
 
-            case FMT_RGBA32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_RGBA32_UINT          >::type>(pBuffer,color);
-            case FMT_RGBA32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_RGBA32_SINT          >::type>(pBuffer,color);
+            case FMT_R32G32B32A32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_UINT          >::type>(pBuffer,color);
+            case FMT_R32G32B32A32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_SINT          >::type>(pBuffer,color);
 
-            case FMT_RF16                :  return  convert<TFrom,TypeOfFormat<FMT_RF16                 >::type>(pBuffer,color);
-            case FMT_RGF16               :  return  convert<TFrom,TypeOfFormat<FMT_RGF16                >::type>(pBuffer,color);
-            case FMT_RGBF16              :  return  convert<TFrom,TypeOfFormat<FMT_RGBF16               >::type>(pBuffer,color);
-            case FMT_RGBAF16             :  return  convert<TFrom,TypeOfFormat<FMT_RGBAF16              >::type>(pBuffer,color);
+            case FMT_R16_FLOAT                :  return  convert<TFrom,TypeOfFormat<FMT_R16_FLOAT                 >::type>(pBuffer,color);
+            case FMT_R16G16_FLOAT               :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_FLOAT                >::type>(pBuffer,color);
+            case FMT_R16G16B16_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_FLOAT               >::type>(pBuffer,color);
+            case FMT_R16G16B16A16_FLOAT             :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_FLOAT              >::type>(pBuffer,color);
 
-            case FMT_RF32                :  return  convert<TFrom,TypeOfFormat<FMT_RF32                 >::type>(pBuffer,color);
-            case FMT_RGF32               :  return  convert<TFrom,TypeOfFormat<FMT_RGF32                >::type>(pBuffer,color);
-            case FMT_RGBF32              :  return  convert<TFrom,TypeOfFormat<FMT_RGBF32               >::type>(pBuffer,color);
-            case FMT_RGBAF32             :  return  convert<TFrom,TypeOfFormat<FMT_RGBAF32              >::type>(pBuffer,color);
+            case FMT_R32_FLOAT                :  return  convert<TFrom,TypeOfFormat<FMT_R32_FLOAT                 >::type>(pBuffer,color);
+            case FMT_R32G32_FLOAT               :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_FLOAT                >::type>(pBuffer,color);
+            case FMT_R32G32B32_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_FLOAT               >::type>(pBuffer,color);
+            case FMT_R32G32B32A32_FLOAT             :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_FLOAT              >::type>(pBuffer,color);
 
             case FMT_D16_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_D16_UNORM            >::type>(pBuffer,color);
             case FMT_D32_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_D32_UNORM            >::type>(pBuffer,color);

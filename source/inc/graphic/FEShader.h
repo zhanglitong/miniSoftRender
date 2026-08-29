@@ -7,7 +7,6 @@
 #include    "../FEDefine.h"
 #include    "../FELog.hpp"
 #include    "../FEObject.h"
-#include	"../FESmallVector.h"
 #include    "../FEFormat.hpp"
 #include    "../FEBuffer.hpp"
 #include    "../FEFormatHelper.hpp"

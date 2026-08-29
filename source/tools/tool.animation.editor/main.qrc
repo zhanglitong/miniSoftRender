@@ -1,0 +1,25 @@
+<RCC>
+  <qresource prefix="/EditorRes">
+    <file>res/search.png</file>
+    <file>res/exact_match.png</file>
+    <file>res/contract.png</file>
+    <file>res/Aa.png</file>
+    <file>res/buttons.bmp</file>
+    <file>res/ico_Add.png</file>
+    <file>res/ico_Delete.png</file>
+    <file>res/ico_FirstFrame.png</file>
+    <file>res/ico_LastFrame.png</file>
+    <file>res/ico_Move.png</file>
+    <file>res/ico_NextFrame.png</file>
+    <file>res/ico_Pause.png</file>
+    <file>res/ico_PreFrame.png</file>
+    <file>res/ico_Redo.png</file>
+    <file>res/ico_Rotate.png</file>
+    <file>res/ico_RunBack.png</file>
+    <file>res/ico_RunFront.png</file>
+    <file>res/ico_Scale.png</file>
+    <file>res/ico_Set.png</file>
+    <file>res/toTarget.png</file>
+    <file>res/ico_Undo.png</file>
+  </qresource>
+</RCC>

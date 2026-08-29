@@ -103,38 +103,6 @@ namespace   FE
         {
             return   (TAsTo*)_cInfo.dataPtr();
         }
-        template<typename U>
-        inline  auto&       set(std::initializer_list<U> vlist,const Notify& notify = {})
-        {
-            _buffer =   vlist;
-            if (notify) notify(*this);
-            return  *this;
-        }
-        
-        /// <summary>
-        /// 调用后，buffer内存管理权 移交给_buffer
-        /// </summary>
-        /// <typeparam name="U"></typeparam>
-        /// <param name="buffer"></param>
-        /// <returns></returns>
-        template<class U>   
-        inline  auto&       referenceFrom(FEVector<U>& buffer)
-        {
-            _cInfo._buffer.referenceFrom(buffer);
-            return  *this;
-        }
-        /// <summary>
-        /// 执行内存拷贝动作
-        /// </summary>
-        /// <typeparam name="U"></typeparam>
-        /// <param name="buffer"></param>
-        /// <returns></returns>
-        template<class U>   
-        inline  auto&       copyFrom(const FEVector<U>& buffer)
-        {
-            _cInfo._buffer.copyFrom(buffer);
-            return  *this;
-        }
         /// <summary>
         /// 创建
         /// </summary>

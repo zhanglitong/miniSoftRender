@@ -8,7 +8,6 @@
 #include    "../inc/FEDefine.h"
 #include    "../inc/FELog.hpp"
 #include    "../inc/FEObject.h"
-#include	"../inc/FESmallVector.h"
 #include    "../inc/FEMath.hpp"
 
 /// <summary>

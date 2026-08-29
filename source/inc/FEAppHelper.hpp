@@ -19,7 +19,7 @@ namespace   FE
 #elif (FE_PLATFORM == FE_PLATFORM_LINUX)
         static_assert(false);
 #else
-          static_assert(false);
+        static_assert(false);
 #endif
       }
     };

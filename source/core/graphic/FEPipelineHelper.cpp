@@ -2,7 +2,7 @@
 #include    "../inc/FEStringHelper.hpp"
 #include    "../inc/FEFileInfor.hpp"
 #include    "../inc/graphic/FEPipelineHelper.h"
-
+#include    "../inc/mesh/FEPrimitive.hpp"
 namespace   FE
 {
     Pipelines   FEPipelineHelper::create(FEContext& ctx,FEDevice& device,RenderPass renderPass,const char* fileName)

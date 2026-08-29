@@ -82,48 +82,48 @@ namespace   FE
             
         }
 
-        static  auto    enumsOfNames(InputSlotBits slots)
+        static  auto    enumsOfNames(InputSlotBits slotFlags)
         {       
             Strings     results;
-            if (slots.hasFlag(IS_VERTEX_POS          )) results.push_back(enumOfName(IS_VERTEX_POS          ));
-            if (slots.hasFlag(IS_VERTEX_NOR          )) results.push_back(enumOfName(IS_VERTEX_NOR          ));
-            if (slots.hasFlag(IS_VERTEX_COLOR0       )) results.push_back(enumOfName(IS_VERTEX_COLOR0       ));
-            if (slots.hasFlag(IS_VERTEX_COLOR1       )) results.push_back(enumOfName(IS_VERTEX_COLOR1       ));
-            if (slots.hasFlag(IS_VERTEX_LOD         )) results.push_back(enumOfName(IS_VERTEX_LOD           ));
-            if (slots.hasFlag(IS_VERTEX_TEXCOORD0    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD0    ));
-            if (slots.hasFlag(IS_VERTEX_TEXCOORD1    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD1    ));
-            if (slots.hasFlag(IS_VERTEX_TEXCOORD2    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD2    ));
-            if (slots.hasFlag(IS_VERTEX_TEXCOORD3    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD3    ));
-            if (slots.hasFlag(IS_VERTEX_BONE_INDEX   )) results.push_back(enumOfName(IS_VERTEX_BONE_INDEX   ));
-            if (slots.hasFlag(IS_VERTEX_BONE_WEIGHT  )) results.push_back(enumOfName(IS_VERTEX_BONE_WEIGHT  ));
-            if (slots.hasFlag(IS_VERTEX_TARGET0      )) results.push_back(enumOfName(IS_VERTEX_TARGET0      ));
-            if (slots.hasFlag(IS_VERTEX_TARGET1      )) results.push_back(enumOfName(IS_VERTEX_TARGET1      ));
-            if (slots.hasFlag(IS_VERTEX_TARGET2      )) results.push_back(enumOfName(IS_VERTEX_TARGET2      ));
-            if (slots.hasFlag(IS_VERTEX_TARGET3      )) results.push_back(enumOfName(IS_VERTEX_TARGET3      ));
-            if (slots.hasFlag(IS_INSTANCE_TRANSLATE  )) results.push_back(enumOfName(IS_INSTANCE_TRANSLATE  ));
-            if (slots.hasFlag(IS_INSTANCE_ITRANSLATE )) results.push_back(enumOfName(IS_INSTANCE_ITRANSLATE ));
-            if (slots.hasFlag(IS_INSTANCE_SCALE      )) results.push_back(enumOfName(IS_INSTANCE_SCALE      ));
-            if (slots.hasFlag(IS_INSTANCE_ROTATE     )) results.push_back(enumOfName(IS_INSTANCE_ROTATE     ));
-            if (slots.hasFlag(IS_INSTANCE_BOUNDSPHERE)) results.push_back(enumOfName(IS_INSTANCE_BOUNDSPHERE));
-            if (slots.hasFlag(IS_INSTANCE_INSTANCE   )) results.push_back(enumOfName(IS_INSTANCE_INSTANCE   ));
-            if (slots.hasFlag(IS_INSTANCE_LOD_INDEX  )) results.push_back(enumOfName(IS_INSTANCE_LOD_INDEX  ));
-            if (slots.hasFlag(IS_INSTANCE_FLAG       )) results.push_back(enumOfName(IS_INSTANCE_FLAG       ));
-            if (slots.hasFlag(IS_INSTANCE_MAT_C0     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C0     ));
-            if (slots.hasFlag(IS_INSTANCE_MAT_C1     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C1     ));
-            if (slots.hasFlag(IS_INSTANCE_MAT_C2     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C2     ));
-            if (slots.hasFlag(IS_INSTANCE_MAT_C3     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C3     ));
+            if (slotFlags.hasFlag(IS_VERTEX_POS          )) results.push_back(enumOfName(IS_VERTEX_POS          ));
+            if (slotFlags.hasFlag(IS_VERTEX_NOR          )) results.push_back(enumOfName(IS_VERTEX_NOR          ));
+            if (slotFlags.hasFlag(IS_VERTEX_COLOR0       )) results.push_back(enumOfName(IS_VERTEX_COLOR0       ));
+            if (slotFlags.hasFlag(IS_VERTEX_COLOR1       )) results.push_back(enumOfName(IS_VERTEX_COLOR1       ));
+            if (slotFlags.hasFlag(IS_VERTEX_LOD          )) results.push_back(enumOfName(IS_VERTEX_LOD          ));
+            if (slotFlags.hasFlag(IS_VERTEX_TEXCOORD0    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD0    ));
+            if (slotFlags.hasFlag(IS_VERTEX_TEXCOORD1    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD1    ));
+            if (slotFlags.hasFlag(IS_VERTEX_TEXCOORD2    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD2    ));
+            if (slotFlags.hasFlag(IS_VERTEX_TEXCOORD3    )) results.push_back(enumOfName(IS_VERTEX_TEXCOORD3    ));
+            if (slotFlags.hasFlag(IS_VERTEX_BONE_INDEX   )) results.push_back(enumOfName(IS_VERTEX_BONE_INDEX   ));
+            if (slotFlags.hasFlag(IS_VERTEX_BONE_WEIGHT  )) results.push_back(enumOfName(IS_VERTEX_BONE_WEIGHT  ));
+            if (slotFlags.hasFlag(IS_VERTEX_TARGET0      )) results.push_back(enumOfName(IS_VERTEX_TARGET0      ));
+            if (slotFlags.hasFlag(IS_VERTEX_TARGET1      )) results.push_back(enumOfName(IS_VERTEX_TARGET1      ));
+            if (slotFlags.hasFlag(IS_VERTEX_TARGET2      )) results.push_back(enumOfName(IS_VERTEX_TARGET2      ));
+            if (slotFlags.hasFlag(IS_VERTEX_TARGET3      )) results.push_back(enumOfName(IS_VERTEX_TARGET3      ));
+            if (slotFlags.hasFlag(IS_INSTANCE_TRANSLATE  )) results.push_back(enumOfName(IS_INSTANCE_TRANSLATE  ));
+            if (slotFlags.hasFlag(IS_INSTANCE_ITRANSLATE )) results.push_back(enumOfName(IS_INSTANCE_ITRANSLATE ));
+            if (slotFlags.hasFlag(IS_INSTANCE_SCALE      )) results.push_back(enumOfName(IS_INSTANCE_SCALE      ));
+            if (slotFlags.hasFlag(IS_INSTANCE_ROTATE     )) results.push_back(enumOfName(IS_INSTANCE_ROTATE     ));
+            if (slotFlags.hasFlag(IS_INSTANCE_BOUNDSPHERE)) results.push_back(enumOfName(IS_INSTANCE_BOUNDSPHERE));
+            if (slotFlags.hasFlag(IS_INSTANCE_INSTANCE   )) results.push_back(enumOfName(IS_INSTANCE_INSTANCE   ));
+            if (slotFlags.hasFlag(IS_INSTANCE_LOD_INDEX  )) results.push_back(enumOfName(IS_INSTANCE_LOD_INDEX  ));
+            if (slotFlags.hasFlag(IS_INSTANCE_FLAG       )) results.push_back(enumOfName(IS_INSTANCE_FLAG       ));
+            if (slotFlags.hasFlag(IS_INSTANCE_MAT_C0     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C0     ));
+            if (slotFlags.hasFlag(IS_INSTANCE_MAT_C1     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C1     ));
+            if (slotFlags.hasFlag(IS_INSTANCE_MAT_C2     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C2     ));
+            if (slotFlags.hasFlag(IS_INSTANCE_MAT_C3     )) results.push_back(enumOfName(IS_INSTANCE_MAT_C3     ));
 
             return  results;
         }
         static  auto    enumsFromNames(const Strings& names)
         {   
-            InputSlotBits    slots;
+            InputSlotBits    slotBits;
             for (auto& var : names)
             {
                 auto    flag    =   enumFromName(var.c_str());
-                slots.addFlag(flag);
+                slotBits.addFlag(flag);
             }
-            return  slots;
+            return  slotBits;
         }
     };
     

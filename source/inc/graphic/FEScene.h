@@ -206,7 +206,7 @@ namespace   FE
                 return  0;
             Components  coms;
             coms.reserve(nCount);
-            FEComponentSys::collectObjects<FEAnimation>(nodes,coms);
+            FEComponentSys::collectObjects<TObject>(nodes,coms);
 
             Component   com     =   coms.front();
             CLSVar      prop;

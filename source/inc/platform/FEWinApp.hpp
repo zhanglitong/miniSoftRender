@@ -88,7 +88,7 @@ namespace   FE
                         }
                         else
                         {
-                            return nullptr;
+                            return  false;
                         }
                     }
                     screenWidth     =   width;
@@ -151,6 +151,12 @@ namespace   FE
             SetFocus(window);
             _cInfo._window  =   window;
             LOG_DBG("FEWinApp.settings{width:%d,height:%d,fullscreen:%s}",width,height,settings._fullscreen ? "true" : "false");
+
+            /// 设置上下文相关
+            _ctx.setWindow(this);
+            _ctx.setWorkPath(path());
+            _ctx.setResourcePath(path() + "/../");
+
             return  true;
         }
         /// <summary>

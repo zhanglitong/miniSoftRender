@@ -2,8 +2,7 @@
 
 #include    "FEObject.h"
 #include    "FENotify.hpp"
-
-
+#include    "FEObjectHelper.hpp"
 
 namespace   FE
 {

@@ -1,4 +1,5 @@
 #pragma     once
+#include    "FEFlags.hpp"
 #include    "FEFormat.hpp"
 
 namespace   FE

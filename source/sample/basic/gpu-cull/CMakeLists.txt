@@ -8,32 +8,13 @@ file(GLOB_RECURSE SOURCE_FILES *.c *.cc *.cpp)
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${SOURCE_FILES})
 
-
-message(STATUS "Using module to find Vulkan")
-
 find_package(Vulkan REQUIRED)
-
 
 IF (NOT Vulkan_FOUND)
     message(FATAL_ERROR "Could not find Vulkan library!")
 ELSE()
     message(STATUS ${Vulkan_LIBRARY})
 ENDIF()
-
-# 健壮地获取 glslc 路径
-if(Vulkan_GLSLC_EXECUTABLE)
-    set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
-elseif(Vulkan_GLSLC)
-    set(GLSLC ${Vulkan_GLSLC})
-else()
-    # 再尝试手动查找（备用）
-    find_program(GLSLC glslc PATHS ENV VULKAN_SDK PATH_SUFFIXES bin)
-    if(NOT GLSLC)
-        message(FATAL_ERROR "glslc not found")
-    endif()
-endif()
-
-message(STATUS "Using glslc: ${GLSLC}")
 
 IF(WIN32)
     IF (Vulkan_FOUND)
@@ -43,7 +24,6 @@ ENDIF(WIN32)
 
 set(SHADER_SRC_DIR      ${CMAKE_SOURCE_DIR}/bin/data/shader/source)
 set(SHADER_CACHE_DIR    ${CMAKE_SOURCE_DIR}/bin/data/shader/cache)
-
 set(PIPELINE_DIR        ${CMAKE_SOURCE_DIR}/bin/data/pipeline)
 
 file(GLOB_RECURSE SHADER_SOURCES 

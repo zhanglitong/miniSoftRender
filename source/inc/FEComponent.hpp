@@ -5,21 +5,33 @@ namespace   FE
 {     
     class   FEComponent :public FEObject     
     {     
+    public:
+        enum    COMFlag :uint32_t
+        {
+            FLAG_ACTOR  =   FLAG_LAST,
+        };
     public:         
         FEComponent(FEContext& ctx,bool bActor = false)             
             :FEObject(ctx)    
-            ,_type(bActor)
-        {}         
+        {
+            if (bActor)
+                flags().addFlag(FLAG_ACTOR);
+            else
+                flags().removeFlag(FLAG_ACTOR);
+        }         
         FEComponent(const FEComponent& other)            
             :FEObject(other)         
         {
             _owner      =   other._owner;
             _priority   =   other._priority;
-            _type       =   other._type;
+            if (other.isActor())
+                flags().addFlag(FLAG_ACTOR);
+            else
+                flags().removeFlag(FLAG_ACTOR);
         } 
         inline  bool    isActor() const
         {
-            return  _type;
+            return  flags().hasFlag(FLAG_ACTOR);
         }
         /// <summary>
         /// 获取优先级
@@ -37,14 +49,14 @@ namespace   FE
         /// 关联所有者
         /// </summary>
         /// <param name="owner"></param>
-        inline  void    attach(Object owner)
+        virtual void    attach(Object owner)
         {
             _owner  =   owner;
         }
         /// <summary>
         /// 取消关键
         /// </summary>
-        inline  void    detach()
+        virtual void    detach()
         {
             _owner  =   nullptr;
         }
@@ -97,11 +109,6 @@ namespace   FE
         /// 优先级
         /// </summary>
         FEPriority  _priority;
-        /// <summary>
-        /// true: Actor
-        /// false:Reactor
-        /// </summary>
-        bool        _type   =   false;
     };
 
     using   Component   =   SharedPtr<FEComponent>;

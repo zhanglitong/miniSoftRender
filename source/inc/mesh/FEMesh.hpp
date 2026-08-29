@@ -22,9 +22,14 @@ namespace   FE
 {
     /// <summary>
     /// 根据 mesh 信息 生成的唯一类型key
+    /// 大小必须是8字节
     /// </summary>
     struct  MeshKey 
     {
+        /// <summary>
+        /// 有哪些槽
+        /// </summary>
+        InputSlotBits   _slotBits   =   InputSlotBits();
         /// <summary>
         /// 图元类型 _primitive + _drawType + _slotBits 决定类型
         /// </summary>
@@ -33,10 +38,7 @@ namespace   FE
         /// 绘制类型 
         /// </summary>
         EDrawType       _drawType   =   DRAW_ARRAY;
-        /// <summary>
-        /// 有哪些槽
-        /// </summary>
-        InputSlotBits   _slotBits   =   InputSlotBits();
+        uint16          _reserver  =   0;
         /// <summary>
         /// 生成Key
         /// </summary>
@@ -168,7 +170,7 @@ namespace   FE
         /// 清除所有数据
         /// </summary>
         /// <returns></returns>
-        inline  auto&   clearBuffers()
+        inline  auto&   clearAttributes()
         {
             _buffers.clear();
             return  *this;

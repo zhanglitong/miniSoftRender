@@ -2,6 +2,8 @@
 #include    <functional>
 #include    "FEMathUtil.hpp"
 #include    "FEFlags.hpp"
+#include    "FEKeyCode.hpp"
+
 namespace   FE
 {
     

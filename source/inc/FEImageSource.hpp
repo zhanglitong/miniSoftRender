@@ -4,6 +4,7 @@
 #include    "../inc/FEMath.hpp"
 #include    "../inc/FEColor.hpp"
 #include    "../inc/FEFlags.hpp"
+#include    "../inc/FEFormat.hpp"
 #include    "../inc/FEFormatHelper.hpp"
 
 namespace   FE
@@ -578,7 +579,7 @@ namespace   FE
             const auto  bottom  =   rect.bottom();
             for (uint32_t r = top; r < bottom; ++r)
             {   
-                TTo*    pData   =   dataOffset<TTo>(r,c);
+                TTo*    pData   =   dataOffset<TTo>(r,0);
                 for (uint32_t c = 0; c < width; c++)
                 {
                     pData[c]  =   castTo<TFrom,TTo>(src[c]);
@@ -603,7 +604,7 @@ namespace   FE
 
             for (uint32_t r = top; r < bottom; ++r)
             {   
-                TTo*    pDst    =   dataOffset<TTo>(r,c);
+                TTo*    pDst    =   dataOffset<TTo>(r,0);
                 TFrom*  pSrc    =   src.dataOffset<TFrom>(srcTop + r,srcLeft);
                 if (std::is_same_v<TTo,TFrom>)
                 {
@@ -613,7 +614,7 @@ namespace   FE
                 {
                     for (uint32_t c = 0; c < width; c++)
                     {
-                        pData[c]  =   castTo<TFrom,TTo>(src[c]);
+                        pDst[c]  =   castTo<TFrom,TTo>(src[c]);
                     }
                 }
             }

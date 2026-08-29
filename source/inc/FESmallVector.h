@@ -166,7 +166,7 @@ namespace   FE
                 _size   =   other._size;
                 _capacity           =   other._capacity;
                 other._ptr          =   nullptr;
-                other._size   =   0;
+                other._size         =   0;
                 other._capacity     =   0;
             }
             else

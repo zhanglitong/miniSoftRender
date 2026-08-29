@@ -331,7 +331,7 @@ namespace   FE
                 mkey._primitive =   var->primitive();
                 mkey._slotBits  =   slot;
                 auto    key     =   mkey.key();
-                /// 鏌ユ壘宸ュ巶瀵硅薄
+                /// 根据key计算所属工厂
                 auto    factory =   _factorys.findObject(key);
                 if (!factory)
                     continue;

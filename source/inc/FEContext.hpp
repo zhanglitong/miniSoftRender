@@ -125,10 +125,19 @@ namespace FE
         {
             _window =   window;
         }
+        /// <summary>
+        /// 获取一帧花费的时间
+        /// </summary>
+        /// <returns></returns>
         real        deltaTime() const
         {
             return  _deltaTime;
         }
+        /// <summary>
+        /// 设置帧时间
+        /// </summary>
+        /// <param name="tm"></param>
+        /// <returns></returns>
         auto&       setDeltaTime(const real& tm)
         {
             _deltaTime  =   tm;

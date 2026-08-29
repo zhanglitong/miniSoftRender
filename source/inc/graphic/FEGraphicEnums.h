@@ -1,7 +1,9 @@
 #pragma     once
+#include    "../FEDefine.h"
 #include    "../FEFlags.hpp"
 #include    "../FEStringHelper.hpp"
-#include    "../mesh/FEPrimitive.hpp"
+#include    "../FEFormat.hpp"
+
 
 namespace   FE
 {
