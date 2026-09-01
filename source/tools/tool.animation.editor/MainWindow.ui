@@ -404,7 +404,7 @@
      </widget>
     </item>
     <item row="1" column="0">
-     <widget class="QWidget" name="playerWidget" native="true">
+     <widget class="WigetViewer" name="playerWidget" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -1486,6 +1486,14 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WigetViewer</class>
+   <extends>QWidget</extends>
+   <header>WigetViewer.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="main.qrc"/>
  </resources>

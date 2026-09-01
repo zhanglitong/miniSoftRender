@@ -40,118 +40,15 @@ namespace   FE
         {
             LOG_DBG("FEWinApp.setup");
             _cInfo  =   settings;
+            bool    result  =   false;
             if (!_cInfo._notify)
-            {
                 _cInfo._notify  =   [](const FEMessage& ){};
-            }
-
-            WNDCLASSEXA wndClass         =   {};
-            {
-                wndClass.cbSize         =   sizeof(WNDCLASSEX);
-                wndClass.style          =   CS_HREDRAW | CS_VREDRAW;
-                wndClass.lpfnWndProc    =   wndProcEx;
-                wndClass.cbClsExtra     =   0;
-                wndClass.cbWndExtra     =   0;
-                wndClass.hInstance      =   nullptr;
-                wndClass.hIcon          =   LoadIcon(nullptr, IDI_APPLICATION);
-                wndClass.hCursor        =   LoadCursor(NULL, IDC_ARROW);
-                wndClass.hbrBackground  =   (HBRUSH)GetStockObject(BLACK_BRUSH);
-                wndClass.lpszMenuName   =   nullptr,
-                wndClass.lpszClassName  =   "FEEngine";
-                wndClass.hIconSm        =   LoadIcon(NULL, IDI_WINLOGO);
-            }
-            if (!RegisterClassExA(&wndClass))
-            {
-                LOG_ERR("FEWinApp.setup/RegisterClassExA");
-                return  false;
-            }
-            auto    width           =    settings._width;
-            auto    height          =    settings._height;
-            auto    screenWidth     =    GetSystemMetrics(SM_CXSCREEN);
-            auto    screenHeight    =    GetSystemMetrics(SM_CYSCREEN);
-
-            if (settings._fullscreen)
-            {
-                if ((width != screenWidth) && (height != screenHeight))
-                {
-                    DEVMODEA dmScreenSettings       =   {};
-                    dmScreenSettings.dmSize         =   sizeof(dmScreenSettings);
-                    dmScreenSettings.dmPelsWidth    =   width;
-                    dmScreenSettings.dmPelsHeight   =   height;
-                    dmScreenSettings.dmBitsPerPel   =   32;
-                    dmScreenSettings.dmFields       =   DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-                    if (ChangeDisplaySettingsA(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-                    {
-                        if (MessageBoxA(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
-                        {
-                            return  false;
-                        }
-                        else
-                        {
-                            return  false;
-                        }
-                    }
-                    screenWidth     =   width;
-                    screenHeight    =   height;
-                }
-            }
-
-            DWORD   dwExStyle   =   {};
-            DWORD   dwStyle     =   {};
-
-            if (settings._fullscreen)
-            {
-                dwExStyle   =   WS_EX_APPWINDOW;
-                dwStyle     =   WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
-            }
+            if (_cInfo._window == nullptr)
+                result  =   setupCreateWindow();
             else
-            {
-                dwExStyle   =   WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
-                dwStyle     =   WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
-            }
-
-            RECT windowRect     =   {};
-            windowRect.left     =   0;
-            windowRect.top      =   0;
-            windowRect.right    =   settings._fullscreen ? (long)screenWidth    : (long)width;
-            windowRect.bottom   =   settings._fullscreen ? (long)screenHeight   : (long)height;
-            
-            AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
-
-            auto    windowTitle =   "FEWindow";
-            auto    window      =   CreateWindowExA(0,
-                                                    "FEEngine",
-                                                    windowTitle,
-                                                    dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-                                                    0,
-                                                    0,
-                                                    windowRect.right  - windowRect.left,
-                                                    windowRect.bottom - windowRect.top,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    this);
-
-            if (!window)
-            {
-                LOG_ERR("FEWinApp.setup/CreateWindowExA");
-                return false;
-            }
-
-            if (!settings._fullscreen)
-            {
-                // Center on screen
-                uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
-                uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - windowRect.bottom) / 2;
-                SetWindowPos(window, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-            }
-
-            ShowWindow(window, SW_SHOW);
-            SetForegroundWindow(window);
-            SetFocus(window);
-            _cInfo._window  =   window;
-            LOG_DBG("FEWinApp.settings{width:%d,height:%d,fullscreen:%s}",width,height,settings._fullscreen ? "true" : "false");
-
+                result  =   setupUsingWindow();
+            if (!result)    
+                return  false;
             /// 设置上下文相关
             _ctx.setWindow(this);
             _ctx.setWorkPath(path());
@@ -217,6 +114,120 @@ namespace   FE
             return  filePath.parent_path().string();
         }
     public:
+        virtual bool    setupCreateWindow()
+        {
+            WNDCLASSEXA wndClass         =   {};
+            {
+                wndClass.cbSize         =   sizeof(WNDCLASSEX);
+                wndClass.style          =   CS_HREDRAW | CS_VREDRAW;
+                wndClass.lpfnWndProc    =   wndProcEx;
+                wndClass.cbClsExtra     =   0;
+                wndClass.cbWndExtra     =   0;
+                wndClass.hInstance      =   nullptr;
+                wndClass.hIcon          =   LoadIcon(nullptr, IDI_APPLICATION);
+                wndClass.hCursor        =   LoadCursor(NULL, IDC_ARROW);
+                wndClass.hbrBackground  =   (HBRUSH)GetStockObject(BLACK_BRUSH);
+                wndClass.lpszMenuName   =   nullptr;
+                wndClass.lpszClassName  =   "FEEngine";
+                wndClass.hIconSm        =   LoadIcon(NULL, IDI_WINLOGO);
+            }
+            if (!RegisterClassExA(&wndClass))
+            {
+                LOG_ERR("FEWinApp.setup/RegisterClassExA");
+                return  false;
+            }
+            auto    width           =    _cInfo._width;
+            auto    height          =    _cInfo._height;
+            auto    screenWidth     =    GetSystemMetrics(SM_CXSCREEN);
+            auto    screenHeight    =    GetSystemMetrics(SM_CYSCREEN);
+
+            if (_cInfo._fullscreen)
+            {
+                if ((width != screenWidth) && (height != screenHeight))
+                {
+                    DEVMODEA dmScreenSettings       =   {};
+                    dmScreenSettings.dmSize         =   sizeof(dmScreenSettings);
+                    dmScreenSettings.dmPelsWidth    =   width;
+                    dmScreenSettings.dmPelsHeight   =   height;
+                    dmScreenSettings.dmBitsPerPel   =   32;
+                    dmScreenSettings.dmFields       =   DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+                    if (ChangeDisplaySettingsA(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+                    {
+                        if (MessageBoxA(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
+                        {
+                            return  false;
+                        }
+                        else
+                        {
+                            return  false;
+                        }
+                    }
+                    screenWidth     =   width;
+                    screenHeight    =   height;
+                }
+            }
+
+            DWORD   dwExStyle   =   {};
+            DWORD   dwStyle     =   {};
+
+            if (_cInfo._fullscreen)
+            {
+                dwExStyle   =   WS_EX_APPWINDOW;
+                dwStyle     =   WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+            }
+            else
+            {
+                dwExStyle   =   WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+                dwStyle     =   WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+            }
+
+            RECT windowRect     =   {};
+            windowRect.left     =   0;
+            windowRect.top      =   0;
+            windowRect.right    =   _cInfo._fullscreen ? (long)screenWidth    : (long)width;
+            windowRect.bottom   =   _cInfo._fullscreen ? (long)screenHeight   : (long)height;
+
+            AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
+
+            auto    windowTitle =   "FEWindow";
+            auto    window      =   CreateWindowExA(0,
+                "FEEngine",
+                windowTitle,
+                dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+                0,
+                0,
+                windowRect.right  - windowRect.left,
+                windowRect.bottom - windowRect.top,
+                nullptr,
+                nullptr,
+                nullptr,
+                this);
+
+            if (!window)
+            {
+                LOG_ERR("FEWinApp.setup/CreateWindowExA");
+                return false;
+            }
+
+            if (!_cInfo._fullscreen)
+            {
+                // Center on screen
+                uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
+                uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - windowRect.bottom) / 2;
+                SetWindowPos(window, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+            }
+
+            ShowWindow(window, SW_SHOW);
+            SetForegroundWindow(window);
+            SetFocus(window);
+            _cInfo._window  =   window;
+            LOG_DBG("FEWinApp._cInfo{width:%d,height:%d,fullscreen:%s}",width,height,_cInfo._fullscreen ? "true" : "false");
+            return  true;
+        }
+        virtual bool    setupUsingWindow()
+        {
+            return  true;
+        }
         virtual LRESULT onMessage(MSG* pMsg)
         {
             HWND    hWnd    =   pMsg->hwnd;
@@ -373,6 +384,15 @@ namespace   FE
         {
             if (_cInfo._notify)
             {
+                switch(msg.msgId())
+                {
+                case MSG_RESIZE:
+                    {
+                        _cInfo._width   =   ((const MsgResize&)msg)._info._size.x;
+                        _cInfo._height  =   ((const MsgResize&)msg)._info._size.y;
+                    }
+                    break;
+                }
                 _cInfo._notify(msg);
             }
         }

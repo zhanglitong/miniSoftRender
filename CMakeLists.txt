@@ -7,6 +7,7 @@ add_compile_options(/W4 /std:c++17)
 
 if(MSVC)
     add_compile_options(/wd4201 /wd4996 /wd4244 /wd4505)
+    
 else()
     add_compile_options(-Wno-deprecated-declarations -Wno-conversion)
 endif()
@@ -29,7 +30,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
+# release 带有调试信息
+#if(MSVC)
+#   set(CMAKE_CXX_FLAGS_RELEASE         "${CMAKE_CXX_FLAGS_RELEASE} /Zi /Od")
+#   set(CMAKE_EXE_LINKER_FLAGS_RELEASE  "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF")
+#endif()
 
 include_directories(source/external)
 include_directories(source/external/glm)

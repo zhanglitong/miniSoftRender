@@ -88,6 +88,9 @@ namespace   FE
         FEResizeInfo(const uint2& size = uint2())
             :_size(size)
         {}
+        FEResizeInfo(int w,int h)
+            :_size(w,h)
+        {}
         uint2   _size;
     };
     class   FEMouseInfo

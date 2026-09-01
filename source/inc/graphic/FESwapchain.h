@@ -36,6 +36,9 @@ namespace   FE
         FESwapchain(const FESwapchain& other)
             :RSObject(other)
         {}
+        virtual~FESwapchain()
+        {
+        }
         const auto&     cInfo() const
         {
             return  _cInfo;

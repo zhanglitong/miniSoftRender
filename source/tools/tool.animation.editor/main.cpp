@@ -5,6 +5,11 @@
 #include    <map>
 #include    "MainWindow.h"
 
+#include    "graphic/FEScene.h"
+using   namespace   FE;
+
+USING_PLUGIN(rs_vulkan);
+USING_PLUGIN(rs_webgpu);
 
 int main(int argc, char *argv[])
 {

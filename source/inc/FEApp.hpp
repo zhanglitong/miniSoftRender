@@ -62,7 +62,19 @@ namespace   FE
         virtual void    onMessage(const FEMessage& msg) override 
         {
             if (_cInfo._notify)
+            {
+                switch(msg.msgId())
+                {
+                case MSG_RESIZE:
+                    {
+                        _cInfo._width   =   ((const MsgResize&)msg)._info._size.x;
+                        _cInfo._height  =   ((const MsgResize&)msg)._info._size.y;
+                    }
+                    break;
+                }
                 _cInfo._notify(msg);
+            }
+                
         }
     };
     using   App      =   SharedPtr<FEApp>;

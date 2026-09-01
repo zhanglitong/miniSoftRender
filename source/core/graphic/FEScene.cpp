@@ -574,6 +574,7 @@ namespace   FE
         uint    width   =   evt._info._size.x;
         uint    height  =   evt._info._size.y;
 
+
         if (_app)
         {
             _swapchain      =   _device->createSwapchain();
