@@ -155,7 +155,7 @@ namespace FE
         {
             if (!isValid())
                 return  false;
-            _clip->update(tmDelta,_results);
+            _clip->update(tmDelta - _offset,_results);
             _owner->beginSetProp();
 
             bool    bModify =   false;
@@ -169,7 +169,7 @@ namespace FE
             _owner->endSetProp(bModify);
             return  bModify;
         }
-    public:
+    protected:
         /// <summary>
         /// 表示一个 Action 类型的成员变量，用于存储要执行的操作。
         /// </summary>

@@ -48,8 +48,8 @@ file(GLOB_RECURSE SOURCE_FILES *.c *.cc *.cpp)
 file(GLOB_RECURSE FORM_FILES *.ui)
 file(GLOB_RECURSE RESOURCE_FILES *.qrc)
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${SOURCE_FILES})
+source_group(Header FILES ${HEADER_FILES})
+source_group(Source FILES ${SOURCE_FILES})
 
 
 source_group(Forms      FILES ${FORM_FILES})

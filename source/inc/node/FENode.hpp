@@ -88,7 +88,17 @@ namespace   FE
         FENode(FEContext& ctx);
 
         FENode(const FENode& other);
-
+        /// <summary>
+        /// 获取当前节点的根节点
+        /// </summary>
+        /// <returns></returns>
+        inline  FENode* root()
+        {
+            if (_parent == nullptr)
+                return  this;
+            else
+                return  _parent->root();
+        }
         inline  auto    color() const
         {
             return  _color;
@@ -206,6 +216,10 @@ namespace   FE
         inline  PCSTR   name() const
         {
             return  _name.c_str();
+        }
+        inline  bool    nameIsValid() const
+        {
+            return  !(_name.empty());
         }
         /// <summary>
         /// 材质
