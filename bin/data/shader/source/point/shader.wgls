@@ -1,0 +1,68 @@
+// 需要启用 push_constant/immediate 特性
+requires immediate_address_space;
+
+// 顶点输入（对应 layout location）
+struct VertexInput {
+    @location(0) inPos: vec3f,
+    @location(1) inColor: vec4f,
+    @location(2) matLocalC0: vec4f,
+    @location(3) matLocalC1: vec4f,
+    @location(4) matLocalC2: vec4f,
+    @location(5) matLocalC3: vec4f,
+};
+
+// 顶点输出到片元着色器
+struct VertexOutput {
+    @builtin(position) position: vec4f,
+    @location(0) outColor: vec4f,
+    @builtin(point_size) pointSize: f32,  // gl_PointSize 对应
+};
+
+// Uniform Buffer (binding = SB_Camera)
+struct CameraData {
+    // 需要根据实际的 CameraData 定义，这里假设 _p 和 _v 是 mat4x4f
+    _p: mat4x4f,
+    _v: mat4x4f,
+};
+
+@group(0) @binding(0) var<uniform> _camera: CameraData;
+
+// Push Constants / Immediates
+struct PushConsts {
+    _point: u32,  // 假设 PointData 包含一个 uint 字段
+};
+
+// 注意：不同的 WebGPU 实现可能使用不同的方式
+// 方案1：使用 immediate（实验性）
+var<immediate> _point: PushConsts;
+
+// 方案2：如果使用推式常量扩展
+// @push_constant var _point: PushConsts;
+
+@vertex
+fn main(in: VertexInput) -> VertexOutput {
+    // 构建局部矩阵
+    let matLocal = mat4x4f(
+        in.matLocalC0,
+        in.matLocalC1,
+        in.matLocalC2,
+        in.matLocalC3
+    );
+    
+    // 传递颜色
+    var out: VertexOutput;
+    out.outColor = in.inColor;
+    
+    // 解包 point 数据（注意 WGSL 位操作）
+    let pointValue = _point._point;
+    let pointMin = f32((pointValue >> 16) & 0xFFu);
+    let pointMax = f32((pointValue >> 8) & 0xFFu);
+    
+    // 设置点大小（gl_PointSize 对应 point_size）
+    out.pointSize = pointMin;
+    
+    // 计算位置（注意 WGSL 使用 * 运算符）
+    out.position = _camera._p * _camera._v * matLocal * vec4f(in.inPos, 1.0);
+    
+    return out;
+}

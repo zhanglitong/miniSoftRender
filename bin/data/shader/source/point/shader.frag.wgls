@@ -1,0 +1,31 @@
+/// point 片段着色器 WGSL 版本,与 shader.frag 对齐
+/// 使用 WebGPU 原生 Immediates 特性(var<immediate>)对应 Vulkan 的 push_constant:
+///   layout(push_constant) uniform PushConsts { PointData _point; }
+/// -> var<immediate> _point : PointData
+/// immediate 是 raw 字节流(类 push_constant),无需 uniform 地址空间的 16 字节对齐,
+/// 故 PointData 与 C++ 侧 sizeof(PointData)=8 一致(两个 u32)。
+
+struct  PointData
+{
+    _point  : u32,
+    _color  : u32,
+}
+
+var<immediate> _point : PointData;
+
+struct  FsIn
+{
+    @location(0) inColor : vec4f,
+}
+
+@fragment
+fn  main(in : FsIn) -> @location(0) vec4f
+{
+    let colorRGBA  = unpack4x8unorm(_point._color);
+    let overrideF  = f32((_point._point >> 24u) & 0xFFu) / 255.0;
+
+    /// 与 shader.frag 的逻辑对齐:
+    ///   fragColor = inColor * (1.0 - override) + color * color;
+    /// 注意原 GLSL 是 color*color,这里保持一致。
+    return in.inColor * (1.0 - overrideF) + colorRGBA * colorRGBA;
+}

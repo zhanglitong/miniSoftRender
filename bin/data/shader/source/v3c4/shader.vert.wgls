@@ -1,0 +1,65 @@
+/// v3c4 顶点着色器 WGSL 版本,与 shader.vert 对齐
+/// WebGPU 不支持 Vulkan 的 push_constant,但 v3c4 原始 GLSL 未使用 push_constant,
+/// 仅使用 _camera uniform,无需 _point 替代。
+
+struct  CameraData
+{
+    _v          : mat4x4f,
+    _p          : mat4x4f,
+    _vp         : mat4x4f,
+    _offsetVp   : mat4x4f,
+    _decimal    : vec4f,
+    _offset     : vec4i,
+    _upDir      : vec4f,
+    _rightDir   : vec4f,
+}
+
+@group(0) @binding(0) var<uniform> _camera : CameraData;
+
+/// RF_COLOR = (1<<4) = 16
+const RF_COLOR : u32 = 16u;
+
+struct  VsIn
+{
+    @location(0) inPos          : vec3f,
+    @location(1) inColor        : vec4f,
+    @location(2) instanceColor  : vec4f,
+    @location(3) instanceFlagBits : u32,
+    @location(4) matLocalC0     : vec4f,
+    @location(5) matLocalC1     : vec4f,
+    @location(6) matLocalC2    : vec4f,
+    @location(7) matLocalC3    : vec4f,
+}
+
+struct  VsOut
+{
+    @location(0) outColor       : vec4f,
+    /// flat 插值对应 GLSL 的 `flat out uint`,避免插值改变离散值
+    @location(1) @interpolate(flat) flagBits : u32,
+    @builtin(position) pos     : vec4f,
+}
+
+fn  instColor(flagBits : u32, instanceColor : vec4f) -> vec4f
+{
+    if ((flagBits & RF_COLOR) == 0u)
+    {
+        return vec4f(1.0, 1.0, 1.0, 1.0);
+    }
+    return instanceColor;
+}
+
+@vertex
+fn  main(in : VsIn) -> VsOut
+{
+    var out      : VsOut;
+    let matLocal = mat4x4f(in.matLocalC0, in.matLocalC1, in.matLocalC2, in.matLocalC3);
+
+    out.outColor = in.inColor * instColor(in.instanceFlagBits, in.instanceColor);
+    out.flagBits = in.instanceFlagBits;
+    out.pos      = _camera._p * _camera._v * matLocal * vec4f(in.inPos.xyz, 1.0);
+
+    /// 原始 GLSL 使用 gl_PointSize = 1.0,WebGPU/WGSL 不支持可编程点大小,
+    /// 点默认渲染为 1 像素。
+
+    return out;
+}

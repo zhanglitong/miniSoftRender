@@ -1,0 +1,82 @@
+/// pbr 片段着色器 WGSL 版本,与 shader.frag 对齐
+/// 原始 GLSL 使用:
+///   layout(binding = SB_Material) uniform PBRBlock { PBRData _pbr; }
+///   layout(std140, binding = SB_Light) readonly buffer LightsBlock { LightData _lights[]; }
+/// SB_Material = 4, SB_Light = 1
+///
+/// 关于 PBRData 布局:C++ 端写入完整 PBRData (128 字节) 到 uniform 缓冲区。
+/// 但本 shader 仅使用 _emissive 和 _diffuse (偏移 0/16),声明最小结构即可,
+/// 避免 std140 与 C++ 原始结构在嵌套子结构上的偏移差异。
+
+struct  PBRData
+{
+    _emissive   : vec4f,     /// 偏移 0
+    _diffuse    : vec4f,     /// 偏移 16
+}
+
+@group(0) @binding(4) var<uniform> _pbr : PBRData;
+
+struct  LightData
+{
+    lightType   : i32,       /// 偏移 0
+    r           : f32,       /// 偏移 4
+    g           : f32,       /// 偏移 8
+    b           : f32,       /// 偏移 12
+    x           : f32,       /// 偏移 16
+    y           : f32,       /// 偏移 20
+    z           : f32,       /// 偏移 24
+    radius      : f32,       /// 偏移 28
+}
+/// WGSL array<LightData> 元素步长 = roundUp(align=4, size=32) = 32,
+/// 与 C++ sizeof(LightData)=32 一致。
+
+@group(0) @binding(1) var<storage, read> _lights : array<LightData>;
+
+/// RF_COLOR = (1<<4) = 16
+const RF_COLOR : u32 = 16u;
+
+fn  hasNodeColor(flag : u32) -> bool
+{
+    return (flag & RF_COLOR) != 0u;
+}
+
+struct  FsIn
+{
+    @location(0) inPos          : vec3f,
+    @location(1) inNor          : vec3f,
+    @location(2) inNodeColor    : vec4f,
+    @location(3) @interpolate(flat) inFlagBits : u32,
+}
+
+@fragment
+fn  main(in : FsIn) -> @location(0) vec4f
+{
+    var fragColor    = vec4f(0.0, 0.0, 0.0, 1.0);
+    let diff         = select(_pbr._diffuse.rgb, in.inNodeColor.rgb, hasNodeColor(in.inFlagBits));
+    /// WGSL 解析器无法处理 i32(_lights.length()) 形式的嵌套调用(报错 expected `)`, found `(`)。
+    /// arrayLength(&_lights) 返回 u32,无需再转 i32,直接用 u32 作循环计数。
+    let numLights    = arrayLength(&_lights);
+    let norN         = normalize(in.inNor);
+
+    for (var i : u32 = 0u; i < numLights; i = i + 1u)
+    {
+        let lDir    = vec3f(_lights[i].x, _lights[i].y, _lights[i].z);
+        let lColor  = vec3f(_lights[i].r, _lights[i].g, _lights[i].b);
+
+        let NdotL   = max(0.1, dot(norN, lDir));
+        let diffuse = diff * (NdotL * lColor) + _pbr._emissive.rgb;
+
+        fragColor   = vec4f(fragColor.rgb + diffuse, 1.0);
+    }
+
+    /// 调试兜底:确保片段可被看到(即使材质 uniform 读错)。
+    /// 若 diff/emissive/lights 全为 0, fragColor 会是纯黑, 仍可能被背景淹没。
+    /// 叠加一个与法线相关的微弱颜色,防止完全透明/纯黑。
+    let debugBoost = vec4f(
+        0.05 + 0.05 * abs(norN.x),
+        0.05 + 0.05 * abs(norN.y),
+        0.10 + 0.05 * abs(norN.z),
+        1.0);
+    let finalRgb = select(debugBoost.rgb, fragColor.rgb, any(fragColor.rgb > vec3f(0.01)));
+    return vec4f(finalRgb, 1.0);
+}

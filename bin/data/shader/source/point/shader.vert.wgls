@@ -1,0 +1,50 @@
+/// point 顶点着色器 WGSL 版本,与 shader.vert 对齐
+/// _point 使用 WebGPU 原生 Immediates(var<immediate>),声明在 frag.wgls 中
+/// (frag 实际消费 _point)。immediate 不占描述符 binding,由 pipeline layout 的
+/// immediateSize 声明,运行时通过 wgpuRenderPassEncoderSetImmediates 下发,
+/// vert 不消费 _point 故无需声明。
+
+struct  CameraData
+{
+    _v          : mat4x4f,
+    _p          : mat4x4f,
+    _vp         : mat4x4f,
+    _offsetVp   : mat4x4f,
+    _decimal    : vec4f,
+    _offset     : vec4i,
+    _upDir      : vec4f,
+    _rightDir   : vec4f,
+}
+
+@group(0) @binding(0) var<uniform> _camera : CameraData;
+
+struct  VsIn
+{
+    @location(0) inPos      : vec3f,
+    @location(1) inColor    : vec4f,
+    @location(2) matLocalC0 : vec4f,
+    @location(3) matLocalC1 : vec4f,
+    @location(4) matLocalC2 : vec4f,
+    @location(5) matLocalC3 : vec4f,
+}
+
+struct  VsOut
+{
+    @location(0) outColor   : vec4f,
+    @builtin(position) pos : vec4f,
+}
+
+@vertex
+fn  main(in : VsIn) -> VsOut
+{
+    var out      : VsOut;
+    let matLocal = mat4x4f(in.matLocalC0, in.matLocalC1, in.matLocalC2, in.matLocalC3);
+
+    out.outColor = in.inColor;
+    out.pos      = _camera._p * _camera._v * matLocal * vec4f(in.inPos.xyz, 1.0);
+
+    /// 原始 GLSL 使用 gl_PointSize 设置点大小,WebGPU/WGSL 不支持可编程点大小,
+    /// 点默认渲染为 1 像素。
+
+    return out;
+}

@@ -1,0 +1,59 @@
+/// pbr 顶点着色器 WGSL 版本,与 shader.vert 对齐
+/// 原始 GLSL 未使用 push_constant,仅使用 _camera uniform。
+
+struct  CameraData
+{
+    _v          : mat4x4f,
+    _p          : mat4x4f,
+    _vp         : mat4x4f,
+    _offsetVp   : mat4x4f,
+    _decimal    : vec4f,
+    _offset     : vec4i,
+    _upDir      : vec4f,
+    _rightDir   : vec4f,
+}
+
+@group(0) @binding(0) var<uniform> _camera : CameraData;
+
+struct  VsIn
+{
+    @location(0) inPos      : vec3f,
+    @location(1) inNor      : vec3f,
+    @location(2) matLocalC0 : vec4f,
+    @location(3) matLocalC1 : vec4f,
+    @location(4) matLocalC2 : vec4f,
+    @location(5) matLocalC3 : vec4f,
+    @location(6) nodeColor   : vec4f,
+    @location(7) flagBits    : u32,
+}
+
+struct  VsOut
+{
+    @location(0) outPos       : vec3f,
+    @location(1) outNor       : vec3f,
+    @location(2) outColor    : vec4f,
+    /// flat 插值对应 GLSL 的 `flat out uint`
+    @location(3) @interpolate(flat) outFlagBits : u32,
+    @builtin(position) pos   : vec4f,
+}
+
+@vertex
+fn  main(in : VsIn) -> VsOut
+{
+    var out      : VsOut;
+    let matLocal = mat4x4f(in.matLocalC0, in.matLocalC1, in.matLocalC2, in.matLocalC3);
+    let tmp      = matLocal * vec4f(in.inPos.xyz, 1.0);
+
+    out.outPos      = tmp.xyz;
+    out.outFlagBits = in.flagBits;
+    out.outColor    = in.nodeColor;
+    /// 与 GLSL mat3(matLocal) 对齐:取 4x4 矩阵左上 3x3 子矩阵的三个列向量,
+    /// 构造列主序 mat3x3f 后乘法线向量,再做归一化。
+    let mat3Local = mat3x3f(matLocal[0].xyz, matLocal[1].xyz, matLocal[2].xyz);
+    out.outNor      = normalize(mat3Local * in.inNor);
+    out.pos         = _camera._p * _camera._v * tmp;
+
+    /// 原始 GLSL gl_PointSize = 1,WebGPU/WGSL 不支持可编程点大小。
+
+    return out;
+}

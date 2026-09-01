@@ -1,0 +1,141 @@
+/// computeCull 的 WGSL 版本,与 shader.comp 逻辑对齐
+/// 参考: bin/data/shader/source/computeCull/shader.comp
+/// 与 Vulkan std430 布局一致:storage 数组元素 stride 自动按 16 字节对齐
+
+const CULL_GROUP_X  : u32 = 256u;
+const RF_VISIBLE    : u32 = 1u;
+
+struct DrawElement
+{
+    count       : u32,
+    primCount   : u32,
+    firstIndex  : u32,
+    baseVertex  : i32,
+    baseInstance: u32,
+}
+
+struct CullParam
+{
+    _planes             : array<vec4f,6>,
+    _rightX             : f32,
+    _rightY             : f32,
+    _rightZ             : f32,
+    _viewSizeW          : f32,
+    _viewSizeH          : f32,
+    _minVisiblePixels   : f32,
+    _offset             : u32,
+    _count              : u32,
+    _mvp                : mat4x4f,
+}
+
+struct CullResult
+{
+    clippedCount    : atomic<u32>,
+    reserver0       : u32,
+    reserver1       : u32,
+    reserver2       : u32,
+}
+
+@group(0) @binding(0) var<storage,read>           _bSpheres    : array<vec4f>;
+@group(0) @binding(1) var<storage,read>           _allCommands : array<DrawElement>;
+@group(0) @binding(2) var<storage,read_write>     _clippedCmds : array<DrawElement>;
+@group(0) @binding(3) var<storage,read>           _flags       : array<u32>;
+@group(0) @binding(4) var<storage,read_write>     _result      : CullResult;
+@group(0) @binding(5) var<uniform>                _cullParam   : CullParam;
+
+var<workgroup> resultBits : array<u32,256>;
+var<workgroup> localCmds : array<DrawElement,256>;
+
+fn  checkFrustumIn(sphereCenter : vec3f, sphereRadius : f32) -> bool
+{
+    for (var i : u32 = 0u; i < 6u; i = i + 1u)
+    {
+        let distance  = dot(vec4f(sphereCenter,1.0), _cullParam._planes[i]);
+        if (distance < -sphereRadius)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn  checkMinPixels(center : vec3f, radius : f32) -> bool
+{
+    /// 如果值小于0,则不检测最小可见性
+    if (_cullParam._minVisiblePixels <= 0.0)
+    {
+        return true;
+    }
+
+    /// 投影中心点
+    let clip0      = _cullParam._mvp * vec4f(center,1.0);
+    /// 沿右方向移动半径距离
+    let rightPos   = center + radius * vec3f(_cullParam._rightX,_cullParam._rightY,_cullParam._rightZ);
+    let clip1      = _cullParam._mvp * vec4f(rightPos,1.0);
+
+    /// 避免除零(点在相机后方)
+    if (clip0.w <= 0.0 || clip1.w <= 0.0)
+    {
+        return false;
+    }
+    let ndc0       = clip0.xy / clip0.w;
+    let ndc1       = clip1.xy / clip1.w;
+    let pixelDist  = length((ndc1 - ndc0) * _cullParam._viewSizeW);
+    return pixelDist >= _cullParam._minVisiblePixels;
+}
+
+fn  checkVisible(flagBits : u32) -> bool
+{
+    return (flagBits & RF_VISIBLE) != 0u;
+}
+
+@compute @workgroup_size(256,1,1)
+fn  main(@builtin(workgroup_id)      workgroupID    : vec3u,
+        @builtin(local_invocation_id) localInvocation: vec3u)
+{
+    let localID_X  = localInvocation.x;
+    let localID_Y  = localInvocation.y;
+    let localID    = localID_Y * CULL_GROUP_X + localID_X;
+    let offset     = _cullParam._offset;
+    resultBits[localID_X]  = 0u;
+
+    /// 一次 dispatch 对应一个组的数据 globalID == 0~_cullParam._count
+    let globalID   = workgroupID.x * CULL_GROUP_X + localID;
+
+    if (globalID < _cullParam._count)
+    {
+        /// 获取绘制命令,是一个工厂内的多个材质对应的数据
+        /// offset 是该组在大缓冲区中的位置
+        let cmd     = _allCommands[globalID + offset];
+        let instId  = cmd.baseInstance;
+        let sphere  = _bSpheres[instId];
+        let center  = sphere.xyz;
+        let radius  = sphere.w;
+
+        if (checkVisible(_flags[instId]) && checkFrustumIn(center,radius) && checkMinPixels(center,radius))
+        {
+            resultBits[localID_X] = 1u;
+            localCmds[localID_X]   = cmd;
+        }
+    }
+    workgroupBarrier();
+
+    if (localID_X == 0u)
+    {
+        var nCnt : u32 = 0u;
+        for (var b : u32 = 0u; b < CULL_GROUP_X; b = b + 1u)
+        {
+            nCnt = nCnt + resultBits[b];
+        }
+        /// 当前组结果加到 _result.clippedCount
+        var nIndex = atomicAdd(&_result.clippedCount,nCnt) + offset;
+        for (var b : u32 = 0u; b < CULL_GROUP_X; b = b + 1u)
+        {
+            if (resultBits[b] != 0u)
+            {
+                _clippedCmds[nIndex] = localCmds[b];
+                nIndex = nIndex + 1u;
+            }
+        }
+    }
+}

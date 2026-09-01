@@ -1,0 +1,16 @@
+/// v3c4 片段着色器 WGSL 版本,与 shader.frag 对齐
+/// 原始 GLSL 未使用 push_constant,仅传递插值变量输出颜色。
+
+struct  FsIn
+{
+    @location(0) inColor    : vec4f,
+    /// flat 插值对应 GLSL 的 `flat in uint`
+    /// inFlagBits 当前未参与片段着色计算,但保留以对齐顶点着色器输出接口
+    @location(1) @interpolate(flat) inFlagBits : u32,
+}
+
+@fragment
+fn  main(in : FsIn) -> @location(0) vec4f
+{
+    return in.inColor;
+}
