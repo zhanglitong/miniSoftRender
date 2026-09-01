@@ -14,7 +14,7 @@ int     main(int argc,char** argv)
 {
     /// 解析命令行参数选择渲染后端,默认 Vulkan
     /// 用法: vkDemo.exe [--vulkan|--webgpu]
-    FEUuid  rendererId  =   RS_WEBGPU;
+    FEUuid  rendererId  =   RS_VULKAN;
     for (int i = 1; i < argc; ++i)
     {
         const char* arg = argv[i];
