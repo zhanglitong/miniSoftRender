@@ -80,6 +80,7 @@ namespace   FE
         WGPURenderPassEncoder       _renderPassEncoder      =   nullptr;
         WGPUComputePassEncoder      _computePassEncoder     =   nullptr;
         WGPURenderPipeline          _currentPipeline        =   nullptr;
+        WGPUComputePipeline         _currentComputePipeline =   nullptr;
         WGPUBindGroup               _currentBindGroup       =   nullptr;
         std::vector<WGPUBindGroup>  _bindGroups;
     };

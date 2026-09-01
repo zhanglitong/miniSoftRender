@@ -107,6 +107,47 @@ namespace   FE
         }
     }
 
+    /// 顶点属性格式映射: FEFormat -> WGPUVertexFormat
+    /// 与 system2Native(FEFormat)(纹理格式) 分开,因为 WebGPU 的顶点格式与纹理格式枚举不同。
+    inline  static  auto    vertexFormat2Native(FEFormat fmt)
+    {
+        switch(fmt)
+        {
+        case FMT_R8_UINT            :   return  WGPUVertexFormat_Uint8;
+        case FMT_R8G8_UINT          :   return  WGPUVertexFormat_Uint8x2;
+        case FMT_R8G8B8_UINT        :   return  WGPUVertexFormat_Uint8x4;
+        case FMT_R8G8B8A8_UINT     :   return  WGPUVertexFormat_Uint8x4;
+
+        case FMT_R8_UNORM           :   return  WGPUVertexFormat_Unorm8;
+        case FMT_R8G8_UNORM        :   return  WGPUVertexFormat_Unorm8x2;
+        case FMT_R8G8B8_UNORM      :   return  WGPUVertexFormat_Unorm8x4;
+        case FMT_R8G8B8A8_UNORM    :   return  WGPUVertexFormat_Unorm8x4;
+
+        case FMT_R8_SINT            :   return  WGPUVertexFormat_Sint8;
+        case FMT_R8G8_SINT          :   return  WGPUVertexFormat_Sint8x2;
+        case FMT_R8G8B8_SINT        :   return  WGPUVertexFormat_Sint8x4;
+        case FMT_R8G8B8A8_SINT      :   return  WGPUVertexFormat_Sint8x4;
+
+        case FMT_R32_UINT           :   return  WGPUVertexFormat_Uint32;
+        case FMT_R32_SINT           :   return  WGPUVertexFormat_Sint32;
+        case FMT_R32G32_UINT        :   return  WGPUVertexFormat_Uint32x2;
+        case FMT_R32G32_SINT        :   return  WGPUVertexFormat_Sint32x2;
+        case FMT_R32G32B32_UINT     :   return  WGPUVertexFormat_Uint32x3;
+        case FMT_R32G32B32_SINT     :   return  WGPUVertexFormat_Sint32x3;
+        case FMT_R32G32B32A32_UINT  :   return  WGPUVertexFormat_Uint32x4;
+        case FMT_R32G32B32A32_SINT  :   return  WGPUVertexFormat_Sint32x4;
+
+        case FMT_R32_FLOAT          :   return  WGPUVertexFormat_Float32;
+        case FMT_R32G32_FLOAT       :   return  WGPUVertexFormat_Float32x2;
+        case FMT_R32G32B32_FLOAT    :   return  WGPUVertexFormat_Float32x3;
+        case FMT_R32G32B32A32_FLOAT :   return  WGPUVertexFormat_Float32x4;
+
+        default:
+            assert(0!=0);
+            return  WGPUVertexFormat_Float32x4;
+        }
+    }
+
     
     inline  static  auto    system2Native(FEAspect val)
     {

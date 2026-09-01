@@ -100,6 +100,9 @@ namespace   FE
         DT_UNIFORM_BUFFER_DYNAMIC           =   8,
         DT_STORAGE_BUFFER_DYNAMIC           =   9,
         DT_INPUT_ATTACHMENT                =   10,
+        /// read-only storage buffer (WebGPU var<storage,read>),
+        /// Vulkan maps this to VK_DESCRIPTOR_TYPE_STORAGE_BUFFER same as DT_STORAGE_BUFFER
+        DT_STORAGE_BUFFER_READ              =   11,
     };
     enum    FEShaderType :uint32
     {

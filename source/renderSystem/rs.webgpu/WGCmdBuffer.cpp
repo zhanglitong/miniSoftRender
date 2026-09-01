@@ -2,6 +2,7 @@
 #include    "WGDevice.h"
 #include    "WGGPUBuffer.h"
 #include    "WGPipeline.h"
+#include    "WGCPipeline.h"
 #include    "WGDSet.h"
 #include    "WGSemaphore.h"
 #include    "WGFence.h"
@@ -10,6 +11,16 @@ namespace   FE
 {
     WGCmdBuffer::~WGCmdBuffer()
     {
+        if (_computePassEncoder)
+        {
+            wgpuComputePassEncoderRelease(_computePassEncoder);
+            _computePassEncoder    =   nullptr;
+        }
+        if (_renderPassEncoder)
+        {
+            wgpuRenderPassEncoderRelease(_renderPassEncoder);
+            _renderPassEncoder     =   nullptr;
+        }
         if (_native)
         {
             wgpuCommandEncoderRelease(_native);
@@ -30,6 +41,16 @@ namespace   FE
     FEResult WGCmdBuffer::reset()
     {
         auto&   wgDevice    =   (WGDevice&)(_ctx.device());
+        if (_computePassEncoder)
+        {
+            wgpuComputePassEncoderRelease(_computePassEncoder);
+            _computePassEncoder    =   nullptr;
+        }
+        if (_renderPassEncoder)
+        {
+            wgpuRenderPassEncoderRelease(_renderPassEncoder);
+            _renderPassEncoder     =   nullptr;
+        }
         if (_native)
             wgpuCommandEncoderRelease(_native);
         _native     =   wgpuDeviceCreateCommandEncoder(wgDevice.device(), nullptr);
@@ -102,6 +123,10 @@ namespace   FE
         colorAttachment.clearValue          =   { rs._clearColor.x,rs._clearColor.y,rs._clearColor.z,rs._clearColor.w };
         colorAttachment.loadOp              =   WGPULoadOp_Clear;
         colorAttachment.storeOp             =   WGPUStoreOp_Store;
+        /// depthSlice 必须显式设为 WGPU_DEPTH_SLICE_UNDEFINED,否则默认 0 会被当作
+        /// "使用第 0 层切片",而 swapchain 颜色附件是 2D 纹理视图,触发验证错误:
+        /// "Depth slice was provided but the color attachment's view is not 3D"。
+        colorAttachment.depthSlice          =   WGPU_DEPTH_SLICE_UNDEFINED;
 
         renderPassDesc.colorAttachmentCount =   1;
         renderPassDesc.colorAttachments     =   &colorAttachment;
@@ -136,7 +161,36 @@ namespace   FE
 
     FEResult WGCmdBuffer::bindPipeline(Pipeline pl)
     {
-        if (!_renderPassEncoder || !pl)
+        if (!pl || !_native)
+            return FEResult::ER_FAILED;
+
+        /// compute 管线:开始 compute pass 并绑定 WGPUComputePipeline
+        if (pl->type() == PL_COMPUTE)
+        {
+            if (!_computePassEncoder)
+            {
+                WGPUComputePassDescriptor computePassDesc    =   {};
+                computePassDesc.nextInChain                  =   nullptr;
+                computePassDesc.label                        =   { nullptr,0 };
+                computePassDesc.timestampWrites              =   nullptr;
+                _computePassEncoder  =   wgpuCommandEncoderBeginComputePass(_native,&computePassDesc);
+                if (!_computePassEncoder)
+                {
+                    LOG_ERR("WGCmdBuffer.bindPipeline: wgpuCommandEncoderBeginComputePass failed");
+                    return  FEResult::ER_FAILED;
+                }
+            }
+            auto*   wgCPipeline =   const_cast<WGCPipeline*>(static_cast<const WGCPipeline*>(pl.get()));
+            if (wgCPipeline)
+            {
+                _currentComputePipeline    =   (WGPUComputePipeline)wgCPipeline->native();
+                wgpuComputePassEncoderSetPipeline(_computePassEncoder,_currentComputePipeline);
+            }
+            return  FEResult::ER_SUCCESS;
+        }
+
+        /// 图形管线
+        if (!_renderPassEncoder)
             return FEResult::ER_FAILED;
 
         auto* wgPipeline = const_cast<WGPipeline*>(static_cast<const WGPipeline*>(pl.get()));
@@ -151,9 +205,6 @@ namespace   FE
 
     FEResult WGCmdBuffer::bindDescriptors(const DSetBind& dss)
     {
-        if (!_renderPassEncoder)
-            return FEResult::ER_FAILED;
-
         for (size_t i = 0;i < dss.dSets.size();i++)
         {
             if (dss.dSets[i])
@@ -162,7 +213,24 @@ namespace   FE
                 if (wgSet)
                 {
                     WGPUBindGroup bindGroup =   (WGPUBindGroup)wgSet->native();
-                    wgpuRenderPassEncoderSetBindGroup(_renderPassEncoder,dss.firstSet + (uint32_t)i,bindGroup,0,nullptr);
+                    /// bind group 可能因对象未全部关联而推迟创建(_native 为 null),
+                    /// 此时跳过绑定以避免向 WebGPU 提交无效 handle。
+                    if (bindGroup == nullptr)
+                    {
+                        LOG_ERR("WGCmdBuffer.bindDescriptors: bind group at set[%zu] is null (deferred), skip",
+                                i);
+                        continue;
+                    }
+                    /// 根据 plBindPoint 选择 pass encoder,
+                    /// PL_COMPUTE 路由到 _computePassEncoder,PL_GRAPIC 路由到 _renderPassEncoder
+                    if (dss.plBindPoint == PL_COMPUTE && _computePassEncoder)
+                    {
+                        wgpuComputePassEncoderSetBindGroup(_computePassEncoder,dss.firstSet + (uint32_t)i,bindGroup,0,nullptr);
+                    }
+                    else if (_renderPassEncoder)
+                    {
+                        wgpuRenderPassEncoderSetBindGroup(_renderPassEncoder,dss.firstSet + (uint32_t)i,bindGroup,0,nullptr);
+                    }
                     _bindGroups.push_back(bindGroup);
                 }
             }
@@ -185,6 +253,9 @@ namespace   FE
                 {
                     uint64_t bufferOffset = i < offset.size() ? offset[i] : 0;
                     uint64_t bufferSize = wgBuf->cInfo()._length;
+                    if (bufferOffset >= bufferSize)
+                        continue;
+                    bufferSize -= bufferOffset;
                     wgpuRenderPassEncoderSetVertexBuffer(_renderPassEncoder,first + i,(WGPUBuffer)wgBuf->native(),bufferOffset,bufferSize);
                 }
             }
@@ -228,15 +299,15 @@ namespace   FE
 
     FEResult WGCmdBuffer::pushConstants(FEPipeline* pl,uint32_t shaderBits,uint32_t offset,uint32_t size,const void* data)
     {
+        /// WebGPU Immediates(var<immediate>)是 push_constant 的原生等价物。
+        /// 数据通过 wgpuRenderPassEncoderSetImmediates 下发到当前绑定的 render pipeline,
+        /// 其 layout 的 immediateSize 必须 >= offset + size。
+        /// shaderBits 在 WebGPU 中无意义(immediate 对 layout 内所有 stage 可见),忽略。
         (void)pl;
         (void)shaderBits;
-        (void)offset;
-        (void)size;
-        (void)data;
-        if (!_renderPassEncoder )
-            return FEResult::ER_FAILED;
-        wgpuRenderPassEncoderSetImmediates(_renderPassEncoder,offset,data,size);
-
+        if (!_renderPassEncoder || size == 0 || data == nullptr)
+            return FEResult::ER_SUCCESS;
+        wgpuRenderPassEncoderSetImmediates(_renderPassEncoder,offset,data,(size_t)size);
         return FEResult::ER_SUCCESS;
     }
 
@@ -341,21 +412,39 @@ namespace   FE
 
     FEResult    WGCmdBuffer::dispatch(uint x,uint y,uint z)
     {
-        UNUSED(x,y,z);
+        if (!_computePassEncoder)
+        {
+            LOG_ERR("WGCmdBuffer.dispatch: no active compute pass encoder");
+            return  FEResult::ER_FAILED;
+        }
+        wgpuComputePassEncoderDispatchWorkgroups(_computePassEncoder,x,y,z);
         return FEResult::ER_SUCCESS;
     }
 
     FEResult WGCmdBuffer::end()
     {
-        return _native ? FEResult::ER_SUCCESS : FEResult::ER_FAILED;
+        if (!_native)
+            return FEResult::ER_FAILED;
+        /// 若仍有未结束的 compute pass,在此结束
+        if (_computePassEncoder)
+        {
+            wgpuComputePassEncoderEnd(_computePassEncoder);
+            wgpuComputePassEncoderRelease(_computePassEncoder);
+            _computePassEncoder    =   nullptr;
+        }
+        return  FEResult::ER_SUCCESS;
     }
 
     FEResult WGCmdBuffer::submit(Queue queue)
     {
         if (!_native || !queue)
             return FEResult::ER_FAILED;
+        /// wgpuCommandEncoderFinish 会消费 encoder(内部引用计数 -1),
+        /// 调用后 _native 不再属于本对象,置空以避免析构时二次释放。
         auto    cmdBuf  =   wgpuCommandEncoderFinish(_native,nullptr);
+        _native         =   nullptr;
         wgpuQueueSubmit((WGPUQueue)queue->native(), 1, &cmdBuf);
+        wgpuCommandBufferRelease(cmdBuf);
         return  FEResult::ER_SUCCESS;
     }
 }

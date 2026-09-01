@@ -6,6 +6,7 @@
 #include    "WGShader.h"
 #include    "WGRenderPass.h"
 #include    "WGPipeline.h"
+#include    "WGCPipeline.h"
 #include    "WGSwapchain.h"
 #include    "WGGImage.h"
 #include    "WGGImageView.h"
@@ -81,19 +82,28 @@ namespace   FE
         // Query adapter features to enable PassthroughShaders for SPIR-V passthrough
         // Also request Depth32FloatStencil8 feature for depth-stencil textures
         // VertexWritableStorage: required when vertex shader accesses storage buffer
+        // Immediates: WebGPU 原生 push_constant 等价物(var<immediate>),
+        //             用于替代此前用 uniform buffer 模拟 push constant 的方案。
         WGPUFeatureName requiredFeatures[] =
         {
             (WGPUFeatureName)0x00030036,  // PassthroughShaders
             WGPUFeatureName_Depth32FloatStencil8,
-            (WGPUFeatureName)0x00030005   // VertexWritableStorage
+            (WGPUFeatureName)0x00030005,  // VertexWritableStorage
+            (WGPUFeatureName)WGPUNativeFeature_Immediates
         };
+
+        /// 请求 immediate data 上限。PointData 当前 8 字节,
+        /// 预留 32 字节以容纳后续扩展。仅显式设置需要的字段,
+        /// 其余保持 WGPU_LIMIT_U32_UNDEFINED(由实现回退到默认值)。
+        WGPULimits requiredLimits =   WGPU_LIMITS_INIT;
+        requiredLimits.maxImmediateSize   =   32;
 
         WGPUDeviceDescriptor deviceDesc = {};
         deviceDesc.nextInChain              =   nullptr;
         deviceDesc.label                    =   { "Device",6 };
-        deviceDesc.requiredFeatureCount     =   3;
+        deviceDesc.requiredFeatureCount     =   4;
         deviceDesc.requiredFeatures         =   requiredFeatures;
-        deviceDesc.requiredLimits           =   nullptr;
+        deviceDesc.requiredLimits           =   &requiredLimits;
         deviceDesc.defaultQueue             =   {};
         deviceDesc.defaultQueue.nextInChain =   nullptr;
         deviceDesc.defaultQueue.label       =   { "Default Queue",13 };
@@ -145,6 +155,7 @@ namespace   FE
             wgpuDeviceGetFeatures(_nativeDevice, &supportedFeatures);
             _hasPassthroughShaders = false;
             bool hasDepth32Stencil = false;
+            bool hasImmediates = false;
             printf("wgpu device features count=%zu\n", supportedFeatures.featureCount);
             for (size_t i = 0; i < supportedFeatures.featureCount; i++)
             {
@@ -157,9 +168,14 @@ namespace   FE
                 {
                     hasDepth32Stencil = true;
                 }
+                if (supportedFeatures.features[i] == (WGPUFeatureName)WGPUNativeFeature_Immediates)
+                {
+                    hasImmediates = true;
+                }
             }
             printf("wgpu device has PassthroughShaders(0x00030036): %s\n", _hasPassthroughShaders ? "YES" : "NO");
             printf("wgpu device has Depth32FloatStencil8: %s\n", hasDepth32Stencil ? "YES" : "NO");
+            printf("wgpu device has Immediates(0x00030001): %s\n", hasImmediates ? "YES" : "NO");
             fflush(stdout);
         }
         if (!_nativeDevice)
@@ -228,8 +244,7 @@ namespace   FE
     Pipeline    WGDevice::createCPipeline()
     {
         LOG_DBG("WGDevice.createCPipeline");
-        assert(0!=0);
-        return  nullptr;
+        return  new WGCPipeline(_ctx);
     }
 
     Swapchain WGDevice::createSwapchain()

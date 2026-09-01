@@ -78,6 +78,11 @@ namespace   FE
 
         WGPUTextureFormat    getWGPUTextureFormat(FEFormat format) const;
         bool    hasPassthroughShaders() const { return _hasPassthroughShaders; }
+        /// WGDevice 通过 WGPUShaderSourceWGSL 直接加载 WGSL 文本 shader
+        virtual bool    supportWGSLShaders() const override
+        {
+            return  true;
+        }
 
     protected:
         WGPUDevice    _nativeDevice    =   nullptr;

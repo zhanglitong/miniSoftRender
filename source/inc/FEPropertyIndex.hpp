@@ -1,7 +1,6 @@
 #pragma     once
 
 #include    "FEDefine.h"
-#include    "FEMath.hpp"
 
 namespace   FE
 {

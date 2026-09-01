@@ -55,6 +55,12 @@ namespace   FE
                 entry.buffer.hasDynamicOffset =   WGPU_FALSE;
                 entry.buffer.minBindingSize   =   0;
                 break;
+            case DT_STORAGE_BUFFER_READ:
+                entry.buffer.nextInChain      =   nullptr;
+                entry.buffer.type             =   WGPUBufferBindingType_ReadOnlyStorage;
+                entry.buffer.hasDynamicOffset =   WGPU_FALSE;
+                entry.buffer.minBindingSize   =   0;
+                break;
             case DT_STORAGE_BUFFER_DYNAMIC:
                 entry.buffer.nextInChain      =   nullptr;
                 entry.buffer.type             =   WGPUBufferBindingType_Storage;

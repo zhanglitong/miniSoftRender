@@ -20,7 +20,14 @@ namespace   FE
             return;
         Material    mat     =   mats.front();
         auto        pl      =   mat->pipeline(PRI_POINTS);
-        auto        cmdPool =   _ctx.device().computeCmdPool();
+        /// 当后端未实现 compute pipeline(例如 WebGPU)时,
+        /// computeCull/default 管线不会被加载,pl 为 nullptr,直接跳过 GPU 裁剪。
+        if (pl == nullptr)
+        {
+            _ctx.log().error("FEFrustumCull::compute pipeline(computeCull/default) not available,skip GPU cull");
+            return;
+        }
+        auto    cmdPool =   _ctx.device().computeCmdPool();
         CMDPtr      cmd     =   cmdPool->createCmd();
         cmd->begin(true);
         {

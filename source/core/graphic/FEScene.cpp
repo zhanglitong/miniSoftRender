@@ -15,13 +15,13 @@
 
 namespace   FE
 {
-    bool    FEScene::setup(App app)
+    bool    FEScene::setup(App app,const FEUuid& rendererId)
     {
         FETimestamp     timestamp;
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
         _app        =   app;
-        _renderSys  =   FERenderSystem::create(_ctx,RS_VULKAN);
+        _renderSys  =   FERenderSystem::create(_ctx,rendererId);
         assert(_renderSys != nullptr);
         if (_renderSys == nullptr)
             return  false;
@@ -573,7 +573,6 @@ namespace   FE
 
         uint    width   =   evt._info._size.x;
         uint    height  =   evt._info._size.y;
-
 
         if (_app)
         {

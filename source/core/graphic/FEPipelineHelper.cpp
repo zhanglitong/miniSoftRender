@@ -201,7 +201,6 @@ namespace   FE
 
     Pipeline    FEPipelineHelper::createPipeline(FEContext& ctx,FEDevice& device,RenderPass renderPass,FEPipeline::CreateInfo& cInfo,XMLNode* node,const String& prefix,const char* plType)
     {
-        (void)ctx;
         (void)renderPass;
         auto    xmlStates   =   node->first_node("dynamicStates");
         if (xmlStates)
@@ -233,6 +232,11 @@ namespace   FE
             name    =   prefix + "/" + nameOfEnum(cInfo._inputAssemblyState._primitive);
         
         Pipeline    pileline    =   device.createPipeline(plType);
+        if (pileline == nullptr)
+        {
+            ctx.log().error("createPipeline(%s) device.createPipeline(%s) return nullptr!",name.c_str(),plType);
+            return  nullptr;
+        }
         pileline->setName(name);
         if(!pileline->create(cInfo))
             return  nullptr;
@@ -244,7 +248,60 @@ namespace   FE
 
     Shader      FEPipelineHelper::createShader(FEContext& ctx,FEDevice& device,const String& path)
     {
-        auto    vsData  =   FEBuffer::loadFile(ctx,path.c_str());
+        Buffer  vsData;
+        /// 当后端支持 WGSL(WebGPU)时,优先查找 .wgls 文件作为 shader 源
+        /// SPIR-V 在 cache/ 目录,文件名为 shader.<stage>.spv (如 shader.comp.spv)
+        /// WGSL 查找顺序:
+        ///   1) shader.<stage>.wgls  (stage-preserved,vert/frag 各自独立文件,单 main 入口)
+        ///   2) shader.wgls          (stripped,vert+frag+compute 合一,用于 computeCull 等)
+        if (device.supportWGSLShaders())
+        {
+            /// 构造 source/ 路径(cache/ -> source/)。
+            /// 注意 /cache/(7字符) -> /source/(8字符) 长度变化,
+            /// 因此 spvPos 必须在 sourcePath 上重新计算,否则会偏移 1 字符,
+            /// 导致 stage-preserved 路径被破坏(如 "shader.frag.wgls" 变成 "shader.fra.wglsv")。
+            String  sourcePath =   path;
+            auto    cachePos    =   sourcePath.find("/cache/");
+            if (cachePos != String::npos)
+                sourcePath.replace(cachePos,7,"/source/");
+
+            auto    spvPos  =   sourcePath.rfind(".spv");
+            if (spvPos != String::npos)
+            {
+                /// 1) 先尝试 stage-preserved: shader.<stage>.spv -> shader.<stage>.wgls
+                ///    将末尾的 ".spv" 直接替换为 ".wgls",保留中间的 stage 后缀
+                String  stageWgls =   sourcePath;
+                stageWgls.replace(spvPos,4,".wgls");
+                ctx.log().infor("createShader: try stage-preserved WGSL: %s (spvPos=%zu cachePos=%d)",
+                                stageWgls.c_str(),spvPos,(int)cachePos);
+                vsData  =   FEBuffer::loadFile(ctx,stageWgls.c_str());
+                if (vsData)
+                    ctx.log().infor("createShader: prefer WGSL %s over SPIR-V",stageWgls.c_str());
+
+                /// 2) 回退到 stripped: shader.<stage>.spv -> shader.wgls
+                ///    (用于 vert+frag 合一的旧式 .wgls 文件)
+                if (vsData == nullptr)
+                {
+                    String  strippedWgls =   sourcePath;
+                    auto    fnameStart =   strippedWgls.rfind('/');
+                    if (fnameStart == String::npos)
+                        fnameStart = 0;
+                    else
+                        fnameStart += 1;
+                    auto    dotPos   =   strippedWgls.find('.',fnameStart);
+                    if (dotPos != String::npos)
+                        strippedWgls.resize(dotPos + 1);
+                    else
+                        strippedWgls.resize(spvPos);
+                    strippedWgls.append("wgls");
+                    vsData  =   FEBuffer::loadFile(ctx,strippedWgls.c_str());
+                    if (vsData)
+                        ctx.log().infor("createShader: prefer WGSL %s over SPIR-V",strippedWgls.c_str());
+                }
+            }
+        }
+        if (vsData == nullptr)
+            vsData  =   FEBuffer::loadFile(ctx,path.c_str());
         if (vsData == nullptr)
             return  nullptr;
         auto    shader     =   device.createShader();
@@ -252,6 +309,6 @@ namespace   FE
             return  shader;
         else
             return  nullptr;
-        
+
     }
 }

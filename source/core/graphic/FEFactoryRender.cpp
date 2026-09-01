@@ -5,6 +5,7 @@
 #include    "../inc/graphic/FEInstance.h"
 #include    "../inc/graphic/FEScene.h"
 #include    "../inc/material/FEMaterialCull.hpp"
+#include    "../inc/FEContext.hpp"
 
 namespace   FE
 {
@@ -262,6 +263,14 @@ namespace   FE
     {
         if (!_gpuCull)
             return  false;
+        /// WebGPU 后端的 WGGPUBuffer 用 staging buffer 实现 lock/unlock,
+        /// staging 是 CPU 端内存,compute shader 写入 GPU buffer 后 staging 不会更新。
+        /// cullCount() -> gpu2cpu() -> lock() 读到的是 staging 旧值(通常为 0),
+        /// 导致 clippedCount=0、所有实例被错误剔除、模型不可见。
+        /// 在实现正确的 GPU→CPU 回读(mapAsync + copy-to-staging)之前,禁用 GPU 裁剪,
+        /// 回退到 cmdCount() 全量绘制(_indirectClip 已由 buildIndirect 填充全部命令)。
+        if (_device.supportWGSLShaders())
+            return  false;
         else
             return  flagBitsVBO()!= nullptr;
     }
@@ -434,17 +443,61 @@ namespace   FE
             uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
             if (nCmd == 0)
                 continue;
+            if (_device.supportWGSLShaders())
+            {
+                /// WebGPU: 用 VBO offset 替代 firstInstance,
+                /// 每个 instance binding 有各自的 stride, 必须分别计算 offset。
+                /// pipeline layout 中 binding 1 stride=64(matrix), binding 2 stride=4(color), binding 3 stride=4(flag)
+                uint    start   =   grp ? grp->start() : 0u;
+                for (size_t k = 0; k < grp->_objects.size(); ++k)
+                {
+                    auto    node    =   grp->_objects[k];
+                    if (!node || !node->mesh()) continue;
+                    uint    instIdx =   start + (uint)k;
+                    /// 为每个 instance VBO binding 按其自身 stride 计算 offset
+                    for (auto& var : _vboInstances)
+                    {
+                        uint32  stride  =   0;
+                        for (const auto& bind : pl->cInfo()._binds)
+                        {
+                            if (bind.binding == var._binding)
+                            {
+                                stride  =   bind.stride;
+                                break;
+                            }
+                        }
+                        uint64  instOff =   (uint64)instIdx * stride;
+                        uint64s offsets(var._vbos.size(), instOff);
+                        cmd->bindVBO(var._binding, uint(var._vbos.size()), var._vbos, offsets);
+                    }
+                    auto&   pris    =   node->mesh()->primitives();
+                    for (size_t i = 0; i < pris.size(); ++i)
+                    {
+                        if (!pris[i] || pris[i]->primitive() != _key._primitive)
+                            continue;
+                        FECmdIndex  ci;
+                        node->mesh()->drawCmd(ci,(uint)i,0);
+                        switch(_key._drawType)
+                        {
+                        case EDrawType::DRAW_ARRAY:
+                            cmd->draw(ci.firstIndex,ci.count,0,ci.primCount);
+                            break;
+                        default:
+                            cmd->drawIndex(ci.firstIndex,ci.count,ci.baseVertex,
+                                           0,ci.primCount);
+                            break;
+                        }
+                    }
+                }
+                continue;
+            }
             switch(_key._drawType)
             {
             case EDrawType::DRAW_ARRAY:
                 cmd->drawArrayIndirect(_indirectClip,   offset, nCmd,sizeof(FECmdIndex));
                 break;
             case EDrawType::DRAW_ELEMENT_UINT8:
-                cmd->drawIndexedIndirect(_indirectClip, offset, nCmd,sizeof(FECmdIndex));
-                break;
             case EDrawType::DRAW_ELEMENT_UINT16:
-                cmd->drawIndexedIndirect(_indirectClip, offset, nCmd,sizeof(FECmdIndex));
-                break;
             case EDrawType::DRAW_ELEMENT_UINT32:
                 cmd->drawIndexedIndirect(_indirectClip, offset, nCmd,sizeof(FECmdIndex));
                 break;

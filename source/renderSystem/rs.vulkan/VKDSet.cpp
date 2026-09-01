@@ -102,6 +102,7 @@ namespace   FE
                 }
                 break;
             case DT_STORAGE_BUFFER:
+            case DT_STORAGE_BUFFER_READ:
                 {
                     size_t  nStart  =   nIndex;
                     for (size_t i = 0; i < binding._objects.size(); ++i,++nIndex)

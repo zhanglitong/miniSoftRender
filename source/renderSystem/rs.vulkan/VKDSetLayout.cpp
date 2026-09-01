@@ -27,7 +27,12 @@ namespace   FE
         {
             VkDescriptorSetLayoutBinding vkBind{};
             vkBind.binding              =   bind._binding;
-            vkBind.descriptorType       =   (VkDescriptorType)bind._descriptorType;
+            /// DT_STORAGE_BUFFER_READ 与 DT_STORAGE_BUFFER 在 Vulkan 中都映射为
+            /// VK_DESCRIPTOR_TYPE_STORAGE_BUFFER(Vulkan 不区分 read/read_write)
+            if (bind._descriptorType == DT_STORAGE_BUFFER_READ)
+                vkBind.descriptorType   =   VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            else
+                vkBind.descriptorType   =   (VkDescriptorType)bind._descriptorType;
             vkBind.descriptorCount      =   bind._descriptorCount;
             vkBind.stageFlags           =   (VkShaderStageFlags)bind._stageFlags.data();
             vkBind.pImmutableSamplers   =   nullptr;

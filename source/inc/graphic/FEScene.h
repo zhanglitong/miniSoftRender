@@ -107,7 +107,7 @@ namespace   FE
         {
             return  _frame;
         }
-        virtual bool    setup(App app);
+        virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
         virtual void    test();
         /// <summary>
         /// 节点加入到系统下，只是挂在节点上，并不做渲染

@@ -7,14 +7,15 @@
 
 namespace   FE
 {
-    Demo::Demo()
+    Demo::Demo(const FEUuid& rendererId)
+        :_rendererId(rendererId)
     {
 
         /// KFValue     val     =   float3(1,1,1);
         /// KFValue     val1    =   0.4;
         /// KFValue     v1      =   0.2 + val + 0.4f;
-        /// KFValue     v2      =   0.2 + val1 ; 
-        
+        /// KFValue     v2      =   0.2 + val1 ;
+
         FEApp::CreateInfo   info    =   {};
         info._notify    =   std::bind(&Demo::messageNotify,this,std::placeholders::_1);
         info._appInst   =   GetModuleHandle(nullptr);
@@ -25,7 +26,7 @@ namespace   FE
         _ctx.setWorkPath(_app->path());
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
-        _scene->setup(_app);
+        _scene->setup(_app,_rendererId);
         _scene->test();
 
         //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";

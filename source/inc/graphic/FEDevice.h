@@ -146,6 +146,14 @@ namespace   FE
         /// 销毁
         /// </summary>
         virtual void        destroy();
+        /// <summary>
+        /// 是否支持 WGSL 文本 shader(WGDevice 返回 true,VKDevice 返回 false)。
+        /// 用于 FEPipelineHelper 在加载 .spv 时决定是否优先查找同名 .wgls 兄弟文件。
+        /// </summary>
+        virtual bool        supportWGSLShaders() const
+        {
+            return  false;
+        }
     public:
         NotifyCreate    _createNotify;
         NotifyDestroy   _destroyNotify;

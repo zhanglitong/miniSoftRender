@@ -76,6 +76,8 @@ namespace   FE
     }
     void    FEMaterial::update()
     {
+        /// push constant 数据由 cmd->pushConstants 在 draw 前直接下发
+        /// (WebGPU 走 wgpuRenderPassEncoderSetImmediates),无需 UBO 中转。
         for (auto& var : _dsets)
         {
             var->update();
@@ -84,6 +86,10 @@ namespace   FE
 
     void    FEMaterial::autoAttach()
     {
+        /// push constant 数据由 cmd->pushConstants 在 draw 前直接下发:
+        ///   - Vulkan: vkCmdPushConstants
+        ///   - WebGPU: wgpuRenderPassEncoderSetImmediates(var<immediate>)
+        /// 因此 _point 不再作为描述符 binding,此处只处理 ubo/texture 的自动关联。
         for (auto& dset: _dsets)
         {
             auto&   binds   =   dset->cInfo()._binds;
