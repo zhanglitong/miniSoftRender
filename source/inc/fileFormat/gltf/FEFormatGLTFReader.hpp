@@ -916,7 +916,10 @@ namespace   FE
                                 ,NodeIndex&     nodeMap)
         {
             Node    pNode   =   new FENode(_ctx);
-            pNode->setName(node.name);
+            if (node.name.empty())
+                pNode->setName("test");
+            else
+                pNode->setName(node.name);
             real3   trans   =   real3(0.0);
             if (node.translation.size() >= 3)
             {

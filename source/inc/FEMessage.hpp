@@ -116,10 +116,10 @@ namespace   FE
         /// <summary>
         /// 如果是鼠标移动消息:
         /// _mouse 是当前消息
-        /// _old: 是上一次鼠标位置
+        /// _prev: 是上一次鼠标位置
         /// </summary>
+        int2        _prev;
         int2        _mouse;
-        int2        _old;
         MouseStates _states; 
         bool    lButtonPressed() const
         {

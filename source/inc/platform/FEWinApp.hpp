@@ -332,7 +332,7 @@ namespace   FE
                 {
                     FEMouseInfo info;
                     info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
-                    info._old   =   _mouse;
+                    info._prev  =   _mouse;
                     _mouse      =   info._mouse;
 
                     if (wParam & MK_LBUTTON)    info._states.addFlag(FEMouseInfo::LButtonPressed);

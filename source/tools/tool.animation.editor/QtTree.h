@@ -29,7 +29,7 @@ namespace   FE
 
     static  auto    getName(FEObject& item)
     {
-        auto    node    =   item.as<FENode>();
+        auto    node    =   item.cast<FENode>();
         if (node)
             return  node->name();
         else
@@ -42,10 +42,10 @@ namespace   FE
     }
     static  void    setSelected(FEObject& item,bool bSelect)
     {
-            if (bSelect)
-                item.flags().addFlag(FE::FLAG_SELECTED);
-            else
-                item.flags().removeFlag(FE::FLAG_SELECTED);
+        if (bSelect)
+            item.flags().addFlag(FE::FLAG_SELECTED);
+        else
+            item.flags().removeFlag(FE::FLAG_SELECTED);
     }
 
     static  bool    isVisible(FEObject& item)
@@ -54,10 +54,10 @@ namespace   FE
     }
     static  void    setVisible(FEObject& item,bool bVisible)
     {
-            if (bVisible)
-                item.flags().addFlag(   ::FLAG_VISIBLE);
-            else
-                item.flags().removeFlag(FE::FLAG_VISIBLE);
+        if (bVisible)
+            item.flags().addFlag(   ::FLAG_VISIBLE);
+        else
+            item.flags().removeFlag(FE::FLAG_VISIBLE);
     }
 
     static  bool    isExpand(FEObject& item)
@@ -66,14 +66,14 @@ namespace   FE
     }
     static  void    setExpand(FEObject& item,bool bExpand)
     {
-            if (bExpand)
-                item.flags().addFlag(FE::FLAG_EXPAND);
-            else
-                item.flags().removeFlag(FE::FLAG_EXPAND);
+        if (bExpand)
+            item.flags().addFlag(FE::FLAG_EXPAND);
+        else
+            item.flags().removeFlag(FE::FLAG_EXPAND);
     }
     static  bool    nameIsValid(FEObject& object)
     {
-        auto    node    =   object.as<FENode>();
+        auto    node    =   object.cast<FENode>();
         if (node)
             return  node->nameIsValid();
         else
@@ -112,7 +112,7 @@ namespace   FE
         FERect          text;
         Object          item;
         int             parentIndex;
-        FEObject*     obj;
+        FEObject*       obj;
     public:
         inline  auto    getName() 
         {
@@ -213,7 +213,7 @@ namespace   FE
         virtual Node    ctxNode()
         {
             if (_contextItem)
-                return  _contextItem->as<FENode>();
+                return  _contextItem->cast<FENode>();
             else
                 return  nullptr;
         }

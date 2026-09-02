@@ -179,7 +179,7 @@ namespace   FE
 
     void    QtTree::unCheckItem(FEObject& item)
     {
-        auto    node    =   item.as<FENode>();
+        auto    node    =   item.cast<FENode>();
         if(node)
         {
             node->flags().removeFlag(FE::FLAG_VISIBLE);
@@ -510,13 +510,10 @@ namespace   FE
         int     i       =   0;
         for (auto node: roots())
         {
-            node->traverseObject([this,&painter,&height,&x,&y,i](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx&,uint)->bool
-            {
-                if (y > height)
-                    return  false;
-                paintItem(painter, (FEObject&)object, x, y, i);
-                return  true;
-            });
+            if (y > height)
+                break;
+            FEObject&   object  =   *node;
+            paintItem(painter, object, x, y, i);
         }
     }
 
@@ -747,21 +744,21 @@ namespace   FE
         /// }
     }
 
-    bool    QtTree::gotoItem(Object node)
+    bool    QtTree::gotoItem(Object pNode)
     {
         Objects     routes;
         int         temp    =   0;
         bool        bFind   =   false;
         for (auto node : roots())
         {
-            node->traverseObject([this,&temp,&node,&routes,&bFind](const FEObject& object,const FEObject& parent,const FEObject::FETrvsCtx&,uint depth)->bool
+            node->traverseObject([this,&temp,&pNode,&routes,&bFind](const FEObject& object,const FEObject& parent,const FEObject::FETrvsCtx&,uint depth)->bool
             {
                 if (!bFind && routes.size() != depth)
                 {
                     routes.resize(depth);
                     routes[depth - 1]   =   (FEObject*)&parent;
                 }
-                if (node.get() == &object)
+                if (pNode.get() == &object)
                 {
                     bFind   =   true;
                     return  false;
@@ -783,9 +780,12 @@ namespace   FE
         int     diff    =   0;
         for (auto node : roots())
         {
-            auto    result  =   node->traverseObject([this,&diff,&node,&bFind](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx& ctx,uint depth)->bool
+            diff += _rowHeight;
+            if (!isExpand(*node))
+                continue;
+            auto    result  =   node->traverseObject([this,&diff,&pNode,&bFind](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx& ctx,uint depth)->bool
             {
-                if (node.get() == &object)
+                if (pNode.get() == &object)
                 {
                     bFind   =   true;
                     return  false;
@@ -817,6 +817,9 @@ namespace   FE
         }
         for (auto node : roots())
         {   
+            diff += _rowHeight;
+            if (!isExpand(*node))
+                continue;
             auto    result  =   node->traverseObject([this,&diff](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx& ctx,uint depth)->bool
             {
                 if (!nameIsValid((FEObject&)object))

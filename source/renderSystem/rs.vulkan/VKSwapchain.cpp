@@ -218,8 +218,8 @@ namespace   FE
         auto    device          =   vkDevice.logicalDevice();
         auto    nativeSem       =   frame->_semPresentComplete ? (VkSemaphore)frame->_semPresentComplete->native() : nullptr;
         auto    result          =   vkAcquireNextImageKHR(device, _native, timeout, nativeSem, nullptr, &frame->_imageIdx);
-        assert (result == VK_SUCCESS);
-        if (result == VK_SUCCESS)
+        assert (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+        if (!(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR))
             return  frame;
         else
             return  frame;

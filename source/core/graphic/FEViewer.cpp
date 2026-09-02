@@ -208,14 +208,14 @@ namespace   FE
 
         if (msg._info.lButtonPressed())
         {
-            int2    offset  =   msg._info._old - msg._info._mouse;
+            int2    offset  =   msg._info._prev - msg._info._mouse;
             auto    point   =   _ctx.anchor().point();
             _camera->rotateViewZByCenter(offset.x * 0.2, point);
             _camera->rotateViewXByCenter(offset.y * 0.2, point);
         }
         if (msg._info.rButtonPressed())
         {
-            int2    offset      =    msg._info._old - msg._info._mouse;
+            int2    offset      =    msg._info._prev - msg._info._mouse;
             auto    point       =   _ctx.anchor().point();
             real3   right       =   _camera->getRight();
             real3   up          =   _camera->getUp();

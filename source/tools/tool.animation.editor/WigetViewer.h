@@ -14,6 +14,7 @@
 #include    <QLabel>
 #include    <QtWidgets/QMainWindow>
 #include    <QMenu>
+#include    <QTimer>
 
 #include    "FEContext.hpp"
 #include    "graphic/FEScene.h"
@@ -35,16 +36,22 @@ namespace   FE
             return  _scene;
         }
     protected:
-        virtual void	wheelEvent(QWheelEvent* event) override;
-        virtual void	resizeEvent(QResizeEvent *) override;
-        virtual bool    event(QEvent *event) override;
+        virtual void    paintEvent(QPaintEvent *event)              override ;
+        virtual void    mousePressEvent(QMouseEvent *event)         override ;
+        virtual void    mouseReleaseEvent(QMouseEvent *event)       override ;
+        virtual void    mouseDoubleClickEvent(QMouseEvent *event)   override ;
+        virtual void    mouseMoveEvent(QMouseEvent *event)          override ;
+        virtual void    wheelEvent(QWheelEvent *event)              override ;
+        virtual void    resizeEvent(QResizeEvent *event)            override ;
     protected:
         void    messageNotify(const FEMessage& msgIn);
     protected:
         FEContext   _ctx;
         App         _app;
         Scene       _scene;
-        bool        _prepared;
+        int2        _prevMouse  =   int2(0, 0);
+        bool        _prepared   =   false;
+        QTimer*     _timer      =   nullptr;    
     };
 }
 

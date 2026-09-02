@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1100</width>
-    <height>606</height>
+    <width>1050</width>
+    <height>525</height>
    </rect>
   </property>
   <property name="focusPolicy">
@@ -42,6 +42,22 @@
     <property name="spacing">
      <number>0</number>
     </property>
+    <item row="1" column="0">
+     <widget class="WigetViewer" name="playerWidget" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::ClickFocus</enum>
+      </property>
+      <property name="autoFillBackground">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
     <item row="0" column="0">
      <widget class="QWidget" name="widget" native="true">
       <property name="sizePolicy">
@@ -72,153 +88,6 @@
        <property name="bottomMargin">
         <number>1</number>
        </property>
-       <item>
-        <widget class="QComboBox" name="comboBox_axisPosType">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;编辑轴位置&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;设置编辑轴显示的位置&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="toolTipDuration">
-          <number>-1</number>
-         </property>
-         <property name="statusTip">
-          <string/>
-         </property>
-         <property name="whatsThis">
-          <string/>
-         </property>
-         <item>
-          <property name="text">
-           <string>位移中心</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>包围盒中心</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="comboBox_axisTransformType">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;编辑轴坐标系&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;支持局部坐标系、全局坐标系、父节点坐标系、屏幕坐标系&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <item>
-          <property name="text">
-           <string>全局</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>局部</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>父节点</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>屏幕</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="comboBox_tansformCenterType">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;旋转中心&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;用于指定绕点旋转&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <item>
-          <property name="text">
-           <string>位移中心</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>各自原点</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>包围盒中心</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>用户</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="minimumSize">
-          <size>
-           <width>80</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>模式选择</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="cbbEditModeList">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <item>
-          <property name="text">
-           <string>对象编辑</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>顶点编辑</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>562</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
        <item>
         <widget class="QComboBox" name="comboBoxMixers">
          <property name="enabled">
@@ -375,13 +244,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="checkBoxRenderPath">
-         <property name="text">
-          <string>路径</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QPushButton" name="pushButtonRefresh">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
@@ -403,22 +265,6 @@
       </layout>
      </widget>
     </item>
-    <item row="1" column="0">
-     <widget class="WigetViewer" name="playerWidget" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="focusPolicy">
-       <enum>Qt::ClickFocus</enum>
-      </property>
-      <property name="autoFillBackground">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -426,7 +272,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1100</width>
+     <width>1050</width>
      <height>22</height>
     </rect>
    </property>
@@ -690,6 +536,12 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="dockWidget_properities">
+   <property name="minimumSize">
+    <size>
+     <width>150</width>
+     <height>38</height>
+    </size>
+   </property>
    <property name="focusPolicy">
     <enum>Qt::ClickFocus</enum>
    </property>
@@ -875,8 +727,8 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>40</width>
-              <height>20</height>
+              <width>37</width>
+              <height>17</height>
              </size>
             </property>
            </spacer>
@@ -1099,8 +951,8 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>137</width>
-              <height>20</height>
+              <width>0</width>
+              <height>16</height>
              </size>
             </property>
            </spacer>
