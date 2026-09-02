@@ -62,17 +62,23 @@ const   int     LightTypeSpot   =   2;
     enum    RenderFlag
     {
         RF_VISIBLE          =   1,
-        RF_RECEIVE_SHADOW   =   (RF_VISIBLE)        <<1,
-        RF_CAST_SHADOW      =   (RF_RECEIVE_SHADOW) <<1,
-        RF_RECEIVE_LIGHT    =   (RF_CAST_SHADOW)    <<1,
-        RF_COLOR            =   (RF_RECEIVE_LIGHT)  <<1,
+        RF_RECV_SHADOW      =   (RF_VISIBLE)        <<1,
+        RF_CAST_SHADOW      =   (RF_RECV_SHADOW)    <<1,
+        RF_RECV_LIGHTING    =   (RF_CAST_SHADOW)    <<1,
+        RF_EFFECT_AO        =   (RF_RECV_LIGHTING)  <<1,
+        RF_EFFECT_BLOOM     =   (RF_EFFECT_AO)      <<1,
+        RF_COLOR            =   (RF_RECV_LIGHTING)  <<1,
+        RF_SELECTED         =   (RF_COLOR)          <<1,
     };
 #else
     const   uint    RF_VISIBLE          =   (1<<0);
-    const   uint    RF_RECEIVE_SHADOW   =   (1<<1);
+    const   uint    RF_RECV_SHADOW      =   (1<<1);
     const   uint    RF_CAST_SHADOW      =   (1<<2);
-    const   uint    RF_RECEIVE_LIGHT    =   (1<<3);
-    const   uint    RF_COLOR            =   (1<<4);
+    const   uint    RF_RECV_LIGHTING    =   (1<<3);
+    const   uint    RF_EFFECT_AO        =   (1<<4);
+    const   uint    RF_EFFECT_BLOOM     =   (1<<5);  
+    const   uint    RF_COLOR            =   (1<<6);
+    const   uint    RF_SELECTED         =   (1<<7);
 
     bool    hasNodeColor(uint flag)
     {

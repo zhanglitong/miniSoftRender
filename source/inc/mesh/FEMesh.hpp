@@ -31,24 +31,27 @@ namespace   FE
         /// </summary>
         InputSlotBits   _slotBits   =   InputSlotBits();
         /// <summary>
+        /// 绘制类型 
+        /// </summary>
+        EDrawType       _drawType   =   DRAW_ARRAY;
+        /// <summary>
         /// 图元类型 _primitive + _drawType + _slotBits 决定类型
         /// </summary>
         EPrimitive      _primitive  =   PRI_POINTS;
         /// <summary>
-        /// 绘制类型 
+        /// 保留
         /// </summary>
-        EDrawType       _drawType   =   DRAW_ARRAY;
-        uint16          _reserver  =   0;
+        uint16          _reserver   =   0;
+    public:
         /// <summary>
         /// 生成Key
         /// </summary>
         /// <returns></returns>
-        uint64  key() const
+        uint64  value() const
         {
-            uint64  value   =   0;
-            uint64  size    =   (std::min)(sizeof(value),sizeof(MeshKey));
-            memcpy(&value,this,size);
-            return  value;
+            return    (static_cast<uint64_t>(_slotBits.data())) 
+                    | (static_cast<uint64_t>(_drawType)  << 32) 
+                    | (static_cast<uint64_t>(_primitive) << 40);
         }
         /// <summary>
         /// 从一个 key中萃取对应值
@@ -56,8 +59,9 @@ namespace   FE
         /// <param name="value"></param>
         void    setValue(uint64 value)
         {
-            uint64  size    =   (std::min)(sizeof(value),sizeof(MeshKey));
-            memcpy(this,&value,size);
+            _slotBits   =   static_cast<uint32_t>(value & 0xFFFFFFFFULL);
+            _drawType   =   EDrawType(static_cast<uint8_t>((value >> 32) & 0xFFULL));
+            _primitive  =   EPrimitive(static_cast<uint8_t>((value >> 40) & 0xFFULL));
         }
     };
 
@@ -211,7 +215,7 @@ namespace   FE
         /// 计算key
         /// </summary>
         /// <returns></returns>
-        inline  uint64  key(Primitive pri)   const
+        inline  auto&   key(Primitive pri)   const
         {
             MeshKey key     =   {};
             key._drawType   =   pri ? pri->type()     :   DRAW_ARRAY;
@@ -219,7 +223,17 @@ namespace   FE
             key._slotBits   =   0;
             for (auto& var: _buffers)
                 key._slotBits.addFlag(var.attr().slot());
-            return  key.key();
+            return  key;
+        }
+        inline  auto    key(Primitive pri)
+        {
+            MeshKey key     =   {};
+            key._drawType   =   pri ? pri->type()     :   DRAW_ARRAY;
+            key._primitive  =   pri ? pri->primitive():   PRI_TRIANGLES;
+            key._slotBits   =   0;
+            for (auto& var: _buffers)
+                key._slotBits.addFlag(var.attr().slot());
+            return  key;
         }
         /// <summary>
         /// 拾取函数

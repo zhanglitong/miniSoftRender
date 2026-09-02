@@ -252,5 +252,49 @@ namespace   FE
             fireChanged();
         }
     }
+    size_t  FENode::objectCount() const 
+    {
+        return  children().size() + _coms.size() + (_mesh ? 1 : 0) + (_material ? 1 : 0);
+    }
+    bool    FENode::traverseObject(const ObjectVisitor& fun,uint depth,bool recur) const 
+    {
+        if (!fun)
+        {
+            return  false;
+        }
+        FETrvsCtx trvsCtx(fun);
+
+        if (_mesh)
+        {
+            if(!fun(*_mesh,*this,trvsCtx,depth))
+                return  false;
+            if(recur && _mesh->objectCount()!= 0)
+                _mesh->traverseObject(fun,depth+1,recur);
+        }
+        if (_material)
+        {
+            if(!fun(*_material,*this,trvsCtx,depth))
+                return  false;
+            if(recur && _material->objectCount()!= 0)
+                _material->traverseObject(fun,depth+1,recur);
+        }
+        for (auto&  var : _coms)
+        {
+            if(!fun(*var,*this,trvsCtx,depth))
+                return  false;
+            if(recur && var->objectCount()!= 0)
+                var->traverseObject(fun,depth+1,recur);
+        }
+        auto&   cs      =   children();
+        for (auto&  var : cs)
+        {
+            if(!fun(*var,*this,trvsCtx,depth))
+                return  false;
+            if(recur && var->objectCount()!= 0)
+                if (!var->traverseObject(fun,depth+1,recur))
+                    return  false;
+        }
+        return  true;
+    }
 }
 

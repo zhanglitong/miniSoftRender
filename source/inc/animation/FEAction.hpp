@@ -232,7 +232,6 @@ namespace FE
             }
             if (flags().hasFlag(FLAG_EDIT_MODE))
             {
-                _ctx.log().infor("Action::update editMode: clipTime=%lf range=[%lf,%lf]",(double)_clipTime,(double)_range.x,(double)_range.y);
                 for (auto& var : _objects)
                 {
                     /// 如果没有到时间,不播放,避免内存有更多检测
@@ -242,7 +241,6 @@ namespace FE
                     /// range.y + delta 上一帧花费的时间，避免/丢帧/跳帧
                     if (_clipTime < range.x - delta || _clipTime > range.y + delta)
                     {
-                        _ctx.log().infor("Action::update skip anim: clipTime=%lf range=[%lf,%lf]",(double)_clipTime,(double)range.x,(double)range.y);
                         continue;
                     }
                     var->update(_clipTime);
@@ -264,6 +262,7 @@ namespace FE
             {
                 buildCache();
             }
+            /// TODO: 可以先分组，多线程计算
             ///---相同时间 ---- 相同时间线--- 相同对象---
             RealsObject             timeLine    =   nullptr;
             FEKeyFrameTrack::KFOff  kfValue     =   {};

@@ -323,19 +323,14 @@ namespace   FE
         if (mesh)
         {
             auto&   pris    =   mesh->primitives();
-            auto    slot    =   mesh->slotBits();
-            for (auto& var : pris)
+            for (auto& pri: pris)
             {
-                MeshKey mkey;
-                mkey._drawType  =   var->type();
-                mkey._primitive =   var->primitive();
-                mkey._slotBits  =   slot;
-                auto    key     =   mkey.key();
-                /// 根据key计算所属工厂
-                auto    factory =   _factorys.findObject(key);
-                if (!factory)
+                auto    factory =   pri->factory();
+                assert(factory != nullptr);
+                if (factory == nullptr)
                     continue;
-                factory->nodePropChanged(node);
+                auto    rFactory    =   factory->as<FEFactoryRender>();
+                rFactory->nodePropChanged(node);
             }
         }
     }

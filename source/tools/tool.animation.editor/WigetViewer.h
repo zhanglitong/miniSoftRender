@@ -30,6 +30,10 @@ namespace   FE
         ~WigetViewer();
     public:
         virtual void	onEngineStart();
+        inline  Scene   scene() const
+        {
+            return  _scene;
+        }
     protected:
         virtual void	wheelEvent(QWheelEvent* event) override;
         virtual void	resizeEvent(QResizeEvent *) override;

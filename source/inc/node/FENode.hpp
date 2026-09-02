@@ -28,38 +28,52 @@ namespace   FE
             /// <summary>
             /// 添加对象
             /// </summary>
-            FLAG_ADD_CHILD      =   ((FLAG_LAST)<<1),
+            FLAG_ADD_CHILD      =   ((FLAG_LAST)        <<1),
             /// <summary>
             /// 移除对象
             /// </summary>
-            FLAG_REMOVE_CHILD   =   ((FLAG_ADD_CHILD)<<1),
+            FLAG_REMOVE_CHILD   =   ((FLAG_ADD_CHILD)   <<1),
 
             /// <summary>
             /// 影响绘制的 vbo,ibo,ito
             /// 该状态会在节点所在工厂中消费后移除
             /// </summary>
-            FLAG_PROP_MESH      =   (FLAG_REMOVE_CHILD<<1),
+            FLAG_PROP_MESH      =   (FLAG_REMOVE_CHILD  <<1),
 
-            FLAG_PROP_TRANS     =   (FLAG_PROP_MESH<<1),
-            FLAG_PROP_SCALE     =   (FLAG_PROP_TRANS<<1),
+            FLAG_PROP_TRANS     =   (FLAG_PROP_MESH     <<1),
+            FLAG_PROP_SCALE     =   (FLAG_PROP_TRANS    <<1),
             /// <summary>
             /// 数据是四元数
             /// </summary>
-            FLAG_PROP_ROT       =   (FLAG_PROP_SCALE<<1),
+            FLAG_PROP_ROT       =   (FLAG_PROP_SCALE    <<1),
             /// <summary>
             /// 节点颜色修改,影响绘制的instance,触发更新:IS_INSTANCE_COLOR
             /// </summary>
-            FLAG_PROP_COLOR     =   (FLAG_PROP_ROT<<1),
+            FLAG_PROP_COLOR     =   (FLAG_PROP_ROT      <<1),
             /// <summary>
             /// 渲染状态发生变化，触发更新 IS_INSTANCE_FLAG，当修改了renderBits()
             /// 需要增加该状态，该状态会在节点所在工厂中消费后移除
             /// </summary>
-            FLAG_PROP_STATE     =   (FLAG_PROP_COLOR<<1),
+            FLAG_PROP_STATE     =   (FLAG_PROP_COLOR    <<1),
             /// <summary>
             /// mesh 有可能存在lod信息,有可能没有，如果么有lod LOD_INDEX == -1,其他则是有效值
             /// 系统会收集所有lod信息到一个统一的数组中,
             /// </summary>
-            FLAG_PROP_LOD       =   (FLAG_PROP_STATE<<1),
+            FLAG_PROP_LOD       =   (FLAG_PROP_STATE    <<1),
+            /// <summary>
+            /// 产生阴影,触发更新 IS_INSTANCE_FLAG,当修改了renderBits()需要增加该状态，该状态会在节点所在工厂中消费后移除
+            /// </summary>
+            FLAG_CAST_SHADOW    =   (FLAG_PROP_LOD      << 1),
+            /// <summary>
+            /// 接收阴影,触发更新 IS_INSTANCE_FLAG,当修改了renderBits()需要增加该状态，该状态会在节点所在工厂中消费后移除
+            /// </summary>
+            FLAG_RECV_SHADOW    =   (FLAG_CAST_SHADOW   << 1),
+            /// <summary>
+            /// 接收灯光,触发更新 IS_INSTANCE_FLAG,当修改了renderBits()需要增加该状态，该状态会在节点所在工厂中消费后移除
+            /// </summary>
+            FLAG_RECV_LIGHTING  =   (FLAG_RECV_SHADOW   << 1),
+            FLAG_EFFECT_AO      =   (FLAG_RECV_LIGHTING << 1),
+            FLAG_EFFECT_BLOOM   =   (FLAG_EFFECT_AO << 1),
         };
         enum    EModify
         {
@@ -109,15 +123,24 @@ namespace   FE
             flags().addFlag(FLAG_PROP_COLOR);
             return  *this;
         }
-        
-        inline  auto&   renderBits()
+        /// <summary>
+        /// 获取渲染状态
+        /// </summary>
+        /// <returns></returns>
+        inline  auto    renderBits()
         {
+            if (flags().hasFlag(FLAG_VISIBLE))          _renderBits.addFlag(RF_VISIBLE);
+            if (flags().hasFlag(FLAG_PROP_COLOR))       _renderBits.addFlag(RF_COLOR);
+            if (flags().hasFlag(FLAG_SELECTED))         _renderBits.addFlag(RF_SELECTED);
+            if (flags().hasFlag(FLAG_CAST_SHADOW))      _renderBits.addFlag(RF_CAST_SHADOW);
+            if (flags().hasFlag(FLAG_RECV_SHADOW))      _renderBits.addFlag(RF_RECV_SHADOW);
+            if (flags().hasFlag(FLAG_RECV_LIGHTING))    _renderBits.addFlag(RF_RECV_LIGHTING);
+            if (flags().hasFlag(FLAG_EFFECT_AO))        _renderBits.addFlag(RF_EFFECT_AO);
+            if (flags().hasFlag(FLAG_EFFECT_BLOOM))     _renderBits.addFlag(RF_EFFECT_BLOOM);
+
             return  _renderBits;
         }
-        const   auto&   renderBits() const
-        {
-            return  _renderBits;
-        }
+
         inline  auto    localTranslation() const
         {
             return  _trans;
@@ -355,6 +378,27 @@ namespace   FE
         {
             return  _aabb;
         }
+    public:
+        /// <summary>
+        /// 返回子对象个数，重写CELLObject
+        /// return  childs().size() + coms.size() + geometry(1) + material(1);
+        /// 配合traverseObject 使用
+        /// </summary>
+        /// <returns></returns>
+        virtual size_t  objectCount() const override;
+        /// <summary>
+        /// 重写CELLObject,childs() + coms() + geometry() + material();
+        /// 遍历子对象,如果遍历中断，返回false,否则返回true
+        /// 隐藏内部细节：调用者不需要知道 Object 是如何存储的(是 std::vector、std::list，还是复杂的平衡树)。
+        /// 可以在不改变外部调用的情况下，随时更换底层的存储结构。
+        /// 控制访问权限：通过传递一个 const 引用或特定的 Object 副本，你可以严格控制外部代码对内部数据的修改权限。
+        /// 提前退出：std::function 的返回值允许回调函数控制遍历过程。
+        /// 返回 true：继续下一个。
+        /// 返回 false：立即停止遍历(类似于 break)
+        /// </summary>
+        /// <param name=""></param>
+        /// <returns>true/false</returns>
+        virtual bool    traverseObject(const ObjectVisitor&,uint depth = 0,bool recur = false) const override;
     protected:
         virtual void    onAddChildren() override
         {
@@ -401,6 +445,7 @@ namespace   FE
         /// </summary>
         /// <param name="bModify"></param>
         virtual void    endSetProp(bool bModify) override;
+
     protected:
         real3       _trans;
         /// <summary>

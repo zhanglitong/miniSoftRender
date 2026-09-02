@@ -32,9 +32,21 @@ namespace   FE
     class   FEFactoryRender :public FEFactory
     {
     public:
+        struct  NodesPrimitives
+        {
+            /// <summary>
+            /// 记录工厂类型对应的节点数量
+            /// </summary>
+            Nodes       _nodes;
+            /// <summary>
+            /// 一个mesh有多个primitive,类型可能是一样，记录 factory 与 Primitives 对应关系
+            /// </summary>
+            Primitives  _pris;
+        };
+    public:
         using   RFactory            =   SharedPtr<FEFactoryRender>;
         using   RFactorys           =   std::vector<RFactory>;
-        using   MeshKeyMap          =   std::map<uint64,Nodes>;
+        using   MeshKeyMap          =   std::map<uint64,NodesPrimitives>;
         using   MeshKeyCount        =   std::map<uint64,uint>;
 
         using   BufferCopy          =   FECmdBuffer::BufferCopy;
@@ -186,9 +198,14 @@ namespace   FE
         FEFactoryRender(const FEFactoryRender& other);
 
     public:
-        inline  uint64  key()   const
+        
+        inline  auto    key()   const
         {
-           return   _key.key();
+           return   _key;
+        }
+        inline  void    setKey(MeshKey value)
+        {
+            _key = value;
         }
         inline  void    setKey(uint64 value)
         {

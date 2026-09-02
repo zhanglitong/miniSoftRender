@@ -364,6 +364,7 @@ namespace   FE
                         clip    =   new FEAnimClip(_ctx); 
                         anim->setClip(clip);
                         bool    result  =   node->addComponent(anim.get());
+                        UNUSED(result);
                         assert(result);
                         animas[channel.target_node] =   anim;
                     }

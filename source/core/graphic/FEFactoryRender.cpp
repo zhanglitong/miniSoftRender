@@ -1173,9 +1173,11 @@ namespace   FE
             }
             var->setCmdCount(nCmd);
             cmdOffset   +=  nCmd;
-
         }
         uint64      length  =   sizeof(FECmdIndex) * cmdOffset;
+        assert(length != 0);
+        if (length == 0)
+            return  nullptr;
 
         ITO         cpuBuf  =   _device.createITO(); 
         ITO         gpuBuf  =   _device.createITO(); 
@@ -1624,13 +1626,14 @@ namespace   FE
         MeshKeyMap      priGroup;
         MeshKeyCount    priCnts;
         /// 按照key 统计节点
+        /// 为了避免动态分配内存
         for (auto& node: nodes)
         {
             auto    mesh    =   node->mesh();
             auto&   pris    =   mesh->primitives();
             for (auto& pri : pris)
             {   
-                auto    key     =   mesh->key(pri);
+                auto    key     =   mesh->key(pri).value();
                 priCnts[key] ++;
             }
         }
@@ -1638,26 +1641,35 @@ namespace   FE
         /// 节点按照key进行分组
         for (auto& var : priCnts)
         {
-            priGroup[var.first].reserve(var.second);
+            priGroup[var.first]._nodes.reserve(var.second);
+            priGroup[var.first]._pris.reserve(var.second);
         }
         for (auto& node: nodes)
         {
             auto    mesh    =   node->mesh();
             auto&   pris    =   mesh->primitives();
-            for (auto& pri : pris)
+
+            for (size_t i = 0;i < pris.size(); ++ i)
             {   
-                auto    key     =   mesh->key(pri);
-                priGroup[key].push_back(node);
+                auto    pri     =   pris[i];  
+                auto    key     =   mesh->key(pri).value();
+                priGroup[key]._nodes.push_back(node);
+                priGroup[key]._pris.push_back(pri);
             }
         }
 
         for (auto& var : priGroup)
         {
-            auto    factory =   queryFactory(ctx,scene,var.first,var.second);
+            auto    factory =   queryFactory(ctx,scene,var.first,var.second._nodes);
             if (factory != nullptr)
             {
+                /// 必须设置key,否则无法正确的渲染
                 factory->setKey(var.first);
-                factory->addNodes(var.second) ;
+                for (auto& pri : var.second._pris)
+                {
+                    pri->setFactory(factory.get());
+                }
+                factory->addNodes(var.second._nodes) ;
                 result.emplace_back(factory);
             }
         }

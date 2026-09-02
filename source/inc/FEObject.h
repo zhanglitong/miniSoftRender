@@ -286,6 +286,36 @@ namespace   FE
             return  (TFlag&)_flags;
         }
         /// <summary>
+        /// 直接转换，有风险，在确定的情况下使用，性能更好
+        /// </summary>
+        /// <typeparam name="TAsTo"></typeparam>
+        /// <returns></returns>
+        template<typename TAsTo>
+        inline  TAsTo*      as()
+        {
+            return  (TAsTo*)(this);
+        }
+        template<typename TAsTo>
+        const   TAsTo*      as() const
+        {
+            return  (const TAsTo*)(this);
+        }
+        /// <summary>
+        /// 动态类型转换
+        /// </summary>
+        /// <typeparam name="TCastTo"></typeparam>
+        /// <returns></returns>
+        template<typename TCastTo>
+        inline  TCastTo*    cast()
+        {
+            return  dynamic_cast<TCastTo*>(this);
+        }
+        template<typename TCastTo>
+        const   TCastTo*    cast() const
+        {
+            return  dynamic_cast<const TCastTo*>(this);
+        }
+        /// <summary>
         /// 写入,返回写入的字节数
         /// 基类中实现数据头的写入，以及自身的数据写入
         /// 典型用例: 
@@ -361,37 +391,60 @@ namespace   FE
         {
             UNUSED(bModify);
         }
+
+        class   FETrvsCtx;
         /// <summary>
-        /// 直接转换，有风险，在确定的情况下使用，性能更好
+        /// 第一个参数:  被访问对象
+        /// 第二个参数:  父对象(只是组织关系,有可能不是真实的父子关系,外部用来记录访问树的层级(路径栈)
+        /// 第三个参数:  FETrvsCtx,对(ObjectVisitor)包装.
+        ///              做解耦使用,避免无限制深度递归,用作外部控制递归访问使用
+        /// 第四个参数:  栈的深度
         /// </summary>
-        /// <typeparam name="TAsTo"></typeparam>
+        using   ObjectVisitor   =   std::function<bool(const FEObject&, const FEObject&, const FETrvsCtx&,uint stackDepth)>;
+        class   FETrvsCtx   
+        {
+        public:
+            const ObjectVisitor&    callback;
+        public:
+            FETrvsCtx(const ObjectVisitor& fun)
+                :callback(fun)
+            {}
+        };
+        /// <summary>
+        /// 返回子对象个数，用于树形访问遍历使用
+        /// 配合traverseObject使用
+        /// </summary>
         /// <returns></returns>
-        template<typename TAsTo>
-        inline  TAsTo*      as()
+        virtual size_t  objectCount() const
         {
-            return  (TAsTo*)(this);
-        }
-        template<typename TAsTo>
-        const   TAsTo*      as() const
-        {
-            return  (const TAsTo*)(this);
+            return  0;
         }
         /// <summary>
-        /// 动态类型转换
+        /// 遍历子对象,如果遍历中断，返回false,否则返回true
+        /// 隐藏内部细节：调用者不需要知道 Object 是如何存储的(是 std::vector、std::list，还是复杂的平衡树)。
+        /// 可以在不改变外部调用的情况下，随时更换底层的存储结构。
+        /// 控制访问权限：通过传递一个 const 引用或特定的 Object 副本，你可以严格控制外部代码对内部数据的修改权限。
+        /// 提前退出：std::function 的返回值允许回调函数控制遍历过程。
+        /// 返回 true：继续下一个。
+        /// 返回 false：立即停止遍历(类似于 break)
+        /// 最佳实践参考 
+        /// FETrvsCtx ctx(fun);
+        /// ++depth;
+        /// if (_object)
+        /// {
+        ///     if(!fun(*_object,*this,ctx,depth))
+        ///         return  false;
+        ///     if(recur && _object->objectCount()!= 0)
+        ///         _object->traverseObject(fun,recur,depth);
+        /// }
         /// </summary>
-        /// <typeparam name="TCastTo"></typeparam>
-        /// <returns></returns>
-        template<typename TCastTo>
-        inline  TCastTo*    cast()
+        /// <param name="ObjectVisitor">访问器</param>
+        /// <param recur="是否递归"></param>
+        virtual bool    traverseObject(const ObjectVisitor&,uint depth = 0,bool recur = false) const
         {
-            return  dynamic_cast<TCastTo*>(this);
+            UNUSED(depth,recur);
+            return  false;
         }
-        template<typename TCastTo>
-        const   TCastTo*    cast() const
-        {
-            return  dynamic_cast<const TCastTo*>(this);
-        }
-        
     protected:
         FEContext&  _ctx;
         /// <summary>
@@ -432,5 +485,3 @@ namespace   std
         }
     };
 }
-
-

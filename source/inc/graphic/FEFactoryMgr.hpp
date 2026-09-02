@@ -8,7 +8,7 @@ namespace   FE
     /// lambda 表达式作为类型别名，确保RFactoryLess是类型名
     constexpr auto    RFactoryLessLambda = [](const RFactory& l, const RFactory& r)
     {
-        return  l->key() < r->key();
+        return  l->key().value() < r->key().value();
     };
     /// 先定义类型别名，确保RFactoryLess是类型名
     using   RFactoryLess    =   decltype(RFactoryLessLambda);
@@ -31,9 +31,9 @@ namespace   FE
         {
             auto        itr =   std::lower_bound(_objects.begin(), _objects.end(), key,[](const RFactory& l, uint64 val)
             {
-                return  l->key() < val;
+                return  l->key().value() < val;
             });
-            if (itr != _objects.end() && (*itr)->key() == key)
+            if (itr != _objects.end() && (*itr)->key().value() == key)
                 return  *itr;
             else
                 return  nullptr;
@@ -55,7 +55,7 @@ namespace   FE
             _factoryMap.clear();
             for (auto var : objects())
             {
-                _factoryMap[var->key()] = var;
+                _factoryMap[var->key().value()] = var;
             }
         }
     protected:  
