@@ -19,9 +19,6 @@
 #include    "graphic/FEScene.h"
 using   namespace   FE;
 
-USING_PLUGIN(rs_vulkan);
-USING_PLUGIN(rs_webgpu);
-
 namespace   FE
 {
     class   WigetViewer :
