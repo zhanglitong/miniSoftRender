@@ -12,7 +12,7 @@ namespace   FE
         Scene       _scene;
         bool        _prepared   =   false;
     public:
-        Demo();
+        Demo(const FEUuid& rendererId  =   RS_VULKAN);
         ~Demo();
     public:
         void    messageNotify(const FEMessage& msgIn);

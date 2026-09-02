@@ -9,7 +9,7 @@
 
 namespace   FE
 {
-    Demo::Demo()
+    Demo::Demo(const FEUuid& rendererId)
     {
         FEApp::CreateInfo   info    =   {};
         info._notify    =   std::bind(&Demo::messageNotify,this,std::placeholders::_1);
@@ -21,7 +21,7 @@ namespace   FE
         _ctx.setWorkPath(_app->path());
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
-        _scene->setup(_app);
+        _scene->setup(_app,rendererId);
         _scene->test();
         FEGeometryCylinder  geoBox(_ctx);
         Attrs               attrs   =   
