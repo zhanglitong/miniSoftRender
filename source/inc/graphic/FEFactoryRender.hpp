@@ -198,7 +198,10 @@ namespace   FE
         FEFactoryRender(const FEFactoryRender& other);
 
     public:
-        
+        /// <summary>
+        /// 工厂的类型Id,标识该工厂中的节点类型,例如 mesh + primitive + material
+        /// </summary>
+        /// <returns></returns>
         inline  auto    key()   const
         {
            return   _key;

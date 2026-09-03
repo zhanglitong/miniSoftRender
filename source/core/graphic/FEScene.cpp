@@ -12,6 +12,7 @@
 #include    "../inc/graphic/FEPipelineHelper.h"
 #include    "../inc/graphic/FELightMgr.h"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/FEInputSystem.hpp"
 
 namespace   FE
 {
@@ -82,6 +83,9 @@ namespace   FE
         {
             AnimSys animSys =   new FEAnimationSys(_ctx);
             _comSysMgr.addObject(animSys.get());
+            /// 注册输入事件系统
+            InputSys inputSys = new FEInputSystem(_ctx);
+            _comSysMgr.addObject(inputSys.get());
         }
 
         LOG_EVT("start cost:%lf ms",timestamp.milliSec());
@@ -123,17 +127,6 @@ namespace   FE
         Material    material    =   new FEMaterialV3C4(_ctx);
         Material    matLine     =   new FEMaterialV3C4(_ctx);
         auto        nodes       =   loadNode(material);
-        //for (auto& node : nodes)
-        //{
-        //    _nodeTree.addToplevelNode(node);
-        //}
-        //{
-        //    auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodes);
-        //    for (auto& var : factorys)
-        //    {
-        //        _factorys.addObject(var);
-        //    }
-        //}
         {
             auto    node        =   createGrid(matLine);
             auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{node});
@@ -160,6 +153,7 @@ namespace   FE
     {
         addNodesToFactory(nodeList,result);
         dispatchToSystem<FEAnimation>(_comSysMgr,nodeList);
+        dispatchToSystem<FEInput>(_comSysMgr,nodeList);
     }
 
     void    FEScene::onFrameStart()
@@ -314,6 +308,15 @@ namespace   FE
             onFrameRender();
             onFrameEnd();
             break;
+        }
+        /// 消息转发给输入系统
+        for (auto var : _comSysMgr.objects())
+        {   
+            auto    pInputSys   =   var->cast<FEInputSystem>();
+            if (pInputSys == nullptr)
+                continue;
+            else
+                pInputSys->onMessage(msgIn);
         }
     }
 

@@ -50,6 +50,8 @@ namespace   FE
         /// <returns>添加成功对象数</returns>
         virtual size_t  addObject(const TObject& object)
         {
+            if (object == nullptr)
+                return  0;
             auto    itr     =   std::lower_bound(_objects.begin(), _objects.end(), object,_sortFunc);
             if (itr != _objects.end() && *itr == object)
                 return  0;

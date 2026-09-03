@@ -27,12 +27,15 @@
 #include    "../inc/FEConst.h"
 #include    "../inc/animation/FEAnimation.hpp"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/FEInputSystem.hpp"
 
 namespace   FE
 {
     void    regComSystemId(FEContext& )
     {
-       CLS_PROPERTY(FEAnimation).add(ComSysId,UUIDOF(FEAnimationSys));
+        /// 关联动画组件系统id,当有动画加入系统时候，会自动关联动画组件系统
+        CLS_PROPERTY(FEAnimation).add(ComSysId,UUIDOF(FEAnimationSys));
+        CLS_PROPERTY(FEInputCom).add(ComSysId,UUIDOF(FEInputSystem));
     }
     void    systemInitializeCreator(FEContext& ctx)
     {
