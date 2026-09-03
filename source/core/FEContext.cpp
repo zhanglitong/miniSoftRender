@@ -28,6 +28,7 @@
 #include    "../inc/animation/FEAnimation.hpp"
 #include    "../inc/animation/FEAnimationSys.hpp"
 #include    "../inc/FEInputSystem.hpp"
+#include    "../inc/material/FEMaterialLibrary.hpp"
 
 namespace   FE
 {
@@ -60,6 +61,12 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEFormatFepjWriter);
 
         DEFINE_CLASS_CREATOR(FEFormatGLTFReader);
+
+        DEFINE_CLASS_CREATOR(FEMaterialV3C4);
+        DEFINE_CLASS_CREATOR(FEMaterialV3N3);
+        DEFINE_CLASS_CREATOR(FEMaterialPBR);
+        DEFINE_CLASS_CREATOR(FEMaterialPoint);
+        DEFINE_CLASS_CREATOR(FEMaterialV3);
 
     }
     void    systemInitializeReader(FEContext& ctx)

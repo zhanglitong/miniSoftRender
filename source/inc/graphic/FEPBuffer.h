@@ -2,7 +2,6 @@
 
 #include    "../FEDefine.h"
 #include    "../FEObject.h"
-#include    "../FENotify.hpp"
 #include    "../FEColor.hpp"
 #include    "../FEMath.hpp"
 

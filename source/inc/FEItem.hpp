@@ -1,12 +1,10 @@
 #pragma     once
 
 #include    "FEObject.h"
-#include    "FENotify.hpp"
 #include    "FEObjectHelper.hpp"
 
 namespace   FE
 {
-    using   Notify  =   SharedPtr<FENotify>;
 
     template<class T>
     class   FEItem :public FEObject

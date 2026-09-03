@@ -1,7 +1,6 @@
 #pragma     once
 
 #include    "FEObject.h"
-#include    "FENotify.hpp"
 #include    "FEMath.hpp"
 
 namespace   FE

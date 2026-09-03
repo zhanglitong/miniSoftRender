@@ -11,7 +11,7 @@ namespace   FE
         :public FEComponent
         ,public FEInput
     {
-        IMPLEMENT_CLASS_REFLECT(FEInputCom)
+        IMPLEMENT_CLASS_REFLECT(FEInputCom) 
     public:
         FEInputCom(FEContext& ctx)
             :FEComponent(ctx)
@@ -21,7 +21,7 @@ namespace   FE
             :FEComponent(other)
         {}
         /// <summary>
-        /// ĞèÒª±»ÆäËû×ÓÀàÖØĞ´£¬´¦ÀíÏûÏ¢
+        /// éœ€è¦è¢«å…¶ä»–å­ç±»é‡å†™ï¼Œå¤„ç†æ¶ˆæ¯
         /// </summary>
         /// <param name=""></param>
         virtual void    onMessage(const FEMessage& ) override

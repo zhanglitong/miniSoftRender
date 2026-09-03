@@ -7,6 +7,8 @@
 #include    "../inc/FEBuffer.hpp"
 #include    "../inc/FEGeometryLibrary.hpp"
 #include    "../inc/FENotify.hpp"
+#include    "../inc/material/FEMaterialLibrary.hpp"
+
 namespace   FE
 {
 
@@ -58,8 +60,6 @@ namespace   FE
             };
             uint16  _value;
         };
-        
-        
         NodeChunkBit(uint16 flag = 0)
         {
             _hasColor       =   flag>>0;
@@ -97,15 +97,14 @@ namespace   FE
         bits._hasScale      =   _scale  ==  float3(1,1,1)  ? 1 : 0;
         bits._hasTrans      =   _trans  ==  real3(0,0,0)   ? 1 : 0;
         bits._hasRotate     =   _rotate ==  quatf(1,0,0,0) ? 1 : 0;
-        bits._hasGeometry   =   _mesh ? 1 : 0;
-        bits._hasMaterial   =   _material ? 1 : 0;
+        bits._hasGeometry   =   _mesh       ? 1 : 0;
+        bits._hasMaterial   =   _material   ? 1 : 0;
 
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         /// 必须修改
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         chunk._flags        =   bits._value;
         
-        writer.write(_dataFlag);
         if (bits._hasScale )    writer.write(_scale);
         if (bits._hasTrans )    writer.write(_trans);
         if (bits._hasRotate )   writer.write(_rotate);
@@ -139,8 +138,6 @@ namespace   FE
         (void)version;
 
         NodeChunkBit    bits(chunk._flags);
-
-        reader.read(_dataFlag);
 
         OBJId   matId;
         OBJId   geoId;
@@ -208,14 +205,14 @@ namespace   FE
                 /// 是否有Primitive, 0 没有 1,uint8,2:uint16,3:uint32,减少长度字段的内存占用
                 uint16  _hasPrimitive   :2;
                 /// 是否有meshBuffer,0 没有 1,uint8,2:uint16,3:uint32,减少长度字段的内存占用
-                uint16  _hasSubMesh     :2;
+                uint16  _hasBuffer      :2;
             };
             uint16  _value;
         };
         MeshChunkBit(uint16 flags = 0)
         {
             _hasPrimitive   =   flags>>0;
-            _hasSubMesh     =   flags>>2;
+            _hasBuffer      =   flags>>2;
         }
     };
     void    FEMesh::serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const
@@ -225,30 +222,47 @@ namespace   FE
 
         MeshChunkBit    bits(chk._flags);
 
-        size_t  nBuf    =   _buffers.size();
+        size_t  nPri    =   _primitives.size();
         
 
-        if (nBuf == 0)              bits._hasSubMesh    =   0;
-        else if (nBuf < MaxUint8)   bits._hasSubMesh    =   1;
-        else if (nBuf < MaxUint16)  bits._hasSubMesh    =   1;
-        else if (nBuf < MaxUint32)  bits._hasSubMesh    =   2;
+        if (nPri == 0)              bits._hasPrimitive  =   0;
+        else if (nPri < MaxUint8)   bits._hasPrimitive  =   1;
+        else if (nPri < MaxUint16)  bits._hasPrimitive  =   1;
+        else if (nPri < MaxUint32)  bits._hasPrimitive  =   2;
 
-        bits._hasPrimitive  =   _primitives.empty() ? 0 : 1;
+        size_t  nBuf    =   _buffers.size();
+        if (nBuf == 0)              bits._hasBuffer     =   0;
+        else if (nBuf < MaxUint8)   bits._hasBuffer     =   1;
+        else if (nBuf < MaxUint16)  bits._hasBuffer     =   1;
+        else if (nBuf < MaxUint32)  bits._hasBuffer     =   2;
+
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         /// 必须修改
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         chk._flags          =   bits._value;
+
+        switch(bits._hasPrimitive)
+        {
+        case 1: writer.write<uint8>(uint8(nPri));   break;
+        case 2: writer.write<uint16>(uint16(nPri)); break;
+        case 3: writer.write<uint32>(uint32(nPri)); break;
+        }
 
         for(auto var : _primitives)
         {
             var->serialize(writer,version,ctx);
         }
 
-        switch(bits._hasSubMesh)
+        switch(bits._hasBuffer)
         {
         case 1: writer.write<uint8>(uint8(nBuf));   break;
         case 2: writer.write<uint16>(uint16(nBuf)); break;
         case 3: writer.write<uint32>(uint32(nBuf)); break;
+        }
+        for (size_t i = 0; i < nBuf; i++)
+        {
+            writer.write<FEAttribute>(_buffers[i].attr());
+            _buffers[i].buffer()->serialize(writer,version,ctx);
         }
 
     }
@@ -259,36 +273,53 @@ namespace   FE
 
         MeshChunkBit    bits(chk._flags);
 
-        uint    nBuf    =   0;
-        
+        _buffers.clear();
+        _primitives.clear();
+
         if (bits._hasPrimitive)
         {
-            /// auto    ptr =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
-            /// if (ptr != nullptr && ptr->cast<FEPrimitive>())
-            ///     _primitive  =   ptr->cast<FEPrimitive>();
+            uint    cnt     =   0;
+            switch(bits._hasPrimitive)
+            {
+            case 1: cnt     =   reader.readValue<uint8>(); break;
+            case 2: cnt     =   reader.readValue<uint16>();break;
+            case 3: cnt     =   reader.readValue<uint32>();break;
+            }
+            _primitives.reserve(cnt);
+            for (uint i = 0; i < cnt; i++)
+            {
+                auto    ptr =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
+                if (ptr != nullptr)
+                    continue;
+                auto    pri =   ptr->cast<FEPrimitive>();
+                if (pri == nullptr) 
+                    continue;
+                _primitives.push_back(pri);
+            }
         }
-
-        switch(bits._hasSubMesh)
+        if (bits._hasBuffer)
         {
-        case 1: nBuf    =   reader.readValue<uint8>(); break;
-        case 2: nBuf    =   reader.readValue<uint16>();break;
-        case 3: nBuf    =   reader.readValue<uint32>();break;
-        }
-
-        _buffers.clear();
-        _buffers.reserve(nBuf);
-        for (uint i = 0 ;i < nBuf; ++ i)
-        {
-            /// auto    attObject   =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
-            /// auto    bufObject   =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
-            /// if (attObject == nullptr || bufObject)
-            ///     continue;
-            /// auto    attr    =   attObject->cast<FEAttribute>();
-            /// auto    buf     =   bufObject->cast<FEBuffer>();
-            /// if (attr == nullptr || buf == nullptr)
-            ///     continue;
-            /// FEMeshBuffer    meshBuffer(_ctx,buf,attr);
-            /// _buffers.emplace_back(meshBuffer);
+            uint    cnt     =   0;
+            switch(bits._hasBuffer)
+            {
+            case 1: cnt     =   reader.readValue<uint8>(); break;
+            case 2: cnt     =   reader.readValue<uint16>();break;
+            case 3: cnt     =   reader.readValue<uint32>();break;
+            }
+            
+            _buffers.reserve(cnt);
+            for (uint i = 0; i < cnt; i++)
+            {
+                FEAttribute attr    =   reader.readValue<FEAttribute>();
+                auto        ptr     =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
+                if (ptr != nullptr)
+                    continue;
+                auto        obj     =   ptr->cast<FEBuffer>();
+                if (obj == nullptr) 
+                    continue;
+                FEAttribyteBuffer   data(_ctx,obj,attr);
+                _buffers.push_back(data);
+            }
         }
         if (!_buffers.empty())
         {
@@ -427,5 +458,40 @@ namespace   FE
         {
             _mesh   =   triangular(inputs);
         }
+    }
+
+
+    void    FEMaterialPBR::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const 
+    {
+        String  prefix = "pbr";
+        writer.write(prefix);
+
+        writer.write(_pbr._value._emissive);
+        writer.write(_pbr._value._diffuse);
+        writer.write(_pbr._value._spacular);
+        writer.write(_pbr._value._roughness);
+        writer.write(_pbr._value._metallic);
+        writer.write(_pbr._value._transmission);
+        writer.write(_pbr._value._iri);
+        writer.write(_pbr._value._clearcoat);
+        writer.write(_pbr._value._volume);
+    }
+    void    FEMaterialPBR::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) 
+    {
+        String  prefix;
+        reader.read(prefix);
+
+        reader.read(_pbr._value._emissive);
+        reader.read(_pbr._value._diffuse);
+        reader.read(_pbr._value._spacular);
+        reader.read(_pbr._value._roughness);
+        reader.read(_pbr._value._metallic);
+        reader.read(_pbr._value._transmission);
+        reader.read(_pbr._value._iri);
+        reader.read(_pbr._value._clearcoat);
+        reader.read(_pbr._value._volume);
+
+        setup(prefix);
+        _pbr.update();
     }
 }

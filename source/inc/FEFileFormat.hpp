@@ -198,5 +198,5 @@ namespace   FE
             }                                           \
 
     using   Format      =   FEFileFormat;
-    using   Formats     =   FEVector<FEFileFormat>;
+    using   Formats     =   std::vector<FEFileFormat>;
 }

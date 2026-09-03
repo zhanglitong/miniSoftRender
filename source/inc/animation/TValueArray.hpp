@@ -41,28 +41,37 @@ namespace FE
             return  _values;
         }
 
+        /// <summary>
+        /// 子类实现
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="chunk">数据头，子类可根据情况修改(flags字段)，实现一些优化处理</param>
+        /// <param name="version">版本号</param>
+        /// <param name="ctx">上下文对象</param>
+        /// <returns></returns>
+        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const 
+        {
+            UNUSED(writer, chunk, version, ctx);
+            uint   cnt = (uint)_values.size();
+            writer.write(cnt);
+            writer.writeBuffer(_values.data(), sizeof(TValue) * cnt);
+        }
+        /// <summary>
+        /// 子类实现,只关注自己需要读取的数据
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override
+        {   
+            UNUSED(reader, chunk, version, ctx);
+            uint    cnt = 0;
+            reader.read(cnt);
+            _values.resize(cnt);
+            reader.readBuffer(_values.data(), sizeof(TValue) * cnt);
+        }
     protected:
         Values  _values;
     };
-
-    using   RealsObject     =   SharedPtr<TValueArray<real>>;
-    using   Real2sObject    =   SharedPtr<TValueArray<real2>>;
-    using   Real3sObject    =   SharedPtr<TValueArray<real3>>;
-    using   Real4sObject    =   SharedPtr<TValueArray<real4>>;
-    using   QuatrsObject    =   SharedPtr<TValueArray<quatr>>;
-
-    using   FloatsObject    =   SharedPtr<TValueArray<float>>;
-    using   Float2sObject   =   SharedPtr<TValueArray<float2>>;
-    using   Float3sObject   =   SharedPtr<TValueArray<float3>>;
-    using   Float4sObject   =   SharedPtr<TValueArray<float4>>;
-    using   QuatfsObject    =   SharedPtr<TValueArray<quatf>>;
-
-    using   BoolsObject     =   SharedPtr<TValueArray<uint8>>;    
-
-    /// <summary>
-    /// 这里不能随意更改
-    /// </summary>
-    using   ValueObject     =   std::variant<std::monostate,RealsObject,Real2sObject,Real3sObject,Real4sObject,QuatrsObject,
-                                            FloatsObject,Float2sObject,Float3sObject,Float4sObject,QuatfsObject,
-                                            BoolsObject>;
 }

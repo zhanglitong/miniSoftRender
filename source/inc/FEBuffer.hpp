@@ -8,8 +8,6 @@
 #include    "stream/FEReader.hpp"
 #include    "stream/FEWriter.hpp"
 #include    "stream/FEReaderFile.hpp"
-#include    "FENotify.hpp"
-
 
 namespace   FE
 {

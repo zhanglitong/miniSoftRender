@@ -4,7 +4,6 @@
 #include    "FEFileFormat.hpp"
 #include    "FEAllocator.hpp"
 #include    "FEObject.h"
-#include    "FENotify.hpp"
 #include    "FEWindow.hpp"
 #include    "FEAnchor.hpp"
 

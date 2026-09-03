@@ -456,8 +456,6 @@ namespace   FE
         RenderFlags _renderBits;
         aabb3r      _aabb;
         mat4r       _transform;
-        uint32      _dataFlag;
-        Rgba8       _color;
         /// <summary>
         /// 经常被访问的组件
         /// </summary>
@@ -465,6 +463,7 @@ namespace   FE
         Material    _material;
         FEString    _name;
         Components  _coms;
+        Rgba8       _color;
     };
 
     using   Node    =   SharedPtr<FENode>;

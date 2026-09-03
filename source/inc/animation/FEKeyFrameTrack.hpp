@@ -171,106 +171,48 @@ namespace FE
         /// <summary>
         /// 需要手动调用
         /// </summary>
-        void    sortKeyFames()
-        {
-            switch(_values.index())
-            {
-            case 1:     return  sortImpl(std::get<RealsObject>(_values));
-            case 2:     return  sortImpl(std::get<Real2sObject>(_values));
-            case 3:     return  sortImpl(std::get<Real3sObject>(_values));
-            case 4:     return  sortImpl(std::get<Real4sObject>(_values));
-            case 5:     return  sortImpl(std::get<QuatrsObject>(_values));
-            case 6:     return  sortImpl(std::get<FloatsObject>(_values));
-            case 7:     return  sortImpl(std::get<Float2sObject>(_values));
-            case 8:     return  sortImpl(std::get<Float3sObject>(_values));
-            case 9:     return  sortImpl(std::get<Float4sObject>(_values));
-            case 10:    return  sortImpl(std::get<QuatfsObject>(_values));
-            case 11:    return  sortImpl(std::get<BoolsObject>(_values));
-            }
-        }
+        void    sortKeyFames();
         /// <summary>
         /// 计算帧索引偏移,返回帧号 + 相对当前帧的时间偏移
         /// </summary>
-        KFOff   calcFrameOffset(const real& clipTime) const
-        {
-            KFOff   result;
-            result.clipTm   =   clipTime;
-            if (!isValid())
-                return  result;
-            auto    rng     =   range();
-            auto&   times   =   _times->values();
-            if (clipTime <= rng.x)
-            {
-                result.index    =   0;
-                return  result;
-            }
-            else if(clipTime >= rng.y)
-            {
-                result.index    =   times.size() - 1;
-                return  result;
-            }
-            auto    itr =   std::lower_bound(times.begin(), times.end(), clipTime, [](const real& l, const real& tm)
-            {
-                return l < tm;
-            });
-            
-            result.index    =   std::distance(times.begin(),itr) - 1;
-
-            real    startTime   =   times[result.index + 0];
-            real    endTime     =   times[result.index + 1];
-            real    offset      =   real(clipTime - startTime) / real(endTime - startTime);
-            result.offsetTm     =   std::clamp(offset,0.0,1.0);
-            return  result;
-        }
+        KFOff   calcFrameOffset(const real& clipTime) const;
         /// <summary>
         /// 每一帧更新
         /// </summary>
         /// <param name="frame"></param>
-        bool    update(const real& clipTm,FETrackResult& result)
-        {
-            if (!isValid())
-                return  false;
-            switch(_values.index())
-            {
-            case 1:     return  updateImpl(clipTm,result,std::get<RealsObject>(_values));
-            case 2:     return  updateImpl(clipTm,result,std::get<Real2sObject>(_values));
-            case 3:     return  updateImpl(clipTm,result,std::get<Real3sObject>(_values));
-            case 4:     return  updateImpl(clipTm,result,std::get<Real4sObject>(_values));
-            case 5:     return  updateImpl(clipTm,result,std::get<QuatrsObject>(_values));
-            case 6:     return  updateImpl(clipTm,result,std::get<FloatsObject>(_values));
-            case 7:     return  updateImpl(clipTm,result,std::get<Float2sObject>(_values));
-            case 8:     return  updateImpl(clipTm,result,std::get<Float3sObject>(_values));
-            case 9:     return  updateImpl(clipTm,result,std::get<Float4sObject>(_values));
-            case 10:    return  updateImpl(clipTm,result,std::get<QuatfsObject>(_values));
-            case 11:    return  updateImpl(clipTm,result,std::get<BoolsObject>(_values));
-            default:    return  false;
-            }
-        }
+        bool    update(const real& clipTm,FETrackResult& result);
         /// <summary>
         /// 每一帧更新
         /// </summary>
         /// <param name="frame"></param>
-        bool    update(const KFOff& kfOff,FETrackResult& result)
-        {
-            if (!isValid())
-                return  false;
-            switch(_values.index())
-            {
-            case 1:     return  updateImpl(kfOff,result,std::get<RealsObject>(_values));
-            case 2:     return  updateImpl(kfOff,result,std::get<Real2sObject>(_values));
-            case 3:     return  updateImpl(kfOff,result,std::get<Real3sObject>(_values));
-            case 4:     return  updateImpl(kfOff,result,std::get<Real4sObject>(_values));
-            case 5:     return  updateImpl(kfOff,result,std::get<QuatrsObject>(_values));
-            case 6:     return  updateImpl(kfOff,result,std::get<FloatsObject>(_values));
-            case 7:     return  updateImpl(kfOff,result,std::get<Float2sObject>(_values));
-            case 8:     return  updateImpl(kfOff,result,std::get<Float3sObject>(_values));
-            case 9:     return  updateImpl(kfOff,result,std::get<Float4sObject>(_values));
-            case 10:    return  updateImpl(kfOff,result,std::get<QuatfsObject>(_values));
-            case 11:    return  updateImpl(kfOff,result,std::get<BoolsObject>(_values));
-            default:    return  false;
-            }
-        }
+        bool    update(const KFOff& kfOff,FETrackResult& result);
+    public:
+        /// <summary>
+        /// 子类实现
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="chunk">数据头，子类可根据情况修改(flags字段)，实现一些优化处理</param>
+        /// <param name="version">版本号</param>
+        /// <param name="ctx">上下文对象</param>
+        /// <returns></returns>
+        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const;
+        /// <summary>
+        /// 子类实现,只关注自己需要读取的数据
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;;
     protected:
+
+        template<typename TValueObject>
+        void    serializeValueObject(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx,const TValueObject& values) const 
+        {
+            UNUSED(writer, chunk, version, ctx);
+            writer.writeBuffer(values.data(), sizeof(typename TValueObject::value_type) * values.size());
+        }
+
         template<typename TValueObject>
         void    sortImpl(TValueObject& vObject)
         {
@@ -356,7 +298,6 @@ namespace FE
         /// <returns></returns>
         static  KFValue interpolate(InterpolateType type,const real& dTime, const FrameValue& startFrame,const FrameValue& endFrame,real tension = MD_EASE) 
         {
-          
             switch (type)
             {
             case IT_Bezier:

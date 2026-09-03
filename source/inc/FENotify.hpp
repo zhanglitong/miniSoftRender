@@ -32,7 +32,6 @@ namespace   FE
         }
         void    removeNotify(void* pKey,const NChange& notify)
         {
-
             (void)pKey;
             (void)notify;
             _NChanges.erase(pKey);

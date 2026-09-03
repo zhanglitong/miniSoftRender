@@ -440,13 +440,13 @@ namespace   FE
                 {
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {   
-                        timeLine    =   new TValueArray<real>(_ctx);
+                        timeLine    =   new FERealsObject(_ctx);
                         readValues<real,float>(accessor,view,buffer,timeLine->values());
                     }
                     break;
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
-                        timeLine    =   new TValueArray<real>(_ctx);
+                        timeLine    =   new FERealsObject(_ctx);
                         readValues<real,real>(accessor,view,buffer,timeLine->values());
                     }
                     break;
@@ -473,7 +473,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        RealsObject     values  =   new TValueArray<real>(_ctx);
+                        RealsObject     values  =   new FERealsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_TRANSFORM_X);
@@ -484,7 +484,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        RealsObject     values  =   new TValueArray<real>(_ctx);
+                        RealsObject     values  =   new FERealsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_TRANSFORM_X);
@@ -503,7 +503,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Real2sObject    values  =   new TValueArray<real2>(_ctx);
+                        Real2sObject    values  =   new FEReal2sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_TRANSFORM_XY);
@@ -514,7 +514,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Real2sObject    values  =   new TValueArray<real2>(_ctx);
+                        Real2sObject    values  =   new FEReal2sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_TRANSFORM_XY);
@@ -533,7 +533,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Real3sObject    values  =   new TValueArray<real3>(_ctx);
+                        Real3sObject    values  =   new FEReal3sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_TRANSFORM_XYZ);
@@ -544,7 +544,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Real3sObject    values  =   new TValueArray<real3>(_ctx);
+                        Real3sObject    values  =   new FEReal3sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_TRANSFORM_XYZ);
@@ -577,7 +577,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        FloatsObject    values  =   new TValueArray<float>(_ctx);
+                        FloatsObject    values  =   new FEFloatsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_X);
@@ -588,7 +588,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        FloatsObject    values  =   new TValueArray<float>(_ctx);
+                        FloatsObject    values  =   new FEFloatsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_X);
@@ -607,7 +607,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float2sObject   values  =   new TValueArray<float2>(_ctx);
+                        Float2sObject   values  =   new FEFloat2sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_XY);
@@ -618,7 +618,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float2sObject   values  =   new TValueArray<float2>(_ctx);
+                        Float2sObject   values  =   new FEFloat2sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_XY);
@@ -637,7 +637,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float3sObject   values  =   new TValueArray<float3>(_ctx);
+                        Float3sObject   values  =   new FEFloat3sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_XYZ);
@@ -648,7 +648,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float3sObject   values  =   new TValueArray<float3>(_ctx);
+                        Float3sObject   values  =   new FEFloat3sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_XYZ);
@@ -681,7 +681,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        QuatfsObject    values  =   new TValueArray<quatf>(_ctx);
+                        QuatfsObject    values  =   new FEQuatfsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_QUAT);
@@ -692,7 +692,7 @@ namespace   FE
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        QuatfsObject    values  =   new TValueArray<quatf>(_ctx);
+                        QuatfsObject    values  =   new FEQuatfsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_QUAT);

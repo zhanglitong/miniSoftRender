@@ -9,7 +9,6 @@ namespace   FE
 
     FENode::FENode(FEContext& ctx)
         :FEItem<FENode>(ctx)
-        ,_dataFlag(0)
     {
         _scale      =   float3(1,1,1);
         _trans      =   real3(0,0,0);
@@ -32,7 +31,6 @@ namespace   FE
         _transform  =   other._transform    ;
         _material   =   other._material     ; 
         _mesh       =   other._mesh         ; 
-        _dataFlag   =   other._dataFlag     ;
         _color      =   other._color        ;
         _name       =   other._name         ;
         _coms       =   FEObjectHelper::clone(other._coms);
@@ -165,6 +163,11 @@ namespace   FE
         {
             uset.emplace(var);
         }
+        Object  mesh    =   const_cast<FEMesh*>(_mesh.get());
+        Object  mat     =   const_cast<FEMaterial*>(_material.get());
+        if (mesh)   uset.emplace(mesh);
+        if (mat)    uset.emplace(mat);
+
         return  uset.size() - vSize;
     }
 

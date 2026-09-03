@@ -66,7 +66,7 @@ namespace   FE
             }
             return  result;
         }
-        virtual void    onMessage(const FEMessage& msg)  override
+        virtual void    onMessage(const FEMessage& msg)
         {
             for (auto var : _input.objects())
             {

@@ -63,6 +63,23 @@ namespace   FE
         }
     public:
         /// <summary>
+        /// 子类实现
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="chunk">数据头，子类可根据情况修改(flags字段)，实现一些优化处理</param>
+        /// <param name="version">版本号</param>
+        /// <param name="ctx">上下文对象</param>
+        /// <returns></returns>
+        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
+        /// <summary>
+        /// 子类实现,只关注自己需要读取的数据
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
+        /// <summary>
         /// 动画系统独有接口
         /// 通用设置对象属性接口，子类实现
         /// </summary>
