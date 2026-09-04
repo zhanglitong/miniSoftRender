@@ -44,6 +44,19 @@ namespace   FE
             return  exists(object);
         }
         /// <summary>
+        /// 会覆盖已有的数据，不做消息触发，直接替换数据，注意排序和去重
+        /// </summary>
+        /// <param name="objects"></param>
+        /// <returns>返回添加后对象个数</returns>
+        inline  size_t  setObjects(TObjects&& objects)
+        {
+            _objects    =   std::move(objects);
+            std::sort(_objects.begin(),_objects.end(),_sortFunc);
+            auto    newEnd  =   std::unique(_objects.begin(),_objects.end());
+            _objects.erase(newEnd, _objects.end());
+            return  _objects.size();
+        }
+        /// <summary>
         /// 添加对象,返回0,已经存在,返回1,添加成功
         /// </summary>
         /// <param name="object"></param>
@@ -140,6 +153,8 @@ namespace   FE
                 _objects.clear();
             }
         }
+
+        
     protected:
         /// <summary>
         /// 子类可以重写，添加对象的回调函数

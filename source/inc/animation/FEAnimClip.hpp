@@ -23,7 +23,7 @@ namespace FE
     /// 创建track时候,开始时间都是从0开始
     /// 就可以实现一份数据，在不同的时间上，被多次复用
     /// </summary>
-    class   FEAnimClip 
+    class   FE_API FEAnimClip 
         : public FEObject
         , public FEObjectsTemplate<KeyFrameTrack, TrackLess>
     {
@@ -38,24 +38,15 @@ namespace FE
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimClip)
     public:
-        FEAnimClip(FEContext& ctx)  
-            :FEObject(ctx)
-            ,FEObjectsTemplate<KeyFrameTrack, TrackLess>(TrackLessFunc)
-        {
-        }
-        FEAnimClip(const FEAnimClip& other)
-            :FEObject(other)
-            ,FEObjectsTemplate<KeyFrameTrack, TrackLess>(other)
-        {
-            _objects     =   other._objects;
-        }
-        ~FEAnimClip()   =   default;
+        FEAnimClip(FEContext& ctx)  ;
+        FEAnimClip(const FEAnimClip& other);
+        ~FEAnimClip();
     public:
         /// <summary>
         /// 是否发生变更
         /// </summary>
         /// <returns></returns>
-        bool    isChanged() const
+        bool        isChanged() const
         {
             if (flags().hasFlag(ClipChanged))
                 return  true;
@@ -66,7 +57,7 @@ namespace FE
             }  
             return  false;
         }
-        void    clearChanged() 
+        void        clearChanged() 
         {
             flags().removeFlag(ClipChanged);
         }
@@ -122,23 +113,22 @@ namespace FE
         /// </summary>
         /// <param name="clipTime">时间线时间(从开始播放开始计时),单位秒</param>
         /// <param name="results"></param>
-        void        update(const real& clipTime,TrackResults& results)
+        void        update(const real& clipTime,TrackResults& results);
+    protected:
+        /// <summary>
+        /// 传统流程,速度慢
+        /// </summary>
+        /// <param name="frame"></param>
+        void        update0(const real& frame,TrackResults& results)
         {
             results.resize(_objects.size());
-            /// _objects 已经按照times 对象排序，即相同的timeline 会在一起
-            RealsObject             timeLine    =   nullptr;
-            FEKeyFrameTrack::KFOff  kfValue     =   {};
+            /// 注意这里
             for (size_t i = 0 ;i < _objects.size() ; ++ i)
             {
                 auto        track   =   _objects[i];
-                if (track->times() != timeLine)
-                {
-                    timeLine    =   track->times();
-                    kfValue     =   track->calcFrameOffset(clipTime);
-                }
                 results[i]._track   =   track;
                 results[i]._prop    =   track->propertyIndex();
-                results[i]._valid   =   track->update(kfValue,results[i]);
+                results[i]._valid   =   track->update(frame,results[i]);
             }
         }
     protected:
@@ -157,21 +147,28 @@ namespace FE
             flags().addFlag(ClipChanged);
         }
         /// <summary>
-        /// 传统流程,速度慢
+        /// 获取依赖的对象,子类实现
         /// </summary>
-        /// <param name="frame"></param>
-        void        update0(const real& frame,TrackResults& results)
-        {
-            results.resize(_objects.size());
-            /// 注意这里
-            for (size_t i = 0 ;i < _objects.size() ; ++ i)
-            {
-                auto        track   =   _objects[i];
-                results[i]._track   =   track;
-                results[i]._prop    =   track->propertyIndex();
-                results[i]._valid   =   track->update(frame,results[i]);
-            }
-        }
+        /// <param name="uset"></param>
+        /// <returns>返回以来的对象个数</returns>
+        virtual size_t  queryDepends(ObjectUSet& uSet) const override;
+        /// <summary>
+        /// 子类实现
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="chunk">数据头，子类可根据情况修改(flags字段)，实现一些优化处理</param>
+        /// <param name="version">版本号</param>
+        /// <param name="ctx">上下文对象</param>
+        /// <returns></returns>
+        virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
+        /// <summary>
+        /// 子类实现,只关注自己需要读取的数据
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
     };
 
 

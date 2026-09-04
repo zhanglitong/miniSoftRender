@@ -32,7 +32,7 @@ namespace FE
     /// 就可以实现一份数据，在不同的时间上，被多次复用
     /// </summary>
 
-    class   FEKeyFrameTrack : public FEObject
+    class   FE_API FEKeyFrameTrack : public FEObject
     {
     public:
         enum    TrackFlag
@@ -74,19 +74,8 @@ namespace FE
             IT_Constant,
         };
     public:
-        FEKeyFrameTrack(FEContext& ctx,PropIndex index = -1)  
-            :FEObject(ctx)
-        {
-            _propIndex  =   index;
-        }
-        FEKeyFrameTrack(const FEKeyFrameTrack& other)
-            :FEObject(other)
-        {
-            _propIndex  =   other._propIndex;
-            _times      =   other._times;
-            _values     =   other._values;
-            _type       =   other._type;
-        }
+        FEKeyFrameTrack(FEContext& ctx,PropIndex index = -1);
+        FEKeyFrameTrack(const FEKeyFrameTrack& other);
         ~FEKeyFrameTrack()  =   default;
     public:
         /// <summary>
@@ -188,6 +177,12 @@ namespace FE
         bool    update(const KFOff& kfOff,FETrackResult& result);
     public:
         /// <summary>
+        /// 获取依赖的对象,子类实现
+        /// </summary>
+        /// <param name="uset"></param>
+        /// <returns>返回以来的对象个数</returns>
+        virtual size_t  queryDepends(ObjectUSet& uSet) const override;
+        /// <summary>
         /// 子类实现
         /// </summary>
         /// <param name="writer"></param>
@@ -195,7 +190,7 @@ namespace FE
         /// <param name="version">版本号</param>
         /// <param name="ctx">上下文对象</param>
         /// <returns></returns>
-        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const;
+        virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
         /// 子类实现,只关注自己需要读取的数据
         /// </summary>
@@ -203,15 +198,9 @@ namespace FE
         /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;;
+        virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
     protected:
 
-        template<typename TValueObject>
-        void    serializeValueObject(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx,const TValueObject& values) const 
-        {
-            UNUSED(writer, chunk, version, ctx);
-            writer.writeBuffer(values.data(), sizeof(typename TValueObject::value_type) * values.size());
-        }
 
         template<typename TValueObject>
         void    sortImpl(TValueObject& vObject)
@@ -289,6 +278,13 @@ namespace FE
             }
         }
     protected:
+
+        template<typename TValueObject>
+        static  void    serializeValueObject(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx,const TValueObject& values)  
+        {
+            UNUSED(writer, chunk, version, ctx);
+            writer.writeBuffer(values.data(), sizeof(typename TValueObject::value_type) * values.size());
+        }
         /// <summary>
         /// 计算差值
         /// </summary>

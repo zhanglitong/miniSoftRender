@@ -21,7 +21,7 @@ namespace FE
     /// 还没有想好如何统一编辑模式与非编辑模式
     /// TODO: 本质上是: 数据发生变化后如何重构cache,避免脏数据
     /// </summary>
-    class   FEAction 
+    class   FE_API FEAction 
         : public FEObject
         , public FEObjectsTemplate<Animation, AnimationLess>
     {
@@ -88,33 +88,9 @@ namespace FE
         using   Notify  =   std::function<void(FEAction*)>;
         using   Notifys =   std::map<void*,Notify>;
     public:
-        FEAction(FEContext& ctx)  
-            :FEObject(ctx)
-            ,FEObjectsTemplate<Animation, AnimationLess>(AnimationLessFunc)
-        {
-            _playMode       =   PT_Loop;
-            _timeMode       =   TM_Default;
-            _status         =   PS_Running;
-            _elapseTime     =   0.0;
-            _timeScale      =   1;
-            _clipTime       =   0;
-            _range          =   {};
-            flags().addFlag(FLAG_EDIT_MODE);
-        }
-        FEAction(const FEAction& other)
-            :FEObject(other)
-            ,FEObjectsTemplate<Animation, AnimationLess>(other)
-        {
-            _playMode       =   other._playMode;
-            _timeMode       =   other._timeMode;
-            _status         =   other._status;
-            _elapseTime     =   other._elapseTime;
-            _timeScale      =   other._timeScale;
-            _clipTime       =   other._clipTime;
-            _range          =   other._range;
-            setEditMode(other.isEditMode());
-        }
-        ~FEAction()   =   default;
+        FEAction(FEContext& ctx)  ;
+        FEAction(const FEAction& other);
+        ~FEAction() ;
     public:
         /// <summary>
         /// 编辑模式下,性能较差
@@ -169,168 +145,15 @@ namespace FE
         /// 更新
         /// </summary>
         /// <param name="delta">帧循环时间</param>
-        void        update(const real& delta)
-        {
-            if (_status != PS_Running || _objects.empty() )
-            {
-                _ctx.log().infor("Action::update skip: status=%d objects=%zu",_status,_objects.size());
-                return;
-            }
-            _elapseTime +=  delta;
-            real    deltaTime   =   delta * _timeScale;
-            switch(_timeMode)
-            {
-            case TM_Default:
-                _clipTime   +=  deltaTime;
-                break;
-            case TM_Invert:
-                _clipTime   -=  deltaTime;
-                break;
-            }
-            switch (_playMode)
-            {
-            case PT_Once:
-                {
-                    if (_clipTime > _range.y)
-                    {
-                        _clipTime   =   _range.y;
-                        _status     =   PS_Stoped;
-                    }   
-                    else if (_clipTime < _range.x)
-                    {
-                        _clipTime   =   _range.x;
-                        _status     =   PS_Stoped;
-                    }
-                }
-                break;
-            case PT_Loop:
-                {
-                    if (_clipTime > _range.y)
-                    {
-                        _clipTime   =   _range.x;
-                    }
-                    else if (_clipTime < _range.x)
-                    {
-                        _clipTime   =   _range.y;
-                    }
-                }
-                break;
-            case PT_PingPong:
-                {
-                    if (_timeMode == TM_Default && _clipTime > _range.y)
-                    {
-                        _clipTime   =   _range.y;
-                        _timeMode   =   TM_Invert;
-                    }
-                    else if (_timeMode == TM_Invert && _clipTime < _range.x)
-                    {
-                        _clipTime   =   _range.x;
-                        _timeMode   =   TM_Default;
-                    }
-                }
-                break;
-            }
-            if (flags().hasFlag(FLAG_EDIT_MODE))
-            {
-                for (auto& var : _objects)
-                {
-                    /// 如果没有到时间,不播放,避免内存有更多检测
-                    /// 注意这里不能用
-                    real2   range   =   var->range();
-                    /// range.x - delta 上一帧花费的时间，避免/丢帧/跳帧
-                    /// range.y + delta 上一帧花费的时间，避免/丢帧/跳帧
-                    if (_clipTime < range.x - delta || _clipTime > range.y + delta)
-                    {
-                        continue;
-                    }
-                    var->update(_clipTime);
-                }
-            }
-            else
-            {
-                updateBatch(_clipTime,delta);
-            }
-        }
+        void        update(const real& delta);
 
         /// <summary>
         /// 相同时间线同时计算
         /// </summary>
         /// <param name="delta"></param>
-        void        updateBatch(const real& clipTime,const real& delta)
-        {
-            if (_cache.empty())
-            {
-                buildCache();
-            }
-            /// TODO: 可以先分组，多线程计算
-            ///---相同时间 ---- 相同时间线--- 相同对象---
-            RealsObject             timeLine    =   nullptr;
-            FEKeyFrameTrack::KFOff  kfValue     =   {};
-            Object                  owner       =   nullptr;
-            bool                    bNotify     =   false;
-            for (auto& var : _cache)
-            {
-                auto    track   =   var._track;
-                auto    range   =   track->range() + real2(var._offTime);
-                if (clipTime < (range.x - delta) || clipTime > range.y + delta)
-                    continue;
-                if (track->times() != timeLine)
-                {
-                    timeLine    =   track->times();
-                    kfValue     =   track->calcFrameOffset(clipTime - var._offTime);
-                }
-                if (owner != var._owner)
-                {
-                    if (owner)
-                        owner->endSetProp(bNotify);
-                    owner   =   var._owner;
-                    if (owner)
-                        owner->beginSetProp();
-                    bNotify =   false;
-                }
-                FETrackResult   result;
-                result._track   =   track;
-                result._prop    =   track->propertyIndex();
-                result._valid   =   track->update(kfValue,result);
-                bNotify         |=   var._owner->setProperty(result._prop ,result._value);
-            }
-            if (owner)
-                owner->endSetProp(bNotify);
-        }
+        void        updateBatch(const real& clipTime,const real& delta);
     protected:  
-        virtual void    buildCache()
-        {
-            size_t  cnt =   0;
-            for (auto& var : _objects)
-            {
-                cnt +=  var->clip()->objects().size();
-            }
-            _cache.reserve(cnt);
-            for (auto& var : _objects)
-            {
-                auto&   tracks  =   var->clip()->objects();
-                auto    owner   =   var->owner();
-                real    offTime =   var->offset();
-                for (auto& track : tracks)
-                {
-                    TrackObject obj =   {track,owner,offTime};
-                    _cache.emplace_back(obj);
-                }
-            }
-            /// 先按照时间排序
-            /// 在按照时间线对象排序,最后 同一时间段.相同timeLine对象都集中在一起了,在按照对象排序
-            std::sort(_cache.begin(),_cache.end(),[](const TrackObject& l,const TrackObject& r)
-            {
-                if (l._offTime != r._offTime)
-                    return  l._offTime < r._offTime;
-                else
-                    if(l._track->times().get() != r._track->times().get())
-                        return  l._track->times().get() < r._track->times().get();
-                    else
-                        return  l._owner.get() < r._owner.get();
-                    
-            });
-        }   
+        virtual void    buildCache();   
         /// <summary>
         /// 添加对象通知
         /// </summary>
@@ -351,23 +174,32 @@ namespace FE
         /// 计算范围
         /// </summary>
         /// <returns></returns>
-        real2       calcRange()
-        {
-            real2   result(-1,-1);
-            if (_objects.empty())
-                return  result;
-            else
-                result  =   _objects.front()->clip()->range();
-
-            for (size_t i = 1 ;i < _objects.size(); ++ i)
-            {
-                auto    rng =   _objects[i]->clip()->range();
-                result.x    =   (std::min)(result.x,rng.x);
-                result.y    =   (std::max)(result.y,rng.y);
-            }
-            return   result;
-        }
-    public:
+        real2       calcRange();
+    protected:
+        /// <summary>
+        /// 获取依赖的对象,子类实现
+        /// </summary>
+        /// <param name="uset"></param>
+        /// <returns>返回以来的对象个数</returns>
+        virtual size_t  queryDepends(ObjectUSet& uSet) const override;
+        /// <summary>
+        /// 子类实现
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="chunk">数据头，子类可根据情况修改(flags字段)，实现一些优化处理</param>
+        /// <param name="version">版本号</param>
+        /// <param name="ctx">上下文对象</param>
+        /// <returns></returns>
+        virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
+        /// <summary>
+        /// 子类实现,只关注自己需要读取的数据
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
+    protected:
         PlayMode        _playMode;
         TimeMode        _timeMode;
         PlayStatus      _status;

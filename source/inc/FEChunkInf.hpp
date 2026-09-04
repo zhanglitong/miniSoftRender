@@ -52,4 +52,49 @@ namespace   FE
             _hasVersion =   0;
         }
     };
+
+    /// <summary>
+    /// 默认可以满足大部分场景，用来控制是存在某个状态/成员/变量
+    /// </summary>
+    struct  ChunkBits
+    {
+        union
+        {
+            struct 
+            {
+                uint16  _bit0   :1;
+                uint16  _bit1   :1;
+                uint16  _bit2   :1;
+                uint16  _bit3   :1;
+                uint16  _bit4   :1;
+                uint16  _bit5   :1;
+                uint16  _bit6   :1;
+                uint16  _bit7   :1;
+                uint16  _bit8   :1;
+                uint16  _bit9   :1;
+                uint16  _bit10  :1;
+                uint16  _bit11  :1;
+                uint16  _bit12  :1;
+                uint16  _bit13  :1;
+            };
+            uint16  _value;
+        };
+        ChunkBits(uint16 flags = 0)
+        {
+            _bit0       =   flags>>0 ;
+            _bit1       =   flags>>1 ;
+            _bit2       =   flags>>2 ;
+            _bit3       =   flags>>3 ;
+            _bit4       =   flags>>4 ;
+            _bit5       =   flags>>5 ;
+            _bit6       =   flags>>6 ;
+            _bit7       =   flags>>7 ;
+            _bit8       =   flags>>8 ;
+            _bit9       =   flags>>9 ;
+            _bit10      =   flags>>10;
+            _bit11      =   flags>>11;
+            _bit12      =   flags>>12;
+            _bit13      =   flags>>13;
+        }
+    };
 }

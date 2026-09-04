@@ -7,10 +7,7 @@
 
 namespace FE
 {
-
     class   FEAction;
-
-    using   Action  =   SharedPtr<FEAction>;
 
     DEFINE_CLASS_UUID(FEAnimation, "{D0749EE9-7126-4A57-B4F2-84798E4F40F2}");
 
@@ -22,7 +19,7 @@ namespace FE
     /// 一个节点对象可以有多个动画
     /// </summary>
     
-    class   FEAnimation : public FEComponent
+    class   FE_API  FEAnimation : public FEComponent
     {
     public:
         enum    ClipFlag
@@ -35,17 +32,9 @@ namespace FE
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)
     public:
-        FEAnimation(FEContext& ctx)  
-            :FEComponent(ctx,true)
-        {}
-        FEAnimation(const FEAnimation& other)
-            :FEComponent(other)
-        {
-            _clip       =   other._clip;
-            _results    =   other._results;
-            _offset     =   other._offset;
-        }
-        ~FEAnimation()   =   default;
+        FEAnimation(FEContext& ctx)  ;
+        FEAnimation(const FEAnimation& other);
+        ~FEAnimation();
     public:
         /// <summary>
         /// 关联所有者
@@ -82,15 +71,18 @@ namespace FE
         /// 主要用作分组控制，一批动画可以播放，另一批停止
         /// </summary>
         /// <returns></returns>
-        inline  Action  action() const
+        const  FEAction*   action() const
         {
-            return  _action;
+            if (_action.get())
+                return  _action->as<FEAction>();
+            else
+                return  nullptr;
         }
         /// <summary>
         /// 设置action
         /// </summary>
         /// <param name="action"></param>
-        inline  void    setAction(Action action)
+        inline  void    setAction(FEObject* action)
         {
             _action =   action;
             flags().addFlag(AnimationChanged);
@@ -151,29 +143,36 @@ namespace FE
         /// </summary>
         /// <param name="deltaTm"></param>
         /// <returns>true/false</returns>
-        virtual bool    update(const real& tmDelta) override
-        {
-            if (!isValid())
-                return  false;
-            _clip->update(tmDelta - _offset,_results);
-            _owner->beginSetProp();
-
-            bool    bModify =   false;
-
-            for (auto& var: _results)
-            {
-                if (!var._valid)
-                    continue;
-                bModify |=  _owner->setProperty(var._prop,var._value);
-            }
-            _owner->endSetProp(bModify);
-            return  bModify;
-        }
+        virtual bool    update(const real& tmDelta) override;
+    protected:
+        /// <summary>
+        /// 获取依赖的对象,子类实现
+        /// </summary>
+        /// <param name="uset"></param>
+        /// <returns>返回以来的对象个数</returns>
+        virtual size_t  queryDepends(ObjectUSet& uSet) const override;
+        /// <summary>
+        /// 子类实现
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="chunk">数据头，子类可根据情况修改(flags字段)，实现一些优化处理</param>
+        /// <param name="version">版本号</param>
+        /// <param name="ctx">上下文对象</param>
+        /// <returns></returns>
+        virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
+        /// <summary>
+        /// 子类实现,只关注自己需要读取的数据
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="chunk">数据头，子类可根据chunk._flags字段控制读取</param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
     protected:
         /// <summary>
         /// 表示一个 Action 类型的成员变量，用于存储要执行的操作。
         /// </summary>
-        Action          _action;
+        Object          _action;
         /// <summary>
         /// AnimClip 类型的变量，用于保存动画剪辑。
         /// </summary>

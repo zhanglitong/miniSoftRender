@@ -268,6 +268,12 @@ struct  PBRData
         _emissive   =   float4(0.1f,0.1f,0.1f,1.0f);
         _diffuse    =   float4(1.0f,0.0f,0.0f,1.0f);
         _spacular   =   float4(0.1f,0.1f,0.1f,1.0f);
+        _reserver0  =   0;
+        _reserver1  =   0;
+        _reserver2  =   0;
+        _reserver3  =   0;
+        _reserver4  =   0;
+        _reserver5  =   0;
     }
 #endif
 };

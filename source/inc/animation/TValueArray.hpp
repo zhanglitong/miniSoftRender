@@ -1,6 +1,8 @@
 #pragma     once
 #include    "../FEMath.hpp"
 #include    "../FEObject.h"
+#include    "../FEWriterHelper.hpp"
+#include    "../FEReaderHelper.hpp"
 
 namespace FE
 {   
@@ -49,7 +51,7 @@ namespace FE
         /// <param name="version">版本号</param>
         /// <param name="ctx">上下文对象</param>
         /// <returns></returns>
-        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const 
+        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override
         {
             UNUSED(writer, chunk, version, ctx);
             uint   cnt = (uint)_values.size();

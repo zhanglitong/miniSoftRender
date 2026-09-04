@@ -9,6 +9,20 @@ namespace FE
 {
     using   KFOff   =   FEKeyFrameTrack::KFOff;
 
+    FEKeyFrameTrack::FEKeyFrameTrack(FEContext& ctx,PropIndex index)  
+        :FEObject(ctx)
+    {
+        _propIndex  =   index;
+    }
+    FEKeyFrameTrack::FEKeyFrameTrack(const FEKeyFrameTrack& other)
+        :FEObject(other)
+    {
+        _propIndex  =   other._propIndex;
+        _times      =   other._times;
+        _values     =   other._values;
+        _type       =   other._type;
+    }
+
     void    FEKeyFrameTrack::sortKeyFames()
     {
         switch(_values.index())
@@ -99,6 +113,18 @@ namespace FE
         default:    return  false;
         }
     }
+
+    size_t  FEKeyFrameTrack::queryDepends(ObjectUSet& uSet) const
+    {
+        assert(_times != nullptr);
+        size_t      count   =   uSet.size();
+        RealsObject object  =   _times;
+        if (object != nullptr)
+            uSet.emplace(object);
+        return  uSet.size() - count;
+        
+    }
+
     void    FEKeyFrameTrack::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const 
     {
         UNUSED(writer, chunk, version, ctx);

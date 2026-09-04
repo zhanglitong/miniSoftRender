@@ -30,6 +30,7 @@
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
 
+
 namespace   FE
 {
     void    regComSystemId(FEContext& )
@@ -67,6 +68,25 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEMaterialPBR);
         DEFINE_CLASS_CREATOR(FEMaterialPoint);
         DEFINE_CLASS_CREATOR(FEMaterialV3);
+
+
+        DEFINE_CLASS_CREATOR(FEAction);
+        DEFINE_CLASS_CREATOR(FEAnimation);
+        DEFINE_CLASS_CREATOR(FEAnimClip);
+        DEFINE_CLASS_CREATOR(FEKeyFrameTrack);
+        DEFINE_CLASS_CREATOR(FEBoolsObject);
+
+        DEFINE_CLASS_CREATOR(FEFloatsObject);
+        DEFINE_CLASS_CREATOR(FEFloat2sObject);
+        DEFINE_CLASS_CREATOR(FEFloat3sObject);
+        DEFINE_CLASS_CREATOR(FEFloat4sObject);
+        DEFINE_CLASS_CREATOR(FEQuatfsObject);
+
+        DEFINE_CLASS_CREATOR(FERealsObject);
+        DEFINE_CLASS_CREATOR(FEReal2sObject);
+        DEFINE_CLASS_CREATOR(FEReal3sObject);
+        DEFINE_CLASS_CREATOR(FEReal4sObject);
+        DEFINE_CLASS_CREATOR(FEQuatrsObject);
 
     }
     void    systemInitializeReader(FEContext& ctx)
