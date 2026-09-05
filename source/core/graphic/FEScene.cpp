@@ -13,6 +13,8 @@
 #include    "../inc/graphic/FELightMgr.h"
 #include    "../inc/animation/FEAnimationSys.hpp"
 #include    "../inc/FEInputSystem.hpp"
+#include    "../inc/FEFileFormatHelper.hpp"
+#include    "../inc/fileFormat/fepk/FEFormatFepj.hpp"
 
 namespace   FE
 {
@@ -118,25 +120,11 @@ namespace   FE
                 _mousePoint->update();
             }
         });
-       
+        /// 创建网格
+        createGrid();
         return  true;
     }
 
-    void    FEScene::test()
-    {
-        Material    material    =   new FEMaterialV3C4(_ctx);
-        Material    matLine     =   new FEMaterialV3C4(_ctx);
-        auto        nodes       =   loadNode(material);
-        {
-            auto    node        =   createGrid(matLine);
-            auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{node});
-            for (auto& var : factorys)
-            {
-                var->setGPUCull(false);
-                _factorys.addObject(var);
-            }
-        }
-    }
 
     void    FEScene::addNodesToTree(const Nodes& nodeList)
     {
@@ -337,9 +325,124 @@ namespace   FE
             }
         }
     }
+    bool    FEScene::open(const char* fepj)
+    {
+        if (fepj == nullptr)
+        {
+            LOG_ERR("open(nullptr).");
+            return  false;
+        }
+        LOG_INF("FEScene.open(%s)",fepj);
 
+        auto    fmtText =   FEFileFormat(".fepj","1.0.0.0","FE Buildin Format!");
+        auto    reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);
+        if (reader == nullptr)
+        {
+            LOG_ERR("No suitable file parser could be located to read the file.");
+            return  false;
+        }
+        String  file    =   fepj;
+        auto    objects =   reader->readFiles({file});
+
+        if (objects.empty())
+        {
+            LOG_ERR("reader->readFiles(%s) return null.",fepj);
+            return  false;
+        }
+        Nodes   nodes;
+        for (auto var : objects)
+        {   
+            Node    node    =   var->cast<FENode>();
+            if (node == nullptr)
+                continue;
+            else
+                nodes.push_back(node);
+        }
+        if (nodes.empty())
+        {
+            LOG_ERR("FEScene.open/nodes.empty().",fepj);
+            return  false;
+        }
+        dispatchNodesToSystem(nodes);
+        addNodesToTree(nodes);
+
+        _projectFileName    =   fepj;
+        return  true;
+    }
+
+    bool    FEScene::save(const char* fepj)
+    {
+        String  fileName    =   fepj ? fepj : _projectFileName;
+        if (fileName.empty())
+            fileName    =   "unname.fepj";
+
+        LOG_INF("FEScene.save(%s)",fileName.c_str());
+
+        FEFileFormat    fmt(".fepj","1.0.0.0","FE Buildin Format!");
+        fmt._type       =   FEFileFormat::DT_Model;
+        fmt._mode       =   FEFileFormat::SM_FILE|FEFileFormat::SM_MEMORY;
+        auto    writer  =   FEFileFormatHelper::queryWriter(_ctx,fmt);
+        if (writer == nullptr)
+        {
+            LOG_ERR("No suitable file parser could be located to write the file.");
+            return  false;
+        }
+        auto    nodes   =   nodeTree().topLevelNodes();
+        if (nodes.empty())
+        {
+            LOG_INF("FEScene.save/nodes.empty().",fepj);
+            return  false;
+        }
+        Objects objects(nodes.size());
+        for (size_t i = 0; i < nodes.size(); i++)
+        {
+            objects[i]  =   nodes[i].get();
+        }
+        if(writer->writeFile(objects,fileName))
+            return  true;
+        else
+            return  false;
+    }
+
+    bool    FEScene::saveAs(const Objects& objects,const char* fileName)
+    {
+        if (fileName == nullptr)
+            return  false;
+        LOG_INF("FEScene.saveAs(%s)",fileName);
+
+        /// TODO: 需要根据文件扩展名自动失识别writer
+        FEFileFormat    fmt(".fepj","1.0.0.0","FE Buildin Format!");
+        fmt._type       =   FEFileFormat::DT_Model;
+        fmt._mode       =   FEFileFormat::SM_FILE|FEFileFormat::SM_MEMORY;
+        auto    writer  =   FEFileFormatHelper::queryWriter(_ctx,fmt);
+        if (writer == nullptr)
+        {
+            LOG_ERR("No suitable file parser could be located to write the file.");
+            return  false;
+        }
+        if(writer->writeFile(objects,fileName))
+            return  true;
+        else
+            return  false;
+    }
+    void    FEScene::clear()
+    {
+        LOG_INF("FEScene.clear()");
+        LOG_INF("_nodeTree.clear()");
+        _nodeTree.clear();
+
+        LOG_INF("------------FEScene.clear()");
+        for (auto var : _comSysMgr.objects())
+        {
+            var->clear();
+        }
+        LOG_INF("_factorys.clear()");
+        _factorys.clear();
+
+    }
     void    FEScene::onClose()
     {
+        LOG_INF("FEScene.onClose()");
         if (_device)
         {
             _device->waitIdle();
@@ -649,9 +752,11 @@ namespace   FE
         return  {root};
     }
 
-    Node    FEScene::createGrid(Material mat)
+    Node    FEScene::createGrid()
     {
-        Node    node    =   new FENode(_ctx);
+        Material    mat     =   new FEMaterialV3C4(_ctx);
+
+        Node        node    =   new FENode(_ctx);
         FEGeometryGrid  geo(_ctx);
 
         geo.param()._size      =   100;
@@ -667,7 +772,13 @@ namespace   FE
 
         node->makeDirty();
         node->update();
-
+        auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{node});
+        for (auto& var : factorys)
+        {
+            var->setResident(true);
+            var->setGPUCull(false);
+            _factorys.addObject(var);
+        }
         return  node;
     }
 }

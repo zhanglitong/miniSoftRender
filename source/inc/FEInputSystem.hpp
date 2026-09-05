@@ -66,6 +66,13 @@ namespace   FE
             }
             return  result;
         }
+        /// <summary>
+        /// 情况
+        /// </summary>
+        virtual void    clear() override
+        {
+            _input.clearObjects();
+        }
         virtual void    onMessage(const FEMessage& msg)
         {
             for (auto var : _input.objects())

@@ -48,7 +48,9 @@ namespace   FE
             _pbr.update();
         }
         virtual ~FEMaterialPBR()
-        {}
+        {
+            _pbr._gpu   =   nullptr;
+        }
         /// <summary>
         /// 获取材质数据
         /// </summary>

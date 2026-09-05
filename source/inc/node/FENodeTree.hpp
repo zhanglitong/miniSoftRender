@@ -27,6 +27,14 @@ namespace   FE
                 var.second(std::forward<Args>(args)...);
             }
         }
+        template<class ... Args>
+        inline  void    fireNotify(const Args&&... args)
+        {
+            for (auto& var : _notifys)
+            {
+                var.second(args...);
+            }
+        }
         inline  void    addNotify(void* pKey,const TNotify& notify)
         {
             assert(notify);
@@ -66,9 +74,9 @@ namespace   FE
     using   NRemoveNode     =   std::function<void(Node)>;
     using   NotifyClear     =   std::function<void(const Nodes&)>;
 
-    using   NAddNodes       =   TNotifyWrapper<NAddNode,        std::map<void*,NRemoveNode>>;
+    using   NAddNodes       =   TNotifyWrapper<NAddNode,        std::map<void*,NAddNode>>;
     using   NRemoveNodes    =   TNotifyWrapper<NRemoveNode,     std::map<void*,NRemoveNode>>;
-    using   NotifyClears    =   TNotifyWrapper<NotifyClear,     std::map<void*,NRemoveNode>>;
+    using   NotifyClears    =   TNotifyWrapper<NotifyClear,     std::map<void*,NotifyClear>>;
 
     class   FENodeTree :public FEObject
     {
@@ -159,8 +167,16 @@ namespace   FE
                 removeNode(node);
             }
         }
+        /// <summary>
+        /// 清空场景内容
+        /// </summary>
         inline  void    clear()
         {
+            _NotifyClears.fireNotify(_topLevelNodes);
+            for (auto var : _topLevelNodes)
+            {
+                var->clear();
+            }
             _topLevelNodes.clear();
         }
     protected:

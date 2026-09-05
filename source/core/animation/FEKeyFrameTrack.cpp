@@ -134,19 +134,27 @@ namespace FE
         uint    vIndex = (uint)_values.index();
         writer.write(vIndex);
 
+        FEChunkBits bits(chunk._flags);
+        bits._bit0      =   _times ? 1:0;
+        chunk._flags    =   bits._value;
+        if (bits._bit0)
+        {
+            writer.write(_times->objectId());
+        }
+
         switch(_values.index())
         {
-        case 1:     return  serializeValueObject(writer,chunk,version,ctx,std::get<RealsObject>(_values)->values());
-        case 2:     return  serializeValueObject(writer,chunk,version,ctx,std::get<Real2sObject>(_values)->values());
-        case 3:     return  serializeValueObject(writer,chunk,version,ctx,std::get<Real3sObject>(_values)->values());
-        case 4:     return  serializeValueObject(writer,chunk,version,ctx,std::get<Real4sObject>(_values)->values());
-        case 5:     return  serializeValueObject(writer,chunk,version,ctx,std::get<QuatrsObject>(_values)->values());
-        case 6:     return  serializeValueObject(writer,chunk,version,ctx,std::get<FloatsObject>(_values)->values());
-        case 7:     return  serializeValueObject(writer,chunk,version,ctx,std::get<Float2sObject>(_values)->values());
-        case 8:     return  serializeValueObject(writer,chunk,version,ctx,std::get<Float3sObject>(_values)->values());
-        case 9:     return  serializeValueObject(writer,chunk,version,ctx,std::get<Float4sObject>(_values)->values());
-        case 10:    return  serializeValueObject(writer,chunk,version,ctx,std::get<QuatfsObject>(_values)->values());
-        case 11:    return  serializeValueObject(writer,chunk,version,ctx,std::get<BoolsObject>(_values)->values());
+        case 1:     std::get<RealsObject>(_values)   ->serialize(writer,version,ctx);   break;
+        case 2:     std::get<Real2sObject>(_values)  ->serialize(writer,version,ctx);   break;
+        case 3:     std::get<Real3sObject>(_values)  ->serialize(writer,version,ctx);   break;
+        case 4:     std::get<Real4sObject>(_values)  ->serialize(writer,version,ctx);   break;
+        case 5:     std::get<QuatrsObject>(_values)  ->serialize(writer,version,ctx);   break;
+        case 6:     std::get<FloatsObject>(_values)  ->serialize(writer,version,ctx);   break;
+        case 7:     std::get<Float2sObject>(_values) ->serialize(writer,version,ctx);   break;
+        case 8:     std::get<Float3sObject>(_values) ->serialize(writer,version,ctx);   break;
+        case 9:     std::get<Float4sObject>(_values) ->serialize(writer,version,ctx);   break;
+        case 10:    std::get<QuatfsObject>(_values)  ->serialize(writer,version,ctx);   break;
+        case 11:    std::get<BoolsObject>(_values)   ->serialize(writer,version,ctx);   break;
         }
             
     }
@@ -158,6 +166,23 @@ namespace FE
         reader.read(_type);
         uint   vIndex = 0;    
         reader.read(vIndex);
+
+        FEChunkBits bits(chunk._flags);
+        ///          һ   и     
+        ///      Ƿ  б  
+        if (bits._bit0)
+        {
+            OBJId   objectId ;
+            auto    result  =   reader.read(objectId);
+            UNUSED(result);
+            assert(result == sizeof(objectId));
+            if(result == sizeof(objectId))
+            {
+                auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
+                _times          =   object ? object->cast<FERealsObject>() : nullptr;
+            }
+        }
+
         if (vIndex != 0)
         {
             auto    ptr =   FEObjectHelper::readObject(_ctx,reader,version,ctx);

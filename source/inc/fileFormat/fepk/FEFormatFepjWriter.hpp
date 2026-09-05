@@ -164,6 +164,7 @@ namespace   FE
                     continue;
                 results.push_back(var);
                 objectSet.emplace(var);
+                collectDepends(var,objectSet,results);
             }
             /// 遍历子孙节点,优先按照层级递归
             if (object->cast<FENode>())
@@ -175,12 +176,6 @@ namespace   FE
                         return;
                     collectDepends(var.get(),objectSet,results);
                 }
-            }
-            
-            /// 询依赖的依赖(递归) 深度递归
-            for (auto& var : depends)
-            {
-                collectDepends(var,objectSet,results);
             }
         }
         inline  size_t  write(FEWriter& writer,const Objects&ojects,FESerializeCtx& xCTX)
@@ -196,10 +191,11 @@ namespace   FE
             Header  header(true);
             header.write(writer);
             /// 依赖写入
-            for (auto& var : results)
+            /// 最后面的则最被依赖的，所以倒序遍历
+            for (auto itr = results.rbegin(); itr != results.rend(); ++ itr)
             {
                 uint    version =   0;
-                var->serialize(writer,version,xCTX);
+                (*itr)->serialize(writer,version,xCTX);
             }
             /// 对象写入
             FEEntryList entryList(_ctx);

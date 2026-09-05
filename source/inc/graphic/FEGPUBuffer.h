@@ -25,6 +25,8 @@ namespace   FE
             _cInfo          =   other._cInfo;
             _bufferUsage    =   other._bufferUsage;
         }
+        virtual ~FEGPUBuffer()
+        {}
     public:
         /// <summary>
         /// 

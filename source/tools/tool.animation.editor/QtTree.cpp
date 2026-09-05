@@ -112,15 +112,33 @@ namespace   FE
     }
 
     
-    void    QtTree::setApp(Scene scene)
+    void    QtTree::setup(Scene scene)
     {   
         _scene      =   scene;
         if (!roots().empty())
             updateScroll();
+        if (_scene)
+        {
+            _scene->nodeTree().addNodeEvents().addNotify(this,[&](Node){
+                update();
+            });
+            _scene->nodeTree().removeNodeEvents().addNotify(this,[&](Node){
+                update();
+            });
+            _scene->nodeTree().clearEvents().addNotify(this,[&](const Nodes&){
+                update();
+            });
+        }
     }
 
     void    QtTree::destroy()
     {
+        if (_scene)
+        {
+            _scene->nodeTree().addNodeEvents().removeNotify(this);
+            _scene->nodeTree().removeNodeEvents().removeNotify(this);
+            _scene->nodeTree().clearEvents().removeNotify(this);
+        }
         _scene              =   nullptr;
         _curItem            =   nullptr;
         _startSearchItem    =   nullptr;
@@ -692,6 +710,11 @@ namespace   FE
     {}
     void    QtTree::onMButtonClicked(QMouseEvent*)
     {}
+
+    void    QtTree::closeEvent(QCloseEvent *event)
+    {
+        destroy();
+    }
 
     void    QtTree::updateScroll()
     {

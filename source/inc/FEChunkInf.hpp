@@ -56,7 +56,7 @@ namespace   FE
     /// <summary>
     /// 默认可以满足大部分场景，用来控制是存在某个状态/成员/变量
     /// </summary>
-    struct  ChunkBits
+    struct  FEChunkBits
     {
         union
         {
@@ -79,7 +79,7 @@ namespace   FE
             };
             uint16  _value;
         };
-        ChunkBits(uint16 flags = 0)
+        FEChunkBits(uint16 flags = 0)
         {
             _bit0       =   flags>>0 ;
             _bit1       =   flags>>1 ;

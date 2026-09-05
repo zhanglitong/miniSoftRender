@@ -103,17 +103,12 @@ namespace   FE
         {
             FECreator*  pCreator    =   nullptr;
             if (pIn)
-            {
                 pCreator    =   pIn;
-            }
             else
-            {
                 pCreator    =   FEContext::creators().isExist(clsId);
-            } 
             if(pOut)    
-            {
                 *pOut   =   (pCreator !=nullptr) ? *pCreator : FECreator();
-            }
+
             if (pCreator == nullptr)
             {
                 auto    name    =   clsId.toString();

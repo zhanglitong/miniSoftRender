@@ -94,6 +94,11 @@ namespace   FE
             }
             return  action->removeObjects(anims);
         }
+
+        virtual void    clear()
+        {
+            _actions.clear();
+        }
         /// <summary>
         /// 组件每一帧更新
         /// </summary>

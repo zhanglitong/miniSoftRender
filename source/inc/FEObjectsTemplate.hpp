@@ -153,8 +153,6 @@ namespace   FE
                 _objects.clear();
             }
         }
-
-        
     protected:
         /// <summary>
         /// 子类可以重写，添加对象的回调函数

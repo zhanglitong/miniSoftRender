@@ -38,6 +38,18 @@ namespace   FE
             else
                 return  nullptr;
         }
+        void        clear()
+        {
+            _factoryMap.clear();
+            auto   temp =   objects();
+            for (auto var: temp)
+            {
+                if (!var->isResident())
+                {
+                    removeObject(var);
+                }
+            }
+        }
     protected:
         /// <summary>
         /// 子类可以重写，添加对象的回调函数

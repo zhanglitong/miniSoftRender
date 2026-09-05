@@ -35,6 +35,9 @@ namespace   FE
         _name       =   other._name         ;
         _coms       =   FEObjectHelper::clone(other._coms);
     }
+    FENode::~FENode()
+    {
+    }
 
     void    FENode::update(const real& tmDelta)
     {

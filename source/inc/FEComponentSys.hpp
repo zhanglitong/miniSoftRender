@@ -49,6 +49,8 @@ namespace   FE
         {
             UNUSED(deltaTm);
         }
+        virtual void    clear()
+        {}
     public:
         template<typename TObject>
         static  uint    countObject(const Node&  node)

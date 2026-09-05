@@ -153,6 +153,10 @@ namespace   FE
     }
     FEContext::~FEContext()
     {
+        _device =   nullptr;
+        _window =   nullptr;
+        _anchor =   nullptr;
+        _scene  =   nullptr;
         _log    =   nullptr;
     }
 }

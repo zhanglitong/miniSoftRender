@@ -241,7 +241,13 @@ namespace   FE
     FEFactoryRender::FEFactoryRender(const FEFactoryRender& other)
         :FEFactory(other)
         ,_device(other._device)
-    {}
+    {
+    }
+
+    FEFactoryRender::~FEFactoryRender()
+    {
+        destroy();
+    }
 
     Materials   FEFactoryRender::getOrCreateCullMaterials(Camera camera)
     {
@@ -523,6 +529,12 @@ namespace   FE
             var->resetFlags();
             var->clearUpdates();
         }
+    }
+    void    FEFactoryRender::clear()
+    {
+        if (!_resident)
+            return;
+        destroy();
     }
 
     void    FEFactoryRender::updateImpl(CMDPtr )
@@ -1549,11 +1561,12 @@ namespace   FE
         auto&   childs  =   node->children();
         for (auto object : childs)
         {
-            Node    child   =   object->as<FENode>();
-            if (node == nullptr)
+            /// 检测错误
+            assert(object->parent() != nullptr);
+            if (object == nullptr)
                 continue;
             else
-                result  +=  countNode(child);
+                result  +=  countNode(object);
         }
 
         return  result;

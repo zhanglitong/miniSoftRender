@@ -57,6 +57,9 @@ namespace   FE
                 uint16  _hasScale   :1;
                 /// 是否写旋转 数据 = [1,0,0,0] 不写入
                 uint16  _hasRotate  :1;
+                /// 如果0,说明classId == UUIDOF(FENode);
+                /// 在读取node的时候用作判断是否需要 通过creator 创建,否则直接new FENode,提升性能
+                uint16  _nodeBase   :1;
             };
             uint16  _value;
         };
@@ -75,23 +78,24 @@ namespace   FE
 
     void    FENode::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const 
     {
-        (void)ctx;
-        (void)version;
+        UNUSED(writer,chunk,version,ctx);
 
         NodeChunkBit    bits(chunk._flags);
         
         size_t  nName   =   _name.size();
         size_t  nCom    =   _coms.size();
 
+        bits._nodeBase  =   classId() == UUIDOF(FENode) ? 1:0;
+
         if (nName == 0)             bits._hasName   =   0;
         else if (nName < MaxUint8)  bits._hasName   =   1;
-        else if (nName < MaxUint16) bits._hasName   =   1;
-        else if (nName < MaxUint32) bits._hasName   =   2;
+        else if (nName < MaxUint16) bits._hasName   =   2;
+        else if (nName < MaxUint32) bits._hasName   =   3;
 
         if (nCom == 0)              bits._hasCom    =   0;
         else if (nCom < MaxUint8)   bits._hasCom    =   1;
-        else if (nCom < MaxUint16)  bits._hasCom    =   1;
-        else if (nCom < MaxUint32)  bits._hasCom    =   2;
+        else if (nCom < MaxUint16)  bits._hasCom    =   2;
+        else if (nCom < MaxUint32)  bits._hasCom    =   3;
 
         bits._hasColor      =   (_color == Rgba8(0,0,0,255)) ? 0:1;
         bits._hasScale      =   _scale  ==  float3(1,1,1)  ? 1 : 0;
@@ -104,6 +108,13 @@ namespace   FE
         /// 必须修改
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         chunk._flags        =   bits._value;
+
+        auto    nChild      =   _childs.size();
+        if (nChild == 0)                chunk._hasChild =   0;
+        else if (nChild < MaxUint8)     chunk._hasChild =   1;
+        else if (nChild < MaxUint16)    chunk._hasChild =   2;
+        else if (nChild < MaxUint32)    chunk._hasChild =   3;
+
         
         if (bits._hasScale )    writer.write(_scale);
         if (bits._hasTrans )    writer.write(_trans);
@@ -131,12 +142,21 @@ namespace   FE
             OBJId   objectId    =   var->objectId();
             writer.write(objectId);
         }
+        /// 写入长度数据
+        switch(chunk._hasChild)
+        {
+        case 1: writer.write<uint8>(uint8(nChild));  break;
+        case 2: writer.write<uint16>(uint16(nChild));break;
+        case 3: writer.write<uint32>(uint32(nChild));break;
+        }
+        for (size_t i = 0; i < nChild; i++)
+        {
+            _childs[i]->serialize(writer,version,ctx);
+        }
     }
     void    FENode::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) 
     {
-        (void)ctx;
-        (void)version;
-
+        UNUSED(reader,chunk,version,ctx);
         NodeChunkBit    bits(chunk._flags);
 
         OBJId   matId;
@@ -193,6 +213,38 @@ namespace   FE
             auto    com     =   object->cast<FEComponent>();
             if ( com != nullptr)
                 addComponent(com);
+        }
+
+        uint    childs  =   0;
+        switch(chunk._hasChild)
+        {
+        case 1: childs  =   reader.readValue<uint8>();  break;
+        case 2: childs  =   reader.readValue<uint16>(); break;
+        case 3: childs  =   reader.readValue<uint32>(); break;
+        }
+        _childs.reserve(childs);
+        for (uint i = 0; i < childs; ++i)
+        {
+            FEChunkInf      chk         =   {};
+            size_t          offStart    =   reader.tell();
+            reader.read(chk);
+            reader.seek(offStart);
+            NodeChunkBit    chkBits(chk._flags);
+            if (chkBits._nodeBase)
+            {
+                Node    node    =   new FENode(_ctx);
+                node->setParent(this);
+                node->deserialize(reader,version,ctx);
+                _childs.emplace_back(node);
+            }
+            else
+            {
+                Object  result  =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
+                if (result == nullptr)
+                    continue;
+                else
+                    _childs.emplace_back(result->as<FENode>());
+            }
         }
     }
 
@@ -289,7 +341,7 @@ namespace   FE
             for (uint i = 0; i < cnt; i++)
             {
                 auto    ptr =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
-                if (ptr != nullptr)
+                if (ptr == nullptr)
                     continue;
                 auto    pri =   ptr->cast<FEPrimitive>();
                 if (pri == nullptr) 
@@ -312,7 +364,7 @@ namespace   FE
             {
                 FEAttribute attr    =   reader.readValue<FEAttribute>();
                 auto        ptr     =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
-                if (ptr != nullptr)
+                if (ptr == nullptr)
                     continue;
                 auto        obj     =   ptr->cast<FEBuffer>();
                 if (obj == nullptr) 
@@ -463,9 +515,7 @@ namespace   FE
 
     void    FEMaterialPBR::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const 
     {
-        String  prefix = "pbr";
-        writer.write(prefix);
-
+        UNUSED(writer,chunk,version,ctx);
         writer.write(_pbr._value._emissive);
         writer.write(_pbr._value._diffuse);
         writer.write(_pbr._value._spacular);
@@ -478,9 +528,7 @@ namespace   FE
     }
     void    FEMaterialPBR::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) 
     {
-        String  prefix;
-        reader.read(prefix);
-
+        UNUSED(reader,chunk,version,ctx);
         reader.read(_pbr._value._emissive);
         reader.read(_pbr._value._diffuse);
         reader.read(_pbr._value._spacular);
@@ -491,7 +539,6 @@ namespace   FE
         reader.read(_pbr._value._clearcoat);
         reader.read(_pbr._value._volume);
 
-        setup(prefix);
         _pbr.update();
     }
 }

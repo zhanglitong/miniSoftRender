@@ -40,7 +40,7 @@ namespace FE
     public:
         FEAnimClip(FEContext& ctx)  ;
         FEAnimClip(const FEAnimClip& other);
-        ~FEAnimClip();
+        virtual ~FEAnimClip();
     public:
         /// <summary>
         /// 是否发生变更

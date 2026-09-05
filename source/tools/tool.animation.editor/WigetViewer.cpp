@@ -21,19 +21,7 @@ namespace   FE
             return;
         _scene      =   new FEScene(_ctx);
         _scene->setup(_app);
-        _scene->test();
-        Node    rootNode = new FENode(_ctx);
-        rootNode->setName("root");
-        for (size_t i = 0; i < 10; i++)
-        {
-            Node    child = new FENode(_ctx);
-            char    szName[64] = {};
-            sprintf(szName, "child_%d", (int)i);
-            child->setName(szName);
-            rootNode->addChild(child);
-        }
-        _scene->addNodesToTree({rootNode});
-
+#if 1
         String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
         FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
 
@@ -53,7 +41,7 @@ namespace   FE
             _scene->dispatchNodesToSystem(nodes);
             _scene->addNodesToTree(nodes);
         }
-
+#endif
         _timer = new QTimer(this);
         _timer->start(16); 
         connect(_timer, &QTimer::timeout, this, QOverload<>::of(&WigetViewer::update));

@@ -7,8 +7,11 @@ MainWindow::MainWindow()
 {
     ui.setupUi(this);
 
+    ui.action_savePrj->setShortcut(QKeySequence::Save);
+
     ui.widget_keyframe->linkScrollBar(ui.horizontalScrollBar);
-    ui.modelTree->setApp(ui.sceneViewer->scene());
+    ui.modelTree->setup(ui.sceneViewer->scene());
+    setTitile("");
 
     connect(ui.action_importModel,  SIGNAL(triggered()),    this,   SLOT(slotImportModel()));
     connect(ui.action_openPrj,      SIGNAL(triggered()),    this,   SLOT(slotOpenProject()));
@@ -30,42 +33,27 @@ void    MainWindow::slotImportModel()
 }
 void    MainWindow::slotOpenProject()
 {
-    auto    fileNames   =   QFileDialog::getOpenFileNames(this
+    auto    fileName    =   QFileDialog::getOpenFileName(this
         , C2Q("打开工程")
         , qApp->applicationDirPath()
         , C2Q("工程文件(*.fepj)"));
 
-    FEFileFormat    fmtText     =   FEFileFormat(".fepj","1.0.0.0","FE Buildin Format!");
-
-    auto            reader  =   FEFileFormatHelper::queryReader(scene()->ctx(),fmtText);
-    if (reader == nullptr)
+    String  gbkName    =   fileName.toLocal8Bit().data();
+    if (scene()->open(gbkName.c_str()))
     {
-        QMessageBox::information(this, C2Q("提示"), C2Q("没有找到文件解析器读取文件!"), QMessageBox::Ok);
-        return;
-    }
-    Strings     files;
-    for (auto var : fileNames)
+        _projectName    =   fileName;
+        setTitile(_projectName);
+        QMessageBox::information(this, C2Q("提示"), C2Q("打开工程文件成功!"), QMessageBox::Ok);
+    }  
+    else
     {
-        String  fileName    =   var.toLocal8Bit().data();
-        files.push_back(fileName);
+        QMessageBox::information(this, C2Q("提示"), C2Q("打开工程文件失败!"), QMessageBox::Ok);
     }
-    auto    objects =   reader->readFiles(files);
-    Nodes   nodes;
-    for (auto var : objects)
-    {   
-        Node    node    =   var->cast<FENode>();
-        if (node == nullptr)
-            continue;
-        else
-            nodes.push_back(node);
-    }
-    scene()->dispatchNodesToSystem(nodes);
-    scene()->addNodesToTree(nodes);
-
-    QMessageBox::information(this, C2Q("提示"), C2Q("打开工程文件成功!"), QMessageBox::Ok);
 }
 void    MainWindow::slotSaveProject()
 {
+    if (scene()->nodeTree().topLevelNodes().empty())
+        return;
     if (_projectName.isEmpty())
     {
         auto    fileName    =   QFileDialog::getSaveFileName( this, C2Q("另存为.."), "D:/", C2Q("工程文件(*.fepj)"));
@@ -73,36 +61,30 @@ void    MainWindow::slotSaveProject()
             return;
         _projectName    =   fileName;
     }
-    FEFileFormat    fmt(".fepj","1.0.0.0","FE Buildin Format!");
-    fmt._type       =   FEFileFormat::DT_Model;
-    fmt._mode       =   FEFileFormat::SM_FILE|FEFileFormat::SM_MEMORY;
-    auto    writer  =   FEFileFormatHelper::queryWriter(scene()->ctx(),fmt);
-    if (writer == nullptr)
-    {
-        QMessageBox::information(this, C2Q("提示"), C2Q("没有找到文件存储器写文件!"), QMessageBox::Ok);
-        return;
-    }
-    auto    nodes   =   scene()->nodeTree().topLevelNodes();
-    if (nodes.empty())
-    {
-        QMessageBox::information(this, C2Q("提示"), C2Q("没有数据需要!"), QMessageBox::Ok);
-        return;
-    }
-    Objects objects(nodes.size());
-    for (size_t i = 0; i < nodes.size(); i++)
-    {
-        objects[i]  =   nodes[i].get();
-    }
     String  fileName    =   _projectName.toLocal8Bit().data();
-    if(writer->writeFile(objects,fileName))
-        QMessageBox::information(this, C2Q("提示"), C2Q("保存成功!"), QMessageBox::Ok);
-    else
+    if(!scene()->save(fileName.c_str()))
         QMessageBox::information(this, C2Q("提示"), C2Q("保存失败!"), QMessageBox::Ok);
+    else
+        setTitile(_projectName);
 }
 
+void    MainWindow::slotReset()
+{
+    if (scene())
+    {
+        scene()->clear();
+        _projectName.clear();
+        setTitile("");
+    }
+}
 void    MainWindow::slotRedo()
 {
 }
 void    MainWindow::slotUndo()
 {
+}
+
+void    MainWindow::closeEvent(QCloseEvent*event)
+{
+    ui.modelTree->close();
 }

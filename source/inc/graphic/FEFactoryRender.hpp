@@ -29,7 +29,7 @@ namespace   FE
     /// 节点更新，局部更新最大值，如果同时要更新的对象超过了 MAX_LOCAL_UPDATE值，则全部更新
     /// </summary>
     constexpr   uint    MAX_LOCAL_UPDATE    =   64;
-    class   FEFactoryRender :public FEFactory
+    class   FE_API  FEFactoryRender :public FEFactory
     {
     public:
         struct  NodesPrimitives
@@ -197,6 +197,8 @@ namespace   FE
 
         FEFactoryRender(const FEFactoryRender& other);
 
+        ~FEFactoryRender();
+
     public:
         /// <summary>
         /// 工厂的类型Id,标识该工厂中的节点类型,例如 mesh + primitive + material
@@ -257,6 +259,18 @@ namespace   FE
             return  _usages;
         }
         /// <summary>
+        /// 标志clear函数，如果 _resident == true 不做任何操作
+        /// </summary>
+        /// <param name="flag"></param>
+        inline  void    setResident(bool flag)
+        {
+            _resident   =   flag;
+        }
+        inline  bool    isResident() const
+        {
+            return  _resident;
+        }
+        /// <summary>
         /// 获取或者创建裁剪所需的材质
         /// 并用 camera 参数填充材质数据
         /// </summary>
@@ -275,6 +289,7 @@ namespace   FE
         {
             return  _groupNode;
         }
+
         
     public:
         virtual size_t  addNode(Node  node);
@@ -293,6 +308,7 @@ namespace   FE
         /// </summary>
         virtual void    destroy();
         virtual void    clearFlagBits();
+        virtual void    clear();
     protected:
          
         virtual size_t  addNodesImpl(Nodes&  nodes);
@@ -405,6 +421,7 @@ namespace   FE
         Counts          _counts;
         ViewerUsages    _usages     =   ViewerUsage::USAGE_Classic;
         bool            _gpuCull    =   true;
+        bool            _resident   =   false;
     };
     using   RFactory            =   SharedPtr<FEFactoryRender>;
     using   RFactorys           =   std::vector<RFactory>;

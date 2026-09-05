@@ -108,7 +108,6 @@ namespace   FE
             return  _frame;
         }
         virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
-        virtual void    test();
         /// <summary>
         /// 节点加入到系统下，只是挂在节点上，并不做渲染
         /// </summary>
@@ -135,6 +134,29 @@ namespace   FE
         /// </summary>
         /// <param name="node"></param>
         virtual void    onNodePropChanged(FENode* node);
+        /// <summary>
+        /// 打开工程
+        /// </summary>
+        /// <param name="fepj"></param>
+        /// <returns></returns>
+        virtual bool    open(const char* fepj);
+        /// <summary>
+        /// 保存,如果fepj != nullptr,则直接保存fepj文件中
+        /// 如果fepj == nullptr, 则保存到open函数指定的文件中
+        /// 如果没有open,则用默认值 "unname.fepj"
+        /// </summary>
+        virtual bool    save(const char* fepj = nullptr);
+        /// <summary>
+        /// 自定义保存
+        /// </summary>
+        /// <param name="objects"></param>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        virtual bool    saveAs(const Objects& objects,const char* fileName);
+        /// <summary>
+        /// 清空场景中的数据，恢复到初始化状态
+        /// </summary>
+        virtual void    clear();
     protected:
         virtual void    onClose();
     protected:
@@ -156,7 +178,11 @@ namespace   FE
         void    resize(const MsgResize& evt);
 
         Nodes   loadNode(Material mat);
-        Node    createGrid(Material mat);
+        /// <summary>
+        /// 创建网格
+        /// </summary>
+        /// <returns></returns>
+        Node    createGrid();
     protected:
         App                 _app;  
         FETimestamp         _timestamp;
@@ -188,6 +214,7 @@ namespace   FE
         Frame               _frame;
         Node                _mousePoint;
         aabb3dr             _aabb;
+        String              _projectFileName;
     public:
         /// <summary>
         /// 实现组件到系统见系统的分发功能

@@ -14,7 +14,7 @@
    <enum>Qt::ClickFocus</enum>
   </property>
   <property name="windowTitle">
-   <string>动画编辑器</string>
+   <string>FEEditor</string>
   </property>
   <property name="autoFillBackground">
    <bool>true</bool>
@@ -286,8 +286,6 @@
     <addaction name="separator"/>
     <addaction name="actionReset"/>
     <addaction name="separator"/>
-    <addaction name="action_loadAnimation"/>
-    <addaction name="action_saveAnimation"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
@@ -1183,21 +1181,6 @@
      </item>
     </layout>
    </widget>
-  </widget>
-  <widget class="QToolBar" name="toolBar_3">
-   <property name="windowTitle">
-    <string>其他工具</string>
-   </property>
-   <property name="autoFillBackground">
-    <bool>true</bool>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_toCode"/>
   </widget>
   <action name="action_importModel">
    <property name="text">

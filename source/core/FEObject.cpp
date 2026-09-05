@@ -61,15 +61,6 @@ namespace   FE
         writer.write(flags());
         serializeTraits(writer,infor,vVersion,sCtx);
 
-        uint    cnt =   0;
-        
-        switch(infor._hasChild)
-        {
-        case 1: writer.write((uint8_t)cnt);     break;
-        case 2: writer.write((uint16_t)cnt);    break;
-        case 3: writer.write(cnt);              break;
-        }
-        
         /// 更新进度
         if (sCtx.query)
             sCtx.query(FEUuid::zero(),&writer,FESerializeCtx::O_UpdateProgress);
@@ -95,13 +86,7 @@ namespace   FE
         if (sCtx.query)
             sCtx.query(FEUuid::zero(),&reader,FESerializeCtx::O_UpdateProgress);
 
-        uint    childs  =   0;
-        switch(infor._hasChild)
-        {
-        case 1: childs  =   reader.readValue<uint8>();  break;
-        case 2: childs  =   reader.readValue<uint16>(); break;
-        case 3: childs  =   reader.readValue<uint32>(); break;
-        }
+       
         
         return  helper.size();
     }

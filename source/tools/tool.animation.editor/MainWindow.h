@@ -24,13 +24,28 @@ public:
     /// </summary>
     /// <returns></returns>
     Scene   scene();
+    /// <summary>
+    /// 设置标题栏
+    /// </summary>
+    /// <param name="fileName"></param>
+    void    setTitile(QString fileName)
+    {
+        if (fileName.isEmpty())
+            setWindowTitle("FEEditor - unnamed.fepj*");
+        else
+            setWindowTitle("FEEditor - " + fileName);
+        
+    }
 public slots:
     void    slotImportModel();
     void    slotOpenProject();
     void    slotSaveProject();
+
+    void    slotReset();
     void    slotRedo();
     void    slotUndo();
-
+public:
+    void    closeEvent(QCloseEvent *event)  override ;
 protected:
     QString         _projectName;
     Ui::MainWindow  ui;

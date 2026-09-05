@@ -102,6 +102,7 @@ namespace   FE
         FENode(FEContext& ctx);
 
         FENode(const FENode& other);
+        virtual~FENode();
         /// <summary>
         /// 获取当前节点的根节点
         /// </summary>
@@ -307,6 +308,35 @@ namespace   FE
                 _coms.erase(itr);
             com->detach();
             return  true;
+        }
+        /// <summary>
+        /// 移除所有组件
+        /// </summary>
+        /// <param name="recursion"></param>
+        virtual void    clearComponent(bool recursion = true)
+        {
+            _mesh       =   nullptr;
+            _material   =   nullptr;
+            for (auto& var : _coms)
+            {
+                var->detach();
+            }
+            _coms.clear();
+            if (recursion)
+            {
+                for (auto& var : _childs)
+                {
+                    var->clearComponent(recursion);
+                }
+            }
+        }
+        /// <summary>
+        /// 清空节点数据，包含子孙节点数据,以及子孙后代的组件数据
+        /// </summary>
+        virtual void    clear()
+        {
+            clearComponent(true);
+            removeAllChildren();
         }
         /// <summary>
         /// 添加需要更新标记

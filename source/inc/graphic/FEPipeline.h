@@ -39,6 +39,9 @@ namespace   FE
         FEPipeline(const FEPipeline& other)
             :RSObject(other)
         {}
+        virtual ~FEPipeline()
+        {
+        }
         const String&   name() const
         {
             return  _name;

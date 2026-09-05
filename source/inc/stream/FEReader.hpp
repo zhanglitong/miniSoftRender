@@ -40,7 +40,7 @@ namespace   FE
         {
             TSize   len     =   0;
             auto    result  =   readBuffer(&len,sizeof(len));
-            if (result != len)
+            if (result != sizeof(len))
                 return  result;
             val.resize(len + 1);
             result  +=   readBuffer(val.data(),len);

@@ -7,8 +7,6 @@
 
 namespace FE
 {
-    class   FEAction;
-
     DEFINE_CLASS_UUID(FEAnimation, "{D0749EE9-7126-4A57-B4F2-84798E4F40F2}");
 
     /// <summary>
@@ -65,27 +63,6 @@ namespace FE
                 return  _clip->isChanged();
             else
                 return  false;
-        }
-        /// <summary>
-        /// 动画所属action,即被哪一个action控制
-        /// 主要用作分组控制，一批动画可以播放，另一批停止
-        /// </summary>
-        /// <returns></returns>
-        const  FEAction*   action() const
-        {
-            if (_action.get())
-                return  _action->as<FEAction>();
-            else
-                return  nullptr;
-        }
-        /// <summary>
-        /// 设置action
-        /// </summary>
-        /// <param name="action"></param>
-        inline  void    setAction(FEObject* action)
-        {
-            _action =   action;
-            flags().addFlag(AnimationChanged);
         }
         /// <summary>
         /// 获取起始时间,对于时间线
@@ -169,10 +146,6 @@ namespace FE
         /// <returns></returns>
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
     protected:
-        /// <summary>
-        /// 表示一个 Action 类型的成员变量，用于存储要执行的操作。
-        /// </summary>
-        Object          _action;
         /// <summary>
         /// AnimClip 类型的变量，用于保存动画剪辑。
         /// </summary>

@@ -145,6 +145,7 @@ namespace   FE
             for (auto& var : _childs)
             {
                 var->setParent(nullptr);
+                var->removeAllChildren();
             }
             _childs.clear();
             onRemoveChildren();

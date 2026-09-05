@@ -152,7 +152,7 @@ namespace   FE
     };
     using   BufferCreateInfo    =   FEBuffer::CreateInfo;
     using   Buffer              =   SharedPtr<FEBuffer>;
-    using   Buffers             =   TVector<Buffer>;
+    using   Buffers             =   std::vector<Buffer>;
     using   BufferPtr           =   SharedPtr<FEBuffer>;
 
 

@@ -202,7 +202,7 @@ namespace   FE
         /// <summary>
         /// 设置app
         /// </summary>
-        virtual void    setApp(Scene scene);
+        virtual void    setup(Scene scene);
         /// <summary>
         /// 释放插件
         /// </summary>
@@ -268,6 +268,7 @@ namespace   FE
         virtual void    onRButtonClicked(QMouseEvent *event);
         virtual void    onMButtonClicked(QMouseEvent *event);
     protected:
+        void    closeEvent(QCloseEvent *event)  override ;
         /// <summary>
         /// 暂时保留，无用
         /// </summary>
