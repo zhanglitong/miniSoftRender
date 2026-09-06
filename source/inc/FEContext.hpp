@@ -1,4 +1,5 @@
 #pragma     once
+#include    "FEMath.hpp"
 #include    "FELog.hpp"
 #include    "FEKeyValues.hpp"
 #include    "FEFileFormat.hpp"
@@ -31,6 +32,7 @@ namespace FE
 
     class   FEDevice;
     class   FEScene;
+    class   FECamera;
     class   FEWindow;
     using   Device  =   SharedPtr<FEDevice>;
     using   Scene   =   SharedPtr<FEScene>;
@@ -98,6 +100,22 @@ namespace FE
         {
             return  _scene.get();
         }
+        /// <summary>
+        /// 获取当前活动的摄像机
+        /// </summary>
+        /// <returns></returns>
+        FECamera&   activeCamera();
+        /// <summary>
+        /// 请求下一帧渲染
+        /// </summary>
+        void        requireNextFrame()
+        {
+        }
+        /// <summary>
+        /// 获取当前摄像机的投影视图矩阵
+        /// </summary>
+        /// <returns></returns>
+        mat4r       mvp();
 
         FEAnchor&   anchor()
         {

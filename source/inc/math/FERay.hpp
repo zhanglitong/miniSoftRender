@@ -287,7 +287,7 @@ namespace   FE
             }
             return std::pair<bool, T>(hit, lowt);
         }
-#if 0
+#if 1
         inline  auto    intersectSphere(const tvec3<T>& center, T radius)  const
         {
             const auto  raydir  =   _direction;
@@ -326,6 +326,7 @@ namespace   FE
 
 
 
+#if 0
         inline  bool    intersectEllipsoid(const tellipsoid<T>& ellip,tvec3<T>& result)
         {
             T           a   =   ellip._radius.x;
@@ -361,6 +362,7 @@ namespace   FE
                 return  false;
             }
         }
+#endif
 #endif 
         /// <summary>
         /// 射线与平面的交点

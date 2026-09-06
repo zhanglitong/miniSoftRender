@@ -27,7 +27,6 @@ namespace   FE
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
         _scene->setup(_app,_rendererId);
-        _scene->test();
 
         //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
         String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";

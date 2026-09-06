@@ -22,7 +22,6 @@ namespace   FE
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
         _scene->setup(_app,rendererId);
-        _scene->test();
         FEGeometryCylinder  geoBox(_ctx);
         Attrs               attrs   =   
         {

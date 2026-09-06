@@ -1,5 +1,7 @@
 
 #include    "../inc/FEContext.hpp"
+#include    "../inc/FECamera.hpp"
+#include    "../inc/FEMath.hpp"
 #include    "../inc/FEDateTime.hpp"
 #include    "../inc/FESetting.hpp"
 #include    "../inc/geometry/FEGeometry.hpp"
@@ -158,5 +160,17 @@ namespace   FE
         _anchor =   nullptr;
         _scene  =   nullptr;
         _log    =   nullptr;
+    }
+
+    mat4r   FEContext::mvp()
+    {
+        FECamera&   cam =   activeCamera();
+        return  cam.getProject() * cam.getView();
+    }
+
+    FECamera&   FEContext::activeCamera()
+    {
+        assert(_scene != nullptr);
+        return  *_scene->camera();
     }
 }

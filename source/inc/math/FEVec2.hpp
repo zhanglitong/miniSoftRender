@@ -37,6 +37,7 @@ namespace   FE
     using   glm::translate;
     using   glm::rotate;
     using   glm::scale;
+    using   glm::angleAxis;
 
     using   glm::ortho;
     using   glm::inverse;
