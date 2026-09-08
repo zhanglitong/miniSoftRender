@@ -100,6 +100,7 @@ namespace   FE
             cmd->setCullMode(CullMode::CM_NULL);
             _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
             cmd->bindVBO(0,_axisArrowVBO,0);
+            cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
             /// 绘制箭头
             for (int i = 0; i < 3; ++i)
             {
@@ -111,11 +112,12 @@ namespace   FE
                 float4  color   =   { 0.0f, 0.0f, 0.0f, 1.0f };
                         color[i]=   1.0f;
                 PointData pushBlock;
+                pushBlock._point    =   0;
                 pushBlock._mvp      =   tMat2;
                 if (_move.enabled(i + 1))
                     pushBlock._color    =   FE::packUnorm4x8(color);
                 else
-                    pushBlock._color    =   FE::packUnorm4x8(DisableColor); 
+                    pushBlock._color    =   FE::packUnorm4x8(DisableColor);
                 cmd->pushConstants(pl, pl->cInfo()._pushConstantStage.data(),0,sizeof(pushBlock),&pushBlock);
                 cmd->setPrimitiveTopology(PRI_TRIANGLE_FAN);
                 cmd->draw(32 * i, 32,0,1);
@@ -129,22 +131,50 @@ namespace   FE
             _mat->appDynamicState(cmd,PRI_LINES);
             cmd->bindVBO(0,_axisLineVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
+              
+            for (int i = 0; i < 3; i++)
+            {
+                PointData   pushBlock;
+                pushBlock._point    =   0;
+                pushBlock._mvp      =   mvp;
+                float4      color   =   { 0.0f, 0.0f, 0.0f, 1.0f };
+                            color[i]=   1.0f;
+                if (_move.enabled(i + 1))
+                    pushBlock._color    =   FE::packUnorm4x8(color);
+                else
+                    pushBlock._color    =   FE::packUnorm4x8(DisableColor);
+
+                cmd->setLineWidth(1);
+                cmd->pushConstants(pl, pl->cInfo()._pushConstantStage.data(),0,sizeof(pushBlock),&pushBlock);
+                cmd->setPrimitiveTopology(PRI_LINES);
+                cmd->drawIndex(10 * i,4,0,0,1);
+            }
             {   
                 for (int i = 0; i < 3; i++)
                 {
                     PointData   pushBlock;
+                    pushBlock._point    =   0;
                     pushBlock._mvp      =   mvp;
                     float4      color   =   { 0.0f, 0.0f, 0.0f, 1.0f };
-                                color[i]=   1.0f;
+                    if (_move.hoveredAxis() == i + 1)
+                    {
+                        color[0]    =   1.0f;
+                        color[1]    =   1.0f;
+                        cmd->setLineWidth(2);
+                    }
+                    else
+                    {
+                        color[i]    =   1.0f;
+                        cmd->setLineWidth(1);
+                    }
+                    color[i]=   1.0f;
                     if (_move.enabled(i + 1))
                         pushBlock._color    =   FE::packUnorm4x8(color);
                     else
                         pushBlock._color    =   FE::packUnorm4x8(DisableColor);
-
-                    cmd->setLineWidth(1);
                     cmd->pushConstants(pl, pl->cInfo()._pushConstantStage.data(),0,sizeof(pushBlock),&pushBlock);
                     cmd->setPrimitiveTopology(PRI_LINES);
-                    cmd->drawIndex(4, 10 * i,0,0,1);
+                    cmd->drawIndex(10 * i + 4,2,0,0,1);
                 }
             }
             /// 绘制选中面
@@ -154,6 +184,7 @@ namespace   FE
             cmd->bindVBO(0,_axisLineVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
 
+            /// 绘制选中面
             for (int i = 0; i < 3; ++i)
             {
                 ///如果某个面被选中
@@ -165,6 +196,7 @@ namespace   FE
                 mat4r   res     =   mvp * tMat1;
 
                 PointData pushBlock;
+                pushBlock._point    =   0;
                 pushBlock._color    =   FE::packUnorm4x8(color);
                 pushBlock._mvp      =   res;
                 cmd->pushConstants(pl, pl->cInfo()._pushConstantStage.data(),0,sizeof(pushBlock),&pushBlock);

@@ -5,7 +5,6 @@
 layout  (location = 0) in vec3  inPos;
 layout(push_constant) uniform   PushConsts
 {
-    mat4        _mvp;
     PointData   _point;
 };
 

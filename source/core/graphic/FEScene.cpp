@@ -109,7 +109,6 @@ namespace   FE
             _viewerMgr.setActiveViewer(viewer);
         }
         _frustCull  =   new FEFrustumCull(_ctx);
-
         /// anchor
         /// anchor 增加通知
         _ctx.anchor().addNotify(this,[this](Object object)
