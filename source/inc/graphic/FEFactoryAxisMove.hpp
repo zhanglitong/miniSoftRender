@@ -15,8 +15,8 @@ namespace   FE
     public:
         FEFactoryAxisMove(FEContext& ctx)
             :FEFactoryRender(ctx)
-            ,_move(ctx)
         {
+            _move   =   new FEEditAxisMove(_ctx);
             _mat    =   new FEMaterialV3(_ctx);
         }
         FEFactoryAxisMove(const FEFactoryAxisMove& other)
@@ -24,6 +24,10 @@ namespace   FE
             ,_move(other._move)
         {}
 
+        inline  EditAxisMove    inputComponent()
+        {
+            return  _move;
+        }
     public:
         /// <summary>
         /// 每一帧调用
@@ -32,10 +36,10 @@ namespace   FE
         virtual void    update(CMDPtr ) override
         {
             /// 每一帧调用更新
-           _move.update(_ctx.activeCamera());
-           auto&    indexs  =   _move.indexs();
-           auto&    lines   =   _move.moveAxis();
-           auto&    array   =   _move.axisArray();
+           _move->update(_ctx.activeCamera());
+           auto&    indexs  =   _move->indexs();
+           auto&    lines   =   _move->moveAxis();
+           auto&    array   =   _move->axisArray();
 
            size_t  lineLen =   lines.size() * sizeof(float3);
            size_t  arrLen  =   array.size() * sizeof(float3);
@@ -59,12 +63,15 @@ namespace   FE
                 _axisArrowVBO    =   _ctx.device().createVBO(); 
                 _axisArrowVBO->create({arrLen,DEVICE_LOCAL_BIT});
             }
-            VBO     cpu     =   _ctx.device().createVBO(); 
-            cpu->create({length,HOST_VISIBLE_BIT});
-            uint8*  pDst    =   (uint8*)cpu->lock(length,0);
+            if (_cpu == nullptr)
+            {
+                _cpu     =   _ctx.device().createVBO(); 
+                _cpu->create({length,HOST_VISIBLE_BIT});
+            }
+            uint8*  pDst    =   (uint8*)_cpu->lock(length,0);
             memcpy(pDst + 0,        lines.data(),lineLen);
             memcpy(pDst + lineLen,  array.data(),arrLen);
-            cpu->unlock();
+            _cpu->unlock();
 
             auto    cmdPool =   _device.transferCmdPool();
             assert (cmdPool != nullptr);
@@ -72,8 +79,8 @@ namespace   FE
             {
                 CMDPtr      cmd     =   cmdPool->createCmd();
                 cmd->begin(true);
-                cmd->copyBuffer(cpu,    _axisLineVBO,   lineLen,0,      0);
-                cmd->copyBuffer(cpu,    _axisArrowVBO,  arrLen, lineLen,0);
+                cmd->copyBuffer(_cpu,   _axisLineVBO,   lineLen,0,      0);
+                cmd->copyBuffer(_cpu,   _axisArrowVBO,  arrLen, lineLen,0);
                 cmd->end();
                 cmd->submit(_device.queueTransfer());
             }
@@ -104,8 +111,8 @@ namespace   FE
             /// 绘制箭头
             for (int i = 0; i < 3; ++i)
             {
-                mat4r   tMat0   =   FE::translate(mat4r(),_move.position());
-                mat4r   tMat1   =   FE::translate(mat4r(),real3(_move.moveAxis()[i + 1]));
+                mat4r   tMat0   =   FE::translate(mat4r(),_move->position());
+                mat4r   tMat1   =   FE::translate(mat4r(),real3(_move->moveAxis()[i + 1]));
                     
                 mat4r   tMat2   =   _ctx.mvp() * tMat0 * tMat1;
                    
@@ -114,7 +121,7 @@ namespace   FE
                 PointData pushBlock;
                 pushBlock._point    =   0;
                 pushBlock._mvp      =   tMat2;
-                if (_move.enabled(i + 1))
+                if (_move->enabled(i + 1))
                     pushBlock._color    =   FE::packUnorm4x8(color);
                 else
                     pushBlock._color    =   FE::packUnorm4x8(DisableColor);
@@ -123,7 +130,7 @@ namespace   FE
                 cmd->draw(32 * i, 32,0,1);
             }
             ///  绘制轴
-            mat4r   tMat    =   FE::translate(mat4r(),_move.position());
+            mat4r   tMat    =   FE::translate(mat4r(),_move->position());
             mat4r   mvp     =   _ctx.mvp() * tMat;
 
             pl      =   _mat->pipeline(PRI_LINES)->as<FEGPipeline>();
@@ -139,7 +146,7 @@ namespace   FE
                 pushBlock._mvp      =   mvp;
                 float4      color   =   { 0.0f, 0.0f, 0.0f, 1.0f };
                             color[i]=   1.0f;
-                if (_move.enabled(i + 1))
+                if (_move->enabled(i + 1))
                     pushBlock._color    =   FE::packUnorm4x8(color);
                 else
                     pushBlock._color    =   FE::packUnorm4x8(DisableColor);
@@ -156,19 +163,18 @@ namespace   FE
                     pushBlock._point    =   0;
                     pushBlock._mvp      =   mvp;
                     float4      color   =   { 0.0f, 0.0f, 0.0f, 1.0f };
-                    if (_move.hoveredAxis() == i + 1)
+                    if (_move->hoveredAxis() == i + 1)
                     {
                         color[0]    =   1.0f;
                         color[1]    =   1.0f;
-                        cmd->setLineWidth(2);
+                        cmd->setLineWidth(4);
                     }
                     else
                     {
                         color[i]    =   1.0f;
                         cmd->setLineWidth(1);
                     }
-                    color[i]=   1.0f;
-                    if (_move.enabled(i + 1))
+                    if (_move->enabled(i + 1))
                         pushBlock._color    =   FE::packUnorm4x8(color);
                     else
                         pushBlock._color    =   FE::packUnorm4x8(DisableColor);
@@ -188,11 +194,11 @@ namespace   FE
             for (int i = 0; i < 3; ++i)
             {
                 ///如果某个面被选中
-                if (_move.hoveredAxis() != i + 4) 
+                if (_move->hoveredAxis() != i + 4) 
                     continue;
 
                 float4  color   =   { 1.0f,1.0f,0.0f,0.6f };
-                mat4r   tMat1   =   FE::scale(mat4r(),real3(0.97));
+                mat4r   tMat1   =   FE::scale(mat4r(1),real3(0.97));
                 mat4r   res     =   mvp * tMat1;
 
                 PointData pushBlock;
@@ -201,7 +207,7 @@ namespace   FE
                 pushBlock._mvp      =   res;
                 cmd->pushConstants(pl, pl->cInfo()._pushConstantStage.data(),0,sizeof(pushBlock),&pushBlock);
                 cmd->setPrimitiveTopology(PRI_TRIANGLE_FAN);
-                cmd->drawIndex(4, 10 * i + 6,0,0,1);
+                cmd->drawIndex(10 * i + 6,4, 0,0,1);
             }
         }
         /// <summary>
@@ -214,10 +220,10 @@ namespace   FE
         VBO             _axisLineVBO    =   nullptr;
         VBO             _axisArrowVBO   =   nullptr;
         IBO             _axisLineIBO    =   nullptr;
-        FEEditAxisMove  _move;
+        VBO             _cpu            =   nullptr; 
+        EditAxisMove    _move           =   nullptr;
         MaterialV3      _mat            =   nullptr;
     };
     using   FactorySimple   =   SharedPtr<FEFactoryAxisMove>;
-   
 }
 

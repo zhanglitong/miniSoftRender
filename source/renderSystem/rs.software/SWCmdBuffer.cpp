@@ -46,6 +46,11 @@ namespace   FE
     {
         return  FEResult::ER_SUCCESS;
     }
+    FEResult    SWCmdBuffer::setCullMode(CullMode )
+    {
+        return  FEResult::ER_SUCCESS;
+    }
+
     FEResult    SWCmdBuffer::beginRender(const RenderInfo& rs)
     {
         (void)rs;

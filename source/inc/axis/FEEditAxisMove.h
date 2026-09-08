@@ -7,8 +7,8 @@
 /// </summary>
 namespace   FE
 {
-    class FEEditAxisMovePrivate;
-    class FE_API FEEditAxisMove: public FEEditAxis
+    class   FEEditAxisMovePrivate;
+    class   FE_API  FEEditAxisMove: public FEEditAxis
     {
     public:
         /// <summary>
@@ -30,21 +30,21 @@ namespace   FE
         enum AdsorptionFlag
         {
             ///无
-            AF_None = 0, 
+            AF_None         =   0, 
             ///几何体顶点吸附标志
-            AF_Points = 1 << 0,
+            AF_Points       =   1 << 0,
             ///几何体边线吸附标志
-            AF_Edge = 1 << 1,
+            AF_Edge         =   1 << 1,
             ///几何体边线中心点吸附标志
-            AF_EdgeCenter = 1 << 2,
+            AF_EdgeCenter   =   1 << 2,
             ///几何体三角面吸附标志
-            AF_Face = 1 << 3,
+            AF_Face         =   1 << 3,
             ///几何体三角面中心点吸附标志
-            AF_FaceCenter = 1 << 4,
+            AF_FaceCenter   =   1 << 4,
             ///节点位置吸附标志
-            AF_Position = 1 << 5,
+            AF_Position     =   1 << 5,
             ///节点包围盒吸附标志(顶点以及包围盒中心点)
-            AF_Aabb = 1 << 6,
+            AF_Aabb         =   1 << 6,
         };
         using AdsorptionFlags = FEFlags<AdsorptionFlag, uint>;
         /// <summary>
@@ -128,11 +128,6 @@ namespace   FE
         /// 设置移动吸附点像素范围
         /// </summary>
         void    setAdsorptionPixel(real pixel) ;
-
-        bool    isClipEdit() const;
-
-        void    setClipEdit(bool b);
-
         /// <summary>
         /// 每一帧调用该函数,会自动生成 moveAxis,axisArray,indexs 数据
         /// </summary>
@@ -146,13 +141,6 @@ namespace   FE
         /// 索引数据
         /// </summary>
         const   uint16s&    indexs() const;
-
-        /// <summary>
-        /// 获取用作渲染的数据
-        /// </summary>
-        /// <returns></returns>
-        void    getRenderData(FECamera& camera,floats& axisLine,ushorts& indexs,floats& axisArray);
-
     public:
         /// <summary>
         /// 是否有轴被高亮
@@ -202,12 +190,20 @@ namespace   FE
             return value == FEEditAxisMove::AXIS::AXIS_Z;
         }
     public:
-        virtual bool mouseButtonPress(FEContext& context, const int2& pos)  override;
-        virtual bool mouseButtonRelease(FEContext& context, const int2& pos)override;
-        virtual bool mouseMove(FEContext& context, const int2& pos)         override;
-        virtual bool touchDown(FEContext& context, const int2& pos)         override;
-        virtual bool touchUp(FEContext& context, const int2& pos)           override;
-        virtual bool touchMove(FEContext& context, const int2& pos)         override;
+        /// <summary>
+        /// 需要被其他子类重写，处理消息
+        /// </summary>
+        /// <param name=""></param>
+        virtual void    onMessage(const FEMessage& ) override;
+    protected:
+        virtual bool mouseButtonPress(const int2& pos)  ;
+        virtual bool mouseButtonRelease(const int2& pos);
+        virtual bool mouseMove(const int2& pos)         ;
+        virtual bool touchDown(const int2& pos)         ;
+        virtual bool touchUp(const int2& pos)           ;
+        virtual bool touchMove(const int2& pos)         ;
     };
+
+    using   EditAxisMove    =   SharedPtr<FEEditAxisMove>;
 }
 

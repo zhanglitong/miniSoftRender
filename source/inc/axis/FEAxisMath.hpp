@@ -42,31 +42,36 @@ namespace   FE
         }
         return false;
     }
-
     /// <summary>
     /// 判断点是否在三角形内
     /// </summary>
     template<typename T>
-    bool    pointinTriangle(const tvec3<T>& v0, const tvec3<T>& v1, const tvec3<T>& v2, const tvec3<T>& pt)
+    inline  bool    pointinTriangle(tvec3<T> A, tvec3<T> B, tvec3<T> C, tvec3<T> P)
     {
-        tvec3<T> e0 = v1 - v0;
-        tvec3<T> e1 = v2 - v1;
-        tvec3<T> e2 = v0 - v2;
+        tvec3<T> v0 = C - A;
+        tvec3<T> v1 = B - A;
+        tvec3<T> v2 = P - A;
 
-        tvec3<T> c0 = pt - v0;
-        tvec3<T> c1 = pt - v1;
-        tvec3<T> c2 = pt - v2;
+        T dot00 = dot(v0, v0);
+        T dot01 = dot(v0, v1);
+        T dot02 = dot(v0, v2);
+        T dot11 = dot(v1, v1);
+        T dot12 = dot(v1, v2);
 
-        tvec3<T> n = cross(e0, e1);
-        T l = length(n);
-        if (l < T(1e-8))
+        T inverDeno = T(1) / std::fma(dot00 , dot11,-dot01 * dot01);
+
+        T u = std::fma(dot11 , dot02, -dot01 * dot12) * inverDeno;
+        if (u < 0 || u > T(1)) // if u out of range, return directly
+        {
             return false;
-        n = n / l;
+        }
+        T v = std::fma(dot00 , dot12 ,-dot01 * dot02) * inverDeno;
+        if (v < 0 || v > T(1)) // if v out of range, return directly
+        {
+            return false;
+        }
 
-        if (dot(cross(e0, c0), n) < T(0.0)) return false;
-        if (dot(cross(e1, c1), n) < T(0.0)) return false;
-        if (dot(cross(e2, c2), n) < T(0.0)) return false;
-        return true;
+        return u + v <= T(1);
     }
 
     /// <summary>

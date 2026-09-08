@@ -4,6 +4,7 @@
 #include    "FEDelegate.hpp"
 #include    "FEFlags.hpp"
 #include    "FEMath.hpp"
+#include    "FEInputCom.hpp"
 
 namespace   FE
 {
@@ -13,16 +14,16 @@ namespace   FE
     /// <summary>
     /// 坐标轴基类
     /// </summary>
-    class   FE_API  FEAxis :public FEObject
+    class   FE_API  FEAxis :public FEInputCom
     {
     public:
         enum AxisType
         {
-            ///基本轴
+            /// 基本轴
             AxisTypeBase    =   0,
-            ///编辑轴
+            /// 编辑轴
             AxisTypeEdit    =   1,
-            ///浏览轴
+            /// 浏览轴
             AxisTypeBrowse  =   2,
         };
     protected:
@@ -56,11 +57,11 @@ namespace   FE
         }
         /// <summary>
         /// 设置轴变换矩阵
-        ///  理论来说，这个矩阵应该包含
-        ///   TMat(位置,决定轴显示的位置)
-        ///   RMat(旋转,决定轴的朝向)
-        ///   SHMat(切变,会导致轴两两不垂直,但对于包含切变矩阵的模型来说，这是正常现象)
-        ///   SMat(缩放,但不会因为缩放而改变轴的大小,也就是说缩放是不会生效的)
+        /// 理论来说，这个矩阵应该包含
+        /// TMat(位置,决定轴显示的位置)
+        /// RMat(旋转,决定轴的朝向)
+        /// SHMat(切变,会导致轴两两不垂直,但对于包含切变矩阵的模型来说，这是正常现象)
+        /// SMat(缩放,但不会因为缩放而改变轴的大小,也就是说缩放是不会生效的)
         /// </summary>
         /// <param name="transform">轴变换矩阵</param>
         inline void     setTransform(const mat4r& transform)
@@ -163,7 +164,7 @@ namespace   FE
     /// <summary>
     /// 编辑坐标轴基类,提供编辑接口
     /// </summary>
-    class FE_API FEEditAxis :public FEAxis
+    class   FE_API  FEEditAxis :public FEAxis
     {
     public:
         /// <summary>
@@ -238,7 +239,7 @@ namespace   FE
         using InternalAxisFlags = FEFlags<InternalAxisFlag, int>;
         InternalAxisFlags _disabledAxices;
     public:
-        FEEditAxis(EditAxisType type, FEContext& context);
+        FEEditAxis(EditAxisType type, FEContext& ctx);
         virtual ~FEEditAxis();
     public:
         /// <summary>
@@ -248,43 +249,6 @@ namespace   FE
         {
             return _editAxisType;
         }
-
-        /// <summary>
-        /// 鼠标按下时调用,由轴内部处理拾取
-        ///   当触发编辑指令时,返回true,否则返回false
-        /// </summary>
-        /// <param name="pos">鼠标屏幕坐标位置</param>
-        virtual bool    mouseButtonPress(FEContext& context, const int2& pos) = 0;
-        /// <summary>
-        /// 鼠标抬起时调用,由轴内部处理拾取
-        ///   当触发编辑指令时,返回true,否则返回false
-        /// </summary>
-        /// <param name="pos">鼠标屏幕坐标位置</param>
-        virtual bool    mouseButtonRelease(FEContext& context, const int2& pos) = 0;
-        /// <summary>
-        /// 鼠标移动时调用
-        ///   当触发编辑指令时,返回true,否则返回false
-        /// </summary>
-        /// <param name="pos">鼠标屏幕坐标位置</param>
-        virtual bool    mouseMove(FEContext& context, const int2& pos) = 0;
-        /// <summary>
-        /// 触屏按下时调用,由轴内部处理拾取
-        ///   当触发编辑指令时,返回true,否则返回false
-        /// </summary>
-        /// <param name="pos">鼠标屏幕坐标位置</param>
-        virtual bool    touchDown(FEContext& context, const int2& pos) = 0;
-        /// <summary>
-        /// 触屏抬起时调用,由轴内部处理拾取
-        ///   当触发编辑指令时,返回true,否则返回false
-        /// </summary>
-        /// <param name="pos">鼠标屏幕坐标位置</param>
-        virtual bool    touchUp(FEContext& context, const int2& pos) = 0;
-        /// <summary>
-        /// 触屏移动时调用
-        ///   当触发编辑指令时,返回true,否则返回false
-        /// </summary>
-        /// <param name="pos">鼠标屏幕坐标位置</param>
-        virtual bool    touchMove(FEContext& context, const int2& pos) = 0;
         /// <summary>
         /// 获取轴 启用/禁用 通知
         /// </summary>
@@ -394,7 +358,7 @@ namespace   FE
     /// <summary>
     /// 浏览坐标轴基类,该轴只提供浏览,不包含其他功能
     /// </summary>
-    class FE_API FEBrowseAxis :public FEAxis
+    class   FE_API  FEBrowseAxis :public FEAxis
     {
     public:
         /// <summary>

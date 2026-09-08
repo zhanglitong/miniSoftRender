@@ -761,7 +761,9 @@ namespace   FE
 
             // map from viewport to 0 - 1
             v.x = (v.x) / _viewSize.x;
-            v.y = (v.y) / _viewSize.y;
+            //v.y = (v.y) / _viewSize.y;
+
+            v.y = (_viewSize.y - v.y) / _viewSize.y;
            // v.y = (v.y - _viewSize.y) / _viewSize.y;
 
             // map to range -1 to 1

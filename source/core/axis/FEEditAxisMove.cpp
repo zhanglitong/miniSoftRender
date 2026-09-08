@@ -9,20 +9,20 @@ namespace   FE
     ///计算射线是否与某个四边形面有交点
     bool GetRayRectaceInsPt(const Ray &ray, FE::real3 rect[4], FE::real3 &retPt)
     {
-        FE::real t, u, v;
-        if (FE::intersectTriangle<FE::real>(ray.getOrigin(), ray.getDirection(), rect[0], rect[1], rect[2], &t, &u, &v))
+        real t, u, v;
+        if (Ray::intersectTriangle(ray.getOrigin(), ray.getDirection(), rect[0], rect[1], rect[2], &t, &u, &v))
         {
-            FE::real3 tmpPt = ray.getPoint(t);
+            real3 tmpPt = ray.getPoint(t);
             if (FE::pointinTriangle(rect[0], rect[1], rect[2], tmpPt))
             {
                 retPt = tmpPt;
                 return true;
             }
         }
-        FE::real t1, u1, v1;
-        if (FE::intersectTriangle<FE::real>(ray.getOrigin(), ray.getDirection(), rect[2], rect[3], rect[0], &t1, &u1, &v1))
+        real t1, u1, v1;
+        if (Ray::intersectTriangle(ray.getOrigin(), ray.getDirection(), rect[2], rect[3], rect[0], &t1, &u1, &v1))
         {
-            FE::real3 tmpPt = ray.getPoint(t1);
+            real3 tmpPt = ray.getPoint(t1);
             if (FE::pointinTriangle(rect[2], rect[3], rect[0], tmpPt))
             {
                 retPt = tmpPt;
@@ -34,25 +34,25 @@ namespace   FE
     
     struct AdsorptionResult
     {
-        mat4r mat;
-        real3s pts;
-        int ptIndex;
+        mat4r   mat;
+        real3s   pts;
+        int     ptIndex;
         AdsorptionResult() 
         {
             mat = mat4r(1.0);
             ptIndex = -1;
         }
-        void reset()
+        void    reset()
         {
             mat = mat4r(1.0);
             pts.clear();
             ptIndex = -1;
         }
-        bool isVaild() const
+        bool    isVaild() const
         {
             return (!pts.empty()) && (ptIndex >= 0);
         }
-        real3 ptWorld() const 
+        real3   ptWorld() const 
         {
             if (!isVaild())
                 return real3(0.0);
@@ -86,12 +86,6 @@ namespace   FE
     
     class   FEEditAxisMovePrivate
     {
-    private:
-        struct PushBlock
-        {
-            mat4    _mvp;
-            float4  _color;
-        };
     public:
         ///
         FEEditAxisMove&     _d;
@@ -142,13 +136,6 @@ namespace   FE
 
         ///移动通知
         FEEditAxisMove::MDelegate _delegate;
-        ///绘制管线
-        GraphicPLPtr    _pipeLine;
-        ///材质
-        MaterialPtr     _material;
-
-        bool          _bThreeClipEdit;
-        int           _threeClipSize;
     public:
         FEEditAxisMovePrivate(FEEditAxisMove& d)
             :_d(d)
@@ -171,13 +158,6 @@ namespace   FE
             _adsorptionEnabled  =   false;
             _adsorptionFlags    =   FEEditAxisMove::AdsorptionFlag::AF_Points;
             _adsorptionPixel    =   10.0;
-
-            _bThreeClipEdit     =   false;
-            ///设置配置项并绑定响应事件
-
-            _threeClipSize      =   240;
-            _pipeLine           =   nullptr;
-            _material           =   nullptr;
         }
     public:
         /// <summary>
@@ -189,13 +169,9 @@ namespace   FE
         /// <param name="axisArray"></param>
         void    update(FECamera& camera)
         {
-            uint        pixels      =   800;
-            uint        planePix    =   400;
-            if(_bThreeClipEdit)
-            {
-                pixels      =   _threeClipSize;
-                planePix    =   _threeClipSize;
-            }
+            uint        pixels      =   80;
+            uint        planePix    =   40;
+            
             real3       cenPos  =   real3(0, 0, 0);
             real        unitF   =   camera.pixelU(_d.position());
             real        size    =   unitF * pixels;
@@ -203,144 +179,179 @@ namespace   FE
             _moveAxis.clear();
             _moveAxis.resize(13);
             ///center
-            _moveAxis[0]    = real3(0, 0, 0);
+            _moveAxis[0]    =   real3(0, 0, 0);
             ///X
-            _moveAxis[1]    = _d.axisX() * size;
+            _moveAxis[1]    =   _d.axisX() * size;
             ///y
-            _moveAxis[2]    = _d.axisY() * size;
+            _moveAxis[2]    =   _d.axisY() * size;
             ///z
-            _moveAxis[3]    = _d.axisZ() * size;
+            _moveAxis[3]    =   _d.axisZ() * size;
             ///xoy
-            _moveAxis[4]    = _d.axisX() * planeSz;
-            _moveAxis[6]    = _d.axisY() * planeSz;
-            _moveAxis[5]    = _moveAxis[4] + _moveAxis[6];
+            _moveAxis[4]    =   _d.axisX() * planeSz;
+            _moveAxis[6]    =   _d.axisY() * planeSz;
+            _moveAxis[5]    =   _moveAxis[4] + _moveAxis[6];
             ///float3 test = (_d.axisX() + _d.axisY())*planeSz;
             ///yoz
-            _moveAxis[7]    = _d.axisY() * planeSz;
-            _moveAxis[9]    = _d.axisZ() * planeSz;
-            _moveAxis[8]    = _moveAxis[7] + _moveAxis[9];
+            _moveAxis[7]    =   _d.axisY() * planeSz;
+            _moveAxis[9]    =   _d.axisZ() * planeSz;
+            _moveAxis[8]    =   _moveAxis[7] + _moveAxis[9];
             ///zox
-            _moveAxis[10]   = _d.axisZ() * planeSz;
-            _moveAxis[12]   = _d.axisX() * planeSz;
-            _moveAxis[11]   = _moveAxis[10] + _moveAxis[12];
+            _moveAxis[10]   =   _d.axisZ() * planeSz;
+            _moveAxis[12]   =   _d.axisX() * planeSz;
+            _moveAxis[11]   =   _moveAxis[10] + _moveAxis[12];
 
-
-            if(!_bThreeClipEdit)
+            ///计算箭头
+            real arSize     =   unitF * 24;
+            real arRadius   =   unitF * 5;
+            _axisAr.clear();
+            real step       =   12.0;
+            ///arX
             {
-                ///计算箭头
-                real arSize     =   unitF * 24;
-                real arRadius   =   unitF * 5;
-                _axisAr.clear();
-                real step       =   12.0;
-                ///arX
+                real3 tAxis = _d.vectorPerpendicularToAxisX();
+                _axisAr.push_back(_d.axisX() * arSize);
+                for (int i = 0; i <= 30; ++i)
                 {
-                    real3 tAxis = _d.vectorPerpendicularToAxisX();
-                    _axisAr.push_back(_d.axisX() * arSize);
-                    for (int i = 0; i <= 30; ++i)
-                    {
-                        mat4r rMat(1.0);
-                        rMat = FE::rotate(rMat, real(i) * step, _d.axisX());
-                        real3 nor = normalize(real3(rMat * real4(tAxis, 0.0)));
-                        _axisAr.push_back(nor * arRadius);
-                    }
+                    mat4r   rMat    =   FE::rotate(mat4r(1), real(i) * step, _d.axisX());
+                    real3   nor     =   normalize(real3(rMat * real4(tAxis, 0.0)));
+                    _axisAr.push_back(nor * arRadius);
                 }
-                ///ary
+            }
+            ///ary
+            {
+                real3 tAxis = _d.vectorPerpendicularToAxisY();
+                _axisAr.push_back(_d.axisY() * arSize);
+                for (int i = 0; i <= 30; ++i)
                 {
-                    real3 tAxis = _d.vectorPerpendicularToAxisY();
-                    _axisAr.push_back(_d.axisY() * arSize);
-                    for (int i = 0; i <= 30; ++i)
-                    {
-                        mat4r rMat(1.0);
-                        rMat = FE::rotate(rMat, real(i) * step, _d.axisY());
-                        real3 nor = normalize(real3(rMat * real4(tAxis, 0.0)));
-                        _axisAr.push_back(nor * arRadius);
-                    }
+                    mat4r   rMat    =   FE::rotate(mat4r(1), real(i) * step, _d.axisY());
+                    real3   nor     =   normalize(real3(rMat * real4(tAxis, 0.0)));
+                    _axisAr.push_back(nor * arRadius);
                 }
-                ///arZ
+            }
+            ///arZ
+            {
+                real3 tAxis = _d.vectorPerpendicularToAxisZ();
+                _axisAr.push_back(_d.axisZ() * arSize);
+                for (int i = 0; i <= 30; ++i)
                 {
-                    real3 tAxis = _d.vectorPerpendicularToAxisZ();
-                    _axisAr.push_back(_d.axisZ() * arSize);
-                    for (int i = 0; i <= 30; ++i)
-                    {
-                        mat4r rMat(1.0);
-                        rMat = FE::rotate(rMat, real(i) * step, _d.axisZ());
-                        real3 nor = normalize(real3(rMat * real4(tAxis, 0.0)));
-                        _axisAr.push_back(nor * arRadius);
-                    }
+                    mat4r   rMat    =   FE::rotate(mat4r(1), real(i) * step, _d.axisZ());
+                    real3   nor     =   normalize(real3(rMat * real4(tAxis, 0.0)));
+                    _axisAr.push_back(nor * arRadius);
                 }
             }
 
-            _indexs.clear();
-            for (uint16 i = 0; i < 3; i++)
+            if (_indexs.empty())
             {
-                uint16 firstIndex0 = 4 + 3 * i;               ///4:   面的第一个索引点
-                uint16 firstIndex1 = 5 + (3 * ((i + 2) % 3)); ///5:   面的第二个索引点
-                //与轴线相邻面框线索引
-                _indexs.push_back(firstIndex0);
-                _indexs.push_back(firstIndex0 + 1);
-                _indexs.push_back(firstIndex1);
-                _indexs.push_back(firstIndex1 + 1);
-                //轴线索引3
-                _indexs.push_back(0);
-                _indexs.push_back(i + 1);
-                //面索引
-                _indexs.push_back(0);
-                _indexs.push_back(firstIndex0);
-                _indexs.push_back(firstIndex0 + 1);
-                _indexs.push_back(firstIndex0 + 2);
+                for (uint16 i = 0; i < 3; i++)
+                {
+                    uint16 firstIndex0 = 4 + 3 * i;//4:面的第一个索引点
+                    uint16 firstIndex1 = 5 + (3 * ((i + 2) % 3));///5:面的第二个索引点
+                    //与轴线相邻面框线索引
+                    _indexs.push_back(firstIndex0);
+                    _indexs.push_back(firstIndex0 + 1);
+                    _indexs.push_back(firstIndex1);
+                    _indexs.push_back(firstIndex1 + 1);
+                    //轴线索引3
+                    _indexs.push_back(0);
+                    _indexs.push_back(i + 1);
+                    //面索引
+                    _indexs.push_back(0);
+                    _indexs.push_back(firstIndex0);
+                    _indexs.push_back(firstIndex0 + 1);
+                    _indexs.push_back(firstIndex0 + 2);
+                }
             }
+        }
+        //高亮轴
+        FEEditAxisMove::AXIS hoverAxis(FEContext& context, const int2& pos)
+        {
+            FEEditAxisMove::AXIS oldHovered = _hoveredAxis;
+
+            _hoveredAxis = FEEditAxisMove::AXIS::AXIS_NULL;
+           
+            _hoveredAxis = pickAxis(context, pos);
+            
+            if (_hoveredAxis == FEEditAxisMove::AXIS::AXIS_NULL)
+            {
+                _hoveredAxis = pickFace(context, pos);
+            }
+
+            if (oldHovered != _hoveredAxis)
+            {
+                _d.sendHoveredDelegate();
+            }
+            return _hoveredAxis;
         }
     public:
         /// <summary>
         /// 拾取高亮轴
         /// </summary>
-        FEEditAxisMove::AXIS hoverAxis(FEContext& context, const int2& pos)
+        FEEditAxisMove::AXIS pickAxis(FEContext& context, const int2& screen)
         {
-            FECamera& camera = context.activeCamera();
-            Ray ray = camera.createRayFromScreen(pos.x, pos.y);
-            real3 cenPos = _d.position();
+            if(_moveAxis.empty())
+                return FEEditAxisMove::AXIS_NULL;
 
-            real pixelDis = 10.0;
-            real unitF = camera.pixelU(cenPos);
-            real worldDis = unitF * pixelDis;
+            static const real DIST_MAX = 6;
+            auto&       camera = context.activeCamera();
+            real3       mouse(screen.x, screen.y, 0);
+            real2       center = camera.worldToScreen(real3(_moveAxis[0]) + _d.position());
+            //轴数据
+            real2       xAxis = camera.worldToScreen((real3(_moveAxis[1]) + _d.position()));
+            real2       yAxis = camera.worldToScreen((real3(_moveAxis[2]) + _d.position()));
+            real2       zAxis = camera.worldToScreen((real3(_moveAxis[3]) + _d.position()));
 
-            /// 先检测轴线索引 X, Y, Z
-            real3 axisPts[3] = { _d.axisX(), _d.axisY(), _d.axisZ() };
-            for (int i = 0; i < 3; ++i)
+            /// 拾取坐标轴
+            real        dist[3] = { 0,0,0 };
+            dist[0] = closeDistanceOnLine(real3(center.x, center.y, 0), real3(xAxis.x, xAxis.y, 0), mouse);
+            dist[1] = closeDistanceOnLine(real3(center.x, center.y, 0), real3(yAxis.x, yAxis.y, 0), mouse);
+            dist[2] = closeDistanceOnLine(real3(center.x, center.y, 0), real3(zAxis.x, zAxis.y, 0), mouse);
+            if (dist[0] == 0 && dist[1] == 0 && dist[2] == 0) 
+                return FEEditAxisMove::AXIS_NULL;
+            int min = 0;
+            if (dist[1] < dist[min])
+                min = 1;
+            if (dist[2] < dist[min])
+                min = 2;
+            if (dist[min] > DIST_MAX)
+                return FEEditAxisMove::AXIS_NULL;
+            if (min == 0 && _d.enabled(FEEditAxisMove::AXIS_X))
+                return FEEditAxisMove::AXIS_X;
+            if (min == 1 && _d.enabled(FEEditAxisMove::AXIS_Y))
+                return FEEditAxisMove::AXIS_Y;
+            if (min == 2 && _d.enabled(FEEditAxisMove::AXIS_Z))
+                return  FEEditAxisMove::AXIS_Z;
+            return  FEEditAxisMove::AXIS_NULL;
+        }
+        FEEditAxisMove::AXIS pickFace(FEContext& context, const int2& screen)
+        {
+            if(_moveAxis.empty())
+                return FEEditAxisMove::AXIS_NULL;
+
+            auto&   camera  =   context.activeCamera();
+            auto    ray     =   camera.createRayFromScreen(screen.x, screen.y);
+            real3      rect[3][4] =
             {
-                real3 axisEnd = cenPos + axisPts[i] * (unitF * 80);
-                real dis = closeDistanceOnLine(cenPos, axisEnd, ray.getOrigin() + ray.getDirection() * dot(axisEnd - ray.getOrigin(), ray.getDirection()));
-                if (dis < worldDis)
+                //xoy
                 {
-                    FEEditAxisMove::AXIS axisEnum = (FEEditAxisMove::AXIS)(FEEditAxisMove::AXIS_X + i);
-                    if (_d.enabled(axisEnum))
-                    {
-                        _hoveredAxis = axisEnum;
-                        _d.sendHoveredDelegate();
-                        return _hoveredAxis;
-                    }
+                      (real3(_moveAxis[0]) + _d.position())
+                    , (real3(_moveAxis[4]) + _d.position())
+                    , (real3(_moveAxis[5]) + _d.position())
+                    , (real3(_moveAxis[6]) + _d.position())
+                } ,
+                //yoz
+                {
+                      (real3(_moveAxis[0]) + _d.position())
+                    , (real3(_moveAxis[7]) + _d.position())
+                    , (real3(_moveAxis[8]) + _d.position())
+                    , (real3(_moveAxis[9]) + _d.position())
+                },
+                        //xoz
+                {
+                      (real3(_moveAxis[0]) + _d.position())
+                    , (real3(_moveAxis[10]) + _d.position())
+                    , (real3(_moveAxis[11]) + _d.position())
+                    , (real3(_moveAxis[12]) + _d.position())
                 }
-            }
-
-            /// 检测面索引 XY, YZ, XZ
-            real planeSz = unitF * 40;
-            real3 rect[3][4];
-            /// XY 面
-            rect[0][0] = cenPos;
-            rect[0][1] = cenPos + _d.axisX() * planeSz;
-            rect[0][2] = cenPos + _d.axisX() * planeSz + _d.axisY() * planeSz;
-            rect[0][3] = cenPos + _d.axisY() * planeSz;
-            /// YZ 面
-            rect[1][0] = cenPos;
-            rect[1][1] = cenPos + _d.axisY() * planeSz;
-            rect[1][2] = cenPos + _d.axisY() * planeSz + _d.axisZ() * planeSz;
-            rect[1][3] = cenPos + _d.axisZ() * planeSz;
-            /// XZ 面
-            rect[2][0] = cenPos;
-            rect[2][1] = cenPos + _d.axisZ() * planeSz;
-            rect[2][2] = cenPos + _d.axisZ() * planeSz + _d.axisX() * planeSz;
-            rect[2][3] = cenPos + _d.axisX() * planeSz;
-
+            };
             int index = -1;
             for (int i = 0; i < 3; ++i)
             {
@@ -356,39 +367,33 @@ namespace   FE
             case 0:     
             {
                 if(_d.enabled(FEEditAxisMove::AXIS_X) || _d.enabled(FEEditAxisMove::AXIS_Y))
-                    _hoveredAxis = FEEditAxisMove::AXIS_XY;
+                    return FEEditAxisMove::AXIS_XY;
                 else
-                    _hoveredAxis = FEEditAxisMove::AXIS_NULL;
-                break;
+                    return FEEditAxisMove::AXIS_NULL;
             }
             case 1:
             {
                 if(_d.enabled(FEEditAxisMove::AXIS_Y) || _d.enabled(FEEditAxisMove::AXIS_Z))
-                    _hoveredAxis = FEEditAxisMove::AXIS_YZ;
+                    return FEEditAxisMove::AXIS_YZ;
                 else
-                    _hoveredAxis = FEEditAxisMove::AXIS_NULL;
-                break;
+                    return FEEditAxisMove::AXIS_NULL;
             }
             case 2:
             {
                 if(_d.enabled(FEEditAxisMove::AXIS_X) || _d.enabled(FEEditAxisMove::AXIS_Z))
-                    _hoveredAxis = FEEditAxisMove::AXIS_XZ;
+                    return FEEditAxisMove::AXIS_XZ;
                 else
-                    _hoveredAxis = FEEditAxisMove::AXIS_NULL;
-                break;
+                    return FEEditAxisMove::AXIS_NULL;
             }
             default:    
-                _hoveredAxis = FEEditAxisMove::AXIS_NULL;
-                break;
+                return FEEditAxisMove::AXIS_NULL;
             }
-            _d.sendHoveredDelegate();
-            return _hoveredAxis;
         }
 
-        real3 moveX(FEContext& context, const FE::int2 &start, const FE::int2& end)
+        real3   moveX(FEContext& context, const FE::int2 &start, const FE::int2& end)
         {
             FE::FECamera& camera = context.activeCamera();
-            real3 axis = normalize(_d.axisX());
+            real3   axis = normalize(_d.axisX());
 
             ///吸附计算
             _adsorptionRet = this->calcAdsorption(&context, end);
@@ -425,7 +430,7 @@ namespace   FE
             }
             return _offMove;
         }
-        real3 moveY(FEContext& context, const FE::int2 &start, const FE::int2& end)
+        real3   moveY(FEContext& context, const FE::int2 &start, const FE::int2& end)
         {
             FE::FECamera& camera = context.activeCamera();
             real3 axis = normalize(_d.axisY());
@@ -448,15 +453,15 @@ namespace   FE
             if (!_d.calcAxisPlaneNormalize(camera, axis, faceNor))
                 return _offMove;
 
-            Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-            Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
-            real3 retPt0(0.0);
-            real3 retPt1(0.0);
+            Ray     rayStart    =   camera.createRayFromScreen(start.x, start.y);
+            Ray     rayEnd      =   camera.createRayFromScreen(end.x, end.y);
+            real3   retPt0(0.0);
+            real3   retPt1(0.0);
             if (calcRaySurFaceInsPt(rayStart, faceNor, _d.position(), retPt0) &&
                 calcRaySurFaceInsPt(rayEnd, faceNor, _d.position(), retPt1))
             {
-                real3 v = FE::closePointOnVector(axis, retPt0, retPt1);
-                real3 retV = axis * length(v - retPt0);
+                real3   v     =     FE::closePointOnVector(axis, retPt0, retPt1);
+                real3   retV  =     axis * length(v - retPt0);
                 if (dot(normalize(v - retPt0), axis) < 0)
                 {
                     retV = -retV;
@@ -465,18 +470,17 @@ namespace   FE
             }
             return _offMove;
         }
-        real3 moveZ(FEContext& context, const FE::int2 &start, const FE::int2& end)
+        real3   moveZ(FEContext& context, const FE::int2 &start, const FE::int2& end)
         {
-            FE::FECamera& camera = context.activeCamera();
-            real3 axis = normalize(_d.axisZ());
-            
+            auto&   camera  =   context.activeCamera();
+            real3   axis    =   normalize(_d.axisZ());
             ///吸附计算
-            _adsorptionRet = this->calcAdsorption(&context, end);
+            _adsorptionRet  =   this->calcAdsorption(&context, end);
             if (_adsorptionRet.isVaild())
             {
-                real3 rPt = _adsorptionRet.ptWorld();
-                real3 v = FE::closePointOnVector(axis, _downPosWorld, rPt);
-                real3 retV = axis * length(v - _downPosWorld);
+                real3   rPt     =   _adsorptionRet.ptWorld();
+                real3   v       =   FE::closePointOnVector(axis, _downPosWorld, rPt);
+                real3   retV    =   axis * length(v - _downPosWorld);
                 if (dot(normalize(v - _downPosWorld), axis) < 0)
                 {
                     retV = -retV;
@@ -488,10 +492,10 @@ namespace   FE
             if (!_d.calcAxisPlaneNormalize(camera, axis, faceNor))
                 return _offMove;
 
-            Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-            Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
-            real3 retPt0(0.0);
-            real3 retPt1(0.0);
+            Ray     rayStart    =   camera.createRayFromScreen(start.x, start.y);
+            Ray     rayEnd      =   camera.createRayFromScreen(end.x, end.y);
+            real3   retPt0(0.0);
+            real3   retPt1(0.0);
             if (calcRaySurFaceInsPt(rayStart, faceNor, _d.position(), retPt0) &&
                 calcRaySurFaceInsPt(rayEnd, faceNor, _d.position(), retPt1))
             {
@@ -505,15 +509,11 @@ namespace   FE
             }
             return _offMove;
         }
-        real3 moveXY(FEContext& context, const FE::int2 &start, const FE::int2& end)
+        real3   moveXY(FEContext& context, const FE::int2 &start, const FE::int2& end)
         {
-            if(_bThreeClipEdit)
-            {
-                return moveZ(context, start, end);
-            }
-            FE::FECamera& camera = context.activeCamera();
-
-            real3 faceNor = normalize(cross(_d.axisX(), _d.axisY()));
+            
+            auto&   camera  =   context.activeCamera();
+            real3   faceNor =   normalize(cross(_d.axisX(), _d.axisY()));
             
             ///吸附计算
             _adsorptionRet = this->calcAdsorption(&context, end);
@@ -526,10 +526,10 @@ namespace   FE
                 return rPrjPt - _downPosWorld;
             }
 
-            Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-            Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
-            real3 retPt0(0.0);
-            real3 retPt1(0.0);
+            Ray     rayStart    =   camera.createRayFromScreen(start.x, start.y);
+            Ray     rayEnd      =   camera.createRayFromScreen(end.x, end.y);
+            real3   retPt0(0.0);
+            real3   retPt1(0.0);
             if (calcRaySurFaceInsPt(rayStart, faceNor, _d.position(), retPt0)
                 && calcRaySurFaceInsPt(rayEnd, faceNor, _d.position(), retPt1))
             {
@@ -537,31 +537,26 @@ namespace   FE
             }
             return _offMove;
         }
-        real3 moveXZ(FEContext& context, const FE::int2 &start, const FE::int2& end)
+        real3   moveXZ(FEContext& context, const FE::int2 &start, const FE::int2& end)
         {
-            if(_bThreeClipEdit)
-            {
-                return moveY(context, start, end);
-            }
-            FE::FECamera& camera = context.activeCamera();
-
-            real3 faceNor = normalize(cross(_d.axisX(), _d.axisZ()));
+            auto&   camera  =   context.activeCamera();
+            real3   faceNor =   normalize(cross(_d.axisX(), _d.axisZ()));
             
             ///吸附计算
             _adsorptionRet = this->calcAdsorption(&context, end);
             if (_adsorptionRet.isVaild())
             {
-                real3 rPt = _adsorptionRet.ptWorld();
+                real3   rPt     =   _adsorptionRet.ptWorld();
                 ///将结果点投影到XOY平面上
-                real3 rPrjPt = ptProjToPlane(rPt, faceNor, _downPosWorld);
+                real3   rPrjPt  =   ptProjToPlane(rPt, faceNor, _downPosWorld);
                 ///计算偏移量
                 return rPrjPt - _downPosWorld;
             }
 
-            Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-            Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
-            real3 retPt0(0.0);
-            real3 retPt1(0.0);
+            Ray     rayStart    =   camera.createRayFromScreen(start.x, start.y);
+            Ray     rayEnd      =   camera.createRayFromScreen(end.x, end.y);
+            real3   retPt0(0.0);
+            real3   retPt1(0.0);
             if (calcRaySurFaceInsPt(rayStart, faceNor, _d.position(), retPt0)
                 && calcRaySurFaceInsPt(rayEnd, faceNor, _d.position(), retPt1))
             {
@@ -569,28 +564,24 @@ namespace   FE
             }
             return _offMove;
         }
-        real3 moveYZ(FEContext& context, const FE::int2 &start, const FE::int2& end)
+        real3   moveYZ(FEContext& context, const FE::int2 &start, const FE::int2& end)
         {
-            if(_bThreeClipEdit)
-            {
-                return moveX(context, start, end);
-            }
-            FECamera& camera  =   context.activeCamera();
-            real3       faceNor =   normalize(cross(_d.axisY(), _d.axisZ()));
+            auto&   camera  =   context.activeCamera();
+            real3   faceNor =   normalize(cross(_d.axisY(), _d.axisZ()));
             
             ///吸附计算
             _adsorptionRet = this->calcAdsorption(&context, end);
             if (_adsorptionRet.isVaild())
             {
-                real3 rPt = _adsorptionRet.ptWorld();
+                real3   rPt     =   _adsorptionRet.ptWorld();
                 ///将结果点投影到XOY平面上
-                real3 rPrjPt = ptProjToPlane(rPt, faceNor, _downPosWorld);
+                real3   rPrjPt  =   ptProjToPlane(rPt, faceNor, _downPosWorld);
                 ///计算偏移量
                 return rPrjPt - _downPosWorld;
             }
 
-            Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-            Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
+            Ray     rayStart    =   camera.createRayFromScreen(start.x, start.y);
+            Ray     rayEnd      =   camera.createRayFromScreen(end.x, end.y);
             real3   retPt0(0.0);
             real3   retPt1(0.0);
             if (calcRaySurFaceInsPt(rayStart, faceNor, _d.position(), retPt0) 
@@ -634,8 +625,8 @@ namespace   FE
             {
                 if (!rets[i].isVaild())
                     continue;
-                real3 tmpPt = rets[i].ptWorld();
-                real dis = distance(camera.getEye(), tmpPt);
+                real3   tmpPt   =   rets[i].ptWorld();
+                real    dis     =   distance(camera.getEye(), tmpPt);
                 if (dis > minDis)
                     continue;
                 minDis = dis;
@@ -676,20 +667,7 @@ namespace   FE
             _offMove = ret;
             return ret;
         }
-        /// <summary>
-        /// 绘制吸附点(占位)
-        /// </summary>
-        void renderAdsorptionPoint(FEContext& context)
-        {
-            (void)context;
-        }
-        /// <summary>
-        /// 绘制吸附线(占位)
-        /// </summary>
-        void renderAdsorptionLine(FEContext& context)
-        {
-            (void)context;
-        }
+
     };
 
     FEEditAxisMove::FEEditAxisMove(FEContext& ctx)
@@ -748,15 +726,6 @@ namespace   FE
         _p->_adsorptionPixel = pixel;
     }
 
-    bool    FEEditAxisMove::isClipEdit() const
-    {
-        return _p->_bThreeClipEdit;
-    }
-
-    void    FEEditAxisMove::setClipEdit(bool b)
-    {
-        _p->_bThreeClipEdit = b;
-    }
     void    FEEditAxisMove::update(FECamera& camera)
     {
         _p->update(camera);
@@ -780,8 +749,8 @@ namespace   FE
 
     void    FEEditAxisMove::cancelHovered()
     {
-        AXIS oldHovered = _p->_hoveredAxis;
-        _p->_hoveredAxis = FEEditAxisMove::AXIS::AXIS_NULL;
+        AXIS oldHovered     =   _p->_hoveredAxis;
+        _p->_hoveredAxis    =   FEEditAxisMove::AXIS::AXIS_NULL;
         if (oldHovered != _p->_hoveredAxis)
         {
             this->sendHoveredDelegate();
@@ -789,28 +758,41 @@ namespace   FE
     }
     void    FEEditAxisMove::cancelSelected()
     {
-        AXIS oldSelected = _p->_selectedAxis;
-        _p->_selectedAxis = FEEditAxisMove::AXIS::AXIS_NULL;
+        AXIS oldSelected    =   _p->_selectedAxis;
+        _p->_selectedAxis   =   FEEditAxisMove::AXIS::AXIS_NULL;
         if (oldSelected != _p->_selectedAxis)
         {
             this->sendSelectedDelegate();
         }
     }
 
-    bool    FEEditAxisMove::mouseButtonPress(FEContext& context, const int2& pos)
+    void    FEEditAxisMove::onMessage(const FEMessage& inputMsg) 
+    {
+        switch(inputMsg.msgId())
+        {
+        case MSG_LBUTTON_DOWN:
+            mouseButtonPress(static_cast<const MsgLButtonDown&>(inputMsg)._info._mouse);
+            break;
+        case MSG_LBUTTON_UP:
+            mouseButtonRelease(static_cast<const MsgLButtonUp&>(inputMsg)._info._mouse);
+            break;
+        case MSG_MOUSE_MOVE:
+            mouseMove(static_cast<const MsgMouseMove&>(inputMsg)._info._mouse);
+            break;
+        }
+    }
+    bool    FEEditAxisMove::mouseButtonPress(const int2& pos)
     {
         _p->_adsorptionRet.reset();
 
-        _p->_downPosWorld = this->position();
-
-        _p->_bMouseDown = true;
-
-        AXIS oldSelected    = _p->_selectedAxis;
-        _p->_selectedAxis   = _p->_hoveredAxis;
+        _p->_downPosWorld   =   this->position();
+        _p->_bMouseDown     =   true;
+        AXIS oldSelected    =   _p->_selectedAxis;
+        _p->_selectedAxis   =   _p->_hoveredAxis;
         if (oldSelected != _p->_selectedAxis)
         {
             this->sendSelectedDelegate();
-            context.requireNextFrame();
+            _ctx.requireNextFrame();
         }
 
         if (isAxisSelected())
@@ -819,80 +801,66 @@ namespace   FE
             _p->_startPos   =   pos;
             _p->_offMove    =   real3(0.0);
             _p->_delegate(EditStatus::EditStart, real3(0.0), real3(0.0), *this);
-            context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         return false;
     }
-    bool    FEEditAxisMove::mouseButtonRelease(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::mouseButtonRelease(const int2& pos)
     {
         _p->_adsorptionRet.reset();
 
-        _p->_downPosWorld = this->position();
-
-        _p->_bMouseDown = false;
+        _p->_downPosWorld   =   this->position();
+        _p->_bMouseDown     =   false;
         if (isAxisSelected())
         {
             _p->_delegate(EditStatus::EditEnd, real3(0.0), _p->_offMove, *this);
-            _p->_downPos = pos;
-            _p->_startPos = pos;
-            _p->_offMove = real3(0);
+            _p->_downPos    =   pos;
+            _p->_startPos   =   pos;
+            _p->_offMove    =   real3(0);
 
-            AXIS oldSelected = _p->_selectedAxis;
-            _p->_selectedAxis = AXIS_NULL;
+            AXIS oldSelected    =   _p->_selectedAxis;
+            _p->_selectedAxis   =   AXIS_NULL;
             if (oldSelected != _p->_selectedAxis)
             {
                 this->sendSelectedDelegate();
-                context.requireNextFrame();
+                _ctx.requireNextFrame();
             }
             return true;
         }
         return false;
     }
-    bool    FEEditAxisMove::mouseMove(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::mouseMove(const int2& pos)
     {
         if (isAxisSelected())
         {
-            real3 oldOff = _p->_offMove;
-            real3 offset = _p->calcMove(context, _p->_startPos, pos);
-            offset = offset - oldOff;
+            real3   oldOff  =   _p->_offMove;
+            real3   offset  =   _p->calcMove(_ctx, _p->_startPos, pos);
+                    offset  =   offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
-            _p->_downPos = pos;
+            _p->_downPos    =   pos;
             _ctx.requireNextFrame();
             return true;
         }
         else if(!_p->_bMouseDown)
         {
-            if (_p->hoverAxis(context, pos) != AXIS_NULL)
-            {
-                
-            }
+            if (_p->hoverAxis(_ctx, pos) != AXIS_NULL)
+            {}
             else
-            {
-                
-            }
+            {}
         }
         return false;
     }
 
-    bool    FEEditAxisMove::touchDown(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::touchDown(const int2& pos)
     {
         {
             ///拾取动作
-            AXIS oldSelected = _p->_selectedAxis;
-            _p->_selectedAxis = _p->hoverAxis(context, pos);
+            AXIS oldSelected    =   _p->_selectedAxis;
+            _p->_selectedAxis   =   _p->hoverAxis(_ctx, pos);
             if (oldSelected != _p->_selectedAxis)
             {
                 this->sendSelectedDelegate();
-            }
-
-            if (this->isAxisSelected())
-            {
-                
-            }
-            else
-            {
-                
             }
         }
         _p->_downPosWorld = this->position();
@@ -900,10 +868,10 @@ namespace   FE
         _p->_bTouchDown = true;
         if (this->isAxisSelected())
         {
-            _p->_bTouchPickup = false;
-            _p->_touchDownPos = pos;
-            _p->_touchStartPos = pos;
-            _p->_offMove = real3(0);
+            _p->_bTouchPickup   =   false;
+            _p->_touchDownPos   =   pos;
+            _p->_touchStartPos  =   pos;
+            _p->_offMove        =   real3(0);
             _p->_delegate(EditStatus::EditStart, real3(0.0), real3(0.0), *this);
             return true;
         }
@@ -913,16 +881,15 @@ namespace   FE
             return false;
         }
     }
-    bool    FEEditAxisMove::touchUp(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::touchUp(const int2& pos)
     {
-        
-        _p->_downPosWorld = this->position();
-
-        _p->_bTouchDown = false;
+        _p->_downPosWorld   =   this->position();
+        _p->_bTouchDown     =   false;
         if (_p->_bTouchPickup)
-        {///拾取动作
-            AXIS oldSelected = _p->_selectedAxis;
-            _p->_selectedAxis = _p->hoverAxis(context, pos);
+        {   
+            ///拾取动作
+            AXIS oldSelected    =   _p->_selectedAxis;
+            _p->_selectedAxis   =   _p->hoverAxis(_ctx, pos);
             if (oldSelected != _p->_selectedAxis)
             {
                 this->sendSelectedDelegate();
@@ -938,20 +905,20 @@ namespace   FE
         else if (isAxisSelected())
         {
             _p->_delegate(EditStatus::EditEnd, real3(0.0), _p->_offMove, *this);
-            _p->_touchDownPos = pos;
-            _p->_touchStartPos = pos;
-            _p->_offMove = real3(0);
-            _p->_bTouchPickup = false;
+            _p->_touchDownPos   =   pos;
+            _p->_touchStartPos  =   pos;
+            _p->_offMove        =   real3(0);
+            _p->_bTouchPickup   =   false;
 
-            AXIS oldSelected = _p->_selectedAxis;
-            _p->_selectedAxis = AXIS::AXIS_NULL;
+            AXIS oldSelected    =   _p->_selectedAxis;
+            _p->_selectedAxis   =   AXIS::AXIS_NULL;
             if (oldSelected != _p->_selectedAxis)
             {
                 this->sendSelectedDelegate();
             }
 
-            AXIS oldHovered = _p->_hoveredAxis;
-            _p->_hoveredAxis = AXIS::AXIS_NULL;
+            AXIS oldHovered     =   _p->_hoveredAxis;
+            _p->_hoveredAxis    =   AXIS::AXIS_NULL;
             if (oldHovered != _p->_hoveredAxis)
             {
                 this->sendHoveredDelegate();
@@ -961,13 +928,13 @@ namespace   FE
         return false;
 
     }
-    bool    FEEditAxisMove::touchMove(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::touchMove(const int2& pos)
     {
         if (isAxisSelected())
         {
-            real3 oldOff = _p->_offMove;
-            real3 offset = _p->calcMove(context, _p->_touchStartPos, pos);
-            offset = offset - oldOff;
+            real3 oldOff    =   _p->_offMove;
+            real3 offset    =   _p->calcMove(_ctx, _p->_touchStartPos, pos);
+                    offset  =   offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
             _p->_touchDownPos = pos;
             _ctx.requireNextFrame();

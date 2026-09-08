@@ -123,9 +123,15 @@ namespace   FE
         /// 创建网格
         createGrid();
 
-        RFactory    facotry =   new FEFactoryAxisMove(_ctx);
+        auto    facotry     =   new FEFactoryAxisMove(_ctx);
         facotry->setResident(true);
         _factorys.addObject(facotry);   
+
+        auto        inputSys    =   _comSysMgr.query(UUIDOF(FEInputSystem));
+        if (inputSys)
+        {
+            inputSys->addObject(facotry->inputComponent().get());
+        }
 
         return  true;
     }

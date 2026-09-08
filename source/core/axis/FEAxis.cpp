@@ -7,8 +7,8 @@
 
 namespace   FE
 {
-    FEAxis::FEAxis(AxisType type, FEContext& context)
-        :FEObject(context)
+    FEAxis::FEAxis(AxisType type, FEContext& ctx)
+        :FEInputCom(ctx)
     {
         _axisType       =   AxisTypeBase;
         _transform      =   mat4r(1.0);
@@ -98,7 +98,8 @@ namespace   FE
     
     
 
-    FEEditAxis::FEEditAxis(EditAxisType type, FEContext& context):FEAxis(AxisTypeEdit, context)
+    FEEditAxis::FEEditAxis(EditAxisType type, FEContext& ctx)
+        :FEAxis(AxisTypeEdit, ctx)
     {
         _editAxisType = type;
     }

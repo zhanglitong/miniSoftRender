@@ -66,12 +66,12 @@ namespace FE
         /// </summary>
         virtual void cancelSelected()override;
     public:
-        virtual bool mouseButtonPress(FEContext& context, const int2& pos) override;
-        virtual bool mouseButtonRelease(FEContext& context, const int2& pos) override;
-        virtual bool mouseMove(FEContext& context, const int2& pos) override;
-        virtual bool touchDown(FEContext& context, const int2& pos) override;
-        virtual bool touchUp(FEContext& context, const int2& pos) override;
-        virtual bool touchMove(FEContext& context, const int2& pos)override;
+        virtual bool mouseButtonPress(FEContext& context, const int2& pos) ;
+        virtual bool mouseButtonRelease(FEContext& context, const int2& pos) ;
+        virtual bool mouseMove(FEContext& context, const int2& pos) ;
+        virtual bool touchDown(FEContext& context, const int2& pos) ;
+        virtual bool touchUp(FEContext& context, const int2& pos) ;
+        virtual bool touchMove(FEContext& context, const int2& pos);
     public:
         /// <summary>
         /// 这里不再使用矩阵来变换轴向，而是直接通过接口 setDir() 来指定

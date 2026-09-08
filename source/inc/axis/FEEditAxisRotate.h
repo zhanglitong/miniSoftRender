@@ -161,12 +161,12 @@ namespace   FE
             return value == FEEditAxisRotate::AXIS::AXIS_Z;
         }
     public:
-        virtual bool mouseButtonPress(FEContext& context, const int2& pos) override;
-        virtual bool mouseButtonRelease(FEContext& context, const int2& pos) override;
-        virtual bool mouseMove(FEContext& context, const int2& pos) override;
-        virtual bool touchDown(FEContext& context, const int2& pos) override;
-        virtual bool touchUp(FEContext& context, const int2& pos) override;
-        virtual bool touchMove(FEContext& context, const int2& pos) override;
+        virtual bool mouseButtonPress(FEContext& context, const int2& pos) ;
+        virtual bool mouseButtonRelease(FEContext& context, const int2& pos) ;
+        virtual bool mouseMove(FEContext& context, const int2& pos) ;
+        virtual bool touchDown(FEContext& context, const int2& pos) ;
+        virtual bool touchUp(FEContext& context, const int2& pos) ;
+        virtual bool touchMove(FEContext& context, const int2& pos) ;
     };
 }
 
