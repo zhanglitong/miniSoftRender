@@ -11,6 +11,7 @@
     <VIEWPORT/>
     <SCISSOR/>
     <CULL_MODE/>
+    <LINE_WIDTH/>
     <PRIMITIVE_TOPOLOGY/>
   </dynamicStates>
   <!--顶点定义: 重要-->

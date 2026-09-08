@@ -47,10 +47,9 @@ namespace   FE
             return  FEResult::ER_FAILED;
 
         VkViewport  viewports[8]    =   {};
-        VkViewport viewport{};
-        constexpr bool invertY  =   true;
-        if (true)
-        {
+        VkViewport  viewport{};
+
+        #ifdef  INVERT_VIEWPORT
             for (uint i = first; i < first + cnt; ++i)
             {
                 viewports[i].x          =   vps[i].x;
@@ -60,9 +59,7 @@ namespace   FE
                 viewports[i].minDepth   =   vps[i].minDepth;
                 viewports[i].maxDepth   =   vps[i].maxDepth;
             }
-        }
-        else
-        {
+        #else
             for (uint i = first; i < first + cnt; ++i)
             {
                 viewports[i].x          =   vps[i].x;
@@ -72,8 +69,7 @@ namespace   FE
                 viewports[i].minDepth   =   vps[i].minDepth;
                 viewports[i].maxDepth   =   vps[i].maxDepth;
             }
-        }
-        
+        #endif
         vkCmdSetViewport(_native, first, cnt, viewports);
 
         return  FEResult::ER_SUCCESS;

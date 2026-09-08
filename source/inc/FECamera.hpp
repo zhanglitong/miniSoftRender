@@ -761,10 +761,11 @@ namespace   FE
 
             // map from viewport to 0 - 1
             v.x = (v.x) / _viewSize.x;
-            //v.y = (v.y) / _viewSize.y;
-
+        #ifndef     INVERT_VIEWPORT
+            v.y = (v.y) / _viewSize.y;
+        #else
             v.y = (_viewSize.y - v.y) / _viewSize.y;
-           // v.y = (v.y - _viewSize.y) / _viewSize.y;
+        #endif
 
             // map to range -1 to 1
             v.x = v.x * 2.0f - 1.0f;

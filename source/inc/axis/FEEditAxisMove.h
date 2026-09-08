@@ -7,7 +7,6 @@
 /// </summary>
 namespace   FE
 {
-    class   FEEditAxisMovePrivate;
     class   FE_API  FEEditAxisMove: public FEEditAxis
     {
     public:
@@ -25,29 +24,6 @@ namespace   FE
             AXIS_XZ,//xoz平面
         };
         /// <summary>
-        /// 移动吸附标志
-        /// </summary>
-        enum AdsorptionFlag
-        {
-            ///无
-            AF_None         =   0, 
-            ///几何体顶点吸附标志
-            AF_Points       =   1 << 0,
-            ///几何体边线吸附标志
-            AF_Edge         =   1 << 1,
-            ///几何体边线中心点吸附标志
-            AF_EdgeCenter   =   1 << 2,
-            ///几何体三角面吸附标志
-            AF_Face         =   1 << 3,
-            ///几何体三角面中心点吸附标志
-            AF_FaceCenter   =   1 << 4,
-            ///节点位置吸附标志
-            AF_Position     =   1 << 5,
-            ///节点包围盒吸附标志(顶点以及包围盒中心点)
-            AF_Aabb         =   1 << 6,
-        };
-        using AdsorptionFlags = FEFlags<AdsorptionFlag, uint>;
-        /// <summary>
         /// 移动通知
         /// </summary>
         /// <param name="status">编辑状态</param>
@@ -58,9 +34,7 @@ namespace   FE
             , const real3& relativeOffset
             , const real3& absoluteOffset
             , FEEditAxisMove& sender)>;
-    private:
-        FEEditAxisMovePrivate* _p;
-        friend class FEEditAxisMovePrivate;
+
     public:
         FEEditAxisMove(FEContext& ctx);
 
@@ -71,17 +45,17 @@ namespace   FE
         /// <summary>
         /// 移动操作回调,当轴发生移动操作时，触发该回调
         /// </summary>
-        MDelegate& mDelegate();
+        MDelegate&  mDelegate();
         /// <summary>
         /// 获取当前已经被高亮的轴
         /// </summary>
         /// <returns>返回高亮的轴索引</returns>
-        FEEditAxisMove::AXIS hoveredAxis() const;
+        AXIS        hoveredAxis() const;
         /// <summary>
         /// 获取当前已经被选中的轴
         /// </summary>
         /// <returns>返回选中的轴索引</returns>
-        FEEditAxisMove::AXIS selectedAxis() const;
+        AXIS        selectedAxis() const;
         /// <summary>
         /// 给定一个单位向量，计算当沿着着该单位向量移动时，移动偏移量相对于X轴的移动偏移量的权重
         /// </summary>
@@ -103,31 +77,6 @@ namespace   FE
         {
             return dot(vec, this->axisZ());
         }
-
-        /// <summary>
-        /// 启用/禁用移动吸附
-        /// </summary>
-        void    setAdsorptionEnabled(bool enabled);
-        /// <summary>
-        /// 获取移动吸附是否启用
-        /// </summary>
-        bool    adsorptionEnabled() const;
-        /// <summary>
-        /// 获取移动吸附标志
-        /// </summary>
-        AdsorptionFlags adsorptionFlags() const;
-        /// <summary>
-        /// 设置移动吸附标志
-        /// </summary>
-        void    setAdsorptionFlags(AdsorptionFlags flags) ;
-        /// <summary>
-        /// 获取移动吸附点像素范围
-        /// </summary>
-        real    adsorptionPixel() const;
-        /// <summary>
-        /// 设置移动吸附点像素范围
-        /// </summary>
-        void    setAdsorptionPixel(real pixel) ;
         /// <summary>
         /// 每一帧调用该函数,会自动生成 moveAxis,axisArray,indexs 数据
         /// </summary>
@@ -158,7 +107,7 @@ namespace   FE
         {
             return selectedAxis() != FEEditAxisMove::AXIS::AXIS_NULL;
         }
-        
+
         /// <summary>
         /// 取消轴的高亮状态
         /// </summary>
@@ -195,6 +144,29 @@ namespace   FE
         /// </summary>
         /// <param name=""></param>
         virtual void    onMessage(const FEMessage& ) override;
+    private:
+        /// <summary>
+        /// 高亮轴
+        /// </summary>
+        AXIS    hoverAxis(FEContext& context, const int2& pos);
+        /// <summary>
+        /// 拾取轴
+        /// </summary>
+        AXIS    pickAxis(FEContext& context, const int2& screen);
+        /// <summary>
+        /// 拾取面
+        /// </summary>
+        AXIS    pickFace(FEContext& context, const int2& screen);
+        real3   moveX(FEContext& context, const int2& start, const int2& end);
+        real3   moveY(FEContext& context, const int2& start, const int2& end);
+        real3   moveZ(FEContext& context, const int2& start, const int2& end);
+        real3   moveXY(FEContext& context, const int2& start, const int2& end);
+        real3   moveXZ(FEContext& context, const int2& start, const int2& end);
+        real3   moveYZ(FEContext& context, const int2& start, const int2& end);
+        /// <summary>
+        /// 根据选中的轴计算移动偏移量
+        /// </summary>
+        real3   calcMove(FEContext& context, const int2& start, const int2& end);
     protected:
         virtual bool mouseButtonPress(const int2& pos)  ;
         virtual bool mouseButtonRelease(const int2& pos);
@@ -202,8 +174,41 @@ namespace   FE
         virtual bool touchDown(const int2& pos)         ;
         virtual bool touchUp(const int2& pos)           ;
         virtual bool touchMove(const int2& pos)         ;
+    private:
+        ///轴顶点
+        float3s             _moveAxis;
+        ///箭头顶点
+        float3s             _axisAr;
+        /// <summary>
+        /// 索引数据
+        /// </summary>
+        uint16s             _indexs;
+        ///高亮的轴
+        AXIS                _hoveredAxis;
+        ///选择的轴
+        AXIS                _selectedAxis;
+        ///
+        real3               _offMove;
+        ///开始移动时轴的位置
+        real3               _downPosWorld;
+        ///鼠标按下的最后位置
+        int2                _downPos;
+        ///开始时的鼠标位置
+        int2                _startPos;
+
+        ///触屏按下的最后位置
+        int2                _touchDownPos;
+        ///触屏开始时按下的位置
+        int2                _touchStartPos;
+        ///移动通知
+        MDelegate           _delegate;
+        ///鼠标按钮按下
+        bool                _bMouseDown;
+        ///触屏按下
+        bool                _bTouchDown;
+        ///触屏拾取轴
+        bool                _bTouchPickup;
     };
 
     using   EditAxisMove    =   SharedPtr<FEEditAxisMove>;
 }
-
