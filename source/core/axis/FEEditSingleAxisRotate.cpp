@@ -577,7 +577,7 @@ namespace   FE
             return;
         _p->_axis = normalize(axis);
         _internalFlags.addFlag(InteralFlag_Update);
-        _context.requireNextFrame();
+        _ctx.requireNextFrame();
     }
     const real3& FEEditSingleAxisRotate::axis()
     {
@@ -695,7 +695,7 @@ namespace   FE
             angle = angle - oldAngle;
             _p->_delegate(EditStatus::Editting, axis, angle, _p->_offAngle, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         else if (!_p->_bMouseDown)
@@ -801,20 +801,9 @@ namespace   FE
             angle = angle - oldAngle;
             _p->_delegate(EditStatus::Editting, axis, angle, _p->_offAngle, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         return false;
-    }
-
-    void FEEditSingleAxisRotate::update(FEContext& context)
-    {
-        _p->updateAxisVerties(context);
-    }
-    void FEEditSingleAxisRotate::render(FEContext& context)
-    {
-        if (!_internalFlags.hasFlag(InteralFlag_Visible))
-            return;
-        _p->renderAxis(context);
     }
 }

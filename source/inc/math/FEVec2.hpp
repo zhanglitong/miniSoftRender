@@ -9,6 +9,7 @@
 #include    <glm/gtc/matrix_transform.hpp>
 #include    <glm/gtx/compatibility.hpp>
 #include    <glm/gtx/norm.hpp>
+#include    <glm/gtc/packing.hpp>
 #include    "FEDefine.h"
 
 

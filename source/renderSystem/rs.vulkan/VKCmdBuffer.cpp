@@ -96,6 +96,14 @@ namespace   FE
 
         return  FEResult::ER_SUCCESS;
     }
+    FEResult    VKCmdBuffer::setLineWidth(float width) 
+    {
+        if (!isValid())
+            return  FEResult::ER_FAILED;
+        vkCmdSetLineWidth(_native,width);
+        return  FEResult::ER_SUCCESS;
+    }
+
     FEResult    VKCmdBuffer::beginRenderPass(BeginInfo& info)
     {
         if (!isValid())
@@ -123,6 +131,28 @@ namespace   FE
 
         return  FEResult::ER_SUCCESS;
 
+    }
+
+    FEResult    VKCmdBuffer::setCullMode(CullMode mode)
+    {
+        switch (mode)
+        {
+        case CullMode::CM_NULL:
+            vkCmdSetCullMode(_native,VK_CULL_MODE_NONE);
+            break;
+        case CullMode::CM_FRONT:
+            vkCmdSetCullMode(_native,VK_CULL_MODE_FRONT_BIT);
+            break;
+        case CullMode::CM_BACK:
+            vkCmdSetCullMode(_native,VK_CULL_MODE_BACK_BIT);
+            break;
+        case CullMode::CM_FRONT_AND_BACK:
+            vkCmdSetCullMode(_native,VK_CULL_MODE_FRONT_AND_BACK);
+            break;
+        default:
+            break;
+        }
+        return  FEResult::ER_SUCCESS;
     }
     
     FEResult    VKCmdBuffer::beginRender(const RenderInfo& rs)

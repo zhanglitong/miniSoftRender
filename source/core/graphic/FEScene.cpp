@@ -15,6 +15,7 @@
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/FEFileFormatHelper.hpp"
 #include    "../inc/fileFormat/fepk/FEFormatFepj.hpp"
+#include    "../inc/graphic/FEFactoryAxisMove.hpp"
 
 namespace   FE
 {
@@ -61,7 +62,7 @@ namespace   FE
         };
         {
             FEDevice::CreateInfo    infor   =   {};
-            infor.deviceId  =   gpuList[0].gpuId;
+            infor.deviceId  =   gpuList[1].gpuId;
             _device->create(infor);
         }
         {
@@ -122,6 +123,11 @@ namespace   FE
         });
         /// 创建网格
         createGrid();
+
+        RFactory    facotry =   new FEFactoryAxisMove(_ctx);
+        facotry->setResident(true);
+        _factorys.addObject(facotry);   
+
         return  true;
     }
 

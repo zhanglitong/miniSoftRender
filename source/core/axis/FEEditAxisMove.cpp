@@ -84,26 +84,25 @@ namespace   FE
         return false;
     }
     
-    class FEEditAxisMovePrivate
+    class   FEEditAxisMovePrivate
     {
     private:
         struct PushBlock
         {
-            mat4r     _mvp;
-            float4      _color;
+            mat4    _mvp;
+            float4  _color;
         };
     public:
         ///
-        FEEditAxisMove& _d;
+        FEEditAxisMove&     _d;
         ///轴顶点
-        std::vector<float3> _moveAxis;
+        float3s             _moveAxis;
         ///箭头顶点
-        std::vector<float3> _axisAr;
-
-        VertexBufPtr    _axisLineVBO    =   nullptr;
-        VertexBufPtr    _axisArrowVBO   =   nullptr;
-        IndexBufPtr     _axisLineIBO    =   nullptr;
-        std::vector<uint>   _lineindex;
+        float3s             _axisAr;
+        /// <summary>
+        /// 索引数据
+        /// </summary>
+        uint16s             _indexs;
 
         ///高亮的轴
         FEEditAxisMove::AXIS _hoveredAxis;
@@ -151,46 +150,52 @@ namespace   FE
         bool          _bThreeClipEdit;
         int           _threeClipSize;
     public:
-        FEEditAxisMovePrivate(FEEditAxisMove& d) :_d(d)
+        FEEditAxisMovePrivate(FEEditAxisMove& d)
+            :_d(d)
         {
-            _downPosWorld = real3(0.0);
+            _downPosWorld       =   real3(0.0);
 
-            _bMouseDown = false;
-            _downPos = int2(0);
-            _startPos = int2(0);
+            _bMouseDown         =   false;
+            _downPos            =   int2(0);
+            _startPos           =   int2(0);
 
-            _bTouchDown = false;
-            _bTouchPickup = false;
-            _touchDownPos = int2(0);
-            _touchStartPos = int2(0);
+            _bTouchDown         =   false;
+            _bTouchPickup       =   false;
+            _touchDownPos       =   int2(0);
+            _touchStartPos      =   int2(0);
 
-            _offMove = real3(0.0);
-            _hoveredAxis = FEEditAxisMove::AXIS::AXIS_NULL;
-            _selectedAxis = FEEditAxisMove::AXIS::AXIS_NULL;
+            _offMove            =   real3(0.0);
+            _hoveredAxis        =   FEEditAxisMove::AXIS::AXIS_NULL;
+            _selectedAxis       =   FEEditAxisMove::AXIS::AXIS_NULL;
 
-            _adsorptionEnabled = false;
-            _adsorptionFlags = FEEditAxisMove::AdsorptionFlag::AF_Points;
-            _adsorptionPixel = 10.0;
+            _adsorptionEnabled  =   false;
+            _adsorptionFlags    =   FEEditAxisMove::AdsorptionFlag::AF_Points;
+            _adsorptionPixel    =   10.0;
 
-            _bThreeClipEdit = false;
+            _bThreeClipEdit     =   false;
             ///设置配置项并绑定响应事件
 
-            _threeClipSize = 240;
-            _pipeLine = nullptr;
-            _material = nullptr;
+            _threeClipSize      =   240;
+            _pipeLine           =   nullptr;
+            _material           =   nullptr;
         }
     public:
-        ///更新轴顶点
-        void updateAxisVerties(FEContext& context)
+        /// <summary>
+        /// 更新轴顶点
+        /// </summary>
+        /// <param name="camera"></param>
+        /// <param name="axisLine"></param>
+        /// <param name="indexs"></param>
+        /// <param name="axisArray"></param>
+        void    update(FECamera& camera)
         {
-            uint        pixels  =   80;
-            uint        planePix=   40;
+            uint        pixels      =   800;
+            uint        planePix    =   400;
             if(_bThreeClipEdit)
             {
                 pixels      =   _threeClipSize;
                 planePix    =   _threeClipSize;
             }
-            FECamera& camera  =   context.activeCamera();;
             real3       cenPos  =   real3(0, 0, 0);
             real        unitF   =   camera.pixelU(_d.position());
             real        size    =   unitF * pixels;
@@ -198,41 +203,35 @@ namespace   FE
             _moveAxis.clear();
             _moveAxis.resize(13);
             ///center
-            _moveAxis[0] = real3(0, 0, 0);
+            _moveAxis[0]    = real3(0, 0, 0);
             ///X
-            _moveAxis[1] = _d.axisX() * size;
+            _moveAxis[1]    = _d.axisX() * size;
             ///y
-            _moveAxis[2] = _d.axisY() * size;
+            _moveAxis[2]    = _d.axisY() * size;
             ///z
-            _moveAxis[3] = _d.axisZ() * size;
+            _moveAxis[3]    = _d.axisZ() * size;
             ///xoy
-            _moveAxis[4] = _d.axisX() * planeSz;
-            _moveAxis[6] = _d.axisY() * planeSz;
-            _moveAxis[5] = _moveAxis[4] + _moveAxis[6];
+            _moveAxis[4]    = _d.axisX() * planeSz;
+            _moveAxis[6]    = _d.axisY() * planeSz;
+            _moveAxis[5]    = _moveAxis[4] + _moveAxis[6];
             ///float3 test = (_d.axisX() + _d.axisY())*planeSz;
             ///yoz
-            _moveAxis[7] = _d.axisY() * planeSz;
-            _moveAxis[9] = _d.axisZ() * planeSz;
-            _moveAxis[8] = _moveAxis[7] + _moveAxis[9];
+            _moveAxis[7]    = _d.axisY() * planeSz;
+            _moveAxis[9]    = _d.axisZ() * planeSz;
+            _moveAxis[8]    = _moveAxis[7] + _moveAxis[9];
             ///zox
-            _moveAxis[10] = _d.axisZ() * planeSz;
-            _moveAxis[12] = _d.axisX() * planeSz;
-            _moveAxis[11] = _moveAxis[10] + _moveAxis[12];
+            _moveAxis[10]   = _d.axisZ() * planeSz;
+            _moveAxis[12]   = _d.axisX() * planeSz;
+            _moveAxis[11]   = _moveAxis[10] + _moveAxis[12];
 
-            uint            bufAxisSize =   (uint)_moveAxis.size() * sizeof(float3);
-            (void)bufAxisSize;
-            /// stub: FEDevice 暂未提供 createVertexBuffer 接口，渲染部分已占位
-            if (!_axisLineVBO)
-            {
-                _axisLineVBO = std::make_shared<VertexBuffer>();
-            }
+
             if(!_bThreeClipEdit)
             {
                 ///计算箭头
-                real arSize = unitF * 24;
-                real arRadius = unitF * 5;
+                real arSize     =   unitF * 24;
+                real arRadius   =   unitF * 5;
                 _axisAr.clear();
-                real step = 12.0;
+                real step       =   12.0;
                 ///arX
                 {
                     real3 tAxis = _d.vectorPerpendicularToAxisX();
@@ -269,25 +268,27 @@ namespace   FE
                         _axisAr.push_back(nor * arRadius);
                     }
                 }
-
-                uint            bufArSize =   (uint)_axisAr.size() * sizeof(float3);
-                (void)bufArSize;
-                /// stub: FEDevice 暂未提供 createVertexBuffer 接口，渲染部分已占位
-                if (!_axisArrowVBO)
-                {
-                    _axisArrowVBO = std::make_shared<VertexBuffer>();
-                }
             }
-        }
-        ///绘制轴
-        void renderAxis(FEContext& context)
-        {
-            (void)context;
-        }
-    private:
-        void renderAr(FEContext& context)
-        {
-            (void)context;
+
+            _indexs.clear();
+            for (uint16 i = 0; i < 3; i++)
+            {
+                uint16 firstIndex0 = 4 + 3 * i;               ///4:   面的第一个索引点
+                uint16 firstIndex1 = 5 + (3 * ((i + 2) % 3)); ///5:   面的第二个索引点
+                //与轴线相邻面框线索引
+                _indexs.push_back(firstIndex0);
+                _indexs.push_back(firstIndex0 + 1);
+                _indexs.push_back(firstIndex1);
+                _indexs.push_back(firstIndex1 + 1);
+                //轴线索引3
+                _indexs.push_back(0);
+                _indexs.push_back(i + 1);
+                //面索引
+                _indexs.push_back(0);
+                _indexs.push_back(firstIndex0);
+                _indexs.push_back(firstIndex0 + 1);
+                _indexs.push_back(firstIndex0 + 2);
+            }
         }
     public:
         /// <summary>
@@ -643,35 +644,6 @@ namespace   FE
             return ret;
         }
 
-        
-        void createIBO(FEContext& context)
-        {
-            _lineindex.clear();
-            for (uint i = 0; i < 3; i++)
-            {
-                uint firstIndex0 = 4 + 3 * i;//4:面的第一个索引点
-                uint firstIndex1 = 5 + (3 * ((i + 2) % 3));///5:面的第二个索引点
-                ///与轴线相邻面框线索引
-                _lineindex.push_back(firstIndex0);
-                _lineindex.push_back(firstIndex0 + 1);
-                _lineindex.push_back(firstIndex1);
-                _lineindex.push_back(firstIndex1 + 1);
-                ///轴线索引3
-                _lineindex.push_back(0);
-                _lineindex.push_back(i + 1);
-                ///面索引
-                _lineindex.push_back(0);
-                _lineindex.push_back(firstIndex0);
-                _lineindex.push_back(firstIndex0 + 1);
-                _lineindex.push_back(firstIndex0 + 2);
-            }
-            /// stub: FEDevice 暂未提供 createIndexBuffer 接口，渲染部分已占位
-            if (!_axisLineIBO)
-            {
-                _axisLineIBO = std::make_shared<IndexBuffer>();
-            }
-            (void)context;
-        }
         /// <summary>
         /// 根据选中的轴计算移动偏移量
         /// </summary>
@@ -720,10 +692,18 @@ namespace   FE
         }
     };
 
-    FEEditAxisMove::FEEditAxisMove(FEContext& context): FEEditAxis(EditAxisTypeMove, context)
+    FEEditAxisMove::FEEditAxisMove(FEContext& ctx)
+            : FEEditAxis(EditAxisTypeMove, ctx)
     {
         _p = new FEEditAxisMovePrivate(*this);
     }
+
+    FEEditAxisMove::FEEditAxisMove(const FEEditAxisMove& other)
+        : FEEditAxis(EditAxisTypeMove, other._ctx)
+    {
+        _p = new FEEditAxisMovePrivate(*this);
+    }
+
     FEEditAxisMove::~FEEditAxisMove()
     {
         delete _p;
@@ -743,12 +723,11 @@ namespace   FE
         return _p->_selectedAxis;
     }
 
-    
-    void FEEditAxisMove::setAdsorptionEnabled(bool enabled)
+    void    FEEditAxisMove::setAdsorptionEnabled(bool enabled)
     {
         _p->_adsorptionEnabled = enabled;
     }
-    bool FEEditAxisMove::adsorptionEnabled() const
+    bool    FEEditAxisMove::adsorptionEnabled() const
     {
         return _p->_adsorptionEnabled;
     }
@@ -756,30 +735,50 @@ namespace   FE
     {
         return _p->_adsorptionFlags;
     }
-    void FEEditAxisMove::setAdsorptionFlags(AdsorptionFlags flags)
+    void    FEEditAxisMove::setAdsorptionFlags(AdsorptionFlags flags)
     {
         _p->_adsorptionFlags = flags;
     }
-    real FEEditAxisMove::adsorptionPixel() const
+    real    FEEditAxisMove::adsorptionPixel() const
     {
         return _p->_adsorptionPixel;
     }
-    void FEEditAxisMove::setAdsorptionPixel(real pixel)
+    void    FEEditAxisMove::setAdsorptionPixel(real pixel)
     {
         _p->_adsorptionPixel = pixel;
     }
 
-    bool FEEditAxisMove::isClipEdit() const
+    bool    FEEditAxisMove::isClipEdit() const
     {
         return _p->_bThreeClipEdit;
     }
 
-    void FEEditAxisMove::setClipEdit(bool b)
+    void    FEEditAxisMove::setClipEdit(bool b)
     {
         _p->_bThreeClipEdit = b;
     }
+    void    FEEditAxisMove::update(FECamera& camera)
+    {
+        _p->update(camera);
+    }
+    const   float3s&    FEEditAxisMove::moveAxis() const
+    {
+        return  _p->_moveAxis;
+    }
+    ///箭头顶点
+    const   float3s&    FEEditAxisMove::axisArray() const
+    {
+        return  _p->_axisAr;
+    }
+    /// <summary>
+    /// 索引数据
+    /// </summary>
+    const   uint16s&    FEEditAxisMove::indexs() const
+    {
+        return  _p->_indexs;
+    }
 
-    void FEEditAxisMove::cancelHovered()
+    void    FEEditAxisMove::cancelHovered()
     {
         AXIS oldHovered = _p->_hoveredAxis;
         _p->_hoveredAxis = FEEditAxisMove::AXIS::AXIS_NULL;
@@ -788,7 +787,7 @@ namespace   FE
             this->sendHoveredDelegate();
         }
     }
-    void FEEditAxisMove::cancelSelected()
+    void    FEEditAxisMove::cancelSelected()
     {
         AXIS oldSelected = _p->_selectedAxis;
         _p->_selectedAxis = FEEditAxisMove::AXIS::AXIS_NULL;
@@ -798,7 +797,7 @@ namespace   FE
         }
     }
 
-    bool FEEditAxisMove::mouseButtonPress(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::mouseButtonPress(FEContext& context, const int2& pos)
     {
         _p->_adsorptionRet.reset();
 
@@ -806,8 +805,8 @@ namespace   FE
 
         _p->_bMouseDown = true;
 
-        AXIS oldSelected = _p->_selectedAxis;
-        _p->_selectedAxis = _p->_hoveredAxis;
+        AXIS oldSelected    = _p->_selectedAxis;
+        _p->_selectedAxis   = _p->_hoveredAxis;
         if (oldSelected != _p->_selectedAxis)
         {
             this->sendSelectedDelegate();
@@ -816,16 +815,16 @@ namespace   FE
 
         if (isAxisSelected())
         {
-            _p->_downPos = pos;
-            _p->_startPos = pos;
-            _p->_offMove = real3(0.0);
+            _p->_downPos    =   pos;
+            _p->_startPos   =   pos;
+            _p->_offMove    =   real3(0.0);
             _p->_delegate(EditStatus::EditStart, real3(0.0), real3(0.0), *this);
             context.requireNextFrame();
             return true;
         }
         return false;
     }
-    bool FEEditAxisMove::mouseButtonRelease(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::mouseButtonRelease(FEContext& context, const int2& pos)
     {
         _p->_adsorptionRet.reset();
 
@@ -850,7 +849,7 @@ namespace   FE
         }
         return false;
     }
-    bool FEEditAxisMove::mouseMove(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::mouseMove(FEContext& context, const int2& pos)
     {
         if (isAxisSelected())
         {
@@ -859,7 +858,7 @@ namespace   FE
             offset = offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         else if(!_p->_bMouseDown)
@@ -876,7 +875,7 @@ namespace   FE
         return false;
     }
 
-    bool FEEditAxisMove::touchDown(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::touchDown(FEContext& context, const int2& pos)
     {
         {
             ///拾取动作
@@ -913,10 +912,8 @@ namespace   FE
             _p->_bTouchPickup = true;
             return false;
         }
-        return false;
-
     }
-    bool FEEditAxisMove::touchUp(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::touchUp(FEContext& context, const int2& pos)
     {
         
         _p->_downPosWorld = this->position();
@@ -964,7 +961,7 @@ namespace   FE
         return false;
 
     }
-    bool FEEditAxisMove::touchMove(FEContext& context, const int2& pos)
+    bool    FEEditAxisMove::touchMove(FEContext& context, const int2& pos)
     {
         if (isAxisSelected())
         {
@@ -973,23 +970,10 @@ namespace   FE
             offset = offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
             _p->_touchDownPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         return false;
     }
-
-    void FEEditAxisMove::update(FEContext& context)
-    {
-        _p->updateAxisVerties(context);
-    }
-    void FEEditAxisMove::render(FEContext& context)
-    {
-        if (!_internalFlags.hasFlag(InteralFlag_Visible))
-            return;
-        _p->renderAxis(context);
-
-        _p->renderAdsorptionPoint(context);
-        _p->renderAdsorptionLine(context);
-    }
+    
 }

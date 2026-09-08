@@ -1,0 +1,24 @@
+/// v3 片段着色器 WGSL 版本,与 shader.frag 对齐
+/// 使用 WebGPU 原生 Immediates 特性(var<immediate>)对应 Vulkan 的 push_constant:
+///   layout(push_constant) uniform PushConsts { PointData _point; }
+/// -> var<immediate> _point : PointData
+/// immediate 是 raw 字节流(类 push_constant),无需 uniform 地址空间的 16 字节对齐,
+/// 故 PointData 与 C++ 侧 sizeof(PointData)=8 一致(两个 u32)。
+
+struct  PointData
+{
+    _point  : u32,
+    _color  : u32,
+}
+
+var<immediate> _point : PointData;
+
+@fragment
+fn  main() -> @location(0) vec4f
+{
+    let colorRGBA = unpack4x8unorm(_point._color);
+
+    /// 原始 GLSL 使用 gl_PointCoord 做圆形点测试,WebGPU/WGSL 无 gl_PointCoord 等效内置,
+    /// 且 WebGPU 不支持可编程点大小(点默认 1 像素),圆形测试对 1 像素点无意义,这里直接输出颜色。
+    return colorRGBA;
+}

@@ -1,9 +1,5 @@
 #pragma     once
 
-/// <summary>
-/// FEAxis.h
-/// 定义坐标轴基类
-/// </summary>
 #include    "FEContext.hpp"
 #include    "FEDelegate.hpp"
 #include    "FEFlags.hpp"
@@ -11,11 +7,13 @@
 
 namespace   FE
 {
+    static  const float4    DisableColor = {0.3f, 0.3f, 0.3f, 1.0f};
+
     class   FECamera;
     /// <summary>
     /// 坐标轴基类
     /// </summary>
-    class FE_API FEAxis
+    class   FE_API  FEAxis :public FEObject
     {
     public:
         enum AxisType
@@ -30,7 +28,6 @@ namespace   FE
     protected:
         mat4r           _transform;
         AxisType        _axisType;
-        FEContext&      _context;
     public:
         static const real3 AxisX()
         {
@@ -45,7 +42,8 @@ namespace   FE
             return real3(0.0, 0.0, 1.0);
         }
     public:
-        FEAxis(AxisType type, FEContext& context);
+        FEAxis(AxisType type, FEContext& ctx);
+
         virtual ~FEAxis();
     public:
         /// <summary>
@@ -71,7 +69,7 @@ namespace   FE
                 return;
             _transform = transform;
             _internalFlags.addFlag(InteralFlag_Update);
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
         }
         /// <summary>
         /// 获取轴变换矩阵
@@ -122,17 +120,6 @@ namespace   FE
             real3 axis = normalize(real3(t * real4(AxisZ(), 0.0)));
             return axis;
         }
-    public:
-        /// <summary>
-        /// 更新轴
-        /// </summary>
-        /// <param name="context">引擎上下文对象</param>
-        virtual void    update(FEContext& context) = 0;
-        /// <summary>
-        /// 绘制轴
-        /// </summary>
-        /// <param name="context">引擎上下文对象</param>
-        virtual void    render(FEContext& context) = 0;
     protected:
         /// <summary>
         /// 获取垂直于X轴的一个任意单位向量
@@ -234,8 +221,6 @@ namespace   FE
         /// <param name="sender">发送者</param>
         using AxisEnabledChangedDelegate = FETMultiDelegate<void(bool enabled, int axis, FEEditAxis& sender)>;
 
-        ///当轴被禁用后的颜色
-        static const float DisableColor[4];
     protected:
         EditAxisType                _editAxisType;
         AxisHoveredChangedDelegage  _hoveredDelegate;
@@ -397,12 +382,12 @@ namespace   FE
     protected:
         inline void     sendHoveredDelegate() 
         {
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             _hoveredDelegate(this->isAxisHovered(), *this);
         }
         inline void     sendSelectedDelegate()
         {
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             _selectedDelegate(this->isAxisSelected(), *this);
         }
     };

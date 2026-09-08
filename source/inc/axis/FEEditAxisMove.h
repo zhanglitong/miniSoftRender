@@ -62,7 +62,10 @@ namespace   FE
         FEEditAxisMovePrivate* _p;
         friend class FEEditAxisMovePrivate;
     public:
-        FEEditAxisMove(FEContext& context);
+        FEEditAxisMove(FEContext& ctx);
+
+        FEEditAxisMove(const FEEditAxisMove& other);
+
         ~FEEditAxisMove();
     public:
         /// <summary>
@@ -104,11 +107,11 @@ namespace   FE
         /// <summary>
         /// 启用/禁用移动吸附
         /// </summary>
-        void setAdsorptionEnabled(bool enabled);
+        void    setAdsorptionEnabled(bool enabled);
         /// <summary>
         /// 获取移动吸附是否启用
         /// </summary>
-        bool adsorptionEnabled() const;
+        bool    adsorptionEnabled() const;
         /// <summary>
         /// 获取移动吸附标志
         /// </summary>
@@ -116,19 +119,40 @@ namespace   FE
         /// <summary>
         /// 设置移动吸附标志
         /// </summary>
-        void setAdsorptionFlags(AdsorptionFlags flags) ;
+        void    setAdsorptionFlags(AdsorptionFlags flags) ;
         /// <summary>
         /// 获取移动吸附点像素范围
         /// </summary>
-        real adsorptionPixel() const;
+        real    adsorptionPixel() const;
         /// <summary>
         /// 设置移动吸附点像素范围
         /// </summary>
-        void setAdsorptionPixel(real pixel) ;
+        void    setAdsorptionPixel(real pixel) ;
 
-        bool isClipEdit() const;
+        bool    isClipEdit() const;
 
-        void setClipEdit(bool b);
+        void    setClipEdit(bool b);
+
+        /// <summary>
+        /// 每一帧调用该函数,会自动生成 moveAxis,axisArray,indexs 数据
+        /// </summary>
+        /// <param name="camera"></param>
+        void    update(FECamera& camera);
+        ///轴顶点
+        const   float3s&    moveAxis() const;
+        ///箭头顶点
+        const   float3s&    axisArray() const;
+        /// <summary>
+        /// 索引数据
+        /// </summary>
+        const   uint16s&    indexs() const;
+
+        /// <summary>
+        /// 获取用作渲染的数据
+        /// </summary>
+        /// <returns></returns>
+        void    getRenderData(FECamera& camera,floats& axisLine,ushorts& indexs,floats& axisArray);
+
     public:
         /// <summary>
         /// 是否有轴被高亮
@@ -178,14 +202,12 @@ namespace   FE
             return value == FEEditAxisMove::AXIS::AXIS_Z;
         }
     public:
-        virtual bool mouseButtonPress(FEContext& context, const int2& pos) override;
-        virtual bool mouseButtonRelease(FEContext& context, const int2& pos) override;
-        virtual bool mouseMove(FEContext& context, const int2& pos) override;
-        virtual bool touchDown(FEContext& context, const int2& pos) override;
-        virtual bool touchUp(FEContext& context, const int2& pos) override;
-        virtual bool touchMove(FEContext& context, const int2& pos) override;
-        virtual void update(FEContext& context) override;
-        virtual void render(FEContext& context) override;
+        virtual bool mouseButtonPress(FEContext& context, const int2& pos)  override;
+        virtual bool mouseButtonRelease(FEContext& context, const int2& pos)override;
+        virtual bool mouseMove(FEContext& context, const int2& pos)         override;
+        virtual bool touchDown(FEContext& context, const int2& pos)         override;
+        virtual bool touchUp(FEContext& context, const int2& pos)           override;
+        virtual bool touchMove(FEContext& context, const int2& pos)         override;
     };
 }
 

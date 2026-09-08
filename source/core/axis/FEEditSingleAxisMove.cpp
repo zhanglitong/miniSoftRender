@@ -394,7 +394,7 @@ namespace   FE
             return;
         _p->_dir = normalize(dir);
         _internalFlags.addFlag(InteralFlag_Update);
-        _context.requireNextFrame();
+        _ctx.requireNextFrame();
     }
     const real3& FEEditSingleAxisMove::dir()
     {
@@ -508,7 +508,7 @@ namespace   FE
             offset = offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         else if (!_p->_bMouseDown)
@@ -610,20 +610,9 @@ namespace   FE
             offset = offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
             _p->_touchDownPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         return false;
-    }
-
-    void FEEditSingleAxisMove::update(FEContext& context)
-    {
-        _p->updateAxisVerties(context);
-    }
-    void FEEditSingleAxisMove::render(FEContext& context)
-    {
-        if (!_internalFlags.hasFlag(InteralFlag_Visible))
-            return;
-        _p->renderAxis(context);
     }
 }

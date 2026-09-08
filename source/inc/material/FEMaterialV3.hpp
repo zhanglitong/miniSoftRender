@@ -41,4 +41,6 @@ namespace   FE
     protected:
         PointData   _pushConst;
     };
+
+    using   MaterialV3  =   SharedPtr<FEMaterialV3>;
 }

@@ -308,6 +308,7 @@ struct  UBOSky
 
 struct  PointData
 {
+    mat4        _mvp;
     /// point range,min value~ max value
     uint        _point;
     /// 颜色
@@ -315,6 +316,7 @@ struct  PointData
 #ifdef __cplusplus
     PointData()
     {
+        _mvp    =   mat4(1.0f);
         _color  =   0;
         _color  |=  (static_cast<uint32_t>((0xFF))  << 24);  // R 在高8位
         _color  |=  (static_cast<uint32_t>((0x00))  << 16);  // G

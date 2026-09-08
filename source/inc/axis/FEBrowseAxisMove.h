@@ -12,8 +12,5 @@ namespace   FE
     private:
         FEBrowseAxisMovePrivate* _p;
         friend class FEBrowseAxisMovePrivate;
-    public:
-        virtual void update(FEContext& context) override;
-        virtual void render(FEContext& context) override;
     };
 }

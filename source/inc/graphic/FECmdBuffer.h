@@ -13,8 +13,14 @@
 
 namespace   FE
 {
+    enum    CullMode : uint32_t
+    {
+        CM_NULL             =   0,      ///< 不丢弃所有面
+        CM_FRONT            =   1,      ///< 丢弃正面
+        CM_BACK             =   2,      ///< 丢弃背面
+        CM_FRONT_AND_BACK   =   3,      ///< 丢弃正反面，即丢弃所有面，与rasterizerDiscardEnable不同，它会执行fs
+    };
 
-   
     class   FEQueue;
     using   Queue       =   SharedPtr<FEQueue>;
     class   FECmdBuffer :public RSObject
@@ -87,7 +93,8 @@ namespace   FE
 
         virtual FEResult    setViewport(uint first,uint cnt,const Viewport*)    =   0;
         virtual FEResult    setScissor(uint first,uint cnt,const RectU32*)      =   0;
-         
+        virtual FEResult    setLineWidth(float width)           =   0;
+        virtual FEResult    setCullMode(CullMode m)             =   0;
         virtual FEResult    beginRender(const RenderInfo& rs)   =   0;
         virtual FEResult    endRender(const RenderInfo& rs)     =   0;
          

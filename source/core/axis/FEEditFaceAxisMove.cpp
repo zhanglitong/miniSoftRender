@@ -323,7 +323,7 @@ namespace   FE
             return;
         _p->_rectPoints = pts;
         _internalFlags.addFlag(InteralFlag_Update);
-        _context.requireNextFrame();
+        _ctx.requireNextFrame();
     }
     const std::array<real3, 4>& FEEditFaceAxisMove::rectPoints() const
     {
@@ -409,7 +409,7 @@ namespace   FE
             offset = offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         else if (!_p->_bMouseDown)
@@ -513,20 +513,9 @@ namespace   FE
             offset = offset - oldOff;
             _p->_delegate(EditStatus::Editting, offset, _p->_offMove, *this);
             _p->_touchDownPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         return false;
-    }
-
-    void FEEditFaceAxisMove::update(FEContext& context)
-    {
-        _p->updateAxisVerties(context);
-    }
-    void FEEditFaceAxisMove::render(FEContext& context)
-    {
-        if (!_internalFlags.hasFlag(InteralFlag_Visible))
-            return;
-        _p->renderAxis(context);
     }
 }

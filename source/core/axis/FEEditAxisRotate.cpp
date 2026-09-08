@@ -841,7 +841,7 @@ namespace   FE
             angle = angle - oldAngle;
             _p->_delegate(EditStatus::Editting, _p->_rotationAxis, angle, _p->_offAngle, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         else if (!_p->_bMouseDown)
@@ -944,20 +944,9 @@ namespace   FE
             angle = angle - oldAngle;
             _p->_delegate(EditStatus::Editting, _p->_rotationAxis, angle, _p->_offAngle, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         return false;
-    }
-
-    void FEEditAxisRotate::update(FEContext& context)
-    {
-        _p->updateAxisVerties(context);
-    }
-    void FEEditAxisRotate::render(FEContext& context)
-    {
-        if (!_internalFlags.hasFlag(InteralFlag_Visible))
-            return;
-        _p->renderAxis(context);
     }
 }

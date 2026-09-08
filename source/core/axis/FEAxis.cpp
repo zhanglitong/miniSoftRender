@@ -8,15 +8,14 @@
 namespace   FE
 {
     FEAxis::FEAxis(AxisType type, FEContext& context)
-        :_context(context)
+        :FEObject(context)
     {
-        _axisType = AxisTypeBase;
-        _transform = mat4r(1.0);
-        _internalFlags = { InteralFlag_Update, InteralFlag_Visible };
+        _axisType       =   AxisTypeBase;
+        _transform      =   mat4r(1.0);
+        _internalFlags  =   { InteralFlag_Update, InteralFlag_Visible };
     }
     FEAxis::~FEAxis()
     {
-
     }
 
     real3 FEAxis::vectorPerpendicularToAxisX() const
@@ -24,9 +23,9 @@ namespace   FE
         real3 tAxis = axisY();
         if (std::abs(dot(tAxis, axisX())) > FLT_EPSILON)
         {
-            real3 tY = FEAxis::AxisY();
-            real3 tZ = FEAxis::AxisZ();
-            real d = dot(tY, axisX());
+            real3   tY  =   FEAxis::AxisY();
+            real3   tZ  =   FEAxis::AxisZ();
+            real    d   =   dot(tY, axisX());
             if (1.0 - std::abs(d) > FLT_EPSILON)
             {
                 tAxis = normalize(cross(axisX(), tY));
@@ -97,7 +96,7 @@ namespace   FE
         return true;
     }
     
-    const float FEEditAxis::DisableColor[4] = {0.3f, 0.3f, 0.3f, 1.0f};
+    
 
     FEEditAxis::FEEditAxis(EditAxisType type, FEContext& context):FEAxis(AxisTypeEdit, context)
     {

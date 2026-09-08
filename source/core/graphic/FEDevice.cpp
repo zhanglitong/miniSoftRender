@@ -18,15 +18,14 @@ namespace   FE
     Object  FEDevice::queryCache(const FEUuid& id) const
     {
         auto    itr =   std::lower_bound(_cacheObject.begin(), _cacheObject.end(), id,[](const Object& left,const FEUuid& right)
-            {
-                return  left->objectId() < right;
-            });
+        {
+            return  left->objectId() < right;
+        });
         if (itr != _cacheObject.end() && (*itr)->objectId() == id)
             return  (*itr);
         else
             return  nullptr;
     }
-
 
     void    FEDevice::destroy()
     {

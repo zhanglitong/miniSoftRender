@@ -101,6 +101,29 @@ namespace   FE
         return FEResult::ER_SUCCESS;
 
     }
+    FEResult    WGCmdBuffer::setLineWidth(float )
+    {
+        return FEResult::ER_FAILED;
+    }
+
+    FEResult    WGCmdBuffer::setCullMode(CullMode mode) 
+    {
+        UNUSED(mode);
+        switch (mode)
+        {
+        case CullMode::CM_NULL:
+            break;
+        case CullMode::CM_FRONT:
+            break;
+        case CullMode::CM_BACK:
+            break;
+        case CullMode::CM_FRONT_AND_BACK:
+            break;
+        default:
+            break;
+        }
+        return FEResult::ER_FAILED;
+    }
 
     FEResult WGCmdBuffer::beginRender(const RenderInfo& rs)
     {

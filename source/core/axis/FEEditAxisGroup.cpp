@@ -220,7 +220,7 @@ namespace   FE
         {
             if (itr->first == nullptr)
                 continue;
-            itr->first->update(context);
+            //itr->first->update(context);
         }
     }
     void FEEditAxisGroup::render(FEContext& context)
@@ -233,7 +233,7 @@ namespace   FE
             auto fItr = _p._axisMap.find((*itr));
             if (fItr != _p._axisMap.end() && !fItr->second.visible())
                 continue;
-            (*itr)->render(context);
+            //(*itr)->render(context);
         }
     }
 

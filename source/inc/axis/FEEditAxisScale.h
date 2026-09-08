@@ -130,9 +130,6 @@ namespace   FE
         virtual bool touchDown(FEContext& context, const int2& pos) override;
         virtual bool touchUp(FEContext& context, const int2& pos) override;
         virtual bool touchMove(FEContext& context, const int2& pos) override;
-
-        virtual void update(FEContext& context) override;
-        virtual void render(FEContext& context) override;
     };
 }
 

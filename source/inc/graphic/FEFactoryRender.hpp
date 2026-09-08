@@ -78,7 +78,7 @@ namespace   FE
             {
                 _updates.reserve(MAX_LOCAL_UPDATE);
             }
-        public:
+        protected:
             Material    _mat;
             Nodes       _objects;
             aabb3dr     _aabb;
@@ -105,11 +105,29 @@ namespace   FE
             /// 裁剪所需要的材质
             /// </summary>
             Material    _cullMat;
-        public:
+        protected:
             void    setMaterial(Material mat)   {   _mat    =   mat;    }
             void    setStart(uint32 start)      {   _start  =   start;  }
             uint32  start() const               {   return  _start;     }
             uint    count() const               {   return  uint(_objects.size());}
+           
+            size_t  addNode(Node node);
+            size_t  addNodes(Nodes::iterator nBegin, Nodes::iterator eEnd);
+            size_t  addNodes(Nodes&  nodes);
+            size_t  removeNode(Node node);
+            size_t  removeNodes(Nodes& nodes);
+            /// <summary>
+            /// 修改intance
+            /// </summary>
+            /// <param name="node"></param>
+            /// <returns></returns>
+            size_t  nodePropChanged(Node node);
+            /// <summary>
+            /// 清除更新标记
+            /// </summary>
+            void    resetFlags();
+            void    clearUpdates();
+        
             /// <summary>
             /// 绘制命令数量,裁剪过后的命令数量
             /// </summary>
@@ -139,23 +157,6 @@ namespace   FE
             {
                 _cmdOffset  =   offset;
             }
-            size_t  addNode(Node node);
-            size_t  addNodes(Nodes::iterator nBegin, Nodes::iterator eEnd);
-            size_t  addNodes(Nodes&  nodes);
-            size_t  removeNode(Node node);
-            size_t  removeNodes(Nodes& nodes);
-            /// <summary>
-            /// 修改intance
-            /// </summary>
-            /// <param name="node"></param>
-            /// <returns></returns>
-            size_t  nodePropChanged(Node node);
-            /// <summary>
-            /// 清除更新标记
-            /// </summary>
-            void    resetFlags();
-            void    clearUpdates();
-        protected:
             /// <summary>
             /// 检测是否按局部更新.
             /// 如果 _objects 数据量较少,且全部都需要更新,则使用全局更新
@@ -193,7 +194,7 @@ namespace   FE
         };
         using   VBinds    =   std::vector<VBind>;
     public:
-        FEFactoryRender(FEContext& ctx,FEDevice& device);
+        FEFactoryRender(FEContext& ctx);
 
         FEFactoryRender(const FEFactoryRender& other);
 

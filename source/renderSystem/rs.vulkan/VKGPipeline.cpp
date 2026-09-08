@@ -95,15 +95,17 @@ namespace   FE
                 _cInfo._pushConstantStage  |=  refect._stage;
         }
         auto    layout  =   createDSLayoutFromShaders(_ctx,_ctx.device(),shaders);
-        _dsLayouts.clear();
-        _dsLayouts.push_back(layout);
-
-        VkDescriptorSetLayout   dsLayouts[1]    =   {(VkDescriptorSetLayout)layout->native()};
+        if (layout)
+        {
+            _dsLayouts.clear();
+            _dsLayouts.push_back(layout);
+        }
+        VkDescriptorSetLayout   dsLayouts[1]    =   {layout ? (VkDescriptorSetLayout)layout->native() : nullptr};
  
         pipelineLayoutCI.sType                  =    VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCI.pNext                  =    nullptr;
-        pipelineLayoutCI.setLayoutCount         =    1;
-        pipelineLayoutCI.pSetLayouts            =    dsLayouts;
+        pipelineLayoutCI.setLayoutCount         =    layout ? 1 : 0;
+        pipelineLayoutCI.pSetLayouts            =    layout ? dsLayouts : nullptr;
         pipelineLayoutCI.pushConstantRangeCount =    (uint)pushConsts.size();
         pipelineLayoutCI.pPushConstantRanges    =    pushConsts.data();
         VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &_layout));

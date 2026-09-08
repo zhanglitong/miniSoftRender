@@ -27,7 +27,7 @@ namespace   FE
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
         _scene->setup(_app,_rendererId);
-
+#if 0
         //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
         String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
         FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
@@ -48,6 +48,8 @@ namespace   FE
             _scene->dispatchNodesToSystem(nodes);
             _scene->addNodesToTree(nodes);
         }
+
+#endif // 0
         _prepared   =   true;
     }
 

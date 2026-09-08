@@ -21,7 +21,7 @@ namespace   FE
             return;
         _scene      =   new FEScene(_ctx);
         _scene->setup(_app);
-#if 1
+#if 0
         String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
         FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
 

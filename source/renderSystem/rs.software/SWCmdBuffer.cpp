@@ -42,7 +42,10 @@ namespace   FE
         (void)rects;
         return  FEResult::ER_SUCCESS;
     }
-
+    FEResult    SWCmdBuffer::setLineWidth(float ) 
+    {
+        return  FEResult::ER_SUCCESS;
+    }
     FEResult    SWCmdBuffer::beginRender(const RenderInfo& rs)
     {
         (void)rs;

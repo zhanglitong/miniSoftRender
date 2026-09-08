@@ -177,16 +177,4 @@ namespace   FE
     {
         delete _p;
     }
-
-    void FEBrowseAxisMove::update(FEContext& context)
-    {
-        _p->updateAxisVerties(context);
-    }
-
-    void FEBrowseAxisMove::render(FEContext& context)
-    {
-        if (!_internalFlags.hasFlag(InteralFlag_Visible))
-            return;
-        _p->renderAxis(context);
-    }
 }

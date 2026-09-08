@@ -101,5 +101,41 @@ namespace   FE
     {
         return (n + alignment - 1) & ~(alignment - 1);
     }
+
+    inline  uint    packUnorm4x8(const float4& v)
+    {
+        return  glm::packUnorm4x8(v);
+    }
+    inline  uint    packSnorm4x8(const float4& v)
+    {
+        return  glm::packSnorm4x8(v);
+    }
+    
+    inline  uint    packUnorm2x16(const float2& v)
+    {
+        return  glm::packUnorm2x16(v);
+    }
+    inline  uint    packSnorm2x16(const float2& v)
+    {
+        return  glm::packSnorm2x16(v);
+    }
+
+    inline  float4    unpackUnorm4x8(uint value)
+    {
+        return  glm::unpackSnorm4x8(value);
+    }
+    inline  float4    unpackSnorm4x8(uint value)
+    {
+        return  glm::unpackUnorm4x8(value);
+    }
+    inline  float2    unpackUnorm2x16(uint value)
+    {
+        return  glm::unpackUnorm2x16(value);
+    }
+    inline  float2    unpackSnorm2x16(uint value)
+    {
+        return  glm::unpackSnorm2x16(value);
+    }
+
 }
 

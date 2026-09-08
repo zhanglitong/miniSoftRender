@@ -231,9 +231,9 @@ namespace   FE
         return  pDst;
     }
 
-    FEFactoryRender::FEFactoryRender(FEContext& ctx,FEDevice& device)
+    FEFactoryRender::FEFactoryRender(FEContext& ctx)
         :FEFactory(ctx)
-        ,_device(device)
+        ,_device(ctx.device())
     {
         _gpuCull    =   true;
     }
@@ -400,6 +400,8 @@ namespace   FE
 
     void    FEFactoryRender::update(CMDPtr cmd)
     {
+        if (!flags().hasFlag(FLAG_VISIBLE))
+            return;
         updateImpl(cmd);
     }
 
@@ -1614,7 +1616,7 @@ namespace   FE
 
         if(scene.device() == nullptr)
             return  nullptr;
-        FactoryRender   factory =   new FEFactoryRender(ctx,*scene.device());
+        FactoryRender   factory =   new FEFactoryRender(ctx);
         factory->setKey(key);
         return  factory;
     }

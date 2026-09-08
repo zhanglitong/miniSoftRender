@@ -652,7 +652,7 @@ namespace   FE
         }
     }
 
-    bool FEEditAxisScale::mouseButtonPress(FEContext& context, const int2& pos)
+    bool FEEditAxisScale::mouseButtonPress(FEContext& , const int2& pos)
     {
         _p->_bMouseDown = true;
 
@@ -674,7 +674,7 @@ namespace   FE
         }
         return false;
     }
-    bool FEEditAxisScale::mouseButtonRelease(FEContext& context, const int2& pos)
+    bool FEEditAxisScale::mouseButtonRelease(FEContext& , const int2& pos)
     {
         _p->_bMouseDown = false;
         if (isAxisSelected())
@@ -705,7 +705,7 @@ namespace   FE
             scale = scale / prevScale;
             _p->_delegate(EditStatus::Editting, scale,_p->_offScale, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         else if (!_p->_bMouseDown)
@@ -720,7 +720,7 @@ namespace   FE
         return false;
     }
 
-    bool FEEditAxisScale::touchDown(FEContext& context, const int2& pos)
+    bool FEEditAxisScale::touchDown(FEContext& , const int2& pos)
     {
         _p->_bTouchDown = true;
         if (this->isAxisSelected())
@@ -798,20 +798,9 @@ namespace   FE
             scale = scale / prevScale;
             _p->_delegate(EditStatus::Editting, scale, _p->_offScale, *this);
             _p->_downPos = pos;
-            _context.requireNextFrame();
+            _ctx.requireNextFrame();
             return true;
         }
         return false;
-    }
-
-    void FEEditAxisScale::update(FEContext& context)
-    {
-        _p->updateAxisVerties(context);
-    }
-    void FEEditAxisScale::render(FEContext& context)
-    {
-        if (!_internalFlags.hasFlag(InteralFlag_Visible))
-            return;
-        _p->renderAxis(context);
     }
 }
