@@ -7,7 +7,6 @@
 /// </summary>
 namespace   FE
 {
-    class FEEditAxisScalePrivate;
     class FE_API FEEditAxisScale: public FEEditAxis
     {
     public:
@@ -33,11 +32,9 @@ namespace   FE
             , const real3& relativeOffset
             , const real3& absoluteOffset
             , FEEditAxisScale& sender)>;
-    private:
-        FEEditAxisScalePrivate* _p;
-        friend class FEEditAxisScalePrivate;
     public:
         FEEditAxisScale(FEContext& context);
+        FEEditAxisScale(const FEEditAxisScale& other);
         ~FEEditAxisScale();
     public:
         /// <summary>
@@ -48,25 +45,59 @@ namespace   FE
         /// 获取当前已经被高亮的轴
         /// </summary>
         /// <returns>返回高亮的轴索引</returns>
-        FEEditAxisScale::AXIS hoveredAxis() const;
+        AXIS        hoveredAxis() const;
         /// <summary>
         /// 获取当前已经被选中的轴
         /// </summary>
         /// <returns>返回选中的轴索引</returns>
-        FEEditAxisScale::AXIS selectedAxis() const;
+        AXIS        selectedAxis() const;
+        /// <summary>
+        /// 给定一个单位向量，计算当沿着该单位向量缩放时，缩放偏移量对于当前X轴缩放偏移量的权重
+        /// </summary>
+        inline real weightX(const real3& vec) const
+        {
+            return dot(vec, this->axisX());
+        }
+        /// <summary>
+        /// 给定一个单位向量，计算当沿着该单位向量缩放时，缩放偏移量对于当前Y轴缩放偏移量的权重
+        /// </summary>
+        inline real weightY(const real3& vec) const
+        {
+            return dot(vec, this->axisY());
+        }
+        /// <summary>
+        /// 给定一个单位向量，计算当沿着该单位向量缩放时，缩放偏移量对于当前Z轴缩放偏移量的权重
+        /// </summary>
+        inline real weightZ(const real3& vec) const
+        {
+            return dot(vec, this->axisZ());
+        }
+    public:
+        /// <summary>
+        /// 每一帧调用,自动生成缩放轴顶点数据
+        /// </summary>
+        /// <param name="camera"></param>
+        void    update(FECamera& camera);
+        ///缩放轴顶点(16个)
+        const   float3 (&scaleAxis())[16];
+        ///箭头顶点(15个)
+        const   float3 (&scaleAxisArr())[15];
+        ///是否正在进行缩放
+        inline  bool    isScaleing() const
+        {
+            return  _bScaleing;
+        }
     public:
         /// <summary>
         /// 是否有轴被高亮
         /// </summary>
-        /// <returns>如果有轴被高亮，则返回true,否则返回false</returns>
         virtual bool isAxisHovered() const override
         {
             return hoveredAxis() != FEEditAxisScale::AXIS::AXIS_NULL;
-        }        
+        }
         /// <summary>
         /// 是否有轴被选中
         /// </summary>
-        /// <returns>如果有轴被选中,则返回true,否则返回false</returns>
         virtual bool isAxisSelected() const override
         {
             return selectedAxis() != FEEditAxisScale::AXIS::AXIS_NULL;
@@ -79,27 +110,6 @@ namespace   FE
         /// 取消轴的选中状态
         /// </summary>
         virtual void cancelSelected()override;
-        /// <summary>
-        /// 给定一个单位向量，计算当绕着该单位向量旋转时，旋转角度偏移量对于当前X轴旋转角度的权重
-        /// </summary>
-        inline real weightX(const real3& vec) const
-        {
-            return dot(vec, this->axisX());
-        }
-        /// <summary>
-        /// 给定一个单位向量，计算当绕着该单位向量旋转时，旋转角度偏移量对于当前Y轴旋转角度的权重
-        /// </summary>
-        inline real weightY(const real3& vec) const
-        {
-            return dot(vec, this->axisY());
-        }
-        /// <summary>
-        /// 给定一个单位向量，计算当绕着该单位向量旋转时，旋转角度偏移量对于当前Z轴旋转角度的权重
-        /// </summary>
-        inline real weightZ(const real3& vec) const
-        {
-            return dot(vec, this->axisZ());
-        }
     protected:
         /// <summary>
         /// 判断某个值是否是X轴的枚举值,子类实现
@@ -109,27 +119,95 @@ namespace   FE
             return value == FEEditAxisScale::AXIS::AXIS_X;
         }
         /// <summary>
-        /// 判断某个值是否是X轴的枚举值,子类实现
+        /// 判断某个值是否是Y轴的枚举值,子类实现
         /// </summary>
         virtual bool isEnumAxisY(int value) const override
         {
             return value == FEEditAxisScale::AXIS::AXIS_Y;
         }
         /// <summary>
-        /// 判断某个值是否是X轴的枚举值,子类实现
+        /// 判断某个值是否是Z轴的枚举值,子类实现
         /// </summary>
         virtual bool isEnumAxisZ(int value) const override
         {
             return value == FEEditAxisScale::AXIS::AXIS_Z;
         }
     public:
-        virtual bool mouseButtonPress(FEContext& context, const int2& pos) ;
-        virtual bool mouseButtonRelease(FEContext& context, const int2& pos) ;
-        virtual bool mouseMove(FEContext& context, const int2& pos) ;
+        /// <summary>
+        /// 需要被其他子类重写，处理消息
+        /// </summary>
+        /// <param name=""></param>
+        virtual void    onMessage(const FEMessage& ) override;
+    private:
+        ///高亮轴
+        AXIS    hoverAxis(const int2& pos);
+        ///缩放计算
+        real3   calcScale(const int2& start, const int2& end);
+        ///计算轴朝向
+        real3   calcAxisDir(FECamera& camera);
+        ///拾取三轴汇聚三角面
+        AXIS    pickTriMin(const int2& screen);
+        ///拾取三轴外三角面
+        AXIS    pickTriMax(const int2& screen);
+        ///拾取坐标轴
+        AXIS    pickAxis(const int2& screen);
+        real    scaleX(const int2& start, const int2& end);
+        real    scaleY(const int2& start, const int2& end);
+        real    scaleZ(const int2& start, const int2& end);
+        real    scaleXY(const int2& start, const int2& end);
+        real    scaleYZ(const int2& start, const int2& end);
+        real    scaleXZ(const int2& start, const int2& end);
+        real    scaleXYZ(const int2& start, const int2& end);
+        bool    calcScaleValue(const int2& start, const int2& end
+                    , const real3& faceNor, const real3& axis
+                    , real& retS, real limit = 1.0);
+    protected:
+        virtual bool mouseButtonPress(const int2& pos)  ;
+        virtual bool mouseButtonRelease(const int2& pos);
+        virtual bool mouseMove(const int2& pos)         ;
+        virtual bool touchDown(const int2& pos)         ;
+        virtual bool touchUp(const int2& pos)           ;
+        virtual bool touchMove(const int2& pos)         ;
+    private:
+        ///缩放轴
+        float3      _scaleAxis[16];
+        ///箭头
+        float3      _scaleAxisArr[15];
+        ///当前选中轴
+        AXIS        _selectedAxis;
+        ///当前高亮的轴
+        AXIS        _hoveredAxis;
 
-        virtual bool touchDown(FEContext& context, const int2& pos) ;
-        virtual bool touchUp(FEContext& context, const int2& pos) ;
-        virtual bool touchMove(FEContext& context, const int2& pos) ;
+        ///是否正在进行缩放
+        bool        _bScaleing;
+        ///缩放偏移
+        real3       _offScale;
+
+        ///保持把坐标轴的屁股不朝向屏幕
+        real3       _dir;
+
+        ///轴长度
+        real        _axisSize;
+
+        ///鼠标按钮按下
+        bool        _bMouseDown;
+        ///鼠标按下的最后位置
+        int2        _downPos;
+        ///开始时的鼠标位置
+        int2        _startPos;
+
+        ///触屏按下
+        bool        _bTouchDown;
+        ///触屏拾取轴
+        bool        _bTouchPickup;
+        ///触屏按下的最后位置
+        int2        _touchDownPos;
+        ///触屏开始时按下的位置
+        int2        _touchStartPos;
+
+        ///回调
+        MDelegate   _delegate;
     };
-}
 
+    using   EditAxisScale    =   SharedPtr<FEEditAxisScale>;
+}
