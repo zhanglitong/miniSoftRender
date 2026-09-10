@@ -8,7 +8,8 @@ namespace   FE
     public:
         enum    COMFlag :uint32_t
         {
-            FLAG_ACTOR  =   FLAG_LAST,
+            FLAG_ACTOR  =   FE::FLAG_LAST,
+            FLAG_LAST   =   FLAG_ACTOR<<1,
         };
     public:         
         FEComponent(FEContext& ctx,bool bActor = false)             

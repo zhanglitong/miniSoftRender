@@ -34,6 +34,7 @@ namespace FE
     class   FEScene;
     class   FECamera;
     class   FEWindow;
+    class   FEViewer;
     using   Device  =   SharedPtr<FEDevice>;
     using   Scene   =   SharedPtr<FEScene>;
     using   Window  =   SharedPtr<FEWindow>;

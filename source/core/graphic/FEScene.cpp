@@ -16,9 +16,45 @@
 #include    "../inc/FEFileFormatHelper.hpp"
 #include    "../inc/fileFormat/fepk/FEFormatFepj.hpp"
 #include    "../inc/graphic/FEFactoryAxisMove.hpp"
+#include    "../inc/graphic/FESceneBrowse.h"
 
 namespace   FE
 {
+    FEScene::FEScene(FEContext& ctx)
+        :FEObject(ctx)
+        ,_nodeTree(ctx)
+        ,_factorys(ctx)
+        ,_viewerMgr(ctx)
+        ,_comSysMgr(ctx)
+    {
+        _nodeTree.eventsChangedNode()   +=  {this,[this](const FENode* node)
+        {
+            onNodePropChanged(node);
+        }};
+    }
+    FEScene::FEScene(const FEScene& other)
+        :FEObject(other)
+        ,_nodeTree(other._nodeTree)
+        ,_factorys(other._factorys)
+        ,_viewerMgr(other._viewerMgr)
+        ,_comSysMgr(other._comSysMgr)
+    {}
+    FEScene::~FEScene()
+    {}
+
+    /// <summary>
+    /// 获取input system 
+    /// </summary>
+    /// <returns></returns>
+    FEInputSystem*  FEScene::inputSystem() const
+    {
+        auto    sys =   _comSysMgr.query(UUIDOF(FEInputSystem));
+        if (sys)
+            return  sys->as<FEInputSystem>();
+        else
+            return  nullptr;
+    }
+
     bool    FEScene::setup(App app,const FEUuid& rendererId)
     {
         FETimestamp     timestamp;
@@ -108,6 +144,7 @@ namespace   FE
             _viewerMgr.addObject(viewer);
             _viewerMgr.setActiveViewer(viewer);
         }
+
         _frustCull  =   new FEFrustumCull(_ctx);
         /// anchor
         /// anchor 增加通知
@@ -131,7 +168,36 @@ namespace   FE
         if (inputSys)
         {
             inputSys->addObject(facotry->inputComponent().get());
+
+            SceneBrowse     browseTool  =   new FESceneBrowse(_ctx);
+            inputSys->addObject(browseTool.get());
         }
+
+#if 1
+        String          box     =   R"(E:\study\gltf\glTF-Sample-Assets\Models\Box\glTF\Box.gltf)";
+        //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
+        String          gltfFile=   box;//R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
+        FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
+
+        auto            reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);
+        if (reader)
+        {
+            auto    objects =   reader->readFiles({gltfFile});
+            Nodes   nodes;
+            for (auto var : objects)
+            {   
+                Node    node    =   var->cast<FENode>();
+                if (node == nullptr)
+                    continue;
+                else
+                    nodes.push_back(node);
+            }
+            dispatchNodesToSystem(nodes);
+            addNodesToTree(nodes);
+            facotry->inputComponent()->setNodes(nodes);
+
+        }
+#endif
 
         return  true;
     }
@@ -309,17 +375,18 @@ namespace   FE
             break;
         }
         /// 消息转发给输入系统
-        for (auto var : _comSysMgr.objects())
-        {   
-            auto    pInputSys   =   var->cast<FEInputSystem>();
-            if (pInputSys == nullptr)
-                continue;
-            else
-                pInputSys->onMessage(msgIn);
-        }
+        /// viewer 已经处理
+        /// for (auto var : _comSysMgr.objects())
+        /// {   
+        ///     auto    pInputSys   =   var->cast<FEInputSystem>();
+        ///     if (pInputSys == nullptr)
+        ///         continue;
+        ///     else
+        ///         pInputSys->onMessage(msgIn);
+        /// }
     }
 
-    void    FEScene::onNodePropChanged(FENode* node)
+    void    FEScene::onNodePropChanged(const FENode* node)
     {
         auto    mesh    =   node->mesh();
         if (mesh)
@@ -331,8 +398,9 @@ namespace   FE
                 assert(factory != nullptr);
                 if (factory == nullptr)
                     continue;
+                Node    ptr         =   (FENode*)node;
                 auto    rFactory    =   factory->as<FEFactoryRender>();
-                rFactory->nodePropChanged(node);
+                rFactory->nodePropChanged(ptr);
             }
         }
     }

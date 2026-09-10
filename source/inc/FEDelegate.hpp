@@ -9,7 +9,7 @@
 namespace   FE
 {
     /// <summary>
-    /// 委托参数辅助类型，用于将 (对象指针, 成员函数指针) 转换为 std::function
+    /// 委托参数辅助类型，用于将 (对象指针, 可调用对象) 转换为 std::function
     /// </summary>
     template<class Signature>
     struct  FEDelegateArg;
@@ -19,7 +19,6 @@ namespace   FE
     {
         void*                               obj     =   nullptr;
         std::function<Ret(Args...)>         fn;
-
         /// <summary>
         /// 从任意可调用对象（函数指针、lambda、std::function 等）构造
         /// </summary>
@@ -31,22 +30,24 @@ namespace   FE
         {}
 
         /// <summary>
-        /// 从 (对象指针, 成员函数指针) 构造
+        /// 从 (对象指针, 任意可调用对象) 构造，支持 {obj, &Class::Method} 和 {obj, lambda/自由函数}
+        /// 第二参数为成员函数指针时，通过 (obj->*method)(args...) 调用，Args 可隐式转换到方法参数类型
+        /// 第二参数为非成员可调用对象时，直接包装为 std::function
         /// </summary>
-        template<class T>
-        FEDelegateArg(T* o, Ret (T::*method)(Args...))
-            : obj(o)
-            , fn([o, method](Args... args) -> Ret { return (o->*method)(args...); })
-        {}
-
-        /// <summary>
-        /// 从 (对象指针, const 成员函数指针) 构造
-        /// </summary>
-        template<class T>
-        FEDelegateArg(T* o, Ret (T::*method)(Args...) const)
-            : obj(o)
-            , fn([o, method](Args... args) -> Ret { return (o->*method)(args...); })
-        {}
+        template<class T, class F, class = std::enable_if_t<
+            !std::is_same_v<std::decay_t<F>, FEDelegateArg>>>
+        FEDelegateArg(T* o, F&& f)
+            : obj(static_cast<void*>(o))
+        {
+            if constexpr (std::is_member_function_pointer_v<std::decay_t<F>>)
+            {
+                fn  =   [o, f](Args... args) -> Ret { return (o->*f)(args...); };
+            }
+            else
+            {
+                fn  =   std::forward<F>(f);
+            }
+        }
     };
 
     /// <summary>
@@ -56,6 +57,15 @@ namespace   FE
     template<class Signature>
     class   FETMultiDelegate;
 
+    /// <summary>
+    /// delegate += {this, &Class::Method};          // 成员函数指针（允许参数隐式转换）
+    /// delegate += {this, [](Args...){...}};        // lambda + 对象跟踪
+    /// delegate += {nullptr, free_function};        // 自由函数
+    /// delegate += [this](Args...){...};            // lambda（无对象跟踪）
+    /// delegate += std::function<Ret(Args...)>{...};// std::function
+    /// </summary>
+    /// <typeparam name="Ret"></typeparam>
+    /// <typeparam name="...Args"></typeparam>
     template<class Ret, class... Args>
     class   FETMultiDelegate<Ret(Args...)>
     {
@@ -111,22 +121,22 @@ namespace   FE
         /// <returns></returns>
         FETMultiDelegate& operator-=(void* obj)
         {
-            _entries.erase(
-                std::remove_if(_entries.begin(), _entries.end(),
-                    [obj](const Entry& e) { return e.obj == obj; }),
-                _entries.end());
+            auto    itr =   std::remove_if(_entries.begin(),_entries.end(),[obj](const Entry& e) { return e.obj == obj; });
+            _entries.erase(itr,_entries.end());
             return  *this;
         }
-        /// <summary>
-        /// 调用所有注册的回调函数
-        /// </summary>
-        /// <param name="args"></param>
-        void    operator()(Args... args) const
+        void    operator()(const Args&... args) const
         {
             for (auto& e : _entries)
             {
-                if (e.func)
-                    e.func(args...);
+                if (e.func) e.func(args...);
+            }
+        }
+        void    fireNotify(const Args&... args) const
+        {
+            for (auto& e : _entries)
+            {
+                if (e.func) e.func(args...);
             }
         }
     };

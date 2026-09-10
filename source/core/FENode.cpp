@@ -59,12 +59,22 @@ namespace   FE
         {   
             if (_ctx.scene() == nullptr)
                 return;
-            _ctx.scene()->onNodePropChanged(this);
+            _ctx.scene()->nodeTree().eventsChangedNode().fireNotify(this);
             for (auto& var : _childs)
             {
                 var->fireChanged();
             }
         }
+    }
+    void    FENode::onAddChild(Node node) 
+    {
+        flags().addFlag(FENode::FLAG_ADD_CHILD);
+        _ctx.scene()->nodeTree().eventsAddNode().fireNotify(node);
+    }
+    void    FENode::onRemoveChild(Node node) 
+    {
+        flags().addFlag(FLAG_REMOVE_CHILD);
+        _ctx.scene()->nodeTree().eventsRemoveNode().fireNotify(node);
     }
 
     aabb3dr FENode::updateAabb(bool recursion)
@@ -302,5 +312,7 @@ namespace   FE
         }
         return  true;
     }
+
+
 }
 

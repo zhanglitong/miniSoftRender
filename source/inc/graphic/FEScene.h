@@ -31,6 +31,8 @@ namespace   FE
     {
         RFactorys   rFactorys;
     };
+
+    class   FEInputSystem;
     class   FEScene 
         :public FEObject
         ,public FEInput
@@ -43,21 +45,12 @@ namespace   FE
         using   NotifyMap       =   std::map<const void*,NotifyUpdate>;
         using   FactoryRenderMgr=   FEKeyValues<uint64,FactoryRender>;
     public:
-        FEScene(FEContext& ctx)
-            :FEObject(ctx)
-            ,_nodeTree(ctx)
-            ,_factorys(ctx)
-            ,_viewerMgr(ctx)
-            ,_comSysMgr(ctx)
-        {
-        }
-        FEScene(const FEScene& other)
-            :FEObject(other)
-            ,_nodeTree(other._nodeTree)
-            ,_factorys(other._factorys)
-            ,_viewerMgr(other._viewerMgr)
-            ,_comSysMgr(other._comSysMgr)
-        {}
+        FEScene(FEContext& ctx);
+
+        FEScene(const FEScene& other);
+
+        virtual ~FEScene();
+
         inline  auto&   updateQueue()
         {
             return  _updateQueue;
@@ -107,6 +100,12 @@ namespace   FE
         {
             return  _frame;
         }
+        /// <summary>
+        /// 获取input system 
+        /// </summary>
+        /// <returns></returns>
+        FEInputSystem*  inputSystem() const;
+
         virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
         /// <summary>
         /// 节点加入到系统下，只是挂在节点上，并不做渲染
@@ -133,7 +132,7 @@ namespace   FE
         /// 节点基本属性数据发生变化,位置，旋转，平移，颜色等
         /// </summary>
         /// <param name="node"></param>
-        virtual void    onNodePropChanged(FENode* node);
+        virtual void    onNodePropChanged(const FENode* node);
         /// <summary>
         /// 打开工程
         /// </summary>

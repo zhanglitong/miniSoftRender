@@ -96,6 +96,7 @@ namespace   FE
                                 | FLAG_PROP_STATE,
         };   
         using   RenderFlags =   FEFlags<RenderFlag,uint32>;
+        using   Node        =   SharedPtr<FENode>;
     public:
         IMPLEMENT_CLASS_REFLECT(FENode)
     public:
@@ -430,14 +431,8 @@ namespace   FE
         /// <returns>true/false</returns>
         virtual bool    traverseObject(const ObjectVisitor&,uint depth = 0,bool recur = false) const override;
     protected:
-        virtual void    onAddChildren() override
-        {
-            flags().addFlag(FENode::FLAG_ADD_CHILD);
-        }
-        virtual void    onRemoveChildren() override
-        {
-            flags().addFlag(FLAG_REMOVE_CHILD);
-        }
+        virtual void    onAddChild(Node) override;
+        virtual void    onRemoveChild(Node) override;
         /// <summary>
         /// 子类实现
         /// </summary>

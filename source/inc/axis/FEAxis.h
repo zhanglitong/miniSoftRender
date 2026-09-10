@@ -73,6 +73,18 @@ namespace   FE
             _ctx.requireNextFrame();
         }
         /// <summary>
+        /// 只修改位置部分
+        /// </summary>
+        /// <param name="trans"></param>
+        inline  void    setTranslation(const real3& trans)
+        {
+            _transform[3] = glm::vec4(trans, 1.0f); 
+        }
+        inline  void    appTranslation(const real3& trans)
+        {
+            _transform[3] += glm::vec4(trans, 0.0f); 
+        }
+        /// <summary>
         /// 获取轴变换矩阵
         /// </summary>
         /// <returns>轴变换矩阵</returns>
@@ -354,28 +366,6 @@ namespace   FE
             _ctx.requireNextFrame();
             _selectedDelegate(this->isAxisSelected(), *this);
         }
-    };
-    /// <summary>
-    /// 浏览坐标轴基类,该轴只提供浏览,不包含其他功能
-    /// </summary>
-    class   FE_API  FEBrowseAxis :public FEAxis
-    {
-    public:
-        /// <summary>
-        /// 浏览轴类型
-        /// </summary>
-        enum    BrowseAxisType
-        {
-            ///base
-            BrowseAxisTypeBase = 0,
-            ///移动
-            BrowseAxisTypeMove,
-        };
-    protected:
-        BrowseAxisType _browseAxisType;
-    public:
-        FEBrowseAxis(BrowseAxisType type, FEContext& context);
-        virtual ~FEBrowseAxis();
     };
 }
 

@@ -3,6 +3,7 @@
 #include    "../inc/graphic/FEDevice.h"
 #include    "../inc/graphic/FEFactoryMgr.hpp"
 #include    "../inc/graphic/FEScene.h"
+#include    "../inc/FEInputSystem.hpp"
 
 namespace   FE
 {
@@ -47,6 +48,12 @@ namespace   FE
     }
     void    FEViewer::onMessage(const FEMessage& msg)
     {
+        /// TODO: 欠缺考虑
+        /// 设置当前viewer
+        {
+            FEMessage&  tmp =   const_cast<FEMessage&>(msg);
+            tmp.setViewer(this);
+        }
         /// 处理输入消息的逻辑
         /// 这里可以根据具体的消息类型进行处理，例如鼠标点击、键盘输入等
         /// 可以调用相应的回调函数或者修改相机状态等
@@ -69,25 +76,35 @@ namespace   FE
         case MSG_RESIZE:
             onResize(static_cast<const MsgResize&>(msg));
             break; 
-        case MSG_LBUTTON_DOWN:
-            onLButtonDown(static_cast<const MsgLButtonDown&>(msg));
-            break;
-        case MSG_RBUTTON_DOWN:
-            onRButtonDown(static_cast<const MsgRButtonDown&>(msg));
-            break;
-        case MSG_MOUSE_MOVE:
-            onMouseMove(static_cast<const MsgMouseMove&>(msg));
-            break;
-        case MSG_MOUSE_WHEEL:
-            onMouseWheel(static_cast<const MsgMouseWheel&>(msg));
-            break;
-        case MSG_KEYDOWN:
-            onKeyDown(static_cast<const MsgKeyDown&>(msg));
-            break;
-        case MSG_KEYUP:
-            onKeyUp(static_cast<const MsgKeyUp&>(msg));
-            break;
+        /// case MSG_LBUTTON_DOWN:
+        ///     onLButtonDown(static_cast<const MsgLButtonDown&>(msg));
+        ///     break;
+        /// case MSG_RBUTTON_DOWN:
+        ///     onRButtonDown(static_cast<const MsgRButtonDown&>(msg));
+        ///     break;
+        /// case MSG_MOUSE_MOVE:
+        ///     onMouseMove(static_cast<const MsgMouseMove&>(msg));
+        ///     break;
+        /// case MSG_MOUSE_WHEEL:
+        ///     onMouseWheel(static_cast<const MsgMouseWheel&>(msg));
+        ///     break;
+        /// case MSG_KEYDOWN:
+        ///     onKeyDown(static_cast<const MsgKeyDown&>(msg));
+        ///     break;
+        /// case MSG_KEYUP:
+        ///     onKeyUp(static_cast<const MsgKeyUp&>(msg));
+        ///     break;
+        /// default:
+        ///     break;
         default:
+            {
+                /// 消息传给input system 
+                auto    inputSys    =   _ctx.scene()->inputSystem();
+                if (inputSys)
+                {
+                    inputSys->onMessage(msg);
+                }
+            }
             break;
         }
     }

@@ -1,6 +1,5 @@
 #include    "../../inc/FECamera.hpp"
 #include    "../../inc/axis/FEAxisMath.hpp"
-#include    "../../inc/axis/FEGraphicsStub.hpp"
 #include    "../../inc/axis/FEEditAxisMove.h"
 
 
@@ -517,6 +516,11 @@ namespace   FE
 
     void    FEEditAxisMove::onMessage(const FEMessage& inputMsg)
     {
+        /// 说明已经被其他组件捕获了
+        /// 不处理消息
+        auto    capture =   captureObject();
+        if (capture != nullptr && capture.get() != this)
+            return;
         switch(inputMsg.msgId())
         {
         case MSG_LBUTTON_DOWN:
@@ -532,7 +536,6 @@ namespace   FE
     }
     bool    FEEditAxisMove::mouseButtonPress(const int2& pos)
     {
-
         _downPosWorld   =   this->position();
         _bMouseDown     =   true;
         AXIS oldSelected    =   _selectedAxis;
@@ -550,6 +553,8 @@ namespace   FE
             _offMove    =   real3(0.0);
             _delegate(EditStatus::EditStart, real3(0.0), real3(0.0), *this);
             _ctx.requireNextFrame();
+            /// 捕获消息系统,禁止继续分发
+            setCapture();
             return true;
         }
         return false;
@@ -586,14 +591,16 @@ namespace   FE
             _delegate(EditStatus::Editting, offset, _offMove, *this);
             _downPos    =   pos;
             _ctx.requireNextFrame();
+            
             return true;
         }
         else if(!_bMouseDown)
         {
+            /// 捕获消息系统,禁止继续分发
             if (hoverAxis(_ctx, pos) != AXIS_NULL)
-            {}
+                setCapture();
             else
-            {}
+                releaseCapture();
         }
         return false;
     }

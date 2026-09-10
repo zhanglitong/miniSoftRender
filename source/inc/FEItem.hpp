@@ -54,7 +54,7 @@ namespace   FE
             ///     return  false;
             _childs.emplace_back(child);
             child->setParent(this);
-            onAddChildren();
+            onAddChild(child);
             return  true;
         }
         /// <summary>
@@ -72,11 +72,8 @@ namespace   FE
                     continue;
                 var->setParent(this);
                 _childs.emplace_back(var);
+                onAddChild(var);
                 ++result;
-            }
-            if (result)
-            {
-                onAddChildren();
             }
             return  result;
         }
@@ -93,7 +90,7 @@ namespace   FE
             _childs.erase(itr);
             (*itr)->setParent(nullptr);
 
-            onRemoveChildren();
+            onRemoveChild(child);
             return  true;
         }
         /// <summary>
@@ -104,14 +101,15 @@ namespace   FE
         virtual bool    removeChild(const FEUuid& id)
         {
             auto    itr =   std::find_if(_childs.begin(),_childs.end(),[&id](const Item& object)
-                {
-                    return  object->objectId() == id;
-                });
+            {
+                return  object->objectId() == id;
+            });
             if (itr == _childs.end())
                 return  false;
+            Item    item    =   *itr;
             _childs.erase(itr);
             (*itr)->setParent(nullptr);
-            onRemoveChildren();
+            onRemoveChild(item);
             return  true;
         }
         /// <summary>
@@ -129,11 +127,12 @@ namespace   FE
                     continue;
                 _childs.erase(itr);
                 (*itr)->setParent(nullptr);
+                onRemoveChild(var);
                 ++result;
             }
             if (result)
             {
-                onRemoveChildren();
+                
             }
             return  result;
         }
@@ -145,14 +144,15 @@ namespace   FE
             for (auto& var : _childs)
             {
                 var->setParent(nullptr);
+                onRemoveChild(var);
                 var->removeAllChildren();
             }
             _childs.clear();
-            onRemoveChildren();
+            
         }
     protected:
-        virtual void    onAddChildren()     =   0;
-        virtual void    onRemoveChildren()  =   0;
+        virtual void    onAddChild(Item child)     =   0;
+        virtual void    onRemoveChild(Item child)  =   0;
         /// <summary>
         /// 设置父对象
         /// 如果要修改父节，则需要调用parent()->addChild / parent()->removeChilds 实现

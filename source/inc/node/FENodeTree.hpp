@@ -1,83 +1,22 @@
 #pragma     once
 
+#include    "../FEDelegate.hpp"
 #include    "FENode.hpp"
-  
 
 namespace   FE
 {
-    template<typename TNotify,typename TContainer = std::map<void*,TNotify>>
-    class   TNotifyWrapper
-    {   
-    public:
-        TNotifyWrapper()
-        {}
-        TNotifyWrapper(const TNotifyWrapper& other)
-            :_notifys(other._notify)
-        {}
-        /// <summary>
-        /// 调用通知函数
-        /// </summary>
-        /// <typeparam name="...Args"></typeparam>
-        /// <param name="...args"></param>
-        template<class ... Args>
-        inline  void    fireNotify(Args&&... args)
-        {
-            for (auto& var : _notifys)
-            {
-                var.second(std::forward<Args>(args)...);
-            }
-        }
-        template<class ... Args>
-        inline  void    fireNotify(const Args&&... args)
-        {
-            for (auto& var : _notifys)
-            {
-                var.second(args...);
-            }
-        }
-        inline  void    addNotify(void* pKey,const TNotify& notify)
-        {
-            assert(notify);
-            if (notify) _notifys[pKey] =   notify;
-        }
-        inline  void    removeNotify(void* pKey)
-        {
-            _notifys.erase(pKey);
-        }
-        inline  void    clearNotify()
-        {
-            _notifys.clear();
-        }
-        inline  TNotify query(void* pKey) const
-        {
-            auto    itr =   _notifys.find(pKey);
-            if (itr != _notifys.end())
-                return  itr->second;
-            else
-                return  {};
-        }
-        /// <summary>
-        /// 获取所有的通知函数
-        /// </summary>
-        /// <returns></returns>
-        const  auto&    notifies() const
-        {
-            return  _notifys;
-        }
-    protected:
-        TContainer  _notifys;
-    };
-
     DEFINE_CLASS_UUID(FENodeTree,"{D623E1BB-9386-45F0-9AD0-4274585D1F40}");
 
-    using   NAddNode        =   std::function<void(Node)>;
-    using   NRemoveNode     =   std::function<void(Node)>;
-    using   NotifyClear     =   std::function<void(const Nodes&)>;
+    using   NAddNodes       =   FETMultiDelegate<void(const FENode*)>;
+    using   NRemoveNodes    =   FETMultiDelegate<void(const FENode*)>;
+    using   NChangedNodes   =   FETMultiDelegate<void(const FENode*)>;
+    using   NotifyClears    =   FETMultiDelegate<void()>;
 
-    using   NAddNodes       =   TNotifyWrapper<NAddNode,        std::map<void*,NAddNode>>;
-    using   NRemoveNodes    =   TNotifyWrapper<NRemoveNode,     std::map<void*,NRemoveNode>>;
-    using   NotifyClears    =   TNotifyWrapper<NotifyClear,     std::map<void*,NotifyClear>>;
-
+    /// <summary>
+    /// 节点树管理
+    /// 没有选择通知(使用NChangedNodes);
+    /// 当节点修改了状态，会触发NChangedNodes
+    /// </summary>
     class   FENodeTree :public FEObject
     {
     public:
@@ -91,30 +30,48 @@ namespace   FE
         {
             _topLevelNodes  =   other._topLevelNodes;
         }
-        inline  auto&   addNodeEvents()
+        inline  auto&   eventsAddNode()
         {
             return  _NAddNodes;
         }
-        const   auto&   addNodeEvents() const
+        const   auto&   eventsAddNode() const
         {
             return  _NAddNodes;
         }
-        inline  auto&   removeNodeEvents()
+        inline  auto&   eventsRemoveNode()
         {
             return  _NRemoveNodes;  
         }
-        const   auto&   removeNodeEvents() const
+        const   auto&   eventsRemoveNode() const
         {
             return  _NRemoveNodes;  
         }
-        inline  auto&   clearEvents()
+        /// <summary>
+        /// 获取节点属性变更通知对象(读写)
+        /// </summary>
+        /// <returns>节点属性变更通知集合</returns>
+        inline  auto&   eventsChangedNode()
+        {
+            return  _NChangedNodes;  
+        }
+        /// <summary>
+        /// 获取节点属性变更通知对象(只读)
+        /// </summary>
+        /// <returns>节点属性变更通知集合</returns>
+        const   auto&   eventsChangedNode() const
+        {
+            return  _NChangedNodes;  
+        }
+        
+        inline  auto&   eventsClear()
         {
             return  _NotifyClears;
         }
-        const   auto&   clearEvents() const
+        const   auto&   eventsClear() const
         {
             return  _NotifyClears;
         }
+        
     public:
         const   Nodes&  topLevelNodes() const
         {
@@ -123,14 +80,14 @@ namespace   FE
         inline  void    addToplevelNode(const Node& node)
         {
             _topLevelNodes.push_back(node);
-            _NAddNodes.fireNotify(node);
+            _NAddNodes(node.get());
         }
         inline  void    addToplevelNodes(const Nodes& nodes)
         {
             _topLevelNodes.insert(_topLevelNodes.end(), nodes.begin(), nodes.end());
             for (auto& var : nodes)
             {
-                _NAddNodes.fireNotify(var);
+                _NAddNodes(var.get());
             }
         }
         inline  void    removeToplevelNode(const Node& node)
@@ -139,7 +96,7 @@ namespace   FE
             if (itr != _topLevelNodes.end())
             {
                 _topLevelNodes.erase(itr);
-                _NRemoveNodes.fireNotify(node);
+                _NRemoveNodes(node.get());
             }
                 
         }
@@ -156,7 +113,7 @@ namespace   FE
                 return;
             auto    parent = node->parent();
             if(parent && parent->removeChild(node))
-                _NRemoveNodes.fireNotify(node);
+                _NRemoveNodes(node.get());
             else
                 removeToplevelNode(node);
         }
@@ -172,7 +129,7 @@ namespace   FE
         /// </summary>
         inline  void    clear()
         {
-            _NotifyClears.fireNotify(_topLevelNodes);
+            _NotifyClears();
             for (auto var : _topLevelNodes)
             {
                 var->clear();
@@ -181,9 +138,9 @@ namespace   FE
         }
     protected:
         Nodes           _topLevelNodes;
-
         NAddNodes       _NAddNodes   ;
         NRemoveNodes    _NRemoveNodes;
+        NChangedNodes   _NChangedNodes;
         NotifyClears    _NotifyClears;
     };
 

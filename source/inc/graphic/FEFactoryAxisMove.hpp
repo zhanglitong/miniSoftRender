@@ -1,6 +1,6 @@
 #pragma     once
 
-#include    "../axis/FEEditAxisMove.h"
+#include    "../axis/FENodeMoveEditor.h"
 #include    "../material/FEMaterialV3.hpp"
 #include    "FEFactoryRender.hpp"
 
@@ -16,15 +16,18 @@ namespace   FE
         FEFactoryAxisMove(FEContext& ctx)
             :FEFactoryRender(ctx)
         {
-            _move   =   new FEEditAxisMove(_ctx);
+            _move   =   new FENodeMoveEditor(_ctx);
             _mat    =   new FEMaterialV3(_ctx);
         }
         FEFactoryAxisMove(const FEFactoryAxisMove& other)
             :FEFactoryRender(other)
             ,_move(other._move)
         {}
-
-        inline  EditAxisMove    inputComponent()
+        inline  auto    inputComponent() const
+        {
+            return  _move;
+        }
+        inline  auto    inputComponent()
         {
             return  _move;
         }
@@ -221,7 +224,7 @@ namespace   FE
         VBO             _axisArrowVBO   =   nullptr;
         IBO             _axisLineIBO    =   nullptr;
         VBO             _cpu            =   nullptr; 
-        EditAxisMove    _move           =   nullptr;
+        NodeMoveEditor  _move           =   nullptr;
         MaterialV3      _mat            =   nullptr;
     };
     using   FactorySimple   =   SharedPtr<FEFactoryAxisMove>;
