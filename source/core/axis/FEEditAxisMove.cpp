@@ -1,4 +1,4 @@
-#include    "../../inc/FECamera.hpp"
+﻿#include    "../../inc/FECamera.hpp"
 #include    "../../inc/axis/FEAxisMath.hpp"
 #include    "../../inc/axis/FEEditAxisMove.h"
 
@@ -131,7 +131,7 @@ namespace   FE
         real arSize     =   unitF * 24;
         real arRadius   =   unitF * 5;
         _axisAr.clear();
-        real step       =   12.0;
+        real step = real(DEG2RAD(12.0));
         ///arX
         {
             real3 tAxis = vectorPerpendicularToAxisX();

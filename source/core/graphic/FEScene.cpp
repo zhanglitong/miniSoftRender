@@ -16,6 +16,8 @@
 #include    "../inc/FEFileFormatHelper.hpp"
 #include    "../inc/fileFormat/fepk/FEFormatFepj.hpp"
 #include    "../inc/graphic/FEFactoryAxisMove.hpp"
+#include    "../inc/graphic/FEFactoryAxisRotate.hpp"
+#include    "../inc/graphic/FEFactoryAxisScale.hpp"
 #include    "../inc/graphic/FESceneBrowse.h"
 
 namespace   FE
@@ -160,20 +162,30 @@ namespace   FE
         /// 创建网格
         createGrid();
 
-        auto    facotry     =   new FEFactoryAxisMove(_ctx);
-        facotry->setResident(true);
-        _factorys.addObject(facotry);   
+        /// auto    facotry     =   new FEFactoryAxisMove(_ctx);
+        /// facotry->setResident(true);
+        /// _factorys.addObject(facotry);
+
+        auto    facotryRot  =   new FEFactoryAxisRotate(_ctx);
+        facotryRot->setResident(true);
+        _factorys.addObject(facotryRot);
+
+        //auto    facotryScl  =   new FEFactoryAxisScale(_ctx);
+        //facotryScl->setResident(true);
+        //_factorys.addObject(facotryScl);
 
         auto        inputSys    =   _comSysMgr.query(UUIDOF(FEInputSystem));
         if (inputSys)
         {
-            inputSys->addObject(facotry->inputComponent().get());
+            //inputSys->addObject(facotry->inputComponent().get());
+            inputSys->addObject(facotryRot->inputComponent().get());
+            //inputSys->addObject(facotryScl->inputComponent().get());
 
             SceneBrowse     browseTool  =   new FESceneBrowse(_ctx);
             inputSys->addObject(browseTool.get());
         }
 
-#if 1
+#if 0
         String          box     =   R"(E:\study\gltf\glTF-Sample-Assets\Models\Box\glTF\Box.gltf)";
         //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
         String          gltfFile=   box;//R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
@@ -185,7 +197,7 @@ namespace   FE
             auto    objects =   reader->readFiles({gltfFile});
             Nodes   nodes;
             for (auto var : objects)
-            {   
+            {
                 Node    node    =   var->cast<FENode>();
                 if (node == nullptr)
                     continue;
@@ -195,6 +207,8 @@ namespace   FE
             dispatchNodesToSystem(nodes);
             addNodesToTree(nodes);
             facotry->inputComponent()->setNodes(nodes);
+            facotryRot->inputComponent()->setNodes(nodes);
+            facotryScl->inputComponent()->setNodes(nodes);
 
         }
 #endif
@@ -307,7 +321,7 @@ namespace   FE
         FECmdBuffer::RenderInfo  rsInfo  =   {};
         rsInfo._depth       =   _depthView;
         rsInfo._colors      =   {_frame->_imageViewer};
-        rsInfo._clearColor  =   float4(1,1,1,1);
+        rsInfo._clearColor  =   float4(0,0,0,1);
         rsInfo._rect.set(0,0,width,height);
 
         _frame->_cmd->beginRender(rsInfo);

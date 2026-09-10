@@ -119,15 +119,18 @@ namespace   FE
             updateScroll();
         if (_scene)
         {
-            _scene->nodeTree().addNodeEvents().addNotify(this,[&](Node){
+            _scene->nodeTree().eventsAddNode()      +=  {this,[this](const FENode* )
+            {
                 update();
-            });
-            _scene->nodeTree().removeNodeEvents().addNotify(this,[&](Node){
+            }};
+            _scene->nodeTree().eventsRemoveNode()   +=  {this,[this](const FENode* )
+            {
                 update();
-            });
-            _scene->nodeTree().clearEvents().addNotify(this,[&](const Nodes&){
+            }};
+            _scene->nodeTree().eventsClear() += {this,[this]()
+            {
                 update();
-            });
+            }};
         }
     }
 
@@ -135,9 +138,9 @@ namespace   FE
     {
         if (_scene)
         {
-            _scene->nodeTree().addNodeEvents().removeNotify(this);
-            _scene->nodeTree().removeNodeEvents().removeNotify(this);
-            _scene->nodeTree().clearEvents().removeNotify(this);
+            _scene->nodeTree().eventsAddNode()      -=  this;
+            _scene->nodeTree().eventsRemoveNode()   -=  this;
+            _scene->nodeTree().eventsClear()        -=  this;
         }
         _scene              =   nullptr;
         _curItem            =   nullptr;

@@ -211,18 +211,32 @@ namespace   FE
     {
         if (!isValid())
             return  nullptr;
-        size_t  index           =   (_curFrame ++ )%_frames.size();
-        Frame   frame           =   _frames[index];
 
         auto&   vkDevice        =   (VKDevice&)(_ctx.device());
         auto    device          =   vkDevice.logicalDevice();
-        auto    nativeSem       =   frame->_semPresentComplete ? (VkSemaphore)frame->_semPresentComplete->native() : nullptr;
-        auto    result          =   vkAcquireNextImageKHR(device, _native, timeout, nativeSem, nullptr, &frame->_imageIdx);
-        assert (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+
+        /// 用 frame[0] 的 present-complete 信号量发起 acquire(充当临时 acquire semaphore)
+        VkSemaphore acquireSem  =   _frames[0]->_semPresentComplete
+                                    ? (VkSemaphore)_frames[0]->_semPresentComplete->native()
+                                    :   nullptr;
+        uint32_t    imageIdx    =   0;
+        auto    result          =   vkAcquireNextImageKHR(device, _native, timeout, acquireSem, nullptr, &imageIdx);
         if (!(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR))
-            return  frame;
-        else
-            return  frame;
+            return  nullptr;
+
+        /// 用获取到的 image index 选择对应的 frame(保证 frame 的 imageView 与 acquired image 匹配)
+        Frame   frame           =   _frames[imageIdx];
+        frame->_imageIdx        =   imageIdx;
+
+        /// 将已 signal 的 acquire semaphore 交换到选中的 frame 上,
+        /// 使后续 queue submit 等待的 frame->_semPresentComplete 就是刚被 signal 的那个
+        if (imageIdx != 0)
+        {
+            Semaphore tmp                        =   frame->_semPresentComplete;
+            frame->_semPresentComplete           =   _frames[0]->_semPresentComplete;
+            _frames[0]->_semPresentComplete      =   tmp;
+        }
+        return  frame;
     }
 
     

@@ -1,4 +1,4 @@
-#pragma     once
+﻿#pragma     once
 
 #include    "../axis/FENodeMoveEditor.h"
 #include    "../material/FEMaterialV3.hpp"
@@ -154,7 +154,7 @@ namespace   FE
                 else
                     pushBlock._color    =   FE::packUnorm4x8(DisableColor);
 
-                cmd->setLineWidth(1);
+                cmd->setLineWidth(2);
                 cmd->pushConstants(pl, pl->cInfo()._pushConstantStage.data(),0,sizeof(pushBlock),&pushBlock);
                 cmd->setPrimitiveTopology(PRI_LINES);
                 cmd->drawIndex(10 * i,4,0,0,1);
@@ -175,7 +175,7 @@ namespace   FE
                     else
                     {
                         color[i]    =   1.0f;
-                        cmd->setLineWidth(1);
+                        cmd->setLineWidth(2);
                     }
                     if (_move->enabled(i + 1))
                         pushBlock._color    =   FE::packUnorm4x8(color);
