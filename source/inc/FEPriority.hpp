@@ -36,7 +36,7 @@ namespace   FE
         /// </summary>
         /// <param name="pri"></param>
         /// <returns></returns>
-        auto&   setPriority(EPriority pri)
+        auto&   setPriority(const EPriority& pri)
         {
             _priority   =   pri;
             return  *this;

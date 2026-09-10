@@ -82,7 +82,10 @@ namespace   FE
         }
         inline  void    appTranslation(const real3& trans)
         {
-            _transform[3] += glm::vec4(trans, 0.0f); 
+            _transform[3]   += glm::vec4(trans, 0.0f); 
+            _transform[3].w =   1;
+            _internalFlags.addFlag(InteralFlag_Update);
+            _ctx.requireNextFrame();
         }
         /// <summary>
         /// 获取轴变换矩阵

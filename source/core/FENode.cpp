@@ -39,19 +39,12 @@ namespace   FE
     {
     }
 
-    void    FENode::update(const real& tmDelta)
+    void    FENode::update()
     {
         if (!flags().hasFlags(ModifyValue))
             return;
         updateTransform(true);
         updateAabb(true);
-        for (auto& var: _coms)
-        {
-            if (!var->isEnable() || var->isActor())
-                continue;
-            else
-                var->update(tmDelta);
-        }
     }
     void   FENode::fireChanged()
     {
@@ -84,6 +77,11 @@ namespace   FE
         {
             _aabb       =   mesh->aabb();
             _aabb.transform(globalTransform());
+        }
+        else
+        {
+            ///无 mesh 节点(如纯组节点)重置为空包围盒,避免脏数据参与合并
+            _aabb.setNull();
         }
         if (!recursion || children().empty() )
             return  _aabb;

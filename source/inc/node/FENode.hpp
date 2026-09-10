@@ -349,16 +349,15 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// 修改了节点属性后调用该函数进行更新操作
-        /// 典型应用场景:
-        ///     setLocalTranslate(...);
-        ///     setLocalScale(...);
-        ///     update(); 其中参数告诉节点是否通知系统变更
-        //      再调用 fireChanged()
+        /// 修改节点属性后调用该函数刷新本地缓存
+        /// 检测 ModifyValue 标志,有修改时递归更新 transform 与 aabb,并用 tmDelta 推进本节点组件
+        /// 不清除 ModifyValue 标志(由所在工厂消费时清除),也不发送变更通知
+        /// 典型用法:
+        ///     setLocalTranslation(...);
+        ///     update();
+        ///     fireChanged();   // 需要外部手动调用以发送变更通知
         /// </summary>
-        /// <param name="bFireChanged"></param>
-        /// <param name="tmDelta">一般情况下使用默认值(0),当需要每一帧调用该函数的情况下，使用系统时间</param>
-        virtual void    update(const real& tmDelta = 0.0);
+        virtual void    update();
         virtual void    fireChanged();
         /// <summary>
         /// 更新包围盒信息，不检测是否需要，直接计算

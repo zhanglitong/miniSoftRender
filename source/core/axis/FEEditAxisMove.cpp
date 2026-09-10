@@ -292,7 +292,7 @@ namespace   FE
 
         auto&   camera  =   context.activeCamera();
         auto    ray     =   camera.createRayFromScreen(screen.x, screen.y);
-        real3      rect[3][4] =
+        real3   rect[3][4] =
         {
             /// xoy
             {
