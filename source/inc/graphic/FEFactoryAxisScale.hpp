@@ -43,6 +43,8 @@ namespace   FE
         /// </summary>
         virtual void    update(CMDPtr ) override
         {
+            if (_scale == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+                return;
             _scale->update(_ctx.activeCamera());
 
             auto&   scaleAxis       =   _scale->scaleAxis();        ///16
@@ -216,6 +218,9 @@ namespace   FE
         /// </summary>
         virtual void    render(CMDPtr cmd) override
         {
+            if (_scale == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+                return;
+
             if (_mat == nullptr || _axisLineVBO == nullptr)
                 return;
 
@@ -399,7 +404,14 @@ namespace   FE
         /// 销毁前一定调用该函数,解除数据对工厂的引用计数
         /// </summary>
         virtual void    destroy() override
-        {}
+        {
+            _axisLineVBO    =   nullptr;
+            _axisTriVBO     =   nullptr;
+            _axisArrowVBO   =   nullptr;
+            _cpu            =   nullptr;
+            _scale          =   nullptr;
+            _mat            =   nullptr;
+        }
     protected:
         VBO             _axisLineVBO    =   nullptr;
         VBO             _axisTriVBO     =   nullptr;

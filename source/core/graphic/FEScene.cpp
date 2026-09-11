@@ -161,29 +161,8 @@ namespace   FE
         });
         /// 创建网格
         createGrid();
-
-        /// auto    facotry     =   new FEFactoryAxisMove(_ctx);
-        /// facotry->setResident(true);
-        /// _factorys.addObject(facotry);
-
-        auto    facotryRot  =   new FEFactoryAxisRotate(_ctx);
-        facotryRot->setResident(true);
-        _factorys.addObject(facotryRot);
-
-        //auto    facotryScl  =   new FEFactoryAxisScale(_ctx);
-        //facotryScl->setResident(true);
-        //_factorys.addObject(facotryScl);
-
-        auto        inputSys    =   _comSysMgr.query(UUIDOF(FEInputSystem));
-        if (inputSys)
-        {
-            //inputSys->addObject(facotry->inputComponent().get());
-            inputSys->addObject(facotryRot->inputComponent().get());
-            //inputSys->addObject(facotryScl->inputComponent().get());
-
-            SceneBrowse     browseTool  =   new FESceneBrowse(_ctx);
-            inputSys->addObject(browseTool.get());
-        }
+        /// 创建工具
+        createTools();
 
 #if 0
         String          box     =   R"(E:\study\gltf\glTF-Sample-Assets\Models\Box\glTF\Box.gltf)";
@@ -206,10 +185,6 @@ namespace   FE
             }
             dispatchNodesToSystem(nodes);
             addNodesToTree(nodes);
-            facotry->inputComponent()->setNodes(nodes);
-            facotryRot->inputComponent()->setNodes(nodes);
-            facotryScl->inputComponent()->setNodes(nodes);
-
         }
 #endif
 
@@ -259,6 +234,8 @@ namespace   FE
     }
     void    FEScene::onFrameUpdate()
     {
+        if (_frame == nullptr || _frame->_cmd == nullptr)
+            return;
         /// all componentSys for update
         /// 复制一份
         auto    comSyss     =   _comSysMgr.objects();
@@ -336,10 +313,10 @@ namespace   FE
     }
     void    FEScene::onFrameEnd()
     {
+        if (_frame == nullptr||  _frame->_cmd == nullptr)
+            return;
         if (_frame && _frame->_cmd )
-        {
             _frame->_cmd->end();
-        }
         /// 获取所有渲染工厂
         auto&   factorys    =   _factorys.objects();
         /// 清除所有标记
@@ -873,5 +850,38 @@ namespace   FE
             _factorys.addObject(var);
         }
         return  node;
+    }
+
+    void    FEScene::createTools()
+    {
+        auto    inputSys    =   _comSysMgr.query(UUIDOF(FEInputSystem));
+        if (inputSys == nullptr)
+        {
+            LOG_ERR("createTools/without an input module, you can't build any interactive features!");
+            return;
+        }
+        auto    facotryMov  =   new FEFactoryAxisMove(_ctx);
+        facotryMov->setResident(true);
+        _factorys.addObject(facotryMov);
+
+        auto    facotryRot  =   new FEFactoryAxisRotate(_ctx);
+        facotryRot->setResident(true);
+        _factorys.addObject(facotryRot);
+
+       auto    facotryScl  =   new FEFactoryAxisScale(_ctx);
+       facotryScl->setResident(true);
+       _factorys.addObject(facotryScl);
+
+       /// 默认隐藏掉
+       facotryMov->flags().removeFlag(FE::FLAG_VISIBLE);
+       facotryRot->flags().removeFlag(FE::FLAG_VISIBLE);
+       facotryScl->flags().removeFlag(FE::FLAG_VISIBLE);
+
+       inputSys->addObject(facotryMov->inputComponent().get());
+       inputSys->addObject(facotryRot->inputComponent().get());
+       inputSys->addObject(facotryScl->inputComponent().get());
+       /// 浏览工具
+       SceneBrowse     browseTool  =   new FESceneBrowse(_ctx);
+       inputSys->addObject(browseTool.get());
     }
 }

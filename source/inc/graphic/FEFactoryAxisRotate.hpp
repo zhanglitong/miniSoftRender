@@ -43,12 +43,15 @@ namespace   FE
         /// </summary>
         virtual void    update(CMDPtr ) override
         {
+            if (_rotate == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+                return;
+
             _rotate->update(_ctx.activeCamera());
 
-            auto&   axisAxis        =   _rotate->rotateAxis();           ///6
-            auto&   screenCircle    =   _rotate->rotateScreenCircle();  ///62 (31 ball + 31 screen)
-            auto&   arcs            =   _rotate->rotateArcs();          ///3
-            auto&   tangent         =   _rotate->tangent();             ///8
+            auto&   axisAxis        =   _rotate->rotateAxis();          /// 6
+            auto&   screenCircle    =   _rotate->rotateScreenCircle();  /// 62 (31 ball + 31 screen)
+            auto&   arcs            =   _rotate->rotateArcs();          /// 3
+            auto&   tangent         =   _rotate->tangent();             /// 8
             auto&   fan             =   _rotate->fan();
 
             /// ----------------------------------------------------------------
@@ -215,6 +218,8 @@ namespace   FE
         /// </summary>
         virtual void    render(CMDPtr cmd) override
         {
+            if (_rotate == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+                return;
             if (_mat == nullptr || _axisLineVBO == nullptr)
                 return;
 
@@ -375,7 +380,14 @@ namespace   FE
         /// 销毁前一定调用该函数,解除数据对工厂的引用计数
         /// </summary>
         virtual void    destroy() override
-        {}
+        {
+            _axisLineVBO    =   nullptr;
+            _arcVBO         =   nullptr;
+            _fanVBO         =   nullptr;
+            _cpu            =   nullptr;
+            _rotate         =   nullptr;
+            _mat            =   nullptr;
+        }
     protected:
         VBO                 _axisLineVBO    =   nullptr;
         VBO                 _arcVBO         =   nullptr;

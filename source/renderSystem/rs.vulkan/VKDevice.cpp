@@ -34,6 +34,10 @@ namespace   FE
         /// 使用动态渲染
         /// </summary>
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+        /// <summary>
+        /// 绘制线样式
+        /// </summary>
+        VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME,
     };
 
     VKDevice::~VKDevice()
@@ -88,14 +92,23 @@ namespace   FE
                     _supportedExtensions.push_back(ext.extensionName);
                 }
             }
-        }
-        _enabledFeatures.multiDrawIndirect  =   VK_TRUE;
-
+        } 
         for (auto var : needExtensions)
         {
             if (supportExtension(var) )
                 _cInfo.extensions.push_back(var);
         }
+        VkPhysicalDeviceFeatures supportedFeatures{};
+        vkGetPhysicalDeviceFeatures(_physicalDevice, &supportedFeatures);
+
+        if (supportedFeatures.wideLines)            
+            _enabledFeatures.wideLines          =   supportedFeatures.wideLines;
+        else
+            _enabledFeatures.wideLines          =   VK_FALSE;   
+        if (supportedFeatures.multiDrawIndirect)    
+            _enabledFeatures.multiDrawIndirect  =   supportedFeatures.multiDrawIndirect;
+        else
+            _enabledFeatures.multiDrawIndirect  =   VK_FALSE;
         
         if(createLogicalDevice(_enabledFeatures,_cInfo.extensions,nullptr) != VK_SUCCESS)
             return  FEResult::ER_FAILED;
@@ -434,6 +447,22 @@ namespace   FE
         PCSTRs  deviceExtensions(enabledExtensions);
         if (useSwapChain)
             deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        /// 查询线光栅化特性的详细支持情况
+        bool    lineRasterizationSupported  =   supportExtension(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
+        VkPhysicalDeviceLineRasterizationFeatures       lineFeatures    =   {};
+        
+
+        lineFeatures.sType  =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT;
+        lineFeatures.pNext  =   nullptr;
+        if(lineRasterizationSupported)
+        {
+            VkPhysicalDeviceFeatures2 features2{};
+            features2.sType     =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            features2.pNext     =   &lineFeatures;
+            vkGetPhysicalDeviceFeatures2(_physicalDevice, &features2);
+
+            lineRasterizationSupported  =   lineFeatures.stippledRectangularLines ||  lineFeatures.stippledBresenhamLines || lineFeatures.stippledSmoothLines;
+        }
 
         VkDeviceCreateInfo deviceCreateInfo =   {};
         deviceCreateInfo.sType                  =   VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -456,15 +485,14 @@ namespace   FE
         }
         else
         {
-            
-            dynamicState3Features.sType =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
-            dynamicState3Features.pNext =   nullptr;
+            dynamicState3Features.sType         =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+            dynamicState3Features.pNext         =   nullptr;
 
             /// 根据需求启用功能，例如启用动态设置多边形模式和光栅化采样数
             dynamicState3Features.extendedDynamicState3PolygonMode          =   VK_TRUE;          
             /// 对应 vkCmdSetPolygonModeEXT[reference:9]
             dynamicState3Features.extendedDynamicState3RasterizationSamples =   VK_TRUE; 
-            deviceCreateInfo.pNext      =   &dynamicState3Features;
+            deviceCreateInfo.pNext              =   &dynamicState3Features;
 
             
             dynamicRenderingFeatures.sType              =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
@@ -473,8 +501,11 @@ namespace   FE
 
             dynamicState3Features.pNext                 =   &dynamicRenderingFeatures;
         }
-
-
+        if (lineRasterizationSupported)
+        {
+            dynamicRenderingFeatures.pNext              =   &lineFeatures;
+            lineFeatures.pNext                          =   nullptr;
+        }
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_KHR_portability_subset)
         // SRS - When running on iOS/macOS with MoltenVK and VK_KHR_portability_subset is defined and supported by the device, enable the extension
         if (extensionSupported(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
@@ -493,9 +524,6 @@ namespace   FE
             }
             deviceCreateInfo.enabledExtensionCount      =   (uint32_t)deviceExtensions.size();
             deviceCreateInfo.ppEnabledExtensionNames    =   deviceExtensions.data();
-
-            VkPhysicalDeviceFeatures features{};
-            features.multiDrawIndirect  = VK_TRUE; 
         }
         _enabledFeatures    =   enabledFeatures;
         VkResult result     =   vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
@@ -503,7 +531,6 @@ namespace   FE
         {
             return result;
         }
-
         _graphicPool    =   createCmdPool();
         _computePool    =   createCmdPool();
         _transferPool   =   createCmdPool();
@@ -511,7 +538,6 @@ namespace   FE
         _graphicPool    ->create({_queueFamilyIndices.graphics});
         _computePool    ->create({_queueFamilyIndices.compute});
         _transferPool   ->create({_queueFamilyIndices.transfer});
-
 
         return result;
     }

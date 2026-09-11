@@ -38,6 +38,8 @@ namespace   FE
         /// <param name="cmd"></param>
         virtual void    update(CMDPtr ) override
         {
+            if (_move == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+                return;
             /// 每一帧调用更新
            _move->update(_ctx.activeCamera());
            auto&    indexs  =   _move->indexs();
@@ -94,6 +96,8 @@ namespace   FE
         /// <param name="cmd"></param>
         virtual void    render(CMDPtr cmd) override
         {
+            if (_move == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+                return;
             if (_mat == nullptr)
                 return;
             auto        pl      =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
@@ -218,7 +222,14 @@ namespace   FE
         /// 才能正确的释放数据
         /// </summary>
         virtual void    destroy() override
-        {}
+        {
+            _axisLineVBO    =   nullptr;
+            _axisArrowVBO   =   nullptr;
+            _axisLineIBO    =   nullptr;
+            _cpu            =   nullptr;
+            _move           =   nullptr;
+            _mat            =   nullptr;
+        }
     protected:
         VBO             _axisLineVBO    =   nullptr;
         VBO             _axisArrowVBO   =   nullptr;

@@ -109,6 +109,13 @@ namespace   FE
         /// 设置旋转吸附角度
         /// </summary>
         void setAdsorptionAngle(real angle) ;
+        /// <summary>
+        /// 获取当前累计旋转角度(度)
+        /// </summary>
+        inline  real    offAngle() const
+        {
+            return  _offAngle;
+        }
     public:
         /// <summary>
         /// 每一帧调用,自动生成旋转轴顶点数据

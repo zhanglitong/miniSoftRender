@@ -70,7 +70,8 @@ namespace   FE
         (void)status;
         (void)absoluteOffsetAngle;
         real3       pivot   =   position();
-        quatr       delta   =   FE::angleAxis(relativeOffsetAngle, normalize(axis));
+        auto        rad     =   DEG2RAD(relativeOffsetAngle);
+        quatr       delta   =   FE::angleAxis(rad, normalize(axis));
         for (auto node : _nodes)
         {
             ///围绕编辑器位置旋转节点

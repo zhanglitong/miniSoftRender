@@ -182,6 +182,10 @@ namespace   FE
         /// </summary>
         /// <returns></returns>
         Node    createGrid();
+        /// <summary>
+        /// 创建工具
+        /// </summary>
+        void    createTools();
     protected:
         App                 _app;  
         FETimestamp         _timestamp;
