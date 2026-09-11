@@ -215,12 +215,17 @@ namespace   FE
         auto&   vkDevice        =   (VKDevice&)(_ctx.device());
         auto    device          =   vkDevice.logicalDevice();
 
+        /// 等待目标 frame 的上一次 GPU 工作完成,
+        /// 防止在 cmd buffer 仍处于 pending 状态时重置/重新 begin
+        if (_frames[0] && _frames[0]->_fenceWait)
+            _frames[0]->_fenceWait->wait(UINT64_MAX);
+
         /// 用 frame[0] 的 present-complete 信号量发起 acquire(充当临时 acquire semaphore)
         VkSemaphore acquireSem  =   _frames[0]->_semPresentComplete
                                     ? (VkSemaphore)_frames[0]->_semPresentComplete->native()
                                     :   nullptr;
-        uint32_t    imageIdx    =   0;
-        auto    result          =   vkAcquireNextImageKHR(device, _native, timeout, acquireSem, nullptr, &imageIdx);
+        uint    imageIdx    =   0;
+        auto    result      =   vkAcquireNextImageKHR(device, _native, timeout, acquireSem, nullptr, &imageIdx);
         if (!(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR))
             return  nullptr;
 
@@ -246,6 +251,9 @@ namespace   FE
 
         RECT    rect;
         GetClientRect((HWND)info._window,&rect);
+        /// 用窗口实际客户区大小覆盖传入值,防止构造时 rect() 为 0 导致 0x0 swapchain
+        _cInfo._width   =   rect.right  -   rect.left;
+        _cInfo._height  =   rect.bottom -   rect.top;
         initSurface(info._appInst,info._window);
         create(_cInfo._width,_cInfo._height,true,false);
         return  true;

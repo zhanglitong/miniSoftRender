@@ -43,15 +43,19 @@ namespace   FE
         virtual void    mouseMoveEvent(QMouseEvent *event)          override ;
         virtual void    wheelEvent(QWheelEvent *event)              override ;
         virtual void    resizeEvent(QResizeEvent *event)            override ;
+        virtual void    showEvent(QShowEvent *event)                override;
+        virtual void    closeEvent(QCloseEvent *event)              override ;
     protected:
         void    messageNotify(const FEMessage& msgIn);
+        void    initEngine();
     protected:
         FEContext   _ctx;
         App         _app;
         Scene       _scene;
         int2        _prevMouse  =   int2(0, 0);
         bool        _prepared   =   false;
-        QTimer*     _timer      =   nullptr;    
+        bool        _inited     =   false;
+        QTimer*     _timer      =   nullptr;
     };
 }
 

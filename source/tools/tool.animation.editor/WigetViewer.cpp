@@ -2,6 +2,10 @@
 #include    "FEAppHelper.hpp"
 #include    "FEFileFormatHelper.hpp"
 
+#if     FE_PLATFORM == FE_PLATFORM_WIN32
+#include    <windows.h>
+#endif
+
 namespace   FE
 {
 
@@ -10,40 +14,10 @@ namespace   FE
     {
         setAcceptDrops(true);
         setAttribute(Qt::WA_AcceptTouchEvents);
-
-        FEApp::CreateInfo   info    =   {};
-        info._window    =   (void*)winId();
-        info._width     =   rect().width();
-        info._height    =   rect().height();
-        info._notify    =   std::bind(&WigetViewer::messageNotify,this,std::placeholders::_1);
-        _app    =   FE::FEAppHelper::create(_ctx,info);
-        if (_app == nullptr)
-            return;
-        _scene      =   new FEScene(_ctx);
-        _scene->setup(_app);
-#if 0
-        String          gltfFile    =   R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
-        FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
-
-        auto            reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);
-        if (reader)
-        {
-            auto    objects =   reader->readFiles({gltfFile});
-            Nodes   nodes;
-            for (auto var : objects)
-            {   
-                Node    node    =   var->cast<FENode>();
-                if (node == nullptr)
-                    continue;
-                else
-                    nodes.push_back(node);
-            }
-            _scene->dispatchNodesToSystem(nodes);
-            _scene->addNodesToTree(nodes);
-        }
-#endif
+        /// 强制创建原生窗口,确保 winId() 返回有效的 HWND
+        setAttribute(Qt::WA_NativeWindow);
+        /// 创建定时器,在 initEngine 完成后启动
         _timer = new QTimer(this);
-        _timer->start(16); 
         connect(_timer, &QTimer::timeout, this, QOverload<>::of(&WigetViewer::update));
     }
 
@@ -51,16 +25,74 @@ namespace   FE
     {
     }
 
+    void    WigetViewer::initEngine()
+    {
+        if (_inited)
+            return;
+        /// 确保原生窗口已创建且尺寸有效
+        auto    hwnd    =   (HWND)winId();
+        if (hwnd == nullptr)
+            return;
+        RECT    rc;
+        GetClientRect(hwnd, &rc);
+        if (rc.right - rc.left <= 0 || rc.bottom - rc.top <= 0)
+            return;
+
+        FEApp::CreateInfo   info    =   {};
+#if     FE_PLATFORM == FE_PLATFORM_WIN32
+        info._appInst   =   GetModuleHandle(nullptr);
+#endif
+        info._window    =   (void*)hwnd;
+        info._width     =   (uint)(rc.right  - rc.left);
+        info._height    =   (uint)(rc.bottom - rc.top);
+        info._notify    =   std::bind(&WigetViewer::messageNotify,this,std::placeholders::_1);
+        _app    =   FE::FEAppHelper::create(_ctx,info);
+        if (_app == nullptr)
+            return;
+        _scene      =   new FEScene(_ctx);
+        _scene->setup(_app);
+        _inited     =   true;
+        _timer->start(16);
+    }
+
+    void    WigetViewer::showEvent(QShowEvent* event)
+    {
+        if (!_inited)
+            initEngine();
+        QWidget::showEvent(event);
+    }
+    void    WigetViewer::closeEvent(QCloseEvent *event) 
+    {
+        if (_scene)
+        {
+            _scene->destroy();
+        }
+        QWidget::closeEvent(event);
+    }
+
     void	WigetViewer::onEngineStart()
-    {   
+    {
     }
 
     void    WigetViewer::paintEvent(QPaintEvent* )
     {
-        if (_app)
+        if (!_inited)
+            initEngine();
+        if (_app && _inited)
         {
-            _app->onMessage(MsgUpdate());
-            _app->onMessage(MsgRender());
+            /// 如果尚未 prepared(构造时 setup 直接调用 FEScene::resize,
+            /// 未经过 messageNotify 的 MSG_RESIZE 路径),用当前实际大小补触发一次
+            if (!_prepared)
+            {
+                auto    r   =   rect();
+                if (r.width() > 0 && r.height() > 0)
+                    _app->onMessage(MsgResize({r.width(),r.height()}));
+            }
+            else
+            {
+                _app->onMessage(MsgUpdate());
+                _app->onMessage(MsgRender());
+            }
         }
     }
     void    WigetViewer::mousePressEvent(QMouseEvent* evt) 
@@ -188,9 +220,9 @@ namespace   FE
             _prepared   =   true;
             return;
         case MSG_RESIZE_START   :
-            break;
+            return;
         case MSG_RESIZE_END     :
-            break;
+            return;
         case MSG_UPDATE         :   
             if (!_prepared)
                 return;

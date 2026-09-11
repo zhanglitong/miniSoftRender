@@ -42,7 +42,9 @@ namespace   FE
         ,_comSysMgr(other._comSysMgr)
     {}
     FEScene::~FEScene()
-    {}
+    {
+        onClose();
+    }
 
     /// <summary>
     /// 获取input system 
@@ -190,7 +192,10 @@ namespace   FE
 
         return  true;
     }
-
+    void    FEScene::destroy()
+    {
+        onClose();
+    }
 
     void    FEScene::addNodesToTree(const Nodes& nodeList)
     {
@@ -215,11 +220,14 @@ namespace   FE
         if (_swapchain == nullptr)
             return;
         _frame  =   _swapchain->acquireNextFrame(UINT64_MAX);
-        _ctx.setDeltaTime(_timestamp.second()); 
+        _ctx.setDeltaTime(_timestamp.second());
         _timestamp.update();
 
         if (_frame == nullptr)
             return;
+        /// 无论 cmd 是否存在, 都要先等待并重置 fence,
+        /// 防止上一帧的信号量/fence 处于 pending 状态导致后续 acquire 失败
+        _frame->reset();
         if (_frame->_cmd == nullptr)
         {
             _frame->_cmd    =   _cmdPool->createCmd();
@@ -228,9 +236,8 @@ namespace   FE
         {
             _frame->_cmd->reset();
             _frame->_cmd->begin();
-            _frame->reset();
         }
-        
+
     }
     void    FEScene::onFrameUpdate()
     {
@@ -313,7 +320,7 @@ namespace   FE
     }
     void    FEScene::onFrameEnd()
     {
-        if (_frame == nullptr||  _frame->_cmd == nullptr)
+        if (_frame == nullptr || _frame->_cmd == nullptr)
             return;
         if (_frame && _frame->_cmd )
             _frame->_cmd->end();

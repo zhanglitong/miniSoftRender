@@ -107,6 +107,7 @@ namespace   FE
         FEInputSystem*  inputSystem() const;
 
         virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
+        virtual void    destroy();
         /// <summary>
         /// 节点加入到系统下，只是挂在节点上，并不做渲染
         /// </summary>

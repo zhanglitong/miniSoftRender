@@ -87,4 +87,5 @@ void    MainWindow::slotUndo()
 void    MainWindow::closeEvent(QCloseEvent*event)
 {
     ui.modelTree->close();
+    ui.sceneViewer->close();
 }
