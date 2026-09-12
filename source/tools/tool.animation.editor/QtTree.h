@@ -9,6 +9,7 @@
 #include    "FEObject.h"
 #include    "node/FENode.hpp"
 #include    "graphic/FEScene.h"
+#include    "FEDelegate.hpp"
 
 using   FE::FEObject;
 
@@ -137,8 +138,8 @@ namespace   FE
     };
     typedef std::vector<ItemData>   ArrayItemData;
 
-    using   EventSelect             =   std::function<void(Object,Object)>;
-    using   EventLButtonDbClicked   =   std::function<void(const int2&,Object)>;  
+    using   EventSelect             =   FETMultiDelegate<void(Object,Object)>;
+    using   EventLButtonDbClicked   =   FETMultiDelegate<void(const int2&,Object)>;  
     /// <summary>
     /// 关于快速索引算法,之前采用记录已经展开的节点的方式
     /// </summary>

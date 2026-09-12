@@ -311,29 +311,20 @@ namespace   FE
         switch (_selectedAxis)
         {
         case FEEditAxisRotate::AXIS_X:
-        {
             rAngle = this->rotateX(start, end, _rotationAxis) * _rotationAngleWeight;
-        }
-        break;
+            break;
         case FEEditAxisRotate::AXIS_Y:
-        {
             rAngle = this->rotateY(start, end, _rotationAxis) * _rotationAngleWeight;
-        }
-        break;
+            break;
         case FEEditAxisRotate::AXIS_Z:
-        {
             rAngle = this->rotateZ(start, end, _rotationAxis) * _rotationAngleWeight;
-        }
-        break;
+            break;
         case FEEditAxisRotate::AXIS_SC:
-        {
             rAngle = this->rotateSC(start, end, _rotationAxis) * _rotationAngleWeight;
-        }
-        break;
+            break;
         default:
-        {
             rAngle = 0.0;
-        }break;
+            break;
         }
         ///角度吸附
         if (_adsorptionEnabled && _adsorptionFlags.hasFlag(FEEditAxisRotate::AdsorptionFlag::AF_Angle))
@@ -349,7 +340,7 @@ namespace   FE
     {
         real3 mouse(screen.x, screen.y, 0);
         static const real DIST_MAX = 4;
-        FECamera &camera  =   _ctx.activeCamera();
+        FECamera&   camera  =   _ctx.activeCamera();
         real        dist[3] =   { FLT_MAX, FLT_MAX, FLT_MAX };
         if (_vRotateAxis[0].size() == 0)
             return FEEditAxisRotate::AXIS_NULL;
@@ -751,7 +742,8 @@ namespace   FE
     {
         _bTouchDown = false;
         if (_bTouchPickup)
-        {///拾取动作
+        {
+            ///拾取动作
             AXIS oldSelected = _selectedAxis;
             _selectedAxis = hoverAxis(pos);
             if (oldSelected != _selectedAxis)

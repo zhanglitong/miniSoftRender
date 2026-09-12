@@ -50,8 +50,6 @@ namespace   FE
     {
         if ( flags().hasFlags(ModifyValue) )
         {   
-            if (_ctx.scene() == nullptr)
-                return;
             _ctx.scene()->nodeTree().eventsChangedNode().fireNotify(this);
             for (auto& var : _childs)
             {

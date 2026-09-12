@@ -5,8 +5,8 @@
 #include    <QMenu>
 #include    "TimeSlider.h"
 
-class   AnimItem;
-class   AniTree;
+class   AnimationItem;
+class   AnimationTree;
 class   UiTickMgr : public QWidget
 {
     Q_OBJECT
@@ -16,8 +16,8 @@ public:
     ~UiTickMgr();
 public:
     void    linkScrollBar(QScrollBar* bar);
-    void    setAnimItem(AnimItem* pItem);
-    void    setAniTree(AniTree* pTree);
+    void    setAnimItem(AnimationItem* pItem);
+    void    setAniTree(AnimationTree* pTree);
     void    setKeyRowHeight(int rowHeight);
     void    setTimeRowHeight(int height);
     void    setCurFrame(const int& frame, bool applyToAnim = true);
@@ -33,7 +33,7 @@ private:
     int     frameFromPos(int x);
     int     posFromFrame(int frame);
     int     rowFromPos(const QPoint& p) const;
-    void    updateItemKeyDatas(AnimItem* pItem, int& beginRow, int& curRow, const bool& isExpanded);
+    void    updateItemKeyDatas(AnimationItem* pItem, int& beginRow, int& curRow, const bool& isExpanded);
     void    drawItemKeyDatas(QPainter& painter);
     int     calcDeltaFrame(const int& p0, const int& p1) const;
 public slots:
@@ -89,11 +89,11 @@ public:
 
     QRect       _timeLineRect;
 
-    AnimItem*   _rootItem;
+    AnimationItem*   _rootItem;
 
-    AniTree*    _pTree;
+    AnimationTree*    _pTree;
 
-    std::map<int, AnimItem*>    _rowItem;
+    std::map<int, AnimationItem*>    _rowItem;
     bool    _isPressKeyframe = false; // 是否点击到关键帧
     bool    _isPressSelected = false; // 否是点击到已经选择的关键帧
     bool    _isPress = false; // 鼠标左键是否按下

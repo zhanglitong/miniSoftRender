@@ -3,16 +3,16 @@
 
 #include    "animation/FEKeyFrameTrack.hpp"
 
-class AnimItem : public QStandardItem
+class   AnimationItem : public QStandardItem
 {
 public: 
-    enum ItemType
+    enum    ItemType
     {
         IT_Track,
         IT_Par
     };
 public:
-    AnimItem(const QString& text, ItemType type, FE::FEObject* obj, QIcon icon = QIcon());
+    AnimationItem(const QString& text, ItemType type, FE::FEObject* obj, QIcon icon = QIcon());
 public:
     inline FE::FEKeyFrameTrack* animKeyframeTrack() const
     {
@@ -24,27 +24,27 @@ public:
         return _type;
     }
 
-    inline void setIsSelected(bool isSelected)
+    inline void     setIsSelected(bool isSelected)
     {
         _isSelcted  =   isSelected;
     }
 
-    inline bool isSelected() const
+    inline bool     isSelected() const
     {
         return _isSelcted;
     }
 
-    inline void setRow(const int& row)
+    inline void     setRow(const int& row)
     {
         _row = row;
     }
 
-    inline const int& getRow() const
+    inline int      getRow() const
     {
         return _row;
     }
 
-    inline auto getObject() const
+    inline auto     getObject() const
     {
         return _obj;
     }
@@ -60,3 +60,6 @@ private:
 public:
     std::map<int, bool> _drawKeyDatas;
 };
+
+
+using   AnimationItems  =   std::vector<AnimationItem>;

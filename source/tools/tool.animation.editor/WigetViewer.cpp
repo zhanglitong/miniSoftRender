@@ -16,6 +16,8 @@ namespace   FE
         setAttribute(Qt::WA_AcceptTouchEvents);
         /// 强制创建原生窗口,确保 winId() 返回有效的 HWND
         setAttribute(Qt::WA_NativeWindow);
+        /// 创建，但没有初始化
+        _scene      =   new FEScene(_ctx);
         /// 创建定时器,在 initEngine 完成后启动
         _timer = new QTimer(this);
         connect(_timer, &QTimer::timeout, this, QOverload<>::of(&WigetViewer::update));
@@ -49,7 +51,7 @@ namespace   FE
         _app    =   FE::FEAppHelper::create(_ctx,info);
         if (_app == nullptr)
             return;
-        _scene      =   new FEScene(_ctx);
+        
         _scene->setup(_app);
         _inited     =   true;
         _timer->start(16);

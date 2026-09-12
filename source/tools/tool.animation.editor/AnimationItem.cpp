@@ -1,7 +1,7 @@
-#include    "AnimItem.h"
+#include    "AnimationItem.h"
 
 
-AnimItem::AnimItem(const QString& text,ItemType type, FE::FEObject* obj, QIcon icon)
+AnimationItem::AnimationItem(const QString& text,ItemType type, FE::FEObject* obj, QIcon icon)
     : QStandardItem(text)
 {
     _obj    =   obj;
@@ -9,7 +9,7 @@ AnimItem::AnimItem(const QString& text,ItemType type, FE::FEObject* obj, QIcon i
     setIcon(icon);
 }
 
-bool AnimItem::isExpanded() const
+bool AnimationItem::isExpanded() const
 {
     if (_obj == nullptr)
         return true;
@@ -17,7 +17,7 @@ bool AnimItem::isExpanded() const
         return  _obj->flags().hasFlag(FE::FLAG_EXPAND);
 }
 
-void AnimItem::setIsExpanded(bool isExpand)
+void AnimationItem::setIsExpanded(bool isExpand)
 {
     if (_obj == nullptr)
     {

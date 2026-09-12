@@ -28,7 +28,7 @@ namespace   FE
             /// <summary>
             /// 添加对象
             /// </summary>
-            FLAG_ADD_CHILD      =   ((FLAG_LAST)        <<1),
+            FLAG_ADD_CHILD      =   ((FE::FLAG_LAST)        <<1),
             /// <summary>
             /// 移除对象
             /// </summary>
@@ -358,6 +358,10 @@ namespace   FE
         ///     fireChanged();   // 需要外部手动调用以发送变更通知
         /// </summary>
         virtual void    update();
+        /// <summary>
+        /// 是否递归通知
+        /// </summary>
+        /// <param name="recursion"></param>
         virtual void    fireChanged();
         /// <summary>
         /// 更新包围盒信息，不检测是否需要，直接计算
@@ -410,14 +414,14 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// 返回子对象个数，重写CELLObject
-        /// return  childs().size() + coms.size() + geometry(1) + material(1);
+        /// 返回子对象个数，重写FEObject
+        /// return  childs().size() + coms.size() + mesh(1) + material(1);
         /// 配合traverseObject 使用
         /// </summary>
         /// <returns></returns>
         virtual size_t  objectCount() const override;
         /// <summary>
-        /// 重写CELLObject,childs() + coms() + geometry() + material();
+        /// 重写FEObject,childs() + coms() + mesh() + material();
         /// 遍历子对象,如果遍历中断，返回false,否则返回true
         /// 隐藏内部细节：调用者不需要知道 Object 是如何存储的(是 std::vector、std::list，还是复杂的平衡树)。
         /// 可以在不改变外部调用的情况下，随时更换底层的存储结构。

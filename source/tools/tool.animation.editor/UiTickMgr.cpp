@@ -1,7 +1,7 @@
 #include    "UiTickMgr.h"
 #include    <QPainter>
 #include    <QMouseEvent>
-#include    "AnimItem.h"
+#include    "AnimationItem.h"
 #include    <cmath>
 
 QShortcut* REGIST_SHORTCUT(const std::string& str,QObject* parent)
@@ -103,12 +103,12 @@ void    UiTickMgr::linkScrollBar(QScrollBar* bar)
     connect(_bar, SIGNAL(valueChanged(int)), this, SLOT(slotScrollValueChanged(int)));
 }
 
-void    UiTickMgr::setAnimItem(AnimItem* pItem)
+void    UiTickMgr::setAnimItem(AnimationItem* pItem)
 {
     _rootItem = pItem;
 }
 
-void    UiTickMgr::setAniTree(AniTree* pTree)
+void    UiTickMgr::setAniTree(AnimationTree* pTree)
 {
     _pTree  =   pTree;
 }
@@ -131,13 +131,10 @@ void    UiTickMgr::setCurFrame(const int& frame, bool applyToAnim)
     update();
     emit sigCurFrameChanged(frame);
 }
-
-
-
 void    UiTickMgr::toPreKeyframe()
 {
-    int curFrame = _curFrame;
-    int preFrame = _curFrame;
+    int     curFrame    =   _curFrame;
+    int     preFrame    =   _curFrame;
 
     for (auto itr = _rootItem->_drawKeyDatas.rbegin(); itr != _rootItem->_drawKeyDatas.rend(); ++itr)
     {
@@ -251,7 +248,7 @@ int     UiTickMgr::rowFromPos(const QPoint& p) const
     return (p.y() - _timeRowHeight) / _keyRowHeight;
 }
 
-void    UiTickMgr::updateItemKeyDatas(AnimItem* pItem, int& beginRow, int& curRow, const bool& isExpanded)
+void    UiTickMgr::updateItemKeyDatas(AnimationItem* pItem, int& beginRow, int& curRow, const bool& isExpanded)
 {
     if (isExpanded)
     {
@@ -278,7 +275,7 @@ void    UiTickMgr::updateItemKeyDatas(AnimItem* pItem, int& beginRow, int& curRo
 
     for (int i = 0; i < pItem->rowCount(); ++i)
     {
-        AnimItem*   pChild = (AnimItem*)pItem->child(i);
+        AnimationItem*   pChild = (AnimationItem*)pItem->child(i);
         updateItemKeyDatas(pChild, beginRow, curRow, isExpanded && pItem->isExpanded());
         for (auto& var : pChild->_drawKeyDatas)
         {
@@ -291,10 +288,9 @@ void    UiTickMgr::drawItemKeyDatas(QPainter& painter)
 {
     for (auto& var : _rowItem)
     {
-        auto& row   = var.first;
-        auto& pItem = var.second;
-
-        auto&   drawRow =   pItem->getRow();
+        auto&   row     =   var.first;
+        auto&   pItem   =   var.second;
+        auto    drawRow =   pItem->getRow();
 
         if (pItem->isSelected())
         {

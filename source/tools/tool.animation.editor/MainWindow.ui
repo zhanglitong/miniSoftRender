@@ -1016,7 +1016,7 @@
          <property name="handleWidth">
           <number>0</number>
          </property>
-         <widget class="QTreeView" name="treeView_animationTree">
+         <widget class="AnimationTree" name="animationTree">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -1054,7 +1054,7 @@
          <widget class="QWidget" name="layoutWidget">
           <layout class="QVBoxLayout" name="verticalLayout">
            <item>
-            <widget class="UiTickMgr" name="widget_keyframe" native="true">
+            <widget class="UiTickMgr" name="timeLineEditor" native="true">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1339,6 +1339,11 @@
    <extends>QWidget</extends>
    <header>QtTree.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>AnimationTree</class>
+   <extends>QTreeView</extends>
+   <header>AnimationTree.h</header>
   </customwidget>
  </customwidgets>
  <resources>

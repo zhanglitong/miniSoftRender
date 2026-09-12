@@ -9,7 +9,11 @@ MainWindow::MainWindow()
 
     ui.action_savePrj->setShortcut(QKeySequence::Save);
 
-    ui.widget_keyframe->linkScrollBar(ui.horizontalScrollBar);
+    ui.timeLineEditor->linkScrollBar(ui.horizontalScrollBar);
+    ui.splitter->setSizes({200, 800});
+    ui.animationTree->linkToTickMgr(ui.timeLineEditor);
+    
+
     ui.modelTree->setup(ui.sceneViewer->scene());
     setTitile("");
 
