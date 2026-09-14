@@ -2,11 +2,13 @@
 #include    <QStandardItem>
 
 #include    "animation/FEKeyFrameTrack.hpp"
+#include    "animation/FEAnimClip.hpp"
+#include    "animation/FEAnimation.hpp"
 
 class   AnimationItem : public QStandardItem
 {
 public: 
-    enum    ItemType
+    enum    ItemType:uint8_t
     {
         IT_Track,
         IT_Par
@@ -44,7 +46,7 @@ public:
         return _row;
     }
 
-    inline auto     getObject() const
+    inline auto     object() const
     {
         return _obj;
     }
@@ -52,14 +54,14 @@ public:
     bool    isExpanded() const;
     void    setIsExpanded(bool isExpand);
 private:
+    ItemType    _type;
     bool        _isSelcted  =   false;
     int         _row        =   -1;
-    ItemType    _type;
-    FE::Object  _obj = nullptr;
+    FE::Object  _obj        =   nullptr;
 
 public:
     std::map<int, bool> _drawKeyDatas;
 };
 
 
-using   AnimationItems  =   std::vector<AnimationItem>;
+using   AnimationItems  =   std::vector<AnimationItem*>;

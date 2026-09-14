@@ -78,6 +78,14 @@ namespace FE
         FEKeyFrameTrack(const FEKeyFrameTrack& other);
         ~FEKeyFrameTrack()  =   default;
     public:
+        const   auto&   name() const
+        {
+            return  _name;
+        }
+        inline  void    setName(const String& name)
+        {
+            _name   =   name;
+        }
         /// <summary>
         /// 范围
         /// </summary>
@@ -110,6 +118,7 @@ namespace FE
         {
             flags().removeFlag(TrackChanged);
         }
+
         /// <summary>
         /// 设置属性索引
         /// </summary>
@@ -140,6 +149,7 @@ namespace FE
         {
             return _times;
         }
+
 
         /// <summary>
         /// 获取数据信息
@@ -200,8 +210,6 @@ namespace FE
         /// <returns></returns>
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
     protected:
-
-
         template<typename TValueObject>
         void    sortImpl(TValueObject& vObject)
         {
@@ -346,6 +354,10 @@ namespace FE
         real            _tension    =   MD_EASE;
         PropIndex       _propIndex  =   -1;
         InterpolateType _type       =   IT_Linear;
+        /// <summary>
+        /// 名称，显示使用
+        /// </summary>
+        String          _name;
     };
 
     using   KeyFrameTrack       =   SharedPtr<FEKeyFrameTrack>;

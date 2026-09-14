@@ -13,6 +13,7 @@ namespace FE
         :FEObject(ctx)
     {
         _propIndex  =   index;
+        _name       =   "FEKeyFrameTrack";
     }
     FEKeyFrameTrack::FEKeyFrameTrack(const FEKeyFrameTrack& other)
         :FEObject(other)

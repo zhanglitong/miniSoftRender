@@ -7,6 +7,7 @@
 #include    <QVBoxLayout>
 #include    <QScrollArea>
 #include    <QPoint>
+#include    "MainWindow.h"
 
 
 namespace   FE
@@ -25,64 +26,7 @@ namespace   FE
         lprc->bottom    =    yBottom;
     }
 
-    enum    ImageIndex
-    {
-        ID_UNCHECK,
-        ID_CHECK,
-        ID_HALF,
-        ID_SUB,
-        ID_PLUS,
-        /// 工程图标索引
-        ID_PRJ,
-        /// 节点
-        ID_NODE,
-        /// 几何体
-        ID_GEO,
-        /// 图层
-        ID_LAYER,
-        /// image
-        ID_LAYER_IMAGE,
-        /// dem
-        ID_LAYER_DEM,
-        /// 标会图层图标索引
-        ID_LAYER_MARK,
-        /// 动画图标
-        ID_ANIMATION,
-        /// 属性图标
-        ID_ATTRIBUTE,
-        /// 材质
-        ID_MATERIAL,
-        /// 数据数据
-        ID_DATA_OBJECT,
-        /// 定时器图标
-        ID_TIMER,
-        /// 矢量图层
-        ID_LAYER_VEC,
-        /// 视频
-        ID_VIDEO,
-        /// 声音
-        ID_SOUND,
-        /// UI
-        ID_UI,
-        /// 图片
-        ID_IMAGE,
-        /// 倾斜摄影
-        ID_QXSY,
-        /// 数据集合
-        ID_FILES,
-        /// 日光
-        ID_SUN,
-        /// 聚光灯
-        ID_SPOT,
-        /// 水面
-        ID_WATER,
-        /// 音乐
-        ID_MUSIC,
-        /// <summary>
-        /// 对象
-        /// </summary>
-        ID_OBJECT,
-    };
+    
 
     QtTree::QtTree(QWidget* parent)
         :QWidget(parent)
@@ -195,7 +139,6 @@ namespace   FE
         {
             item.flags().addFlag(FE::FLAG_VISIBLE | FE::FLAG_UPDATE);
         }
-        
     }
 
     void    QtTree::unCheckItem(FEObject& item)
@@ -226,10 +169,8 @@ namespace   FE
         {
             FE::setSelected(*_curItem,true);
         }
-        if (_selectEvt)
-        {
-            _selectEvt(old,_curItem);
-        }
+        _selectEvts(_curItem,false);
+       
         return  true;
     }
 
@@ -664,10 +605,7 @@ namespace   FE
             if (!ptInRect(&item.text, pt))
                 continue;
             setTreeItemSelect(item.item, false, true, false, true);
-            if (_lbDbClicked)
-            {
-                _lbDbClicked(int2(pt.x,pt.y),item.item);
-            }
+            _lbDbClickeds(int2(pt.x,pt.y),item.item);
             emit signalLButtonDbClicked(QPoint(pt.x,pt.y),item.item);
             break;
         }

@@ -3,8 +3,13 @@
 #include    "FEFileFormatHelper.hpp"
 #include    "fileFormat/fepk/FEFormatFepj.hpp"
 
+
+MainWindow* _mainApp   =   nullptr;
+
 MainWindow::MainWindow()
 {
+    _mainApp    =   this;
+
     ui.setupUi(this);
 
     ui.action_savePrj->setShortcut(QKeySequence::Save);
@@ -15,7 +20,11 @@ MainWindow::MainWindow()
     
 
     ui.modelTree->setup(ui.sceneViewer->scene());
+    /// 模型树选择通知到动画树更新数据
+    ui.modelTree->_selectEvts   +=  {ui.animationTree,&AnimationTree::selectObject};
+
     setTitile("");
+
 
     connect(ui.action_importModel,  SIGNAL(triggered()),    this,   SLOT(slotImportModel()));
     connect(ui.action_openPrj,      SIGNAL(triggered()),    this,   SLOT(slotOpenProject()));
@@ -86,6 +95,25 @@ void    MainWindow::slotRedo()
 }
 void    MainWindow::slotUndo()
 {
+}
+
+QIcon   MainWindow::objectIcon(ImageIndex type)
+{
+    auto    icon    =   ui.modelTree->icon();
+    auto    h       =   icon.height();
+    QPixmap pixmap  =   icon.copy(((int)type) * h, 0, h, h);
+    return QIcon(pixmap);
+}
+QRect   MainWindow::objectIconRect(ImageIndex type)
+{
+    auto    icon    =   ui.modelTree->icon();
+    auto    height  =   icon.height();
+    return QRect(type * height, 0, height, height);
+}
+
+int     MainWindow::rowHeight() const
+{
+    return  ui.modelTree->rowHeight();
 }
 
 void    MainWindow::closeEvent(QCloseEvent*event)

@@ -9,13 +9,16 @@ namespace FE
 {
     FEAnimation::FEAnimation(FEContext& ctx)  
         :FEComponent(ctx,true)
-    {}
+    {
+        _name       =   "FEAnimation";
+    }
     FEAnimation::FEAnimation(const FEAnimation& other)
         :FEComponent(other)
     {
         _clip       =   other._clip;
         _results    =   other._results;
         _offset     =   other._offset;
+        _name       =   other._name;
     }
     
     FEAnimation::~FEAnimation() 

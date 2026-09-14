@@ -1,6 +1,6 @@
 #pragma     once
 #include    <functional>
-
+#include    <format>
 #include    "../FEComponent.hpp"
 #include    "FEAnimClip.hpp"
 
@@ -34,6 +34,14 @@ namespace FE
         FEAnimation(const FEAnimation& other);
         ~FEAnimation();
     public:
+        const   auto&   name() const
+        {
+            return  _name;
+        }
+        inline  void    setName(const String& name)
+        {
+            _name   =   name;
+        }
         /// <summary>
         /// 关联所有者
         /// </summary>
@@ -155,6 +163,7 @@ namespace FE
         /// </summary>
         real            _offset    =    0;
         TrackResults    _results; 
+        String          _name;
     };
 
     using   Animation       =   SharedPtr<FEAnimation>;

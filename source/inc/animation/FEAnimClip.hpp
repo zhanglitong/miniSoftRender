@@ -15,7 +15,7 @@ namespace FE
     /// 推导出来类型
     using   TrackLess    =   decltype(TrackLessFunc);
 
-    class   FEAnimtion;
+    class   FEAnimation;
 
     /// <summary>
     /// 设计上要求clip可以被重用，例如车的四个轮子对象,clip是一样的

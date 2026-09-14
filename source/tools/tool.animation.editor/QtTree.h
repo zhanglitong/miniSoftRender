@@ -138,8 +138,11 @@ namespace   FE
     };
     typedef std::vector<ItemData>   ArrayItemData;
 
-    using   EventSelect             =   FETMultiDelegate<void(Object,Object)>;
-    using   EventLButtonDbClicked   =   FETMultiDelegate<void(const int2&,Object)>;  
+    /// <summary>
+    /// 参数选择的item集合，可以多选,第二个参数通知是否是多选状态
+    /// </summary>
+    using   EventSelects            =   FETMultiDelegate<void(Object,bool)>;
+    using   EventLButtonDbClickeds  =   FETMultiDelegate<void(const int2&,Object)>;  
     /// <summary>
     /// 关于快速索引算法,之前采用记录已经展开的节点的方式
     /// </summary>
@@ -147,8 +150,8 @@ namespace   FE
     {
         Q_OBJECT
     public:
-        EventSelect             _selectEvt;
-        EventLButtonDbClicked   _lbDbClicked;
+        EventSelects            _selectEvts;
+        EventLButtonDbClickeds  _lbDbClickeds;
     protected:
         Scene           _scene          =   nullptr;
         /// 只是用来保存上下文对象,不做任何操作
@@ -193,6 +196,18 @@ namespace   FE
         QtTree(QWidget* parent = nullptr);
         
         virtual ~QtTree();
+        /// <summary>
+        /// 获取图标
+        /// </summary>
+        /// <returns></returns>
+        QPixmap         icon() const
+        {
+            return  _icon;
+        }
+        int             rowHeight() const
+        {
+            return  _rowHeight;
+        }
         const   Nodes&  roots()
         {
             if (_scene == nullptr)

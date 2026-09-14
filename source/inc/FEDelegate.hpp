@@ -132,6 +132,10 @@ namespace   FE
                 if (e.func) e.func(args...);
             }
         }
+        operator    bool() const
+        {
+            return  !_entries.empty();
+        }
         void    fireNotify(const Args&... args) const
         {
             for (auto& e : _entries)

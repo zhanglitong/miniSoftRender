@@ -266,6 +266,22 @@ namespace   FE
         {
             return  _coms;
         }
+        /// <summary>
+        /// 获取所有T类型对象
+        /// </summary>
+        /// <typeparam name="T">模板参数</typeparam>
+        /// <returns>T*类型对象数组</returns>
+        template<class T>
+        inline  auto    objects() const
+        {
+            std::vector<T*>   objs;
+            for (auto& var :_coms)
+            {
+                const T*    obj =   dynamic_cast<const T*>(var.get());
+                if (obj)    objs.push_back((T*)obj);
+            }
+            return  objs;
+        }
         virtual void    setMaterial(FEMaterial* pMat)
         {
             _material   =   pMat;

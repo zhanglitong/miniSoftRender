@@ -1,7 +1,10 @@
 #include    "UiTickMgr.h"
 #include    <QPainter>
+#include    <QHeaderView>
 #include    <QMouseEvent>
 #include    "AnimationItem.h"
+#include    "AnimationTree.h"
+#include    "animation/FEAnimation.hpp"
 #include    <cmath>
 
 QShortcut* REGIST_SHORTCUT(const std::string& str,QObject* parent)
@@ -9,8 +12,15 @@ QShortcut* REGIST_SHORTCUT(const std::string& str,QObject* parent)
     return  new QShortcut(QKeySequence(str.c_str()), parent);
 }
 
+
+inline  real    time2Pixel(real tm,int pixel = 8,int fps = 30)
+{
+    return  tm * pixel * fps;
+}
+
 UiTickMgr::UiTickMgr(QWidget* parent)
-    : _pTree(nullptr), _rootItem(nullptr), QWidget(parent)
+    :  QWidget(parent)
+    , _pTree(nullptr)
 {
     _bar    =   nullptr;
     _menu   =   new QMenu(this);
@@ -41,28 +51,26 @@ UiTickMgr::UiTickMgr(QWidget* parent)
             slotPasteKeyframes();
         }
     });
-
     connect(_shortcutCopyPaste, &QShortcut::activated, [&]()
+    {
+        auto    globaPos    =   QCursor::pos();
+        auto    localPos    =   mapFromGlobal(globaPos);
+
+        if (rect().contains(localPos))
         {
-            auto    globaPos    =   QCursor::pos();
-            auto    localPos    =   mapFromGlobal(globaPos);
-
-            if (rect().contains(localPos))
-            {
-                slotCopyPasteKeyframes();
-            }
-        });
-
+            slotCopyPasteKeyframes();
+        }
+    });
     connect(_shortcutDelete, &QShortcut::activated, [&]()
-        {
-            auto    globaPos    =   QCursor::pos();
-            auto    localPos    =   mapFromGlobal(globaPos);
+    {
+        auto    globaPos    =   QCursor::pos();
+        auto    localPos    =   mapFromGlobal(globaPos);
 
-            if (rect().contains(localPos))
-            {
-                slotDeleteKeyframes();
-            }
-        });
+        if (rect().contains(localPos))
+        {
+            slotDeleteKeyframes();
+        }
+    });
 
     QAction*    deleteAction        =   new QAction("删除", _menu);
     QAction*    copyPasteAction     =   new QAction("复制粘贴", _menu);
@@ -103,11 +111,6 @@ void    UiTickMgr::linkScrollBar(QScrollBar* bar)
     connect(_bar, SIGNAL(valueChanged(int)), this, SLOT(slotScrollValueChanged(int)));
 }
 
-void    UiTickMgr::setAnimItem(AnimationItem* pItem)
-{
-    _rootItem = pItem;
-}
-
 void    UiTickMgr::setAniTree(AnimationTree* pTree)
 {
     _pTree  =   pTree;
@@ -136,16 +139,6 @@ void    UiTickMgr::toPreKeyframe()
     int     curFrame    =   _curFrame;
     int     preFrame    =   _curFrame;
 
-    for (auto itr = _rootItem->_drawKeyDatas.rbegin(); itr != _rootItem->_drawKeyDatas.rend(); ++itr)
-    {
-        auto frame = frameFromPos(itr->first);
-        if (frame < curFrame)
-        {
-            preFrame    =   frame;
-            break;
-        }
-    }
-    
     if (preFrame != _curFrame)
     {
         setCurFrame(preFrame, false);
@@ -162,20 +155,20 @@ void    UiTickMgr::toFirstKeyframe()
 
 void    UiTickMgr::toNextKeyframe()
 {
-    int curFrame  = _curFrame;
-    int nextFrame = _curFrame;
-    int distance = INT_MAX;
+    int curFrame    =   _curFrame;
+    int nextFrame   =   _curFrame;
+    int distance    =   INT_MAX;
 
-    for (auto& keyData : _rootItem->_drawKeyDatas)
-    {
-        auto frame = frameFromPos(keyData.first);
-
-        if (frame > curFrame)
-        {
-            nextFrame   =   frame;
-            break;
-        }
-    }
+    /// for (auto& keyData : _rootItem->_drawKeyDatas)
+    /// {
+    ///     auto frame = frameFromPos(keyData.first);
+    /// 
+    ///     if (frame > curFrame)
+    ///     {
+    ///         nextFrame   =   frame;
+    ///         break;
+    ///     }
+    /// }
     if (nextFrame != _curFrame)
     {
         setCurFrame(nextFrame, false);
@@ -192,7 +185,6 @@ void    UiTickMgr::toLastKeyframe()
 
 void    UiTickMgr::reset()
 {
-    _rowItem.clear();
     _isPressKeyframe            =   false;
     _isPress                    =   false;
     _isCopyPasting              =   false;
@@ -248,73 +240,79 @@ int     UiTickMgr::rowFromPos(const QPoint& p) const
     return (p.y() - _timeRowHeight) / _keyRowHeight;
 }
 
-void    UiTickMgr::updateItemKeyDatas(AnimationItem* pItem, int& beginRow, int& curRow, const bool& isExpanded)
+void    UiTickMgr::drawItem(QPainter& painter,AnimationItem* item)
 {
-    if (isExpanded)
+    if (item == nullptr)
+        return;
+    if (item->hasChildren() && !_pTree->isExpand(item))
+        return;
+    auto    anim    =   item->object()->cast<FEAnimation>();
+    if (anim != nullptr)
     {
-        pItem->setRow(curRow - beginRow);
+        drawAnimation(painter,item);
     }
-    else
+    auto    track   =   item->object()->cast<FEKeyFrameTrack>();
+    if (track)
     {
-        pItem->setRow(-1);
+        drawTrack(painter,item);
     }
-
-    if (pItem->getRow() >= 0)
+    int     cnt     =   item->rowCount();
+    for (int r = 0 ; r < cnt ; ++ r)
     {
-        _rowItem[pItem->getRow()] = pItem;
-    }
-
-    pItem->_drawKeyDatas.clear();
-
-    auto pTrack = pItem->animKeyframeTrack();
-    
-    if (isExpanded)
-    {
-        curRow++;
-    }
-
-    for (int i = 0; i < pItem->rowCount(); ++i)
-    {
-        AnimationItem*   pChild = (AnimationItem*)pItem->child(i);
-        updateItemKeyDatas(pChild, beginRow, curRow, isExpanded && pItem->isExpanded());
-        for (auto& var : pChild->_drawKeyDatas)
-        {
-            pItem->_drawKeyDatas[var.first] |= var.second;
-        }
+        auto cItem  =   (AnimationItem*)item->child(r,0);
+        drawItem(painter,cItem);
     }
 }
 
-void    UiTickMgr::drawItemKeyDatas(QPainter& painter)
+void    UiTickMgr::drawTrack(QPainter& painter,AnimationItem* item)
 {
-    for (auto& var : _rowItem)
+    auto    track   =   item->object()->cast<FEKeyFrameTrack>();
+    if (track == nullptr)
+        return;
+
+    int     xOffset =   _bar ? _bar->value() : 0;
+    QRect   rect    =   _pTree->visualRect(item->index());
+    int     cnt     =   item->rowCount();
+    int     rowH    =   rect.height();
+    auto    rng     =   track->range();
+    /// 计算从哪开始，到哪里结束
+    real    xStart  =   time2Pixel(rng.x,_framePixel ,30) - xOffset;
+    real    width   =   time2Pixel((rng.y - rng.x),_framePixel,30);
+    int     yStart  =   rect.top()+ _timeRowHeight + 1 ;
+    
+    auto&    key =   track->times()->values();
+    for (size_t i = 0; i <key.size(); i++)
     {
-        auto&   row     =   var.first;
-        auto&   pItem   =   var.second;
-        auto    drawRow =   pItem->getRow();
-
-        if (pItem->isSelected())
-        {
-            int     beginY  =   _timeRowHeight + drawRow * _keyRowHeight;
-            QRect   rect    =   QRect(QPoint(0, beginY), QPoint(size().width(), beginY + _keyRowHeight));
-            painter.fillRect(rect, QColor(52, 135, 255, 100));
-        }
-
-        for (auto& dKey : pItem->_drawKeyDatas)
-        {
-            auto& drawX = dKey.first;
-            QPoint  pos = QPoint(drawX, _keyRowHeight / 2 + drawRow * _keyRowHeight + _timeRowHeight);
-            if (dKey.second)
-            {
-                painter.setBrush(Qt::yellow);
-            }
-            else
-            {
-                painter.setBrush(Qt::gray);
-            }
-            painter.setPen(Qt::black);
-            painter.drawEllipse(pos, _keyWidth, _keyWidth);
-        }
+        auto    time    =   time2Pixel(key[i], _framePixel , 30) - xOffset;
+        painter.setBrush(Qt::yellow);
+        painter.setPen(Qt::black);
+        int     centerX =   int(time);
+        int     centerY =   yStart + rowH/2;
+        int     radius  =   _pointPixel/2;
+        painter.drawEllipse(centerX - radius,centerY - radius,_pointPixel, _pointPixel);
     }
+}
+void    UiTickMgr::drawAnimation(QPainter& painter,AnimationItem* item)
+{
+    auto    anim    =   item->object()->cast<FE::FEAnimation>();
+    if (anim == nullptr)
+        return;
+    int     xOffset =   _bar ? _bar->value() : 0;
+    QRect   rect    =   _pTree->visualRect(item->index());
+    int     cnt     =   item->rowCount();
+    int     rowH    =   rect.height();
+    auto    rng     =   anim->range();
+    /// 计算从哪开始，到哪里结束
+    real    xStart  =   time2Pixel(rng.x,_framePixel ,30) - xOffset;
+    real    width   =   time2Pixel((rng.y - rng.x),_framePixel,30);
+    int     yStart  =   rect.top()+ _timeRowHeight + 1 ;
+    QColor  color(0, 0, 255, 100); 
+    QColor  border(0, 0, 255, 200);
+    QRect   temp(xStart,yStart,width,rowH);
+    QRect   tmp     =   temp.marginsRemoved(QMargins(0, 1, 0, 1));
+    painter.setBrush(color);
+    painter.setPen(QPen(border, 2));
+    painter.drawRect(tmp);
 }
 
 int     UiTickMgr::calcDeltaFrame(const int& p0, const int& p1) const
@@ -368,8 +366,8 @@ void    UiTickMgr::slotSetInterpolate()
 
 void    UiTickMgr::paintEvent(QPaintEvent* event)
 {
-    QSize size = this->size();
-    QPainter painter(this);
+    QSize       size = this->size();
+    QPainter    painter(this);
 
     painter.setPen(QPen(QColor(0,0,0,255)));
     painter.drawRect(0, 0, size.width(), size.height());
@@ -377,21 +375,21 @@ void    UiTickMgr::paintEvent(QPaintEvent* event)
     painter.fillRect(0, 0, size.width(), _timeRowHeight, QColor(150, 150, 150, 255));
     painter.fillRect(0, _timeRowHeight, size.width(), size.height(), QColor(255, 255, 255, 255));
     // 画时间线
-    double beginX  =   _beginPixel;
-    int beginFrame =   _beginFrame;
-    int yushu      =   _beginFrame % _frameFrequency;
+    double  beginX      =   _beginPixel;
+    int     beginFrame  =   _beginFrame;
+    int     yushu       =   _beginFrame % _frameFrequency;
     if (yushu)
     {
         beginX      +=   (_frameFrequency - yushu) * _framePixel;
         beginFrame  =   _beginFrame - yushu  + _frameFrequency;
     }
 
-    int lastX = static_cast<int>(std::round((_lastFrame - _beginFrame) * _framePixel + _beginPixel));
+    int     lastX   =   static_cast<int>(std::round((_lastFrame - _beginFrame) * _framePixel + _beginPixel));
     if (lastX < size.width())
     {
         painter.fillRect(lastX, _timeRowHeight, size.width(), size.height(), QColor(200, 200, 200, 255));
     }
-    int firstX = static_cast<int>(std::round((_firstFrame - _beginFrame) * _framePixel + _beginPixel));
+    int     firstX  =   static_cast<int>(std::round((_firstFrame - _beginFrame) * _framePixel + _beginPixel));
     if (firstX > 0)
     {
         painter.fillRect(0, _timeRowHeight, firstX, size.height(), QColor(200, 200, 200, 255));
@@ -401,12 +399,12 @@ void    UiTickMgr::paintEvent(QPaintEvent* event)
     {
         // 画时间
         painter.setPen(QPen(QColor(255,255,255,255)));
-        int drawX = static_cast<int>(std::round(beginX));
-        QRect   numRect = {QPoint(drawX - 20, 0), QPoint(drawX + 20, _timeRowHeight)};
+        int     drawX   =   static_cast<int>(std::round(beginX));
+        QRect   numRect =   {QPoint(drawX - 20, 0), QPoint(drawX + 20, _timeRowHeight)};
         painter.drawText(numRect, Qt::AlignCenter, std::to_string(beginFrame).c_str());
         // 画线
-        QPoint  pointA = QPoint(drawX, _timeRowHeight);
-        QPoint  pointB = QPoint(drawX, size.height());
+        QPoint  pointA  =   QPoint(drawX, _timeRowHeight);
+        QPoint  pointB  =   QPoint(drawX, size.height());
         if ((beginFrame / _frameFrequency) % 2)
         {
             painter.setPen(QPen(QColor(128,128,128,128)));
@@ -435,10 +433,12 @@ void    UiTickMgr::paintEvent(QPaintEvent* event)
     {
         _isNeedUpdateKeyframeDatas = false;
     }
-
-    // 绘制关键帧
-    drawItemKeyDatas(painter);
-    // 绘制框选框
+    if (_pTree != nullptr && _pTree->rootItem() != nullptr)
+    {
+        drawItem(painter,_pTree->rootItem());
+    }
+    
+    /// 绘制框选框
     if (_isPress && !_isPressKeyframe)
     {
         QPen    pen(QColor(0, 162, 232, 255));
@@ -610,7 +610,39 @@ void    UiTickMgr::mouseMoveEvent(QMouseEvent* event)
 
 void    UiTickMgr::wheelEvent(QWheelEvent* event)
 {
- 
+    if (event->modifiers() & Qt::ControlModifier) 
+    {
+        int     delta       =   event->angleDelta().y();
+        float   newFP       =   _framePixel;
+        if(delta > 0)
+            newFP   *= 1.2f;
+        else
+            newFP   *= 0.8f;
+        newFP               =   std::clamp(newFP,1.0f,100.0f); 
+
+        /// 以鼠标位置为锚点缩放: 保持鼠标下的帧在缩放后仍在鼠标处
+        /// 推导: screenX = frame * framePixel - scrollValue
+        ///   旧: mouseX  = anchorFrame * oldFP - oldValue
+        ///   新: mouseX  = anchorFrame * newFP - newValue   (要求锚点位置不变)
+        ///   => newValue = anchorFrame * newFP - mouseX
+        QPoint  mousePos    =   event->position().toPoint();
+        int     mouseX      =   mousePos.x();
+        double  anchorFrame =   (static_cast<double>(mouseX) - _beginPixel) / _framePixel + _beginFrame;
+
+        _framePixel         =   newFP;
+        updateScrollLength();
+
+        if (_bar)
+        {
+            int newValue    =   static_cast<int>(std::round(anchorFrame * newFP - mouseX));
+                newValue    =   std::clamp(newValue, 0, _bar->maximum());
+            _bar->blockSignals(true);
+            _bar->setValue(newValue);
+            _bar->blockSignals(false);
+            slotScrollValueChanged(newValue);
+        }
+        update();
+    }
     QWidget::wheelEvent(event);
 }
 
@@ -628,3 +660,8 @@ void    UiTickMgr::contextMenuEvent(QContextMenuEvent* event)
     _menu->exec(event->globalPos());
     QWidget::contextMenuEvent(event);
 }
+
+void    UiTickMgr::keyPressEvent(QKeyEvent* evt)
+{}
+void    UiTickMgr::keyReleaseEvent(QKeyEvent* evt) 
+{}
