@@ -35,6 +35,7 @@ namespace   FE
         {
             return  _scene;
         }
+
     protected:
         virtual void    paintEvent(QPaintEvent *event)              override ;
         virtual void    mousePressEvent(QMouseEvent *event)         override ;
@@ -45,6 +46,11 @@ namespace   FE
         virtual void    resizeEvent(QResizeEvent *event)            override ;
         virtual void    showEvent(QShowEvent *event)                override;
         virtual void    closeEvent(QCloseEvent *event)              override ;
+    public slots:
+        /// <summary>
+        /// ͨ  ʱ   ߲  Ŷ   
+        /// </summary>
+        void    slotTimeLineChanged(double time);
     protected:
         void    messageNotify(const FEMessage& msgIn);
         void    initEngine();

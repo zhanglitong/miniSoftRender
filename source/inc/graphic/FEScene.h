@@ -27,6 +27,7 @@
 
 namespace   FE
 {
+    class   FEAnimationSys;
     struct  DispatchResult
     {
         RFactorys   rFactorys;
@@ -105,6 +106,7 @@ namespace   FE
         /// </summary>
         /// <returns></returns>
         FEInputSystem*  inputSystem() const;
+        FEAnimationSys* animationSystem() const;
 
         virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
         virtual void    destroy();

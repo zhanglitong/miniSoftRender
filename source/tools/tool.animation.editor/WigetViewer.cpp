@@ -1,6 +1,7 @@
 #include    "WigetViewer.h"
 #include    "FEAppHelper.hpp"
 #include    "FEFileFormatHelper.hpp"
+#include    "animation/FEAnimationSys.hpp"
 
 #if     FE_PLATFORM == FE_PLATFORM_WIN32
 #include    <windows.h>
@@ -209,6 +210,15 @@ namespace   FE
         {
             _app->onMessage(MsgResize({evt->size().width(), evt->size().height()}));
         }
+    }
+    
+    void    WigetViewer::slotTimeLineChanged(double time)
+    {
+        auto    sys =   _scene ? _scene->animationSystem() : nullptr;
+        if (sys == nullptr)
+            return;
+        else
+            sys->setClipTime(time);
     }
     void    WigetViewer::messageNotify(const FEMessage& msgIn)
     {

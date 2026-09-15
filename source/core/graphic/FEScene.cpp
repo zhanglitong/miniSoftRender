@@ -58,6 +58,14 @@ namespace   FE
         else
             return  nullptr;
     }
+    FEAnimationSys* FEScene::animationSystem() const
+    {
+        auto    sys =   _comSysMgr.query(UUIDOF(FEAnimationSys));
+        if (sys)
+            return  sys->as<FEAnimationSys>();
+        else
+            return  nullptr;
+    }
 
     bool    FEScene::setup(App app,const FEUuid& rendererId)
     {
@@ -357,12 +365,17 @@ namespace   FE
         case MSG_LBUTTON_UP:
         case MSG_RBUTTON_UP:
         case MSG_MOUSE_WHEEL:
-        case MSG_MOUSE_MOVE:
         case MSG_KEYDOWN:
         case MSG_KEYUP:
             if (_viewerMgr.activeViewer())
                 _viewerMgr.activeViewer()->onMessage(msgIn);
             break;
+        case MSG_MOUSE_MOVE:
+            {
+                if (_viewerMgr.activeViewer())
+                    _viewerMgr.activeViewer()->onMessage(msgIn);
+                break;
+            }
         case MSG_UPDATE :
             onFrameStart();
             onFrameUpdate();
@@ -880,10 +893,17 @@ namespace   FE
        _factorys.addObject(facotryScl);
 
        /// 默认隐藏掉
-       facotryMov->flags().removeFlag(FE::FLAG_VISIBLE);
-       facotryRot->flags().removeFlag(FE::FLAG_VISIBLE);
-       facotryScl->flags().removeFlag(FE::FLAG_VISIBLE);
+       facotryMov->inputComponent()->flags().removeFlag(FE::FLAG_VISIBLE);
+       facotryRot->inputComponent()->flags().removeFlag(FE::FLAG_VISIBLE);
+       facotryScl->inputComponent()->flags().removeFlag(FE::FLAG_VISIBLE);
 
+       /// 修改编辑工具的Id(使用类型Id作为ObjectId) 保证对象id唯一不随机
+       /// 就可以通过id查询到对象,
+       facotryMov->inputComponent()->setObjectId(facotryMov->inputComponent()->classId());
+       facotryRot->inputComponent()->setObjectId(facotryRot->inputComponent()->classId());
+       facotryScl->inputComponent()->setObjectId(facotryScl->inputComponent()->classId());
+
+       /// 加入到input system 接收 键盘鼠标等外设消息
        inputSys->addObject(facotryMov->inputComponent().get());
        inputSys->addObject(facotryRot->inputComponent().get());
        inputSys->addObject(facotryScl->inputComponent().get());

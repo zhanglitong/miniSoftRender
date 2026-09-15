@@ -26,14 +26,6 @@ namespace FE
         , public FEObjectsTemplate<Animation, AnimationLess>
     {
     public:
-        enum    ActionFlag
-        {
-            /// <summary>
-            /// 标记数据变更
-            /// </summary>
-            FLAG_EDIT_MODE    =   FLAG_LAST,
-        };
-    public:
         struct  TrackObject
         {
             /// <summary>
@@ -82,7 +74,6 @@ namespace FE
         enum    PlayStatus:uint8_t
         {
             PS_Running  ,
-            PS_Pause    ,
             PS_Stoped 
         };
         using   Notify  =   std::function<void(FEAction*)>;
@@ -96,22 +87,19 @@ namespace FE
         /// 编辑模式下,性能较差
         /// </summary>
         /// <returns></returns>
-        bool        isEditMode() const
+        bool        isCacheMode() const
         {
-            return  flags().hasFlag(FLAG_EDIT_MODE);
+            return  !_cache.empty();
         }
         /// <summary>
-        /// 设置是否是编辑模式
+        /// 生成cache,可以提升动画的播放性能,但会影响编辑状态
+        /// 所以典型的应用场景是: 在浏览播放动画场景中使用
         /// </summary>
-        /// <param name="bFlag"></param>
-        void        setEditMode(bool bFlag)
-        {
-            if (bFlag)
-                flags().addFlag(FLAG_EDIT_MODE);
-            else
-                flags().removeFlag(FLAG_EDIT_MODE);
-            _cache.clear();
-        }
+        void        buildCache(); 
+        /// <summary>
+        /// 清除cache,动画更新过程会恢复到普通模式,性能会有所降低
+        /// </summary>
+        void        clearCache();
         /// <summary>
         /// 播放
         /// </summary>
@@ -126,13 +114,7 @@ namespace FE
         {
             _status =   PS_Stoped;
         }
-        /// <summary>
-        /// 暂停
-        /// </summary>
-        void        pause()
-        {
-            _status =   PS_Pause;
-        }
+       
         /// <summary>
         /// 播放状态
         /// </summary>
@@ -146,14 +128,17 @@ namespace FE
         /// </summary>
         /// <param name="delta">帧循环时间</param>
         void        update(const real& delta);
-
+        /// <summary>
+        /// 设置时间,动画直接跳转到对应的时间上
+        /// </summary>
+        /// <param name="tm"></param>
+        void        setClipTime(const real& clipTime);
+    protected:
         /// <summary>
         /// 相同时间线同时计算
         /// </summary>
         /// <param name="delta"></param>
-        void        updateBatch(const real& clipTime,const real& delta);
-    protected:  
-        virtual void    buildCache();   
+        void        updateBatch(const real& clipTime,const real& delta); 
         /// <summary>
         /// 添加对象通知
         /// </summary>

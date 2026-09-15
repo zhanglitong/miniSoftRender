@@ -13,7 +13,7 @@ QShortcut* REGIST_SHORTCUT(const std::string& str,QObject* parent)
 }
 
 
-inline  real    time2Pixel(real tm,int pixel = 8,int fps = 30)
+inline  FE::real    time2Pixel(FE::real tm,float pixel = 8,float fps = 30)
 {
     return  tm * pixel * fps;
 }
@@ -97,6 +97,20 @@ UiTickMgr::UiTickMgr(QWidget* parent)
 
     connect(linerAction, SIGNAL(triggered()), this, SLOT(slotSetInterpolate()));
     connect(cubicAction, SIGNAL(triggered()), this, SLOT(slotSetInterpolate()));
+
+    /// 创建定时器,在 initEngine 完成后启动
+    _timer = new QTimer(this);
+    connect(_timer, &QTimer::timeout, this, [this]()
+    {
+        if (_curFrame >= _lastFrame)
+        {
+            _curFrame = _lastFrame;
+            _timer->stop();
+            return;
+        }
+        ++_curFrame;
+        setCurFrame(_curFrame);
+    });
 }
 
 UiTickMgr::~UiTickMgr()
@@ -130,10 +144,13 @@ void    UiTickMgr::setTimeRowHeight(int height)
 
 void    UiTickMgr::setCurFrame(const int& frame, bool applyToAnim)
 {
-    _curFrame   =   frame;
+    _curFrame       =   frame;
+    double  time    =   frame/_fps;
     update();
-    emit sigCurFrameChanged(frame);
+    emit sigCurFrameChanged(time);
 }
+
+
 void    UiTickMgr::toPreKeyframe()
 {
     int     curFrame    =   _curFrame;
@@ -190,7 +207,6 @@ void    UiTickMgr::reset()
     _isCopyPasting              =   false;
     _isMiddlePress              =   false;
     _preDeltaFrame              =   0;
-    _isNeedUpdateKeyframeDatas  =   true;
 }
 
 void    UiTickMgr::updateScrollLength()
@@ -226,6 +242,15 @@ int     UiTickMgr::frameFromPos(int x)
     {
         double frame = (static_cast<double>(x) - _beginPixel) / _framePixel + _beginFrame;
         return static_cast<int>(std::round(frame));
+    }
+    return -1;
+}
+double  UiTickMgr::timeFromPos(int x)
+{
+    if (x >= 0 && x <= size().width())
+    {
+        double  frame   =   (static_cast<double>(x) - _beginPixel) / _framePixel + _beginFrame;
+        return  frame / _fps;
     }
     return -1;
 }
@@ -276,14 +301,14 @@ void    UiTickMgr::drawTrack(QPainter& painter,AnimationItem* item)
     int     rowH    =   rect.height();
     auto    rng     =   track->range();
     /// 计算从哪开始，到哪里结束
-    real    xStart  =   time2Pixel(rng.x,_framePixel ,30) - xOffset;
-    real    width   =   time2Pixel((rng.y - rng.x),_framePixel,30);
+    real    xStart  =   time2Pixel(rng.x,_framePixel ,_fps) - xOffset;
+    real    width   =   time2Pixel((rng.y - rng.x),_framePixel,_fps);
     int     yStart  =   rect.top()+ _timeRowHeight + 1 ;
     
     auto&    key =   track->times()->values();
     for (size_t i = 0; i <key.size(); i++)
     {
-        auto    time    =   time2Pixel(key[i], _framePixel , 30) - xOffset;
+        auto    time    =   time2Pixel(key[i], _framePixel , _fps) - xOffset;
         painter.setBrush(Qt::yellow);
         painter.setPen(Qt::black);
         int     centerX =   int(time);
@@ -303,8 +328,8 @@ void    UiTickMgr::drawAnimation(QPainter& painter,AnimationItem* item)
     int     rowH    =   rect.height();
     auto    rng     =   anim->range();
     /// 计算从哪开始，到哪里结束
-    real    xStart  =   time2Pixel(rng.x,_framePixel ,30) - xOffset;
-    real    width   =   time2Pixel((rng.y - rng.x),_framePixel,30);
+    real    xStart  =   time2Pixel(rng.x,_framePixel ,_fps) - xOffset;
+    real    width   =   time2Pixel((rng.y - rng.x),_framePixel,_fps);
     int     yStart  =   rect.top()+ _timeRowHeight + 1 ;
     QColor  color(0, 0, 255, 100); 
     QColor  border(0, 0, 255, 200);
@@ -331,25 +356,19 @@ void    UiTickMgr::slotScrollValueChanged(int value)
     _beginFrame = static_cast<int>(std::ceil(frameOffset));
     _beginPixel = _beginFrame * _framePixel - value;
 
-    _isNeedUpdateKeyframeDatas = true;
     update();
 }
 
 void    UiTickMgr::slotDoPaint()
 {
-    _isNeedUpdateKeyframeDatas = true;
     update();
 }
 
 void    UiTickMgr::slotDeleteKeyframes()
-{
-   
-}
+{}
 
 void    UiTickMgr::slotCopyPasteKeyframes()
-{
-   
-}
+{}
 
 void    UiTickMgr::slotPasteKeyframes()
 {
@@ -362,6 +381,14 @@ void    UiTickMgr::slotCopyKeyframes()
 
 void    UiTickMgr::slotSetInterpolate()
 {
+}
+
+void    UiTickMgr::slotPlayToNextFrame()
+{
+    if (_timer && _timer->isActive())
+        _timer->stop();
+    else if(_timer)
+        _timer->start((1000.0f/_fps));
 }
 
 void    UiTickMgr::paintEvent(QPaintEvent* event)
@@ -428,11 +455,6 @@ void    UiTickMgr::paintEvent(QPaintEvent* event)
             _timeSlider.paint(painter, size.width() - _timeRowHeight, std::to_string(_curFrame).c_str());
         }
     }
-
-    if (_isNeedUpdateKeyframeDatas)
-    {
-        _isNeedUpdateKeyframeDatas = false;
-    }
     if (_pTree != nullptr && _pTree->rootItem() != nullptr)
     {
         drawItem(painter,_pTree->rootItem());
@@ -457,8 +479,7 @@ void    UiTickMgr::mousePressEvent(QMouseEvent* event)
         {
             if (_timeLineRect.contains(event->pos()))
             {
-                auto frame = frameFromPos(event->pos().x());
-           
+                auto frame  =   frameFromPos(event->pos().x());
                 setCurFrame(frame);
                 _isDragTimeSlider = true;
             }
@@ -472,7 +493,7 @@ void    UiTickMgr::mousePressEvent(QMouseEvent* event)
             _isMiddlePress      =   true;
             _preDeltaFrame      =   0;
             _middlePos          =   event->pos();
-            _middleHScroolValue = _bar->value();
+            _middleHScroolValue =   _bar->value();
         }
         break;
     default:
@@ -542,7 +563,6 @@ void    UiTickMgr::mouseMoveEvent(QMouseEvent* event)
     {
         auto deltaX = event->pos().x() - _menuPos.x();
         _copyDeltaFrame = static_cast<int>(std::round(static_cast<double>(deltaX) / _framePixel));
-        _isNeedUpdateKeyframeDatas = true;
         update();
     }
     else if (_isDragTimeSlider)
@@ -585,13 +605,11 @@ void    UiTickMgr::mouseMoveEvent(QMouseEvent* event)
 
             int curDeltaFrme = deltaFrame - _preDeltaFrame;
            
-            _isNeedUpdateKeyframeDatas = true;
             update();
             _preDeltaFrame  =   deltaFrame;
         }
         else
         {
-            _isNeedUpdateKeyframeDatas = true;
             // 框选
             update();
         }

@@ -128,7 +128,7 @@ namespace FE
         /// </summary>
         /// <param name="deltaTm"></param>
         /// <returns>true/false</returns>
-        virtual bool    update(const real& tmDelta) override;
+        virtual bool    update(const real& clipTime) override;
     protected:
         /// <summary>
         /// 获取依赖的对象,子类实现
@@ -161,7 +161,11 @@ namespace FE
         /// <summary>
         /// 动画在大时间线上的起始时间，标记了动画从什么时间开始播放
         /// </summary>
-        real            _offset    =    0;
+        real            _offset     =   0;
+        /// <summary>
+        /// 记录动画播放到哪里了
+        /// </summary>
+        real            _clipTime   =   0;
         TrackResults    _results; 
         String          _name;
     };

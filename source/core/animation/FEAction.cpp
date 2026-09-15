@@ -13,12 +13,11 @@ namespace FE
     {
         _playMode       =   PT_Loop;
         _timeMode       =   TM_Default;
-        _status         =   PS_Running;
+        _status         =   PS_Stoped;
         _elapseTime     =   0.0;
         _timeScale      =   1;
         _clipTime       =   0;
         _range          =   {};
-        flags().addFlag(FLAG_EDIT_MODE);
     }
     FEAction::FEAction(const FEAction& other)
         :FEObject(other)
@@ -31,7 +30,6 @@ namespace FE
         _timeScale      =   other._timeScale;
         _clipTime       =   other._clipTime;
         _range          =   other._range;
-        setEditMode(other.isEditMode());
     }
 
     FEAction::~FEAction()
@@ -43,10 +41,7 @@ namespace FE
     void    FEAction::update(const real& delta)
     {
         if (_status != PS_Running || _objects.empty() )
-        {
-            _ctx.log().infor("Action::update skip: status=%d objects=%zu",_status,_objects.size());
             return;
-        }
         _elapseTime +=  delta;
         real    deltaTime   =   delta * _timeScale;
         switch(_timeMode)
@@ -101,23 +96,33 @@ namespace FE
             }
             break;
         }
-        if (flags().hasFlag(FLAG_EDIT_MODE))
+        if (_cache.empty())
         {
             for (auto& var : _objects)
             {
-                ///    û е ʱ  ,      ,     ڴ  и     
-                /// ע     ﲻ    
-                real2   range   =   var->range();
-                if (_clipTime < range.x - delta || _clipTime > range.y + delta)
-                {
-                    continue;
-                }
                 var->update(_clipTime);
             }
         }
         else
         {
             updateBatch(_clipTime,delta);
+        }
+    }
+
+    void    FEAction::setClipTime(const real& clipTime)
+    {
+        _clipTime   =   std::clamp(clipTime,_range.x,_range.y);
+        if (_cache.empty())
+        {
+            for (auto& var : _objects)
+            {
+                real2   range   =   var->range();
+                var->update(_clipTime);
+            }
+        }
+        else
+        {
+            updateBatch(_clipTime,0);
         }
     }
 
@@ -185,17 +190,21 @@ namespace FE
         ///  Ȱ   ʱ      
         ///  ڰ   ʱ   ߶       ,    ͬһʱ   .  ͬtimeLine   󶼼     һ    , ڰ  ն       
         std::sort(_cache.begin(),_cache.end(),[](const TrackObject& l,const TrackObject& r)
-            {
-                if (l._offTime != r._offTime)
-                    return  l._offTime < r._offTime;
+        {
+            if (l._offTime != r._offTime)
+                return  l._offTime < r._offTime;
+            else
+                if(l._track->times().get() != r._track->times().get())
+                    return  l._track->times().get() < r._track->times().get();
                 else
-                    if(l._track->times().get() != r._track->times().get())
-                        return  l._track->times().get() < r._track->times().get();
-                    else
-                        return  l._owner.get() < r._owner.get();
-
-            });
+                    return  l._owner.get() < r._owner.get();
+        });
     }   
+
+    void    FEAction::clearCache()
+    {
+        _cache.clear();
+    }
 
     real2   FEAction::calcRange()
     {

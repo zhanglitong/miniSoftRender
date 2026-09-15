@@ -38,7 +38,9 @@ namespace   FE
         /// <param name="cmd"></param>
         virtual void    update(CMDPtr ) override
         {
-            if (_move == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+            if (_move == nullptr 
+                || !_move->flags().hasFlag(FE::FLAG_VISIBLE) 
+                || !flags().hasFlag(FE::FLAG_VISIBLE))
                 return;
             /// 每一帧调用更新
            _move->update(_ctx.activeCamera());
@@ -96,7 +98,9 @@ namespace   FE
         /// <param name="cmd"></param>
         virtual void    render(CMDPtr cmd) override
         {
-            if (_move == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+            if (_move == nullptr 
+                || !_move->flags().hasFlag(FE::FLAG_VISIBLE) 
+                || !flags().hasFlag(FE::FLAG_VISIBLE))
                 return;
             if (_mat == nullptr)
                 return;

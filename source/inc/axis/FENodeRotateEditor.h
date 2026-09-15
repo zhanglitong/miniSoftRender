@@ -9,8 +9,11 @@ namespace   FE
     /// <summary>
     /// 节点旋转编辑工具
     /// </summary>
+    DEFINE_CLASS_UUID(FENodeRotateEditor, "{C3A18540-5CD3-4A69-9A36-5BD6C6250602}");
+
     class   FE_API  FENodeRotateEditor: public FEEditAxisRotate
     {
+        IMPLEMENT_CLASS_REFLECT(FENodeRotateEditor)
     public:
         FENodeRotateEditor(FEContext& ctx);
         FENodeRotateEditor(const FENodeRotateEditor& other);

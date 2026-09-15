@@ -19,10 +19,24 @@ namespace   FE
             _objects    =   other._objects;
         }
         /// <summary>
+        /// 根据id线性查找
+        /// </summary>
+        /// <param name="objectId"></param>
+        /// <returns></returns>
+        inline  TObject query(const FEUuid& objectId) const
+        {
+            for (auto& obj : _objects)
+            {
+                if (obj->objectId() == objectId)
+                    return  obj;
+            }
+            return  nullptr;
+        }
+        /// <summary>
         /// 获取对象列表
         /// </summary>
         /// <returns></returns>
-        const   TObjects&   objects() const
+        const   auto&   objects() const
         {
             return  _objects;
         }

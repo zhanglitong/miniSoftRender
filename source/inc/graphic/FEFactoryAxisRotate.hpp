@@ -43,7 +43,9 @@ namespace   FE
         /// </summary>
         virtual void    update(CMDPtr ) override
         {
-            if (_rotate == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+            if (_rotate == nullptr 
+                || !_rotate->flags().hasFlag(FE::FLAG_VISIBLE) 
+                || !flags().hasFlag(FE::FLAG_VISIBLE))
                 return;
 
             _rotate->update(_ctx.activeCamera());
@@ -218,7 +220,9 @@ namespace   FE
         /// </summary>
         virtual void    render(CMDPtr cmd) override
         {
-            if (_rotate == nullptr || !flags().hasFlag(FE::FLAG_VISIBLE))
+            if (_rotate == nullptr 
+                || !_rotate->flags().hasFlag(FE::FLAG_VISIBLE) 
+                || !flags().hasFlag(FE::FLAG_VISIBLE))
                 return;
             if (_mat == nullptr || _axisLineVBO == nullptr)
                 return;

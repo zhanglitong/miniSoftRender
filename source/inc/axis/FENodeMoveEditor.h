@@ -9,8 +9,11 @@ namespace   FE
     /// <summary>
     /// 节点编辑工具
     /// </summary>
+    
+    DEFINE_CLASS_UUID(FENodeMoveEditor, "{3105288C-0B6A-49D8-864C-05A195F6C28E}");
     class   FE_API  FENodeMoveEditor: public FEEditAxisMove
     {
+        IMPLEMENT_CLASS_REFLECT(FENodeMoveEditor)
     public:
         FENodeMoveEditor(FEContext& ctx);
         FENodeMoveEditor(const FENodeMoveEditor& other);

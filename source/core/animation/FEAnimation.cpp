@@ -25,11 +25,18 @@ namespace FE
     {
     }
 
-    bool    FEAnimation::update(const real& tmDelta)
+    bool    FEAnimation::update(const real& clipTime)
     {
         if (!isValid())
             return  false;
-        _clip->update(tmDelta - _offset,_results);
+        auto    rng =   range();
+        if (clipTime <= rng.x && _clipTime  == rng.x)
+            return  false;
+        else if(clipTime >= rng.y && _clipTime == rng.y)
+            return  false; 
+
+        _clipTime   =   std::clamp(clipTime,rng.x,rng.y);
+        _clip->update(_clipTime - _offset,_results);
         _owner->beginSetProp();
 
         bool    bModify =   false;

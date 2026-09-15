@@ -34,6 +34,15 @@ namespace   FE
             ,_input(InputComLessFunc)
         {}
 
+        /// <summary>
+        /// 根据Id查找
+        /// </summary>
+        /// <param name="objectId"></param>
+        /// <returns></returns>
+        inline  auto    query(const FEUuid& objectId)const ->Component 
+        {
+            return  _input.query(objectId).get();
+        }
         virtual size_t  addObject(Component  com) override
         {
             if (com->cast<FEInputCom>())

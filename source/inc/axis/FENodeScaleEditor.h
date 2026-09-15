@@ -9,8 +9,12 @@ namespace   FE
     /// <summary>
     /// 节点缩放编辑工具
     /// </summary>
+    
+    DEFINE_CLASS_UUID(FENodeScaleEditor, "{36459D8D-180D-4F8B-A6FE-6604B3EF05B1}");
+
     class   FE_API  FENodeScaleEditor: public FEEditAxisScale
     {
+        IMPLEMENT_CLASS_REFLECT(FENodeScaleEditor)
     public:
         FENodeScaleEditor(FEContext& ctx);
         FENodeScaleEditor(const FENodeScaleEditor& other);

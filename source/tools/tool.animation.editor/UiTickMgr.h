@@ -3,7 +3,9 @@
 #include    <QScrollBar>
 #include    <QShortcut>
 #include    <QMenu>
+#include    <QTimer>
 #include    "TimeSlider.h"
+
 
 class   AnimationItem;
 class   AnimationTree;
@@ -20,6 +22,7 @@ public:
     void    setKeyRowHeight(int rowHeight);
     void    setTimeRowHeight(int height);
     void    setCurFrame(const int& frame, bool applyToAnim = true);
+   
     void    toPreKeyframe();
     void    toFirstKeyframe();
     void    toNextKeyframe();
@@ -30,12 +33,17 @@ private:
     void    updateTimeLineRect();
 
     int     frameFromPos(int x);
+    /// <summary>
+    /// 屏幕坐标转换成时间线时间
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    double  timeFromPos(int x);
     int     posFromFrame(int frame);
     int     rowFromPos(const QPoint& p) const;
     void    drawItem(QPainter& painter,AnimationItem*);
     void    drawTrack(QPainter& painter,AnimationItem*);
     void    drawAnimation(QPainter& painter,AnimationItem*);
-
     int     calcDeltaFrame(const int& p0, const int& p1) const;
 public slots:
     void    slotScrollValueChanged(int value);
@@ -45,9 +53,11 @@ public slots:
     void    slotPasteKeyframes();
     void    slotCopyKeyframes();
     void    slotSetInterpolate();
+    void    slotPlayToNextFrame();
+
 signals:
     void    sigUpdatePropsUi();
-    void    sigCurFrameChanged(int);
+    void    sigCurFrameChanged(double);
 public:
     void    paintEvent(QPaintEvent *event)              override ;
     void    mousePressEvent(QMouseEvent *event)         override ;
@@ -62,8 +72,14 @@ public:
 public:
     QMenu*          _menu;
     QScrollBar*     _bar;
+    QTimer*         _timer;
+    /// <summary>
+    /// 动画播放的帧率
+    /// </summary>
+    float           _fps                =   30;
     // 目前采用帧动画模式（其他软件优先的模式），1秒30帧
     int             _curFrame           =   0;
+    double          _curTime            =   0;
     // 每行的高度，由动画树的itemHeight决定
     int             _keyRowHeight       =   24;
     int             _timeRowHeight      =   32;

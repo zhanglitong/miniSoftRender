@@ -2,7 +2,11 @@
 #include    "MainWindow.h"
 #include    "FEFileFormatHelper.hpp"
 #include    "fileFormat/fepk/FEFormatFepj.hpp"
-
+#include    "graphic/FEScene.h"
+#include    "FEInputSystem.hpp"
+#include    "axis/FENodeMoveEditor.h"
+#include    "axis/FENodeRotateEditor.h"
+#include    "axis/FENodeScaleEditor.h"
 
 MainWindow* _mainApp   =   nullptr;
 
@@ -23,6 +27,11 @@ MainWindow::MainWindow()
     /// 模型树选择通知到动画树更新数据
     ui.modelTree->_selectEvts   +=  {ui.animationTree,&AnimationTree::selectObject};
 
+    /// 时间线编辑通知
+    /// 用来控制动画
+    connect(ui.timeLineEditor,  SIGNAL(sigCurFrameChanged(double)), ui.sceneViewer,     SLOT(slotTimeLineChanged(double)));
+    connect(ui.frontRunBtn,     SIGNAL(clicked()),                  ui.timeLineEditor,  SLOT(slotPlayToNextFrame()));
+
     setTitile("");
 
 
@@ -32,6 +41,12 @@ MainWindow::MainWindow()
     connect(ui.actionReset,         SIGNAL(triggered()),    this,   SLOT(slotReset()));
     connect(ui.action_redo,         SIGNAL(triggered()),    this,   SLOT(slotRedo()));
     connect(ui.action_undo,         SIGNAL(triggered()),    this,   SLOT(slotUndo()));
+
+    connect(ui.action_move,         SIGNAL(triggered()),    this,   SLOT(slotMoveEditor()));
+    connect(ui.action_rotation,     SIGNAL(triggered()),    this,   SLOT(slotRotEditor()));
+    connect(ui.action_scale,        SIGNAL(triggered()),    this,   SLOT(slotScaleEditor()));
+    
+
 }
 MainWindow::~MainWindow()
 {
@@ -57,6 +72,7 @@ void    MainWindow::slotOpenProject()
         _projectName    =   fileName;
         setTitile(_projectName);
         QMessageBox::information(this, C2Q("提示"), C2Q("打开工程文件成功!"), QMessageBox::Ok);
+        /// 同步时间线数据到动画 ？
     }  
     else
     {
@@ -95,6 +111,52 @@ void    MainWindow::slotRedo()
 }
 void    MainWindow::slotUndo()
 {
+}
+
+void    MainWindow::slotMoveEditor()
+{
+    assert(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem());
+    
+    if (!(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem()))
+        return;
+
+    auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
+    if (editor == nullptr)
+        return;
+    if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
+        editor->flags().removeFlag(FE::FLAG_VISIBLE);
+    else
+        editor->flags().addFlag(FE::FLAG_VISIBLE);
+}
+void    MainWindow::slotRotEditor()
+{
+    assert(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem());
+
+    if (!(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem()))
+        return;
+
+    auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
+    if (editor == nullptr)
+        return;
+    if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
+        editor->flags().removeFlag(FE::FLAG_VISIBLE);
+    else
+        editor->flags().addFlag(FE::FLAG_VISIBLE);
+}
+void    MainWindow::slotScaleEditor()
+{
+    assert(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem());
+
+    if (!(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem()))
+        return;
+
+    auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeScaleEditor));
+    if (editor == nullptr)
+        return;
+    if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
+        editor->flags().removeFlag(FE::FLAG_VISIBLE);
+    else
+        editor->flags().addFlag(FE::FLAG_VISIBLE);
 }
 
 QIcon   MainWindow::objectIcon(ImageIndex type)

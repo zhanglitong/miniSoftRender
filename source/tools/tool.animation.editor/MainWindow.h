@@ -108,6 +108,9 @@ public slots:
     void    slotReset();
     void    slotRedo();
     void    slotUndo();
+    void    slotMoveEditor();
+    void    slotRotEditor();
+    void    slotScaleEditor();
 public:
     QIcon   objectIcon(ImageIndex type);
     QRect   objectIconRect(ImageIndex type);

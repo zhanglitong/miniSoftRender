@@ -111,6 +111,17 @@ namespace   FE
                 var.second->update(tmDelta);
             }
         }
+        /// <summary>
+        /// 设置时间(时间线时间)
+        /// </summary>
+        /// <param name="clipTime"></param>
+        virtual void    setClipTime(const real& clipTime)
+        {
+            for (auto& var : _actions)
+            {
+                var.second->setClipTime(clipTime);
+            }
+        }
     protected:
         ActionMap   _actions;
     };
