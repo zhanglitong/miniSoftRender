@@ -192,7 +192,7 @@ namespace   FE
         /// <returns>从世界到节点的位置变换</returns>
         inline  real3   globalTranslation() const
         {
-            return this->globalTransform() * real4(0,0,0,0);
+            return this->globalTransform() * real4(0,0,0,1);
         }
         inline  quatr   globalRotation() const
         {

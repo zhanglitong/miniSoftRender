@@ -1,4 +1,4 @@
-﻿#pragma     once
+#pragma     once
 
 #include    "../axis/FENodeMoveEditor.h"
 #include    "../material/FEMaterialV3.hpp"
@@ -106,7 +106,7 @@ namespace   FE
                 return;
             auto        pl      =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
-
+            cmd->setDepthTest(false);
             FECmdBuffer::Viewport   viewPort    =   
             {
                 0.0f,0.0f,(float)_ctx.windowsWidth(),(float)_ctx.windowsHeight(),0.0f,1.0f
@@ -116,6 +116,7 @@ namespace   FE
             cmd->setViewport(0,  1,  &viewPort);
             cmd->setScissor(0,   1,  &rect);
             cmd->setCullMode(CullMode::CM_NULL);
+            cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
             cmd->bindVBO(0,_axisArrowVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
@@ -146,6 +147,7 @@ namespace   FE
 
             pl      =   _mat->pipeline(PRI_LINES)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
+            cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_LINES);
             cmd->bindVBO(0,_axisLineVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
@@ -197,6 +199,7 @@ namespace   FE
             /// 绘制选中面
             pl      =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
+            cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
             cmd->bindVBO(0,_axisLineVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);

@@ -25,6 +25,7 @@ namespace   FE
         virtual FEResult    setScissor(uint first,uint cnt,const RectU32*)      override;
         virtual FEResult    setLineWidth(float width)       override;
         virtual FEResult    setCullMode(CullMode m)         override;
+        virtual FEResult    setDepthTest(bool bEnabled)     override;
         virtual FEResult    beginRenderPass(BeginInfo& rs)  ;
         virtual FEResult    endRenderPass()                 ;
 

@@ -22,8 +22,9 @@ namespace   FE
         virtual FEResult    begin(bool oneTimeSubmit) override;
         virtual FEResult    setViewport(uint first,uint cnt,const Viewport*) override;
         virtual FEResult    setScissor(uint first,uint cnt,const RectU32*) override;
-        virtual FEResult    setLineWidth(float width)  override;
-        virtual FEResult    setCullMode(CullMode m) override;
+        virtual FEResult    setLineWidth(float width)   override;
+        virtual FEResult    setCullMode(CullMode m)     override;
+        virtual FEResult    setDepthTest(bool bEnabled) override;
         virtual FEResult    beginRender(const RenderInfo& rs) override;
         virtual FEResult    endRender(const RenderInfo& rs) override;
 

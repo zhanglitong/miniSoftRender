@@ -95,6 +95,7 @@ namespace   FE
         virtual FEResult    setScissor(uint first,uint cnt,const RectU32*)      =   0;
         virtual FEResult    setLineWidth(float width)           =   0;
         virtual FEResult    setCullMode(CullMode m)             =   0;
+        virtual FEResult    setDepthTest(bool bEnabled)         =   0;
         virtual FEResult    beginRender(const RenderInfo& rs)   =   0;
         virtual FEResult    endRender(const RenderInfo& rs)     =   0;
          

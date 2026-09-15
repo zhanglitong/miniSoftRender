@@ -92,14 +92,10 @@ public:
     /// 设置标题栏
     /// </summary>
     /// <param name="fileName"></param>
-    void    setTitile(QString fileName)
-    {
-        if (fileName.isEmpty())
-            setWindowTitle("FEEditor - unnamed.fepj*");
-        else
-            setWindowTitle("FEEditor - " + fileName);
-        
-    }
+    void    setTitile(QString fileName);
+    QIcon   objectIcon(ImageIndex type);
+    QRect   objectIconRect(ImageIndex type);
+    int     rowHeight() const;
 public slots:
     void    slotImportModel();
     void    slotOpenProject();
@@ -108,14 +104,18 @@ public slots:
     void    slotReset();
     void    slotRedo();
     void    slotUndo();
+
     void    slotMoveEditor();
     void    slotRotEditor();
     void    slotScaleEditor();
-public:
-    QIcon   objectIcon(ImageIndex type);
-    QRect   objectIconRect(ImageIndex type);
-    int     rowHeight() const;
-public:
+protected:
+    /// <summary>
+    /// 引擎启动后通知，函数内可以对依赖引擎的组件模块进行初始化
+    /// </summary>
+    /// <param name="scene"></param>
+    void    notifyEngineStart(FEScene& scene);
+
+protected:
     virtual void    closeEvent(QCloseEvent *event)  override ;
     
 protected:

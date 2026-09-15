@@ -125,7 +125,12 @@ namespace   FE
         return FEResult::ER_FAILED;
     }
 
-    FEResult WGCmdBuffer::beginRender(const RenderInfo& rs)
+    FEResult    WGCmdBuffer::setDepthTest(bool )
+    {
+        return FEResult::ER_FAILED;
+    }
+
+    FEResult    WGCmdBuffer::beginRender(const RenderInfo& rs)
     {
         if (!_native)
             return FEResult::ER_FAILED;

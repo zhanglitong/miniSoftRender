@@ -245,6 +245,7 @@ namespace   FE
             /// ----------------------------------------------------------------
             auto    pl  =   _mat->pipeline(PRI_LINES)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
+            cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_LINES);
             cmd->bindVBO(0,_axisLineVBO,0);
             cmd->setPrimitiveTopology(PRI_LINES);
@@ -327,6 +328,7 @@ namespace   FE
             {
                 auto    plFan   =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
                 cmd->bindPipeline(plFan);
+                cmd->setDepthTest(false);
                 _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
                 cmd->bindVBO(0,_axisTriVBO,0);
                 cmd->setPrimitiveTopology(PRI_TRIANGLE_FAN);
@@ -385,6 +387,7 @@ namespace   FE
             {
                 auto    plFan   =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
                 cmd->bindPipeline(plFan);
+                cmd->setDepthTest(false);
                 _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
                 cmd->bindVBO(0,_axisArrowVBO,0);
                 cmd->setPrimitiveTopology(PRI_TRIANGLE_FAN);

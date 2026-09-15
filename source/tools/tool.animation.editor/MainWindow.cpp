@@ -22,8 +22,9 @@ MainWindow::MainWindow()
     ui.splitter->setSizes({200, 800});
     ui.animationTree->linkToTickMgr(ui.timeLineEditor);
     
-
     ui.modelTree->setup(ui.sceneViewer->scene());
+    ui.sceneViewer->notify()    +=  {this,&MainWindow::notifyEngineStart};
+
     /// 模型树选择通知到动画树更新数据
     ui.modelTree->_selectEvts   +=  {ui.animationTree,&AnimationTree::selectObject};
 
@@ -33,7 +34,6 @@ MainWindow::MainWindow()
     connect(ui.frontRunBtn,     SIGNAL(clicked()),                  ui.timeLineEditor,  SLOT(slotPlayToNextFrame()));
 
     setTitile("");
-
 
     connect(ui.action_importModel,  SIGNAL(triggered()),    this,   SLOT(slotImportModel()));
     connect(ui.action_openPrj,      SIGNAL(triggered()),    this,   SLOT(slotOpenProject()));
@@ -45,17 +45,25 @@ MainWindow::MainWindow()
     connect(ui.action_move,         SIGNAL(triggered()),    this,   SLOT(slotMoveEditor()));
     connect(ui.action_rotation,     SIGNAL(triggered()),    this,   SLOT(slotRotEditor()));
     connect(ui.action_scale,        SIGNAL(triggered()),    this,   SLOT(slotScaleEditor()));
-    
-
 }
 MainWindow::~MainWindow()
 {
+    ui.sceneViewer->notify().clear();
+    ui.modelTree->_selectEvts.clear();
 }
 Scene   MainWindow::scene()
 {
     return  ui.sceneViewer->scene();
 }
 
+void    MainWindow::setTitile(QString fileName)
+{
+    if (fileName.isEmpty())
+        setWindowTitle("FEEditor - unnamed.fepj*");
+    else
+        setWindowTitle("FEEditor - " + fileName);
+
+}
 void    MainWindow::slotImportModel()
 {
 }
@@ -123,10 +131,23 @@ void    MainWindow::slotMoveEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
     if (editor == nullptr)
         return;
+    Object  curObj  =   ui.modelTree->current();    
+    Node    node    =   curObj ? curObj->as<FENode>():nullptr;
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
+    {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-    else
+        editor->as<FENodeMoveEditor>()->setNodes({});
+    }  
+    else if(node)
+    {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
+        editor->as<FENodeMoveEditor>()->setNodes({node});
+    }
+    else
+    {
+        editor->flags().addFlag(FE::FLAG_VISIBLE);
+        editor->as<FENodeMoveEditor>()->setNodes({});
+    }
 }
 void    MainWindow::slotRotEditor()
 {
@@ -134,14 +155,26 @@ void    MainWindow::slotRotEditor()
 
     if (!(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem()))
         return;
-
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
     if (editor == nullptr)
         return;
+    Object  curObj  =   ui.modelTree->current();    
+    Node    node    =   curObj ? curObj->as<FENode>():nullptr;
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
+    {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-    else
+        editor->as<FENodeRotateEditor>()->setNodes({});
+    }  
+    else if(node)
+    {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
+        editor->as<FENodeRotateEditor>()->setNodes({node});
+    }
+    else
+    {
+        editor->flags().addFlag(FE::FLAG_VISIBLE);
+        editor->as<FENodeRotateEditor>()->setNodes({});
+    }
 }
 void    MainWindow::slotScaleEditor()
 {
@@ -153,11 +186,78 @@ void    MainWindow::slotScaleEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeScaleEditor));
     if (editor == nullptr)
         return;
+    Object  curObj  =   ui.modelTree->current();    
+    Node    node    =   curObj ? curObj->as<FENode>():nullptr;
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
+    {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-    else
+        editor->as<FENodeScaleEditor>()->setNodes({});
+    }  
+    else if(node)
+    {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
+        editor->as<FENodeScaleEditor>()->setNodes({node});
+    }
+    else
+    {
+        editor->flags().addFlag(FE::FLAG_VISIBLE);
+        editor->as<FENodeScaleEditor>()->setNodes({});
+    }
 }
+
+
+void    MainWindow::notifyEngineStart(FEScene& scene)
+{
+    assert(ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem());
+    if ((ui.sceneViewer != nullptr && ui.sceneViewer->scene() && ui.sceneViewer->scene()->inputSystem()))
+    {
+        /// 模型树点选后通知，到编辑对象
+        {
+            auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
+            ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
+            {
+                auto    node    =   object->cast<FENode>();
+                if (node == nullptr)
+                    return;
+                auto pEditor =   (FENodeRotateEditor*)(editor->as<FENodeRotateEditor>());
+                if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
+                    pEditor->setNodes({node});
+                else
+                    pEditor->setNodes({}); 
+                
+            }};
+        }
+        {
+            auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
+            ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
+            {
+                auto    node    =   object->cast<FENode>();
+                if (node == nullptr)
+                    return;
+                auto pEditor =   (FENodeMoveEditor*)(editor->as<FENodeMoveEditor>());
+                if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
+                    pEditor->setNodes({node});
+                else
+                    pEditor->setNodes({}); 
+            }};
+        }
+        {
+            auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
+            ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
+            {
+                auto    node    =   object->cast<FENode>();
+                if (node == nullptr)
+                    return;
+                auto pEditor =   (FENodeRotateEditor*)(editor->as<FENodeRotateEditor>());
+                if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
+                    pEditor->setNodes({node});
+                else
+                    pEditor->setNodes({}); 
+            }};
+        }
+    }
+}
+
 
 QIcon   MainWindow::objectIcon(ImageIndex type)
 {

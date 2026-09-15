@@ -90,13 +90,15 @@ namespace   FE
             /// 消息是否被标记，由处理消息的组件决定
             for (auto var : _input.objects())
             {
-                var->onMessage(msg);
-                /// 是否被捕获
-                if (var->captureObject() != nullptr)
+                /// 没有捕获，传递消息
+                if (var->captureObject() == nullptr)
+                    var->onMessage(msg);
+                /// 如果消息系统被捕获，只传递给捕获者
+                else if (var->captureObject() == var)
+                {
+                    var->onMessage(msg);
                     break;
-                /// 如果消费过，不在向下分发传递
-                if (msg.isConsumed())
-                    break;
+                }
             }
         }
         /// <summary>

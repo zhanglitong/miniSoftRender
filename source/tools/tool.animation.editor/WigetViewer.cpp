@@ -17,6 +17,8 @@ namespace   FE
         setAttribute(Qt::WA_AcceptTouchEvents);
         /// 强制创建原生窗口,确保 winId() 返回有效的 HWND
         setAttribute(Qt::WA_NativeWindow);
+        /// 开启鼠标跟踪,使 mouseMoveEvent 在无按键按下时也能触发
+        setMouseTracking(true);
         /// 创建，但没有初始化
         _scene      =   new FEScene(_ctx);
         /// 创建定时器,在 initEngine 完成后启动
@@ -28,35 +30,6 @@ namespace   FE
     {
     }
 
-    void    WigetViewer::initEngine()
-    {
-        if (_inited)
-            return;
-        /// 确保原生窗口已创建且尺寸有效
-        auto    hwnd    =   (HWND)winId();
-        if (hwnd == nullptr)
-            return;
-        RECT    rc;
-        GetClientRect(hwnd, &rc);
-        if (rc.right - rc.left <= 0 || rc.bottom - rc.top <= 0)
-            return;
-
-        FEApp::CreateInfo   info    =   {};
-#if     FE_PLATFORM == FE_PLATFORM_WIN32
-        info._appInst   =   GetModuleHandle(nullptr);
-#endif
-        info._window    =   (void*)hwnd;
-        info._width     =   (uint)(rc.right  - rc.left);
-        info._height    =   (uint)(rc.bottom - rc.top);
-        info._notify    =   std::bind(&WigetViewer::messageNotify,this,std::placeholders::_1);
-        _app    =   FE::FEAppHelper::create(_ctx,info);
-        if (_app == nullptr)
-            return;
-        
-        _scene->setup(_app);
-        _inited     =   true;
-        _timer->start(16);
-    }
 
     void    WigetViewer::showEvent(QShowEvent* event)
     {
@@ -71,10 +44,6 @@ namespace   FE
             _scene->destroy();
         }
         QWidget::closeEvent(event);
-    }
-
-    void	WigetViewer::onEngineStart()
-    {
     }
 
     void    WigetViewer::paintEvent(QPaintEvent* )
@@ -220,6 +189,14 @@ namespace   FE
         else
             sys->setClipTime(time);
     }
+    void	WigetViewer::onEngineStart()
+    {
+        if (_scene)
+        {
+            _notify(*_scene);
+        }
+    }
+
     void    WigetViewer::messageNotify(const FEMessage& msgIn)
     {
         if (_scene == nullptr)
@@ -245,6 +222,37 @@ namespace   FE
             break;
         }
         _scene->onMessage(msgIn);
+    }
+
+    void    WigetViewer::initEngine()
+    {
+        if (_inited)
+            return;
+        /// 确保原生窗口已创建且尺寸有效
+        auto    hwnd    =   (HWND)winId();
+        if (hwnd == nullptr)
+            return;
+        RECT    rc;
+        GetClientRect(hwnd, &rc);
+        if (rc.right - rc.left <= 0 || rc.bottom - rc.top <= 0)
+            return;
+
+        FEApp::CreateInfo   info    =   {};
+#if     FE_PLATFORM == FE_PLATFORM_WIN32
+        info._appInst   =   GetModuleHandle(nullptr);
+#endif
+        info._window    =   (void*)hwnd;
+        info._width     =   (uint)(rc.right  - rc.left);
+        info._height    =   (uint)(rc.bottom - rc.top);
+        info._notify    =   std::bind(&WigetViewer::messageNotify,this,std::placeholders::_1);
+        _app    =   FE::FEAppHelper::create(_ctx,info);
+        if (_app == nullptr)
+            return;
+
+        _scene->setup(_app);
+        _inited     =   true;
+        onEngineStart();
+        _timer->start(16);
     }
 
 }

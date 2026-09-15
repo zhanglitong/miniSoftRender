@@ -100,6 +100,14 @@ namespace   FE
         return  FEResult::ER_SUCCESS;
     }
 
+    FEResult    VKCmdBuffer::setDepthTest(bool bEnabled)
+    {
+        if (!isValid())
+            return  FEResult::ER_FAILED;
+        vkCmdSetDepthTestEnable(_native,bEnabled ? VK_TRUE : VK_FALSE);
+        return  FEResult::ER_SUCCESS;
+    }
+
     FEResult    VKCmdBuffer::beginRenderPass(BeginInfo& info)
     {
         if (!isValid())

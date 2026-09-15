@@ -75,32 +75,10 @@ namespace   FE
         /// 记录当前viewer,消息先到viewer,再向下分发
         /// </summary>
         FEViewer*   _viewer     =   nullptr;
-        /// <summary>
-        /// 标记消息是否被消费过
-        /// 如果被标记，则不会继续向下分发传递
-        /// </summary>
-        bool        _isConsumed =   false;
     public:
         virtual ~FEMessage()
         {}
         virtual MessageId   msgId() const   =   0;
-        /// <summary>
-        /// 消息是否被消费过
-        /// </summary>
-        /// <returns></returns>
-        inline  bool        isConsumed() const
-        {
-            return  _isConsumed;
-        }
-        /// <summary>
-        /// 标记消息被消费过
-        /// </summary>
-        /// <returns></returns>
-        inline  auto&       markConsumed()
-        {
-            _isConsumed =   true;
-            return  *this;
-        }
         inline  auto        viewer() const
         {
             return  _viewer;

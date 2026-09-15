@@ -50,6 +50,10 @@ namespace   FE
     {
         return  FEResult::ER_SUCCESS;
     }
+    FEResult    SWCmdBuffer::setDepthTest(bool )
+    {
+        return  FEResult::ER_SUCCESS;
+    }
 
     FEResult    SWCmdBuffer::beginRender(const RenderInfo& rs)
     {

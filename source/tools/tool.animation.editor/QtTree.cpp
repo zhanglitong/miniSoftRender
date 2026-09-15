@@ -177,7 +177,7 @@ namespace   FE
     void    QtTree::pushItemToHideQueue(Object item)
     {
         Object   pNodeItem = item;
-        if (pNodeItem == 0)
+        if (pNodeItem == nullptr)
         {
             return;
         }
@@ -198,7 +198,7 @@ namespace   FE
         {
             /// TODO:
             Object   pNodeItem = nullptr;
-            if (pNodeItem == 0)
+            if (pNodeItem == nullptr)
                 return nullptr;
             auto    itr = std::find(_hideQuue.begin(), _hideQuue.end(), pNodeItem);
             if (itr != _hideQuue.end())

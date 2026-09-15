@@ -18,10 +18,17 @@
 
 #include    "FEContext.hpp"
 #include    "graphic/FEScene.h"
+#include    "FEDelegate.hpp"
 using   namespace   FE;
 
 namespace   FE
 {
+    /// <summary>
+    /// 引擎创建完成后通知
+    /// 有一些依赖引擎资源的模块可以在该通知里面完成
+    /// </summary>
+    using   NotifyEngineStart   =   FETMultiDelegate<void(FEScene&)>;
+
     class   WigetViewer :
         public QWidget
     {
@@ -30,12 +37,18 @@ namespace   FE
         WigetViewer(QWidget* parent);
         ~WigetViewer();
     public:
-        virtual void	onEngineStart();
         inline  Scene   scene() const
         {
             return  _scene;
         }
-
+        /// <summary>
+        /// 引擎初始化通知
+        /// </summary>
+        /// <returns></returns>
+        inline  auto&   notify() 
+        {
+            return  _notify;
+        }
     protected:
         virtual void    paintEvent(QPaintEvent *event)              override ;
         virtual void    mousePressEvent(QMouseEvent *event)         override ;
@@ -48,20 +61,22 @@ namespace   FE
         virtual void    closeEvent(QCloseEvent *event)              override ;
     public slots:
         /// <summary>
-        /// ͨ  ʱ   ߲  Ŷ   
+        /// 时间线通知
         /// </summary>
         void    slotTimeLineChanged(double time);
     protected:
+        void	onEngineStart();
         void    messageNotify(const FEMessage& msgIn);
         void    initEngine();
     protected:
-        FEContext   _ctx;
-        App         _app;
-        Scene       _scene;
-        int2        _prevMouse  =   int2(0, 0);
-        bool        _prepared   =   false;
-        bool        _inited     =   false;
-        QTimer*     _timer      =   nullptr;
+        FEContext           _ctx;
+        App                 _app;
+        Scene               _scene;
+        NotifyEngineStart   _notify;
+        QTimer*             _timer      =   nullptr;
+        int2                _prevMouse  =   int2(0, 0);
+        bool                _prepared   =   false;
+        bool                _inited     =   false;
     };
 }
 

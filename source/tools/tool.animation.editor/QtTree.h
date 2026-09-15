@@ -200,14 +200,26 @@ namespace   FE
         /// 获取图标
         /// </summary>
         /// <returns></returns>
-        QPixmap         icon() const
+        inline  QPixmap icon() const
         {
             return  _icon;
         }
-        int             rowHeight() const
+        inline  int     rowHeight() const
         {
             return  _rowHeight;
         }
+        /// <summary>
+        /// 当前选中的item
+        /// </summary>
+        /// <returns></returns>
+        inline  Object  current() const
+        {
+            return  _curItem;
+        }
+        /// <summary>
+        /// 根节点
+        /// </summary>
+        /// <returns></returns>
         const   Nodes&  roots()
         {
             if (_scene == nullptr)
