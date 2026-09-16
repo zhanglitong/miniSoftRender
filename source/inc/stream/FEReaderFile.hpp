@@ -8,7 +8,6 @@ namespace   FE
     class   FEReaderFile :public FEReader
     {
     protected:
-        char*       _buffer =   nullptr;
         FILE*       _file   =   nullptr;
         Buffer      _memory =   nullptr;
         size_t      _cur    =   0;
@@ -31,24 +30,42 @@ namespace   FE
         /// <returns></returns>
         inline  bool    open(const char* relPath)
         {
-            /// 说明不是系统目录，按照常规文件处理
-            if (relPath != nullptr)
+            /// 关闭已经打开的文件或者内存对象
+            close();
+            /// 优先读取磁盘文件
+            /// 方便外部排查问题，以及本地更新
+            _file   =   fopen(relPath,"rb");
+            if (_file)
             {
-                /// 查询相对目录，如果有缓冲区，则使用缓冲区
-                auto    buffer  =   FEAssetsMgr::instance().queryBuffer(relPath);
-                _file   =   nullptr;
+                _fseeki64(_file,0,  SEEK_END);
+                _size           =   _ftelli64(_file);
+                _fseeki64(_file,0,  SEEK_SET);
                 _cur    =   0;
-                _memory =   buffer;
-                _size   =   buffer ? buffer->length() : 0;
-                return  buffer ? true : false;
+                _memory =   nullptr;
+                _size   =   0;
+                return  true;
             }
             else
             {
-                _file   =   nullptr;
-                _memory =   nullptr;
-                _cur    =   0;
-                _size   =   0;
-                return  false;
+                /// 说明不是系统目录，按照常规文件处理
+                if (relPath != nullptr)
+                {
+                    /// 查询相对目录，如果有缓冲区，则使用缓冲区
+                    auto    buffer  =   FEAssetsMgr::instance().queryBuffer(relPath);
+                    _file   =   nullptr;
+                    _cur    =   0;
+                    _memory =   buffer;
+                    _size   =   buffer ? buffer->length() : 0;
+                    return  buffer ? true : false;
+                }
+                else
+                {
+                    _file   =   nullptr;
+                    _memory =   nullptr;
+                    _cur    =   0;
+                    _size   =   0;
+                    return  false;
+                }
             }
         }
         /// <summary>

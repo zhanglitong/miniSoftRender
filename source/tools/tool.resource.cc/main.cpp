@@ -12,8 +12,6 @@ namespace   fs  =   std::filesystem;
 #include    "../../inc/FEConst.h"
 #include    "cmdline.h"
 
-#include    <Windows.h>
-
 using   namespace   FE;
 
 using   ArrayString =   std::vector<std::string>;
@@ -189,8 +187,7 @@ void    findFileToXML(const char* workPath,const char* rootPath,XMLDoc& doc,XMLN
         for ( auto entry : fs::directory_iterator(path))
         {
             String  file    =   entry.path().generic_string();
-            String  path1   =   filePath.generic_string();
-            findFileToXML(path1.c_str(),file.c_str(),doc,nodePath);
+            findFileToXML(workPath,file.c_str(),doc,nodePath);
         }
     }
     else
@@ -832,7 +829,6 @@ int     main(int argc,char** argv)
     if (mode == "dir")
     {
         /// 遍历文件生成资源文件
-
         printf("Gen Resource File\n");
         XMLDoc      doc;
         XMLNode*    xmlinfo =   doc.allocate_node(rapidxml::node_pi, "xml version='1.0' encoding='gb2312'");

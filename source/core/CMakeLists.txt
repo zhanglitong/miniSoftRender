@@ -26,13 +26,15 @@ foreach(cDir ${DIR_LIST})
     set(FERS_INPUT   ${ABS_PATH}/${cDir})
     set(FERS_OUTPUT  ${CMAKE_CURRENT_LIST_DIR}/${cDir}.fers)
 
+    file(GLOB_RECURSE FERS_DIR_DEPS "${FERS_INPUT}/*")
+
     add_custom_command(
             PRE_BUILD
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
             OUTPUT  ${FERS_OUTPUT}
             COMMAND ${PRRS_COMPILE} -w ${ABS_BIN_PATH} -m dir -i ${FERS_INPUT} -f ${FERS_OUTPUT}
-            DEPENDS ${FERS_INPUT}
-   
+            DEPENDS ${FERS_DIR_DEPS}
+
             COMMENT "compile sub dir to .fers ->${FERS_INPUT}/${cDir}"
         )
         list(APPEND PRRS_OUTPUTS ${FERS_OUTPUT})
