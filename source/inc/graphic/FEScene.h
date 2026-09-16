@@ -160,8 +160,6 @@ namespace   FE
         /// </summary>
         virtual void    clear();
     protected:
-        virtual void    onClose();
-    protected:
         /// <summary>
         /// 节点加入到系统中,函数会把根绝规则把节点分配到不同的工厂中
         /// </summary>
@@ -179,7 +177,6 @@ namespace   FE
         void    initializeQueue();
         void    resize(const MsgResize& evt);
 
-        Nodes   loadNode(Material mat);
         /// <summary>
         /// 创建网格
         /// </summary>

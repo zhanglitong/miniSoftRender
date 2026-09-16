@@ -31,6 +31,7 @@
 #include    "../inc/animation/FEAnimationSys.hpp"
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
+#include    "../inc/FEAssetsMgr.h"
 
 
 namespace   FE
@@ -148,9 +149,9 @@ namespace   FE
 
     FEContext::FEContext()
     {
-        _log    =   new FELog(*this,"log.txt");
-        _anchor =   new FEAnchor(*this);
-
+        _log        =   new FELog(*this,"log.txt");
+        _anchor     =   new FEAnchor(*this);
+        _assetsMgr  =   new FEAssetsMgr(*this);
         systemInitialize(*this);
     }
     FEContext::~FEContext()

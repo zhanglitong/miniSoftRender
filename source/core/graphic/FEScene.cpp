@@ -43,7 +43,7 @@ namespace   FE
     {}
     FEScene::~FEScene()
     {
-        onClose();
+        destroy();
     }
 
     /// <summary>
@@ -177,7 +177,40 @@ namespace   FE
     }
     void    FEScene::destroy()
     {
-        onClose();
+        LOG_INF("FEScene.onClose()");
+        if (_device)
+        {
+            _device->waitIdle();
+        }
+        _swapchain  =   nullptr;
+        _updateQueue.queue().clear();
+
+        _mousePoint =   nullptr;
+
+        _cmdPool    =   nullptr;
+        _frame      =   nullptr;
+        _imgDepth   =   nullptr;
+        _depthView  =   nullptr;
+
+        for (auto  var : _factorys.objects())
+        {
+            var->destroy();
+        }
+        _factorys.clearObjects();
+
+        for (auto node: _nodeTree.topLevelNodes())
+        {
+            node->removeAllChildren();
+        }
+        _nodeTree.clear();
+
+        if (_device)
+        {
+            _device->destroy();
+        }
+        _ctx._device    =   nullptr;
+        _device         =   nullptr;
+        _renderSys      =   nullptr;
     }
 
     void    FEScene::addNodesToTree(const Nodes& nodeList)
@@ -330,7 +363,7 @@ namespace   FE
         switch(msgIn.msgId())
         {
         case MSG_CLOSE  :
-            onClose();
+            destroy();
             break;
         case MSG_RESIZE :
             resize(static_cast<const MsgResize&>(msgIn));
@@ -485,52 +518,12 @@ namespace   FE
         LOG_INF("FEScene.clear()");
         LOG_INF("_nodeTree.clear()");
         _nodeTree.clear();
-
-        LOG_INF("------------FEScene.clear()");
         for (auto var : _comSysMgr.objects())
         {
             var->clear();
         }
         LOG_INF("_factorys.clear()");
         _factorys.clear();
-
-    }
-    void    FEScene::onClose()
-    {
-        LOG_INF("FEScene.onClose()");
-        if (_device)
-        {
-            _device->waitIdle();
-        }
-        _swapchain  =   nullptr;
-        _updateQueue.queue().clear();
-
-        _mousePoint =   nullptr;
-
-        _cmdPool    =   nullptr;
-        _frame      =   nullptr;
-        _imgDepth   =   nullptr;
-        _depthView  =   nullptr;
-        
-        for (auto  var : _factorys.objects())
-        {
-            var->destroy();
-        }
-        _factorys.clearObjects();
-
-        for (auto node: _nodeTree.topLevelNodes())
-        {
-            node->removeAllChildren();
-        }
-        _nodeTree.clear();
-
-        if (_device)
-        {
-            _device->destroy();
-        }
-        _ctx._device    =   nullptr;
-        _device         =   nullptr;
-        _renderSys      =   nullptr;
     }
 
     void    FEScene::addNodesToFactory(const Nodes& nodeList,DispatchResult* result)
@@ -773,38 +766,6 @@ namespace   FE
             viewer->onMessage(evt);
         }
         _device->waitIdle();
-    }
-
-    Nodes   FEScene::loadNode(Material mat)
-    {
-        float3s     vertex   =   
-        {
-            {  1.0f,  1.0f, 0.0f },
-            { -1.0f,  1.0f, 0.0f },
-            {  0.0f, -1.0f, 0.0f },
-        };
-        Rgba8s     colors  =   
-        {
-            { 255,  0,      0,  255 } ,
-            { 0,    255,    0,  255 } ,
-            { 0,    0,      255,255 } ,
-        };
-
-        Node        root    =   new FENode(_ctx);
-        Mesh        mesh    =   FEMeshBuilder::makeMesh(_ctx,vertex,colors);
-        auto        aabb    =   mesh->updateAabb();
-
-        for (size_t i = 0; i < 10; i++)
-        {
-            Node    child   =   new FENode(_ctx);
-            child->setLocalTranslation(real3(0.1 * i,3,0.1 * i));
-            child->setMaterial(mat);
-            child->setMesh(mesh);
-            root->addChild(child.get());
-        }
-        root->makeDirty();
-        root->update();
-        return  {root};
     }
 
     Node    FEScene::createGrid()

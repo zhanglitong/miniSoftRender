@@ -9,8 +9,14 @@ namespace   FE
     {
         auto&       vkDevice    =   (VKDevice&)dev;
         auto        device      =   vkDevice.logicalDevice();
-                    buffer      =   nullptr;
-                    memory      =   nullptr;
+
+        if (buffer)
+            vkDestroyBuffer(device, buffer, nullptr);
+        if (memory)
+            vkFreeMemory(device,    memory, nullptr);
+        buffer      =   nullptr;
+        memory      =   nullptr;
+
         VkMemoryRequirements    memReqs =   {};
 
         VkBufferCreateInfo      bufferInfo{};

@@ -35,9 +35,11 @@ namespace FE
     class   FECamera;
     class   FEWindow;
     class   FEViewer;
-    using   Device  =   SharedPtr<FEDevice>;
-    using   Scene   =   SharedPtr<FEScene>;
-    using   Window  =   SharedPtr<FEWindow>;
+    class   FEAssetsMgr;
+    using   Device      =   SharedPtr<FEDevice>;
+    using   Scene       =   SharedPtr<FEScene>;
+    using   Window      =   SharedPtr<FEWindow>;
+    using   AssetsMgr   =   SharedPtr<FEAssetsMgr>;
     class   FEContext
     {
     public:
@@ -173,10 +175,11 @@ namespace FE
         LogPtr      _log;
         Device      _device;
         Anchor      _anchor;
-        Window      _window;    
+        Window      _window;   
         Scene       _scene;
         String      _workPath;
         String      _resourcePath;
+        AssetsMgr   _assetsMgr;
     };
 }
 

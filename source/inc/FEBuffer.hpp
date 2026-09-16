@@ -7,7 +7,6 @@
 #include    "FEResult.hpp"
 #include    "stream/FEReader.hpp"
 #include    "stream/FEWriter.hpp"
-#include    "stream/FEReaderFile.hpp"
 
 namespace   FE
 {
@@ -30,22 +29,49 @@ namespace   FE
             /// 引用数据的长度
             /// </summary>
             uint64  _range  =   ~0ULL;
-
-            const   auto    dataPtr() const
+            /// <summary>
+            /// 引用外部的缓冲
+            /// </summary>
+            uint8*  _ref    =   nullptr;
+            /// <summary>
+            /// 如果引用外部数据，是否需要释放
+            /// </summary>
+            bool    _free   =   false;
+        public:
+            ~CreateInfo()
             {
-                return  _buffer.data() +  _offset;
+                if (_ref && _free)
+                {
+                    delete  []_ref;
+                }
             }
-            inline  auto    dataPtr()
+            const   uint8*  dataPtr() const
             {
-                return  _buffer.data() +  _offset;
+                if (_buffer.data())
+                    return  _buffer.data() +  _offset;
+                else
+                    return  _ref + _offset;
             }
-            inline  auto    data()
+            inline  uint8*  dataPtr()
             {
-                return  _buffer.data() +  _offset;
+                if (_buffer.data())
+                    return  _buffer.data() +  _offset;
+                else
+                    return  _ref + _offset;
             }
-            inline  auto    data() const
+            inline  uint8*  data()
             {
-                return  _buffer.data() +  _offset;
+                if (_buffer.data())
+                    return  _buffer.data() +  _offset;
+                else
+                    return  _ref + _offset;
+            }
+            const   uint8*  data() const
+            {
+                if (_buffer.data())
+                    return  _buffer.data() +  _offset;
+                else
+                    return  _ref + _offset;
             }
             inline  auto    length() const
             {
@@ -136,19 +162,7 @@ namespace   FE
         /// <param name="ctx"></param>
         /// <param name="fileName"></param>
         /// <returns></returns>
-        static  Buffer     loadFile(FEContext& ctx,const char* fileName,const char* mode = "rb")
-        {
-            FEReaderFile    reader(ctx,fileName,mode);
-            if (!reader.isValid())
-                return  nullptr;
-            auto        len     =   reader.length();
-            Buffer      buf     =   new FEBuffer(ctx);
-            auto&       cInf    =   buf->cInfo();
-            cInf._buffer.resize(len);
-            reader.readBuffer(cInf._buffer.data(),len);
-            reader.close();
-            return      buf;
-        }
+        static  Buffer     loadFile(FEContext& ctx,const char* fileName,const char* mode = "rb");
     };
     using   BufferCreateInfo    =   FEBuffer::CreateInfo;
     using   Buffer              =   SharedPtr<FEBuffer>;

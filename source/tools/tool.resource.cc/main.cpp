@@ -12,6 +12,8 @@ namespace   fs  =   std::filesystem;
 #include    "../../inc/FEConst.h"
 #include    "cmdline.h"
 
+#include    <Windows.h>
+
 using   namespace   FE;
 
 using   ArrayString =   std::vector<std::string>;
@@ -187,7 +189,8 @@ void    findFileToXML(const char* workPath,const char* rootPath,XMLDoc& doc,XMLN
         for ( auto entry : fs::directory_iterator(path))
         {
             String  file    =   entry.path().generic_string();
-            findFileToXML(workPath,file.c_str(),doc,nodePath);
+            String  path1   =   filePath.generic_string();
+            findFileToXML(path1.c_str(),file.c_str(),doc,nodePath);
         }
     }
     else
@@ -248,7 +251,7 @@ void    outFileBody(const char* className,FILE* file,const Headers& headers)
     res +=  "/// helper function !\n";
     res +=  "/// \n";
     res +=  "/// comments\n";
-    res +=  "namespace CELL\n";
+    res +=  "namespace FE\n";
     res +=  "{\n";
     res +=  "   class   " + clsName + "\n";
     res +=  "   {\n";
@@ -258,7 +261,7 @@ void    outFileBody(const char* className,FILE* file,const Headers& headers)
     for (auto h : headers)
     {
         char     szBuf[1024] = { 0 };
-        sprintf(szBuf, "            CELL::CELLAssetsMgr::instance().addBuffer(\"%s\",%s,%s,false);\n", h._srcFileName.c_str(), h._declareDataName.c_str(), h._declareDataLenName.c_str());
+        sprintf(szBuf, "            FE::FEAssetsMgr::instance().addBuffer(\"%s\",%s,%s,false);\n", h._srcFileName.c_str(), h._declareDataName.c_str(), h._declareDataLenName.c_str());
         res += szBuf;
         res +=  "\n";
     }
@@ -282,7 +285,7 @@ void    outFileHeader(FILE* file)
     fputs(szTimeFormat, file);
 
     fputs("\n\n", file);
-    fputs("#include \"engine/CELLAssetsMgr.h\"\n", file);
+    fputs("#include \"../inc/FEAssetsMgr.h\"\n", file);
     fputs("#pragma warning(push)\n", file);
     fputs("#pragma warning(disable:4828)\n", file);
 
@@ -370,7 +373,7 @@ bool    compile( const char* srcFile
     header._dataLen             =   nLen;
     header._srcFileName         =   sName;
 
-    result  =   "namespace  CELL\n";
+    result  =   "namespace  FE\n";
     result  +=  "{\n";
     result  +=  defDataLenVar;
     result  +=  defDataVar;
@@ -429,8 +432,8 @@ std::string     toClassBody(const Headers& headers)
 {
     size_t          index   =   0;
     std::string     clsStr  =   "";
-    clsStr += "#include \"engine/CELLAssetsMgr.hpp\"\n";
-    clsStr += "namespace CELL\n";
+    clsStr += "#include \"../inc/FEAssetsMgr.h\"\n";
+    clsStr += "namespace FE\n";
     clsStr += "{\n";
     for (size_t i = 0; i < headers.size(); ++i)
     {
@@ -443,7 +446,7 @@ std::string     toClassBody(const Headers& headers)
         clsStr += "\n";
     }
  
-    clsStr += "    CELLAssetsMgr::CELLAssetsMgr()\n";
+    clsStr += "    FEAssetsMgr::FEAssetsMgr()\n";
     clsStr += "    {\n";
     for (auto itr = headers.begin(); itr != headers.end(); ++itr)
     {
@@ -467,12 +470,12 @@ std::string     toClassBody(const Headers& headers)
         clsStr += "\n";
     }
     clsStr += "    }\n";
-    clsStr += "    CELLAssetsMgr&    CELLAssetsMgr::instance()\n";
+    clsStr += "    FEAssetsMgr&    FEAssetsMgr::instance()\n";
     clsStr += "    {\n";
-    clsStr += "         static   CELLAssetsMgr _resource;\n";
+    clsStr += "         static   FEAssetsMgr _resource;\n";
     clsStr += "         return   _resource;\n";
     clsStr += "     }\n";
-    clsStr += "     const   CELLAssetsMgr::Resource*  CELLAssetsMgr::getResource(const char* fileName)\n";
+    clsStr += "     const   FEAssetsMgr::Resource*  FEAssetsMgr::getResource(const char* fileName)\n";
     clsStr += "     {\n";
     clsStr += "         auto    itr = _resource.find(fileName);\n";
     clsStr += "         if (itr == _resource.end())\n";
@@ -490,9 +493,9 @@ std::string     toClass()
     std::string     clsStr  =   "";
     clsStr  +=  "#include   <map>\n";
     clsStr  +=  "#include   <string>\n";
-    clsStr  +=  "namespace  CELL\n";
+    clsStr  +=  "namespace  FE\n";
     clsStr  +=  "{\n";
-    clsStr  +=  "   class   CELLAssetsMgr\n";
+    clsStr  +=  "   class   FEAssetsMgr\n";
     clsStr  +=  "   {\n";
     clsStr  +=  "   public:\n";
     clsStr  +=  "       struct  Resource\n";
@@ -505,9 +508,9 @@ std::string     toClass()
     clsStr  +=  "   protected:\n";
     clsStr  +=  "       MapResource _resource;\n";
     clsStr  +=  "   public:\n";
-    clsStr  +=  "       static   CELLAssetsMgr&    instance();\n";
+    clsStr  +=  "       static   FEAssetsMgr&    instance();\n";
     clsStr  +=  "   public:\n";
-    clsStr  +=  "       CELLAssetsMgr();\n\n";  
+    clsStr  +=  "       FEAssetsMgr();\n\n";  
     clsStr  +=  "       /// query interface for resource \n";
     clsStr  +=  "       const   Resource*   getResource(const char* fileName);\n";
     clsStr  +=  "   };\n";
@@ -540,24 +543,13 @@ void    procNode(
     {
         Header      header;
         XMLAttr*    aInput  =   node->first_attribute("input");
-        XMLAttr*    aName   =   node->first_attribute("name");
-        XMLAttr*    aOutPut =   node->first_attribute("output");
         if (aInput == nullptr)
             return;
         std::string srcFile     =   workPath + "/" + aInput->value();
         std::string dstFile     =   resFile;
-        std::string sName       =   "";
-        if (aName)
-            sName   =   aName->value();
-        else if(aInput)
-            sName   =   aInput->value();
-        else
-            sName   =   srcFile.substr(rootDir.size() + 1);
-
-        std::string dstNames    =   sName;
-        /// 如果指定了输出文件名称，则使用指定的名称最为变量名称
-        if (aOutPut)
-            dstNames            =   aOutPut->value();
+        std::string sName       =   srcFile.substr(rootDir.size() + 1);
+       
+        std::string dstNames    =   srcFile;
 
         replacePath((char*)dstNames.c_str());
         replaceDot((char*)dstNames.c_str());
@@ -568,7 +560,6 @@ void    procNode(
             fputs("/// ", pOutFile);
             fputs(srcFile.c_str(), pOutFile);
             fputs("\n", pOutFile);
-
 
             if(compile( srcFile.c_str()
                     ,dstFile.c_str()
@@ -851,7 +842,7 @@ int     main(int argc,char** argv)
         doc.append_node(xmlinfo);
         doc.append_node(root);
         
-        XMLAttr*    aDataPath   =   doc.allocate_attribute("dataPath",  packPath.c_str());
+        XMLAttr*    aDataPath   =   doc.allocate_attribute("dataPath",  workPath.c_str());
         XMLAttr*    aOutPath    =   doc.allocate_attribute("outPath",   "");
         XMLAttr*    aSingleOut  =   doc.allocate_attribute("singleOut", "1");
 
