@@ -18,6 +18,10 @@ namespace   FE
         {
             _move   =   new FENodeMoveEditor(_ctx);
             _mat    =   new FEMaterialV3(_ctx);
+            /// 设置渲染优先级最低，场景中最后绘制
+            _prioritys[PT_Render].setPriority(EP_Last);
+            /// 同优先级中，最后绘制
+            _prioritys[PT_Render].setOrder(MaxInt16);
         }
         FEFactoryAxisMove(const FEFactoryAxisMove& other)
             :FEFactoryRender(other)

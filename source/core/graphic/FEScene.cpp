@@ -173,31 +173,6 @@ namespace   FE
         createGrid();
         /// 创建工具
         createTools();
-
-#if 0
-        String          box     =   R"(E:\study\gltf\glTF-Sample-Assets\Models\Box\glTF\Box.gltf)";
-        //String          gltfFile    =   _ctx.resourcePath() + "/assets/model/glTF/FlightHelmet.gltf";
-        String          gltfFile=   box;//R"(E:\study\gltf\glTF-Sample-Assets\Models\BoxAnimated\glTF/BoxAnimated.gltf)";
-        FEFileFormat    fmtText(".gltf","1.0.0.0","GLTF text Format!");
-
-        auto            reader  =   FEFileFormatHelper::queryReader(_ctx,fmtText);
-        if (reader)
-        {
-            auto    objects =   reader->readFiles({gltfFile});
-            Nodes   nodes;
-            for (auto var : objects)
-            {
-                Node    node    =   var->cast<FENode>();
-                if (node == nullptr)
-                    continue;
-                else
-                    nodes.push_back(node);
-            }
-            dispatchNodesToSystem(nodes);
-            addNodesToTree(nodes);
-        }
-#endif
-
         return  true;
     }
     void    FEScene::destroy()
@@ -385,16 +360,6 @@ namespace   FE
             onFrameEnd();
             break;
         }
-        /// 消息转发给输入系统
-        /// viewer 已经处理
-        /// for (auto var : _comSysMgr.objects())
-        /// {   
-        ///     auto    pInputSys   =   var->cast<FEInputSystem>();
-        ///     if (pInputSys == nullptr)
-        ///         continue;
-        ///     else
-        ///         pInputSys->onMessage(msgIn);
-        /// }
     }
 
     void    FEScene::onNodePropChanged(const FENode* node)
