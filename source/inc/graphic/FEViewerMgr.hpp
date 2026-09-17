@@ -14,7 +14,7 @@ namespace   FE
     /// 先定义类型别名，确保ViewerLess是类型名
     using   ViewerLess    =   decltype(ViewerLessLambda);
 
-    class   FEViewerMgr : public FEFactoryTemplate<Viewer,ViewerLess>
+    class   FE_API  FEViewerMgr : public FEFactoryTemplate<Viewer,ViewerLess>
     {
     public:
         FEViewerMgr(FEContext& ctx)

@@ -10,7 +10,7 @@
 namespace   FE
 {
     
-    class   FEGImage  :public RSObject
+    class   FE_API  FEGImage  :public RSObject
     {
     public:
         struct  CreateInfo

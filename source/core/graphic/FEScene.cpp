@@ -110,7 +110,7 @@ namespace   FE
         };
         {
             FEDevice::CreateInfo    infor   =   {};
-            infor.deviceId  =   gpuList[1].gpuId;
+            infor.deviceId  =   gpuList[0].gpuId;
             _device->create(infor);
         }
         {
@@ -160,15 +160,16 @@ namespace   FE
         _frustCull  =   new FEFrustumCull(_ctx);
         /// anchor
         /// anchor 增加通知
-        _ctx.anchor().addNotify(this,[this](Object object)
+        _ctx.anchor().notify()  +=  {[this](Object object)
         {
             UNUSED(object);
             if (_mousePoint)
             {
                 _mousePoint->setLocalTranslation(_ctx.anchor().point());
                 _mousePoint->update();
+                _mousePoint->fireChanged();
             }
-        });
+        }};
         /// 创建网格
         createGrid();
         /// 创建工具
@@ -198,10 +199,6 @@ namespace   FE
         }
         _factorys.clearObjects();
 
-        for (auto node: _nodeTree.topLevelNodes())
-        {
-            node->removeAllChildren();
-        }
         _nodeTree.clear();
 
         if (_device)
@@ -373,17 +370,12 @@ namespace   FE
         case MSG_LBUTTON_UP:
         case MSG_RBUTTON_UP:
         case MSG_MOUSE_WHEEL:
+        case MSG_MOUSE_MOVE:
         case MSG_KEYDOWN:
         case MSG_KEYUP:
             if (_viewerMgr.activeViewer())
                 _viewerMgr.activeViewer()->onMessage(msgIn);
             break;
-        case MSG_MOUSE_MOVE:
-            {
-                if (_viewerMgr.activeViewer())
-                    _viewerMgr.activeViewer()->onMessage(msgIn);
-                break;
-            }
         case MSG_UPDATE :
             onFrameStart();
             onFrameUpdate();
@@ -443,8 +435,9 @@ namespace   FE
             Node    node    =   var->cast<FENode>();
             if (node == nullptr)
                 continue;
-            else
-                nodes.push_back(node);
+            node->flags().addFlag(FE::FLAG_UPDATE);
+            node->update();
+            nodes.push_back(node);
         }
         if (nodes.empty())
         {

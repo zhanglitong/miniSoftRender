@@ -9,10 +9,7 @@
 
 namespace   FE
 {
-    class   FEDevice;
-    using   Device  =   SharedPtr<FEDevice>;
-    
-    class   FESwapchain :public RSObject
+    class   FE_API  FESwapchain :public RSObject
     {
     public:
         struct  CreateInfo

@@ -41,6 +41,17 @@ namespace   FE
     {
         _priority = other.priority();
     }
+    FENodeScaleEditor::~FENodeScaleEditor()
+    {
+        /// 移除节点通知
+        _ctx.scene()->nodeTree().eventsAddNode()        -= {this};
+        /// 移除节点通知
+        _ctx.scene()->nodeTree().eventsRemoveNode()     -= {this};
+        /// 移除节点通知
+        _ctx.scene()->nodeTree().eventsClear()          -= {this};
+        /// 移除节点属性更改通知
+        _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
+    }
 
     void    FENodeScaleEditor::setNodes(const Nodes& nodes)
     {

@@ -18,6 +18,7 @@ namespace   FE
     public:
         FENodeScaleEditor(FEContext& ctx);
         FENodeScaleEditor(const FENodeScaleEditor& other);
+        virtual~FENodeScaleEditor();
     public:
         /// <summary>
         /// 设置要编辑的节点

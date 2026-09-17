@@ -20,7 +20,7 @@ namespace   FE
     /// 每一个viewer 可以有自己的相机
     /// 如果没有指定，则使用系统默认的相机
     /// </summary>
-    class   FEViewer 
+    class   FE_API  FEViewer 
         :public FEObject
         ,public FEInput
     {

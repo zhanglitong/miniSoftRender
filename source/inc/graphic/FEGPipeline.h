@@ -4,7 +4,7 @@
 
 namespace   FE
 {
-    class   FEGPipeline :public FEPipeline
+    class   FE_API  FEGPipeline :public FEPipeline
     {
     public:
         FEGPipeline(FEContext& ctx)

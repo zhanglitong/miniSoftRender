@@ -29,13 +29,13 @@ namespace   FE
             bind(0,SB_Material, {_pbr._gpu.get()});
             
             /// 灯光对象
-            lightSBO->as<FENotify>()->addNotify(this,[this](Object object)
+            lightSBO->as<FENotify>()->notify()  +=  {[this](Object object)
             {
                 if (object->flags().hasFlag(FLAG_UPDATE))
                 {
                     bind(0,SB_Light,{object});
                 }
-            });
+            }};
             /// 同步数据到显卡
             update();
         }

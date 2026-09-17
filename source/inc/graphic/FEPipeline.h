@@ -12,7 +12,7 @@
 
 namespace   FE
 {
-    class   FEPipeline :public RSObject
+    class   FE_API  FEPipeline :public RSObject
     {
     public:
         struct  InputAssemblyState

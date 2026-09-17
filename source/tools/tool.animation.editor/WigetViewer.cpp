@@ -2,14 +2,10 @@
 #include    "FEAppHelper.hpp"
 #include    "FEFileFormatHelper.hpp"
 #include    "animation/FEAnimationSys.hpp"
-
-#if     FE_PLATFORM == FE_PLATFORM_WIN32
-#include    <windows.h>
-#endif
+#include    "FELibrary.hpp"
 
 namespace   FE
 {
-
     WigetViewer::WigetViewer(QWidget* parent)
         :QWidget(parent)
     {
@@ -229,23 +225,21 @@ namespace   FE
         if (_inited)
             return;
         /// 确保原生窗口已创建且尺寸有效
-        auto    hwnd    =   (HWND)winId();
-        if (hwnd == nullptr)
+        auto    hwnd    =   winId();
+        if (hwnd == (WId)nullptr)
             return;
-        RECT    rc;
-        GetClientRect(hwnd, &rc);
-        if (rc.right - rc.left <= 0 || rc.bottom - rc.top <= 0)
-            return;
-
+        QRect       rc      =   rect();
+        QString     exeName =   QFileInfo(QCoreApplication::applicationFilePath()).fileName();
+        String      pName   =   exeName.toLocal8Bit().data();
+        FELibrary   lib;
+        lib.load(pName.c_str());
         FEApp::CreateInfo   info    =   {};
-#if     FE_PLATFORM == FE_PLATFORM_WIN32
-        info._appInst   =   GetModuleHandle(nullptr);
-#endif
+        info._appInst   =   lib.handle();
         info._window    =   (void*)hwnd;
-        info._width     =   (uint)(rc.right  - rc.left);
-        info._height    =   (uint)(rc.bottom - rc.top);
+        info._width     =   (uint)rc.width();
+        info._height    =   (uint)rc.height();
         info._notify    =   std::bind(&WigetViewer::messageNotify,this,std::placeholders::_1);
-        _app    =   FE::FEAppHelper::create(FEContext::instance(),info);
+        _app            =   FE::FEAppHelper::create(FEContext::instance(),info);
         if (_app == nullptr)
             return;
 
@@ -254,7 +248,4 @@ namespace   FE
         onEngineStart();
         _timer->start(16);
     }
-
 }
-
-

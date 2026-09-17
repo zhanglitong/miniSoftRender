@@ -23,7 +23,7 @@ namespace   FE
 
     class   FEQueue;
     using   Queue       =   SharedPtr<FEQueue>;
-    class   FECmdBuffer :public RSObject
+    class   FE_API  FECmdBuffer :public RSObject
     {
     public:
         struct  CreateInfo

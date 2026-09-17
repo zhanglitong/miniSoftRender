@@ -99,19 +99,6 @@ namespace   FE
         {
             return  _valueMap;
         }
-        /// <summary>
-        /// 检测数据是否发生了变化，需要更新
-        /// </summary>
-        /// <returns></returns>
-        /// inline  bool    isDirty() const
-        /// {
-        ///     for (auto& var : _valueMap)
-        ///     {
-        ///         if (var.second->flags().hasFlag(FlagBit::FLAG_UPDATE))
-        ///             return  true;
-        ///     }
-        ///     return  false;
-        /// }
     protected:
         KeyValueMap   _valueMap;
     };

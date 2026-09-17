@@ -12,7 +12,6 @@
 
 namespace   FE
 {
-    
     inline  bool    ptInRect(FERect *lprc,int2 pt)
     {
         return  pt.x >= lprc->left && pt.x <= lprc->right && pt.y >= lprc->top && pt.y <= lprc->bottom;
@@ -25,8 +24,6 @@ namespace   FE
         lprc->right     =    xRight;
         lprc->bottom    =    yBottom;
     }
-
-    
 
     QtTree::QtTree(QWidget* parent)
         :QWidget(parent)

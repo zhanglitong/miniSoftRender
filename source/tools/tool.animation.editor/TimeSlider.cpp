@@ -9,7 +9,7 @@ TimeSlider::~TimeSlider()
 {
 }
 
-void TimeSlider::setPos(const QPoint& pos)
+void    TimeSlider::setPos(const QPoint& pos)
 {
     _pos    =   pos;
 
@@ -19,7 +19,7 @@ void TimeSlider::setPos(const QPoint& pos)
             _rect       =   QRect(lt, rb);
 }
 
-void TimeSlider::setSize(const QSize& size)
+void    TimeSlider::setSize(const QSize& size)
 {
     _size   =   size;
     QSize   halfSize    =   _size / 2;
@@ -28,7 +28,7 @@ void TimeSlider::setSize(const QSize& size)
             _rect       =   QRect(lt, rb);
 }
 
-void TimeSlider::paint(QPainter& painter, const uint& len, const QString& text)
+void    TimeSlider::paint(QPainter& painter, const uint& len, const QString& text)
 {
     QPen pen(_color, 4);
     painter.setPen(pen);
@@ -41,7 +41,7 @@ void TimeSlider::paint(QPainter& painter, const uint& len, const QString& text)
     painter.drawText(_rect, Qt::AlignCenter, text);
 }
 
-bool TimeSlider::isInRect(const QPoint& p)
+bool    TimeSlider::isInRect(const QPoint& p)
 {
     return _rect.contains(p);
 }

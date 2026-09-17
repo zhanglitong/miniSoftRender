@@ -36,6 +36,17 @@ namespace   FE
             sync();
         }};
     }
+    FENodeRotateEditor::~FENodeRotateEditor()
+    {
+        /// 移除节点通知
+        _ctx.scene()->nodeTree().eventsAddNode()        -= {this};
+        /// 移除节点通知
+        _ctx.scene()->nodeTree().eventsRemoveNode()     -= {this};
+        /// 移除节点通知
+        _ctx.scene()->nodeTree().eventsClear()          -= {this};
+        /// 移除节点属性更改通知
+        _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
+    }
     FENodeRotateEditor::FENodeRotateEditor(const FENodeRotateEditor& other)
         :FEEditAxisRotate(other)
     {

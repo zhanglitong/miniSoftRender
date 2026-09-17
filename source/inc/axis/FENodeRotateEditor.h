@@ -17,6 +17,7 @@ namespace   FE
     public:
         FENodeRotateEditor(FEContext& ctx);
         FENodeRotateEditor(const FENodeRotateEditor& other);
+        virtual ~FENodeRotateEditor();
     public:
         /// <summary>
         /// 设置要编辑的节点

@@ -17,6 +17,7 @@ namespace   FE
     public:
         FENodeMoveEditor(FEContext& ctx);
         FENodeMoveEditor(const FENodeMoveEditor& other);
+        virtual ~FENodeMoveEditor();
     public:
         /// <summary>
         /// 设置要编辑的节点

@@ -412,7 +412,7 @@ namespace   FE
         /// </summary>
         ITO             _indirectClip;
         /// <summary>
-        /// 命令数据，计算裁剪使用,裁剪后的命令存储到_indirect
+        /// 命令数据，计算裁剪使用,裁剪后的命令存储到_indirectClip
         /// </summary>
         ITO             _indirectFull;
         /// <summary>
