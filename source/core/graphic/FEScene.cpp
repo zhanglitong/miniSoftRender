@@ -198,10 +198,6 @@ namespace   FE
         }
         _factorys.clearObjects();
 
-        for (auto node: _nodeTree.topLevelNodes())
-        {
-            node->removeAllChildren();
-        }
         _nodeTree.clear();
 
         if (_device)

@@ -15,6 +15,7 @@
 #include    <QtWidgets/QMainWindow>
 #include    <QMenu>
 #include    <QTimer>
+#include    <QCoreApplication>
 
 #include    "FEContext.hpp"
 #include    "graphic/FEScene.h"

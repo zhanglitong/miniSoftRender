@@ -66,6 +66,62 @@ void    MainWindow::setTitile(QString fileName)
 }
 void    MainWindow::slotImportModel()
 {
+    String  sptList =   "";
+    auto    readers =   scene()->ctx().readers();
+    size_t  cnt     =   readers.data().size();
+    size_t  index   =   0;
+    for (auto& var : readers.data())
+    {
+        auto    filter  =   var.second.toString();
+        sptList += filter;
+        if (index != cnt - 1)
+            sptList += ";;";
+        ++index;
+    }
+    /// 打开加载模型对话框
+    /// 动态获取支持导入的模型格式
+    // 相对路径转绝对路径
+    QString     qFilter = "";
+    auto        fileNames = QFileDialog::getOpenFileNames(this
+        , C2Q("导入模型文件")
+        , ""
+        , C2Q(sptList.c_str())
+        , &qFilter);
+
+    if (fileNames.isEmpty())
+        return;
+    FE::Format  fmt;
+    if(!readers.query(qFilter.toStdString(),fmt))
+    {
+        QMessageBox::information(this, C2Q("提示"), C2Q("没有适合的格式化组件!"), QMessageBox::Ok);
+        return;
+    }
+        
+    auto        reader  =   FEFileFormatHelper::queryReader(FEContext::instance(),fmt);
+    if (reader == nullptr)
+    {
+        QMessageBox::information(this, C2Q("提示"), C2Q("没有查到适合的格式化组件!"), QMessageBox::Ok);
+        return;
+    }
+    Strings     files;
+    String      filter  =   qFilter.toStdString().c_str();
+    for (auto& var : fileNames)
+    {
+        String  file    =   var.toLocal8Bit().data();
+        files.push_back(file);
+    }
+    auto    objects =   reader->readFiles(files);
+    Nodes   nodes;
+    for (auto var : objects)
+    {   
+        Node    node    =   var->cast<FENode>();
+        if (node == nullptr)
+            continue;
+        else
+            nodes.push_back(node);
+    }
+    scene()->dispatchNodesToSystem(nodes);
+    scene()->addNodesToTree(nodes);
 }
 void    MainWindow::slotOpenProject()
 {
