@@ -11,7 +11,7 @@
 using   namespace   FE;
 int     main(int argc,char** argv)
 {
-    FEContext   ctx;
+    FEContext&  ctx =   FEContext::instance();
     FEImage     image(ctx);
     FEImage::CreateInfo cInfor= 
     {

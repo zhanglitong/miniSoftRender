@@ -17,7 +17,7 @@ namespace   FE
     /// 六棱锥	    0	1	6
     /// </summary>
     
-    class   FEGeometryCylinder : public TFEGeometryParam<FEParamCylinder>
+    class   FE_API  FEGeometryCylinder : public TFEGeometryParam<FEParamCylinder>
     {
     public:
         IMPLEMENT_CLASS_REFLECT(FEGeometryCylinder)

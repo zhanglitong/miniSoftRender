@@ -7,7 +7,7 @@ namespace   FE
     class   Demo
     {
     public:
-        FEContext   _ctx;
+        FEContext&  _ctx;
         App         _app;
         Scene       _scene;
         bool        _prepared   =   false;

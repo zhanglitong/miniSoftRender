@@ -7,7 +7,7 @@ namespace   FE
 {
     class   FEContext;
 
-    class   FEWindow
+    class   FE_API FEWindow
         :public FEObject
         ,public FEInput
     {

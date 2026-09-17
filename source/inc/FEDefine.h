@@ -1,5 +1,12 @@
 #pragma     once
 
+#ifdef  _MSC_VER
+    // C4251: DLL 接口需要导出 STL/GLM 等模板类型的成员
+    // 这些模板是 header-only，按 TU 实例化，无法跨 DLL 边界导出。
+    // 只要 DLL 和消费者使用相同的编译器/STL 版本，运行时是安全的。
+    #pragma  warning(disable:4251)
+#endif
+
 #include    <vector>
 #include    <stdio.h>
 #include    <memory>
@@ -22,7 +29,19 @@
 #include    "FERef.hpp"
 #include    "FEConst.h"
 
-#define     FE_API
+#if FE_PLATFORM == FE_PLATFORM_WIN32
+    #define     API_EXPORT __declspec(dllexport)
+    #define     API_IMPORT __declspec(dllimport)
+#else
+    #define     API_EXPORT
+    #define     API_IMPORT
+#endif
+
+#ifdef  FE_EXPORTS
+    #define FE_API  API_EXPORT
+#else
+    #define FE_API  API_IMPORT
+#endif
 
 template<typename T>
 using   SharedPtr   =  FE::FERef<T>;

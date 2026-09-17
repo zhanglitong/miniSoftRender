@@ -11,7 +11,7 @@
 namespace   FE
 {
 
-    class   FEGeometryParam :public FEGeometry
+    class   FE_API  FEGeometryParam :public FEGeometry
     {
     public:
         FEGeometryParam(FEContext& ctx)

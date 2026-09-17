@@ -1,13 +1,10 @@
 #include    "../inc/FEAssetsMgr.h"
+#include    "../inc/FEContext.hpp"
 
 namespace FE
 {
-    FEAssetsMgr*    sInstance   =   nullptr;
-    FEAssetsMgr::FEAssetsMgr(FEContext& ctx)    
-        :FEObject(ctx)
+    FEAssetsMgr::FEAssetsMgr()    
     {
-        assert(sInstance == nullptr);
-        sInstance   =   this; 
     }
     void    FEAssetsMgr::setRootPath(const String& path)
     {
@@ -60,7 +57,7 @@ namespace FE
         auto    itr =   _buffers.find(name);
         if (itr != _buffers.end())
             return  nullptr;
-        BufferPtr   buf =   new FEBuffer(_ctx);
+        BufferPtr   buf =   new FEBuffer(FEContext::instance());
         FEBuffer::CreateInfo    infor   =   {};
         infor._offset   =   0;
         infor._range    =   length;
@@ -129,11 +126,7 @@ namespace FE
     /// <returns></returns>
     FEAssetsMgr&FEAssetsMgr::instance()
     {
-        return  *instancePtr();
-    }
-    FEAssetsMgr*FEAssetsMgr::instancePtr()
-    {
-        assert(sInstance!=nullptr);
+        static  FEAssetsMgr sInstance;
         return  sInstance;
     }
 }

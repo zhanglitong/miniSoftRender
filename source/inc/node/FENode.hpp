@@ -15,7 +15,7 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FENode,"{4ED0DD0C-AC55-4C7F-86FC-6E3BA46FFA97}");
 
-    class   FENode :public FEItem<FENode>
+    class   FE_API  FENode :public FEItem<FENode>
     {
     public:
         enum    NodeFlag

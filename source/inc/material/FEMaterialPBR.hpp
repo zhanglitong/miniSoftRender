@@ -8,7 +8,7 @@
 namespace   FE
 {
     DEFINE_CLASS_UUID(FEMaterialPBR,"{C253DF90-EA68-44D6-9558-68D244EE0066}");
-    class   FEMaterialPBR:public FEMaterial
+    class   FE_API  FEMaterialPBR:public FEMaterial
     {
     public:
         IMPLEMENT_CLASS_REFLECT(FEMaterialPBR)

@@ -59,6 +59,14 @@ namespace   FE
         {
             return  _64[0] != right._64[0] || _64[1] != right._64[1] ;
         }
+        inline  bool    operator ==(const GUID& guid) const
+        {
+            return ((*this) == FEUuid(guid));
+        }
+        inline  bool    operator !=(const GUID& guid) const
+        {
+            return !((*this) != FEUuid(guid));
+        }
         /// <summary>
         /// 大小比较,大于
         /// </summary>
@@ -88,14 +96,7 @@ namespace   FE
             _guid   =   guid;
             return *this;
         }
-        inline  bool    operator ==(const GUID& guid) const
-        {
-            return ((*this) == guid);
-        }
-        inline  bool    operator !=(const GUID& guid) const
-        {
-            return !((*this) == guid);
-        }
+        
         inline  operator    GUID() const
         {
             return  _guid;

@@ -20,7 +20,7 @@ namespace   FE
         /// 开启鼠标跟踪,使 mouseMoveEvent 在无按键按下时也能触发
         setMouseTracking(true);
         /// 创建，但没有初始化
-        _scene      =   new FEScene(_ctx);
+        _scene      =   new FEScene(FEContext::instance());
         /// 创建定时器,在 initEngine 完成后启动
         _timer = new QTimer(this);
         connect(_timer, &QTimer::timeout, this, QOverload<>::of(&WigetViewer::update));
@@ -245,7 +245,7 @@ namespace   FE
         info._width     =   (uint)(rc.right  - rc.left);
         info._height    =   (uint)(rc.bottom - rc.top);
         info._notify    =   std::bind(&WigetViewer::messageNotify,this,std::placeholders::_1);
-        _app    =   FE::FEAppHelper::create(_ctx,info);
+        _app    =   FE::FEAppHelper::create(FEContext::instance(),info);
         if (_app == nullptr)
             return;
 

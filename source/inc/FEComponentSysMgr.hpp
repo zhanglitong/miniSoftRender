@@ -13,7 +13,7 @@ namespace   FE
     /// 先定义类型别名，确保RFactoryLess是类型名
     using   ComSysLessFunc    =   decltype(ComSysLessLambda);
 
-    class   FEComponentSysMgr :public FEFactoryTemplate<ComponentSys, ComSysLessFunc>
+    class   FE_API  FEComponentSysMgr :public FEFactoryTemplate<ComponentSys, ComSysLessFunc>
     {
     public:
         FEComponentSysMgr(FEContext& ctx)

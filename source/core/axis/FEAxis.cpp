@@ -6,7 +6,7 @@
 
 namespace   FE
 {
-    FEAxis::FEAxis(AxisType type, FEContext& ctx)
+    FEAxis::FEAxis(AxisType , FEContext& ctx)
         :FEInputCom(ctx)
     {
         _axisType       =   AxisTypeBase;

@@ -7,7 +7,7 @@ namespace   FE
     /// <summary>
     /// 该接口务必不要擅自修复，会影响文件序列化
     /// </summary>
-    class   FEChunkInf
+    class   FE_API  FEChunkInf
     {
     public:
         friend  class   FEObject;
@@ -25,13 +25,13 @@ namespace   FE
                 /// </summary>
                 uint64_t    _hasVersion:1;
                 /// <summary>
-                /// 标记是否有子对象
+                /// 标记是否有子对象,同时表达个数范围，0: 无,1,uint8,2,uint16,3,uint32
                 /// </summary>
-                uint64_t    _hasChild:1;
+                uint64_t    _hasChild:2;
                 /// <summary>
                 /// 子类使用，慎重!!!!，默认值都是1
                 /// </summary>
-                uint64_t    _flags:14;
+                uint64_t    _flags:13;
                 /// <summary>
                 /// 块长度信息,包含了 FEChunkInf 长度
                 /// </summary>

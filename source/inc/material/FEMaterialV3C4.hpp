@@ -4,7 +4,7 @@
 namespace   FE
 {
     DEFINE_CLASS_UUID(FEMaterialV3C4,"{8C072784-4024-4D67-9215-65744DB266FC}");
-    class   FEMaterialV3C4:public FEMaterial
+    class   FE_API  FEMaterialV3C4:public FEMaterial
     {
     public:
         IMPLEMENT_CLASS_REFLECT(FEMaterialV3C4)

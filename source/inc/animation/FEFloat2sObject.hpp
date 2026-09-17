@@ -4,7 +4,7 @@
 namespace FE
 {   
     DEFINE_CLASS_UUID(FEFloat2sObject, "{4ED63D9F-EEB4-4506-8A77-50BE2CD4529D}");
-    class   FEFloat2sObject :public TValueArray<float2>
+    class   FE_API  FEFloat2sObject :public TValueArray<float2>
     {
         IMPLEMENT_CLASS_REFLECT(FEFloat2sObject)
     public:

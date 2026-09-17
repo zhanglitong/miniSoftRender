@@ -8,7 +8,7 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEGeometryBox,"{B4917A28-437D-4396-A534-3F300CF2DCE1}");
 
-    struct  FEParamBox
+    struct  FE_API  FEParamBox
     {
         /// <summary>
         /// 立方体的大小
@@ -20,7 +20,7 @@ namespace   FE
         uint3   _segs   =   uint3(1,1,1);
     };
 
-    class   FEGeometryBox :public TFEGeometryParam<FEParamBox>
+    class   FE_API  FEGeometryBox :public TFEGeometryParam<FEParamBox>
     {
         IMPLEMENT_CLASS_REFLECT(FEGeometryBox)
     public:

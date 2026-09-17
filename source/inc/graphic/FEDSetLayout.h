@@ -8,7 +8,7 @@ namespace   FE
     class   FEDSet;
     using   DSet    =   SharedPtr<FEDSet>;
 
-    struct  FEDSetBinding
+    struct  FE_API FEDSetBinding
     {
         uint16_t        _binding;
         uint16_t        _descriptorCount;
@@ -31,7 +31,7 @@ namespace   FE
         String          _typeName;
     };
     using   FEDSetBindings  =   std::vector<FEDSetBinding>;
-    class   FEDSetLayout :public RSObject
+    class   FE_API FEDSetLayout :public RSObject
     {
     public:
         struct  CreateInfo

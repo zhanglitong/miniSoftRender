@@ -13,7 +13,7 @@ namespace   FE
 
     DEFINE_CLASS_UUID(FENotify,"{AD26120E-AF65-4426-BC73-9047217D55EE}");
 
-    class   FENotify :public FEObject
+    class   FE_API  FENotify :public FEObject
     {
     public:
         IMPLEMENT_CLASS_REFLECT(FENotify)

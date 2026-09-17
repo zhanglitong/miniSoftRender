@@ -16,7 +16,7 @@ namespace   FE
     /// <summary>
     /// Render System Object
     /// </summary>
-    class   RSObject : public FENotify
+    class   FE_API  RSObject : public FENotify
     {
     public:
         RSObject(FEContext& ctx);

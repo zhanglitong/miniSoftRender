@@ -7,7 +7,7 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEInputCom, "{4AAA639C-889E-4D10-B287-FB9C6F23BD1E}");
 
-    class   FEInputCom 
+    class   FE_API FEInputCom 
         :public FEComponent
         ,public FEInput
     {

@@ -3,7 +3,7 @@
 #include    "FEMessage.hpp"
 namespace   FE
 {
-    class   FEInput
+    class   FE_API FEInput
     {
     public:
         virtual void    onMessage(const FEMessage& msg) =   0;

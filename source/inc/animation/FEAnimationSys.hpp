@@ -7,7 +7,7 @@ namespace   FE
     /// <summary>
     /// 管理多个Action
     /// </summary>
-    class   FEAnimationSys :public FEComponentSys     
+    class   FE_API  FEAnimationSys :public FEComponentSys     
     {    
     public:
         using   ActionMap   =   std::map<String, Action>;

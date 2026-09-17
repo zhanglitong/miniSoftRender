@@ -62,7 +62,7 @@ namespace   FE
 
     class   FEDevice;
     DEFINE_CLASS_UUID(FEMaterial,"{E3982354-7576-4F9A-BC38-5697DB03EEB3}");
-    class   FEMaterial:public FEObject
+    class   FE_API  FEMaterial:public FEObject
     {
     public:
         using   DSets   =   std::vector<DSet>;

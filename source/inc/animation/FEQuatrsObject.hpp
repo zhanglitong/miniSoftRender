@@ -4,7 +4,7 @@
 namespace FE
 {   
     DEFINE_CLASS_UUID(FEQuatrsObject, "{2D4104C9-3103-4DEA-910A-B7891F2F9C24}");
-    class   FEQuatrsObject :public TValueArray<quatr>
+    class   FE_API  FEQuatrsObject :public TValueArray<quatr>
     {
         IMPLEMENT_CLASS_REFLECT(FEQuatrsObject)
     public:

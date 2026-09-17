@@ -31,22 +31,17 @@ namespace FE
     namespace   fs  =   std::filesystem;
 
     class   FEDevice;
-    class   FEScene;
     class   FECamera;
     class   FEWindow;
     class   FEViewer;
-    class   FEAssetsMgr;
-    using   Device      =   SharedPtr<FEDevice>;
-    using   Scene       =   SharedPtr<FEScene>;
-    using   Window      =   SharedPtr<FEWindow>;
-    using   AssetsMgr   =   SharedPtr<FEAssetsMgr>;
-    class   FEContext
+    class   FE_API  FEContext
     {
     public:
         friend  class   FEScene;
-    public:
+    protected:
         FEContext();
         ~FEContext();
+    public:
         /// <summary>
         /// 
         /// </summary>
@@ -94,15 +89,9 @@ namespace FE
         {
             return  _resourcePath;
         }
-        FEDevice&   device()
-        {
-            return  *_device;
-        }
+        FEDevice&   device();
         
-        FEScene*    scene()
-        {
-            return  _scene.get();
-        }
+        FEScene*    scene();
         /// <summary>
         /// 获取当前活动的摄像机
         /// </summary>
@@ -111,9 +100,7 @@ namespace FE
         /// <summary>
         /// 请求下一帧渲染
         /// </summary>
-        void        requireNextFrame()
-        {
-        }
+        void        requireNextFrame();
         /// <summary>
         /// 获取当前摄像机的投影视图矩阵
         /// </summary>
@@ -122,26 +109,20 @@ namespace FE
 
         FEAnchor&   anchor()
         {
-            return  *_anchor;
+            return  *_anchor->as<FEAnchor>();
         }
         const FEAnchor&   anchor() const
         {
-            return  *_anchor;
+            return  *_anchor->as<FEAnchor>();
         }
         /// <summary>
         /// 如果有窗口系统，返回窗口的宽度和高度
         /// 如果没有返回UintMax32
         /// </summary>
         /// <returns></returns>
-        uint32      windowsWidth()  const
-        {
-            return  _window ? _window->width() : MaxUint32;
-        }
-        uint32      windowsHeight() const
-        {
-            return  _window ? _window->height() : MaxUint32;
-        }
-        void        setWindow(Window window)
+        uint32      windowsWidth()  const;
+        uint32      windowsHeight() const;
+        void        setWindow(FEWindow* window)
         {
             _window =   window;
         }
@@ -163,7 +144,10 @@ namespace FE
             _deltaTime  =   tm;
             return  *this;
         }
+
+        void    destroy();
     public:
+        static  FEContext&  instance();
         static  FFReader&   readers();
         static  FFWriter&   writers();
         static  FECreators& creators();
@@ -173,13 +157,12 @@ namespace FE
         /// </summary>
         real        _deltaTime  =   0;
         LogPtr      _log;
-        Device      _device;
-        Anchor      _anchor;
-        Window      _window;   
-        Scene       _scene;
+        Object      _device;
+        Object      _anchor;
+        Object      _window;   
+        Object      _scene;
         String      _workPath;
         String      _resourcePath;
-        AssetsMgr   _assetsMgr;
     };
 }
 

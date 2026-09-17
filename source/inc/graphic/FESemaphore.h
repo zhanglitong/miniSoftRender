@@ -7,7 +7,7 @@ namespace   FE
     /// <summary>
     /// 
     /// </summary>
-    class   FESemaphore :public RSObject
+    class   FE_API  FESemaphore :public RSObject
     {
     protected:
         struct  CreateInfo

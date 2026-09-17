@@ -24,7 +24,7 @@ namespace   FE
     /// 根据 mesh 信息 生成的唯一类型key
     /// 大小必须是8字节
     /// </summary>
-    struct  MeshKey 
+    struct  FE_API  MeshKey 
     {
         /// <summary>
         /// 有哪些槽
@@ -71,7 +71,7 @@ namespace   FE
     /// 也支持交错缓冲区方式(即给属性一个符合值)
     /// </summary>
     DEFINE_CLASS_UUID(FEMesh,"{5D2E9492-6AE3-451F-9539-E44CF817C351}");
-    class   FEMesh :public FEObject
+    class   FE_API  FEMesh :public FEObject
     {
         IMPLEMENT_CLASS_REFLECT(FEMesh)
     public:
@@ -215,7 +215,7 @@ namespace   FE
         /// 计算key
         /// </summary>
         /// <returns></returns>
-        inline  auto&   key(Primitive pri)   const
+        inline  auto    key(Primitive pri)   const
         {
             MeshKey key     =   {};
             key._drawType   =   pri ? pri->type()     :   DRAW_ARRAY;

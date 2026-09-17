@@ -7,7 +7,7 @@
 
 namespace   FE
 {
-    class   FEApp :public FEWindow
+    class   FE_API FEApp :public FEWindow
     {
     public:
         struct  CreateInfo

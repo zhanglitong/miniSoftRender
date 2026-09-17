@@ -13,6 +13,8 @@
     <CULL_MODE/>
     <LINE_WIDTH/>
     <PRIMITIVE_TOPOLOGY/>
+    <DEPTH_TEST_ENABLE/>
+    <DEPTH_WRITE_ENABLE/>
   </dynamicStates>
   <!--顶点定义: 重要-->
   <bindings>

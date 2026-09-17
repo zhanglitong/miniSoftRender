@@ -4,7 +4,7 @@
 namespace   FE
 {
     DEFINE_CLASS_UUID(FEMaterialCull,"{2C8750B6-9D4A-4DFE-894E-DD88C182AA07}");
-    class   FEMaterialCull:public FEMaterial
+    class   FE_API  FEMaterialCull:public FEMaterial
     {
     public:
         using   CullParamObject     =   TBlock<CullParam,HOST_COHERENT_BIT>;                   

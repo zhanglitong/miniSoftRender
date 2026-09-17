@@ -58,7 +58,7 @@ namespace   FE
         CLSProp     _property;                                  
     };                                                          
 
-    extern  void    systemRegCreator(const FEUuid& id,const FECreator& creator);
+    extern  FE_API  void    systemRegCreator(const FEUuid& id,const FECreator& creator);
 
     template<class CLASS>
     struct  UUIDTraits :public std::false_type  

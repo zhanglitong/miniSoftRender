@@ -8,7 +8,8 @@
 namespace   FE
 {
     Demo::Demo(const FEUuid& rendererId)
-        :_rendererId(rendererId)
+        :_ctx(FEContext::instance())
+        ,_rendererId(rendererId)
     {
 
         /// KFValue     val     =   float3(1,1,1);
@@ -60,6 +61,7 @@ namespace   FE
     {
         _scene  =   nullptr;
         _app    =   nullptr;
+        _ctx.destroy();
     }
     void    Demo::main()
     {

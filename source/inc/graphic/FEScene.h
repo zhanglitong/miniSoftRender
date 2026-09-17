@@ -34,7 +34,7 @@ namespace   FE
     };
 
     class   FEInputSystem;
-    class   FEScene 
+    class   FE_API  FEScene 
         :public FEObject
         ,public FEInput
     {

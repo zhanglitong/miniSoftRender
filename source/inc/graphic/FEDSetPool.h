@@ -5,7 +5,7 @@
 #include    "FEDSet.h"
 namespace   FE
 {
-    class   FEDSetPool :public RSObject
+    class   FE_API  FEDSetPool :public RSObject
     {
     public:
         struct  CreateInfo

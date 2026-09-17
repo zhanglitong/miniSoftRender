@@ -4,7 +4,7 @@
 #include    "FEGraphicEnums.h"
 namespace   FE
 {
-    class   FEGPUBuffer :public RSObject
+    class   FE_API  FEGPUBuffer :public RSObject
     {
     public:
         struct  CreateInfo

@@ -23,7 +23,7 @@ namespace   FE
     /// <summary>
     /// 
     /// </summary>
-    class   FEDevice : public FEObject
+    class   FE_API FEDevice : public FEObject
     {
     public:
         using   NotifyCreate    =   std::function<void(FEDevice&)>;

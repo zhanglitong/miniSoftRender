@@ -9,7 +9,7 @@ namespace   FE
     ///     1.动画系统，动画系统继承FEComponentSys
     ///     2.物理系统，动画系统继承FEComponentSys
     /// </summary>
-    class   FEComponentSys :public FEFactory     
+    class   FE_API  FEComponentSys :public FEFactory     
     {     
     public:         
         FEComponentSys(FEContext& ctx)

@@ -9,7 +9,7 @@ namespace   FE
     class   FEDSetPool;
     using   DSetPool    =   SharedPtr<FEDSetPool>;
 
-    struct  Binding
+    struct  FE_API  Binding
     {
         uint16_t    _binding    =   0;
         uint64s     _offsets    =   {};
@@ -21,7 +21,7 @@ namespace   FE
     };
 
     using   Bindings    =   std::vector<Binding>;
-    class   FEDSet :public RSObject
+    class   FE_API  FEDSet :public RSObject
     {
     public:
         struct  CreateInfo

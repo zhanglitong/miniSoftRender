@@ -12,7 +12,7 @@ namespace   FE
     /// 五棱锥	    0	1	5
     /// 六棱锥	    0	1	6
     /// </summary>
-    class   FEGeometryCone : public FEGeometryCylinder
+    class   FE_API  FEGeometryCone : public FEGeometryCylinder
     {
     public:
         IMPLEMENT_CLASS_REFLECT(FEGeometryCone)

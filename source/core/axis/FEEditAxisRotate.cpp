@@ -411,7 +411,7 @@ namespace   FE
         }
         return  FEEditAxisRotate::AXIS_NULL;
     }
-    FEEditAxisRotate::AXIS FEEditAxisRotate::pickBall(const int2& screen)
+    FEEditAxisRotate::AXIS FEEditAxisRotate::pickBall(const int2& )
     {
         return FEEditAxisRotate::AXIS_NULL;
     }

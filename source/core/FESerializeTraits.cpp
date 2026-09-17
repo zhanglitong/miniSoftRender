@@ -73,6 +73,7 @@ namespace   FE
             _hasTrans       =   flag>>7;
             _hasScale       =   flag>>8;
             _hasRotate      =   flag>>9;
+            _nodeBase       =   flag>>10;
         }
     };
 

@@ -3,7 +3,7 @@
 
 namespace   FE
 {
-    class   FELightPoint : public FELight
+    class   FE_API  FELightPoint : public FELight
     {
     public:
         FELightPoint(FEContext& ctx)

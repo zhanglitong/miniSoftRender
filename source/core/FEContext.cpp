@@ -32,6 +32,7 @@
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
 #include    "../inc/FEAssetsMgr.h"
+#include    "../inc/FEWindow.hpp"
 
 
 namespace   FE
@@ -114,7 +115,7 @@ namespace   FE
         /// ע            Ӧ      ϵͳid
         regComSystemId(ctx);
     }
-    void    systemRegCreator(const FEUuid& id,const FECreator& creator)
+    FE_API  void    systemRegCreator(const FEUuid& id,const FECreator& creator)
     {
         assert(FEContext::creators().isExist(id) == nullptr);
 
@@ -131,11 +132,39 @@ namespace   FE
         FEContext::writers().add(fmt.toString(),fmt);
     }
 
+    /// <summary>
+    /// 如果有窗口系统，返回窗口的宽度和高度
+    /// 如果没有返回UintMax32
+    /// </summary>
+    /// <returns></returns>
+    uint32      FEContext::windowsWidth()  const
+    {
+        return  _window ? (_window->as<FEWindow>()->width()) : MaxUint32;
+    }
+    uint32      FEContext::windowsHeight() const
+    {
+        return  _window ? (_window->as<FEWindow>()->height()): MaxUint32;
+    }
+
     FECreators& FEContext::creators()
     {
         static  FECreators    sInstance;
         return  sInstance;
     }
+    void    FEContext::destroy()
+    {
+        _device =   nullptr;
+        _window =   nullptr;
+        _anchor =   nullptr;
+        _scene  =   nullptr;
+        _log    =   nullptr;
+    }
+    FEContext&  FEContext::instance()
+    {
+        static  FEContext   sInsance;
+        return  sInsance;
+    }
+
     FFReader&   FEContext::readers()
     {
         static  FFReader    sInstance;
@@ -151,18 +180,25 @@ namespace   FE
     {
         _log        =   new FELog(*this,"log.txt");
         _anchor     =   new FEAnchor(*this);
-        _assetsMgr  =   new FEAssetsMgr(*this);
         systemInitialize(*this);
     }
     FEContext::~FEContext()
     {
-        _device =   nullptr;
-        _window =   nullptr;
-        _anchor =   nullptr;
-        _scene  =   nullptr;
-        _log    =   nullptr;
+        destroy();
     }
 
+    FEDevice&   FEContext::device()
+    {
+        return  *_device->as<FEDevice>();
+    }
+
+    FEScene*    FEContext::scene()
+    {
+        return  _scene->as<FEScene>();
+    }
+    void        FEContext::requireNextFrame()
+    {
+    }
     mat4r   FEContext::mvp()
     {
         FECamera&   cam =   activeCamera();
@@ -172,6 +208,6 @@ namespace   FE
     FECamera&   FEContext::activeCamera()
     {
         assert(_scene != nullptr);
-        return  *_scene->camera();
+        return  *_scene->as<FEScene>()->camera();
     }
 }

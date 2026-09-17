@@ -1,10 +1,12 @@
 #include    <iostream>
 #include    <vector>
+#if 0
 #include    "../inc/graphic/FEShaderHelper.h"
 #include    "shaderc/shaderc.hpp"
 #include    "../inc/graphic/FEDevice.h"
 namespace   FE
 {
+
     auto    system2Native(FEShaderType type)
     {
         switch(type)
@@ -70,3 +72,4 @@ namespace   FE
 }
 
 
+#endif

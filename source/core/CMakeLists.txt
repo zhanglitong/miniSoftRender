@@ -43,25 +43,33 @@ endforeach()
 
 
 foreach(userFERS ${fers_files})
-    list(APPEND FERS_OUTPUT ${userFERS})
+    list(APPEND PRRS_OUTPUTS ${userFERS})
 endforeach()
+list(REMOVE_DUPLICATES PRRS_OUTPUTS)
+
 
 foreach(prrs_file ${PRRS_OUTPUTS})
-   
+    get_filename_component(fers_name ${prrs_file} NAME_WE)
+
     set(FERS_INPUT   ${prrs_file})
     set(FERS_OUTPUT  ${prrs_file}.cpp)
 
+    # 构建规则（适用所有生成器）
     add_custom_command(
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
         OUTPUT  ${FERS_OUTPUT}
         COMMAND ${PRRS_COMPILE} -w ${ABS_PATH} -m fers -i ${FERS_INPUT} -o ${FERS_OUTPUT}
         DEPENDS ${FERS_INPUT}
-   
         COMMENT "compile resource file ${FERS_INPUT}"
     )
-  list(APPEND FERS_CPPS ${FERS_OUTPUT})
-endforeach()
+    list(APPEND FERS_CPPS ${FERS_OUTPUT})
 
+    # VS 单文件右键编译：设置 CustomBuild 属性，右键 → Compile 即可单独编译此文件
+    set_source_files_properties(${prrs_file} PROPERTIES
+        VS_TOOL_OVERRIDE "CustomBuild"
+        VS_SETTINGS "Command=${PRRS_COMPILE} -w \"${ABS_PATH}\" -m fers -i \"${FERS_INPUT}\" -o \"${FERS_OUTPUT}\";Outputs=${FERS_OUTPUT};AdditionalDependencies=${FERS_INPUT};Message=Compiling ${fers_name}.fers"
+    )
+endforeach()
 
 
 file(GLOB_RECURSE INC_FILES "../inc/*.h"  "../inc/*.hpp")
@@ -75,40 +83,43 @@ get_filename_component(INC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../inc" ABSOLUTE)
 source_group(TREE "${INC_ROOT}" PREFIX "inc" FILES ${INC_FILES})
 
 
-source_group(fers       FILES ${fers_files})
+source_group(fers       FILES ${PRRS_OUTPUTS})
 source_group(fers_cxx   FILES ${FERS_CPPS})
 
 
-add_library(${TARGET_NAME} STATIC
+add_library(${TARGET_NAME} SHARED
             ${HEADER_FILES}
 		    ${SOURCE_FILES}
             ${INC_FILES}
-            ${fers_files}
+            ${PRRS_OUTPUTS}
             ${FERS_CPPS}
 )
+target_compile_definitions(${TARGET_NAME} PRIVATE FE_EXPORTS) 
+
 
 add_dependencies(${TARGET_NAME} tool.resource.cc)
 
-
-message(STATUS "Using module to find Vulkan")
-find_package(Vulkan REQUIRED)
-IF (NOT Vulkan_FOUND)
-	message(FATAL_ERROR "Could not find Vulkan library!")
-ELSE()
-	message(STATUS ${Vulkan_LIBRARY})
-ENDIF()
-
-IF(WIN32)
-	IF (Vulkan_FOUND)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WIN32_KHR")
-	ENDIF()
-ENDIF(WIN32)
-
 target_include_directories(${TARGET_NAME} PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/../inc)
-target_link_libraries(${TARGET_NAME} PUBLIC Vulkan::Headers)
 
+
+target_compile_options(${TARGET_NAME} PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/bigobj>
+    $<$<CXX_COMPILER_ID:GNU>:-Wa,-mbig-obj>
+)
 
 if(UNIX)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DPOSIX -DLINUX)
 endif()
 target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
+
+# -------------------------------------------------------------------------
+# shaderc_combined.lib 是 Vulkan SDK 预编译的（/MD, _ITERATOR_DEBUG_LEVEL=0）
+# Debug 构建默认用 /MDd（_ITERATOR_DEBUG_LEVEL=2），两者不兼容。
+# 统一用 /MD 匹配 shaderc 的运行时。
+# -------------------------------------------------------------------------
+#if(MSVC)
+#    foreach(_cfg "" "_DEBUG" "_RELEASE" "_MINSIZEREL" "_RELWITHDEBINFO")
+#        string(REPLACE "/MDd" "/MD" CMAKE_CXX_FLAGS${_cfg} "${CMAKE_CXX_FLAGS${_cfg}}")
+#        string(REPLACE "/MDd" "/MD" CMAKE_C_FLAGS${_cfg}   "${CMAKE_C_FLAGS${_cfg}}")
+#    endforeach()
+#endif()

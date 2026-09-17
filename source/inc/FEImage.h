@@ -14,7 +14,7 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEImage,"{CACB6053-A4DB-4479-9BBD-D9D4433263AD}");
 
-    class   FEImage:public FEObject
+    class   FE_API  FEImage:public FEObject
     {
         IMPLEMENT_CLASS_REFLECT(FEImage)
     public:

@@ -18,7 +18,7 @@ namespace   FE
 
     DEFINE_CLASS_UUID(FEInputSystem, "{FB707EC2-26C6-4C33-9CBC-825389F650FB}");
 
-    class   FEInputSystem :public FEComponentSys
+    class   FE_API  FEInputSystem :public FEComponentSys
     {
         IMPLEMENT_CLASS_REFLECT(FEInputSystem)
     public:

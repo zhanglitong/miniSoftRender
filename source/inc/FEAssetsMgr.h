@@ -11,7 +11,7 @@ namespace FE
     /// <summary>
     /// 数据集合管理，单例对象，用来管理系统加载的所有资源数据
     /// </summary>
-    class   FE_API  FEAssetsMgr: public FEObject
+    class   FE_API  FEAssetsMgr: public FEReference<Flags>
     {
     public:
         friend  class   FEContext;
@@ -23,7 +23,7 @@ namespace FE
         FEMutex     _mutex;
         String      _rootPath;
    protected:
-       FEAssetsMgr(FEContext& ctx);
+       FEAssetsMgr();
     public:
         /// <summary>
         /// 设置资源的根路径，用来提取相对路径使用
@@ -104,7 +104,6 @@ namespace FE
         /// </summary>
         /// <returns></returns>
         static  FEAssetsMgr&    instance();
-        static  FEAssetsMgr*    instancePtr();
     };
 
 

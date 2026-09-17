@@ -8,7 +8,7 @@ namespace   FE
     DEFINE_CLASS_UUID(FECamera,"{D1810D63-8CC2-4272-BBFE-FE21BB7DAFF2}");
 
     class   FEContext;
-    class   FECamera :public FEObject
+    class   FE_API  FECamera :public FEObject
     {
         IMPLEMENT_CLASS_REFLECT(FECamera)
     public:

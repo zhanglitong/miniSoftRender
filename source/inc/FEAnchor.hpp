@@ -5,7 +5,7 @@
 
 namespace   FE
 {
-    class   FEAnchor : public FENotify
+    class   FE_API  FEAnchor : public FENotify
     {
     public:
         FEAnchor(FEContext& ctx)

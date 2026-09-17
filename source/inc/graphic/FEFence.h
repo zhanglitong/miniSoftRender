@@ -7,7 +7,7 @@ namespace   FE
     /// <summary>
     /// 
     /// </summary>
-    class   FEFence :public RSObject
+    class   FE_API  FEFence :public RSObject
     {
     protected:
         struct  CreateInfo

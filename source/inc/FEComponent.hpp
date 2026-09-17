@@ -3,7 +3,7 @@
 #include    "FEPriority.hpp"
 namespace   FE 
 {     
-    class   FEComponent :public FEObject     
+    class   FE_API FEComponent :public FEObject     
     {     
     public:
         enum    COMFlag :uint32_t

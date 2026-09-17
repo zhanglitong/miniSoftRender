@@ -4,7 +4,7 @@
 namespace FE
 {   
     DEFINE_CLASS_UUID(FEBoolsObject, "{44C6E51E-DFF9-4F06-8E36-F9BFB06BF9B4}");
-    class   FEBoolsObject :public TValueArray<uint8>
+    class   FE_API  FEBoolsObject :public TValueArray<uint8>
     {
         IMPLEMENT_CLASS_REFLECT(FEBoolsObject)
     public:

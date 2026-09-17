@@ -5,7 +5,7 @@
 
 namespace   FE
 {
-    class   FEFactory :public FEObject
+    class   FE_API FEFactory :public FEObject
     {
     public:
         enum    PriorityType:uint32_t

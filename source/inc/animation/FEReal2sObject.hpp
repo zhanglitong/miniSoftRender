@@ -4,7 +4,7 @@
 namespace FE
 {   
     DEFINE_CLASS_UUID(FEReal2sObject, "{DA8B20FA-F296-4AEC-9C3C-A162BF5ED89A}");
-    class   FEReal2sObject :public TValueArray<real2>
+    class   FE_API  FEReal2sObject :public TValueArray<real2>
     {
         IMPLEMENT_CLASS_REFLECT(FEReal2sObject)
     public:

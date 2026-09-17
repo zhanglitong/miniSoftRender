@@ -254,7 +254,7 @@ namespace   FE
         real3 dir = normalize(position() - camera.getEye());
         real3 axis[3] = { axisX(), axisY(), axisZ() };
         real3 rDir(1.0, 1.0, 1.0);
-        for (size_t i = 0; i < 3; ++i)
+        for (uint i = 0; i < 3; ++i)
         {
             ///计算对应轴与摄像机dir的方向
             real d = dot(axis[i], dir);

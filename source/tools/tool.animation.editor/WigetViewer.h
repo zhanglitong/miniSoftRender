@@ -69,7 +69,6 @@ namespace   FE
         void    messageNotify(const FEMessage& msgIn);
         void    initEngine();
     protected:
-        FEContext           _ctx;
         App                 _app;
         Scene               _scene;
         NotifyEngineStart   _notify;

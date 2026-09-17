@@ -7,7 +7,7 @@ namespace   FE
     class   Demo
     {
     public:
-        FEContext   _ctx;
+        FEContext&  _ctx;
         App         _app;
         Scene       _scene;
         FEUuid      _rendererId    =   RS_VULKAN;

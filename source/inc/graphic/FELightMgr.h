@@ -5,7 +5,7 @@
 
 namespace   FE
 {
-    class   FELightMgr 
+    class   FE_API  FELightMgr 
         : public FEObject
         , public FEKeyValues<String,Light>
     {

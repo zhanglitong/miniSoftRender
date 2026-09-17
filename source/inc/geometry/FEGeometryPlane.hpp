@@ -7,7 +7,7 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEGeometryPlane,"{623FBD2A-3EB4-4C5A-AED8-94EB37006EDC}");
 
-    struct  FEParamPlane
+    struct  FE_API  FEParamPlane
     {
         /// <summary>
         /// 大小
@@ -24,7 +24,7 @@ namespace   FE
     /// <summary>
     /// 描述的是xoy平面
     /// </summary>
-    class   FEGeometryPlane : public TFEGeometryParam<FEParamPlane>
+    class   FE_API  FEGeometryPlane : public TFEGeometryParam<FEParamPlane>
     {
     public:
         IMPLEMENT_CLASS_REFLECT(FEGeometryPlane)

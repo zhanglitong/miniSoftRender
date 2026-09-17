@@ -10,6 +10,7 @@
 namespace   FE
 {
     Demo::Demo(const FEUuid& rendererId)
+        :_ctx(FEContext::instance())
     {
         FEApp::CreateInfo   info    =   {};
         info._notify    =   std::bind(&Demo::messageNotify,this,std::placeholders::_1);
@@ -60,6 +61,7 @@ namespace   FE
     {
         _scene  =   nullptr;
         _app    =   nullptr;
+        _ctx.destroy();
     }
     void    Demo::main()
     {

@@ -4,7 +4,7 @@
 namespace FE
 {   
     DEFINE_CLASS_UUID(FEQuatfsObject, "{66E5B138-056B-4596-9689-D425682E5430}");
-    class   FEQuatfsObject :public TValueArray<quatf>
+    class   FE_API  FEQuatfsObject :public TValueArray<quatf>
     {
         IMPLEMENT_CLASS_REFLECT(FEQuatfsObject)
     public:

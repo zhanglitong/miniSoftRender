@@ -3,7 +3,7 @@
 
 namespace   FE
 {
-    class   FEFileFormat
+    class   FE_API  FEFileFormat
     {
     public:
         enum    StreamMode :uint16_t

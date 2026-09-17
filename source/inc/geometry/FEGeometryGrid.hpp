@@ -6,7 +6,7 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEGeometryGrid,"{7FBAF090-6D30-4E94-83AD-C9C3A5BACDFB}");
     
-    class FEGeometryGrid :public TFEGeometryParam<FEParamGrid>
+    class   FE_API  FEGeometryGrid :public TFEGeometryParam<FEParamGrid>
     {
     public:
         IMPLEMENT_CLASS_REFLECT(FEGeometryGrid)
