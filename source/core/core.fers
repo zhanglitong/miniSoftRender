@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='gb2312' ?>
+<root dataPath="E:/miniSoftRender/bin/data" outPath="" singleOut="1">
+	<folder path="buildIn">
+    <file name="buildIn/readme.txt" input="readme.txt"/>
+	</folder>
+</root>
+
