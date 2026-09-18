@@ -75,7 +75,8 @@ enum    ImageIndex
 #define     C2Q(cstr)     (QString::fromUtf8(cstr))
 
 #define     OBJECT_ICON(type)               _mainApp->objectIcon(type)
-#define     ROW_HEIGHT                       _mainApp->rowHeight()
+#define     ROW_HEIGHT                      _mainApp->rowHeight()
+#define     UNDO_STACK                      _mainApp->undoStack()
 
 class   MainWindow : public QMainWindow
 {
@@ -96,6 +97,11 @@ public:
     QIcon   objectIcon(ImageIndex type);
     QRect   objectIconRect(ImageIndex type);
     int     rowHeight() const;
+
+    auto    undoStack() const
+    {
+        return _undoStack;
+    }
 public slots:
     void    slotImportModel();
     void    slotOpenProject();
@@ -120,5 +126,6 @@ protected:
     
 protected:
     QString         _projectName;
+    QUndoStack*     _undoStack;
     Ui::MainWindow  ui;
 };

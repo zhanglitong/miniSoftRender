@@ -21,9 +21,29 @@ namespace   FE
         {
             _gpu->update(&_value,sizeof(_value),0);
         }
+        bool    isDirty() const
+        {
+            return  _dirty;
+        }
+        void    makeDirty()
+        {
+            _dirty  =   true;
+        }
+        /// <summary>
+        /// 使用前检查
+        /// </summary>
+        void    checkDirty()
+        {
+            if (_dirty)
+            {
+                _dirty  =   false;
+                update();
+            }
+        }
     public:
         UType       _value;
         GPUBuffer   _gpu;
+        bool        _dirty  =   true;
     };
     template<typename UType,MemoryUsage usage = DEVICE_DEFAULT_BIT>
     class   TStorge
@@ -37,7 +57,26 @@ namespace   FE
         }
         void    update()
         {
+            _dirty  =   false;
             _gpu->update(&_value,sizeof(_value),0);
+        }
+        bool    isDirty() const
+        {
+            return  _dirty;
+        }
+        void    makeDirty()
+        {
+            _dirty  =   true;
+        }
+        /// <summary>
+        /// 使用前检查
+        /// </summary>
+        void    checkDirty()
+        {
+            if (_dirty)
+            {
+                update();
+            }
         }
         /// <summary>
         /// 同步显卡数据到内存端
@@ -58,6 +97,7 @@ namespace   FE
     public:
         UType       _value;
         GPUBuffer   _gpu;
+        bool        _dirty  =   true;
     };
 
     class   FEDevice;
@@ -127,11 +167,11 @@ namespace   FE
         /// </summary>
         /// <param name="prefix"></param>
         /// <returns></returns>
-        bool    setup(const String& prefix);
+        virtual bool        setup(const String& prefix);
         /// <summary>
         /// 应用动态设置
         /// </summary>
-        void    appDynamicState(CMDPtr cmd,EPrimitive pri);
+        virtual void        appDynamicState(CMDPtr cmd,EPrimitive pri);
         /// <summary>
         /// 查询描述符
         /// </summary>

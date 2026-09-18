@@ -58,7 +58,6 @@ private:
     bool        _isSelcted  =   false;
     int         _row        =   -1;
     FE::Object  _obj        =   nullptr;
-
 public:
     std::map<int, bool> _drawKeyDatas;
 };

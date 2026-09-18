@@ -81,6 +81,30 @@ AnimationTree::AnimationTree(QWidget* parent)
         }
     });
 }
+Animation   AnimationTree::curAnimation()
+{
+    if (_curItem == nullptr)
+        return  nullptr;
+    else if(_curItem->object() == nullptr)
+        return  nullptr;
+    else
+        return  _curItem->object()->cast<FEAnimation>();
+
+}
+
+bool    AnimationTree::isExpand(AnimationItem* item)
+{
+    QModelIndex index = item->index();
+    if (index.isValid() && QTreeView::isExpanded(index)) 
+        return  true;
+    else
+        return  false;
+}
+
+AnimationItem*  AnimationTree::rootItem() const
+{
+    return  _rootItem;
+}
 
 void    AnimationTree::linkToTickMgr(UiTickMgr* mgr)
 {
@@ -138,32 +162,30 @@ void    AnimationTree::slotItemCollapsed(const QModelIndex& index)
 
 void    AnimationTree::slotSelectItemChanged(const QItemSelection& cur, const QItemSelection& pre)
 {
-    _selectedItem = nullptr;
+    _curItem    =   nullptr;
     for (auto& index : cur.indexes())
     {
-        auto item = dynamic_cast<AnimationItem*>(_model->itemFromIndex(index));
+        auto    item    =   dynamic_cast<AnimationItem*>(_model->itemFromIndex(index));
         item->setIsSelected(true);
-
-        _selectedItem = item;
+        _curItem = item;
     }
-
     for (auto& index : pre.indexes())
     {
-        auto item = dynamic_cast<AnimationItem*>(_model->itemFromIndex(index));
+        auto    item    =   dynamic_cast<AnimationItem*>(_model->itemFromIndex(index));
         item->setIsSelected(false);
     }
 }
 
 void    AnimationTree::slotDeleteTrack()
 {
-    if (!_selectedItem)
+    if (!_curItem)
     {
         return;
     }
 
     /// 删除当前所有轨道
     std::vector<FE::FEKeyFrameTrack*> tracks;
-    collectAllTrackItemChildren(_selectedItem, tracks);
+    collectAllTrackItemChildren(_curItem, tracks);
 
     if (tracks.empty())
     {
@@ -231,9 +253,8 @@ void    AnimationTree::paintEvent(QPaintEvent* evt)
 
 void    AnimationTree::contextMenuEvent(QContextMenuEvent* event)
 {
-    if (!_selectedItem)
+    if (!_curItem)
         return;
-
     _menu->exec(event->globalPos());
 
     QWidget::contextMenuEvent(event);

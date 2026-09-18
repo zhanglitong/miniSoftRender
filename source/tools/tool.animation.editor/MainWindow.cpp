@@ -28,6 +28,9 @@ MainWindow::MainWindow()
     /// 模型树选择通知到动画树更新数据
     ui.modelTree->_selectEvts   +=  {ui.animationTree,&AnimationTree::selectObject};
 
+    _undoStack  =   new QUndoStack(this);
+    ui.undoView->setStack(_undoStack);
+
     /// 时间线编辑通知
     /// 用来控制动画
     connect(ui.timeLineEditor,  SIGNAL(sigCurFrameChanged(double)), ui.sceneViewer,     SLOT(slotTimeLineChanged(double)));

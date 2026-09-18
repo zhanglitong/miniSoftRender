@@ -65,6 +65,14 @@ namespace   FE
         }
     public:
         /// <summary>
+        /// 应用动态设置
+        /// </summary>
+        virtual void        appDynamicState(CMDPtr cmd,EPrimitive pri) override
+        {
+            _pbr.checkDirty();
+            FEMaterial::appDynamicState(cmd,pri);
+        }
+        /// <summary>
         /// 子类实现
         /// </summary>
         /// <param name="writer"></param>
