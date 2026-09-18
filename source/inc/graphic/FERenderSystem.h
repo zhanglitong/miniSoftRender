@@ -1,6 +1,5 @@
 #pragma     once
 
-#include    "FERenderContext.h"
 #include    "FEDevice.h"
 #include    "FEShader.h"
 
@@ -31,7 +30,7 @@ namespace   FE
     };
     using   GPUs    =   std::vector<GPU>;
 
-    class   FERenderSystem :public FEObject
+    class   FE_API  FERenderSystem :public FEObject
     {
     public:
         using   RenderSys   =   SharedPtr<FERenderSystem>;

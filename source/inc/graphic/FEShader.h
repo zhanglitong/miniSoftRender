@@ -46,7 +46,7 @@ namespace   FE
     using   InputBinds =   std::vector<FEInputBindDesc>;
 
     
-    class   FEShader :public RSObject
+    class   FE_API  FEShader :public RSObject
     {
     public:
         struct  CreateInfo

@@ -12,7 +12,7 @@ namespace   FE
     /// <summary>
     /// 用来重载绘制结果的画布
     /// </summary>
-    class   FEFrameBuffer :public RSObject
+    class   FE_API  FEFrameBuffer :public RSObject
     {
     public:
         struct  CreateInfo 

@@ -39,4 +39,5 @@ namespace   FE
     };
 
     using   InputCom    =   SharedPtr<FEInputCom>;
+    using   Input       =   InputCom;
 }

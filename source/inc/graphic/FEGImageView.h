@@ -7,7 +7,7 @@ namespace   FE
     class   FEGImage;
     using   GImage  =   SharedPtr<FEGImage>;
 
-    class   FEGImageView :public RSObject
+    class   FE_API  FEGImageView :public RSObject
     {
     public:
         struct  CreateInfo

@@ -5,7 +5,7 @@
 
 namespace   FE
 {   
-    class   FEFrustumCull:public FEObject
+    class   FE_API  FEFrustumCull:public FEObject
     {
     public:
         FEFrustumCull(FEContext& ctx)

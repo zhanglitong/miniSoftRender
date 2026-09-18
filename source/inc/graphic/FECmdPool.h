@@ -6,7 +6,7 @@ namespace   FE
 {
     class   FECmdBuffer;
     using   CMDPtr  =   SharedPtr<FECmdBuffer>;
-    class   FECmdPool :public RSObject
+    class   FE_API  FECmdPool :public RSObject
     {
     public:
         struct  CreateInfo

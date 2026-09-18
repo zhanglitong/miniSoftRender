@@ -11,7 +11,7 @@ namespace   FE
     class   FEDevice;
     using   Device  =   SharedPtr<FEDevice>;
     
-    class   FEFrame :public FEObject
+    class   FE_API  FEFrame :public FEObject
     {
     public:
         friend  class   FECmdBuffer;

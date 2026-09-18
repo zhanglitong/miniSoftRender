@@ -5,8 +5,7 @@
 
 namespace   FE
 {
-
-    class   FESceneBrowse:public FEInputCom
+    class   FE_API  FESceneBrowse:public FEInputCom
     {
     public:
         FESceneBrowse(FEContext& ctx);

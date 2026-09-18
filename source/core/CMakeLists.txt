@@ -112,14 +112,3 @@ if(UNIX)
 endif()
 target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
 
-# -------------------------------------------------------------------------
-# shaderc_combined.lib 是 Vulkan SDK 预编译的（/MD, _ITERATOR_DEBUG_LEVEL=0）
-# Debug 构建默认用 /MDd（_ITERATOR_DEBUG_LEVEL=2），两者不兼容。
-# 统一用 /MD 匹配 shaderc 的运行时。
-# -------------------------------------------------------------------------
-#if(MSVC)
-#    foreach(_cfg "" "_DEBUG" "_RELEASE" "_MINSIZEREL" "_RELWITHDEBINFO")
-#        string(REPLACE "/MDd" "/MD" CMAKE_CXX_FLAGS${_cfg} "${CMAKE_CXX_FLAGS${_cfg}}")
-#        string(REPLACE "/MDd" "/MD" CMAKE_C_FLAGS${_cfg}   "${CMAKE_C_FLAGS${_cfg}}")
-#    endforeach()
-#endif()

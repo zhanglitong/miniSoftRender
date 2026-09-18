@@ -1,6 +1,7 @@
 #pragma     once
 
 #include    "FEObject.h"
+#include    "FEDelegate.hpp"
 
 namespace   FE
 {
@@ -8,8 +9,7 @@ namespace   FE
     /// <summary>
     /// 标记状态发生变化通知
     /// </summary>
-    using   NChange     =   std::function<void(Object sender)>;
-    using   NChangeMap  =   std::map<void*,NChange>;
+    using   NChanges    =   FETMultiDelegate<void(Object sender)>;
 
     DEFINE_CLASS_UUID(FENotify,"{AD26120E-AF65-4426-BC73-9047217D55EE}");
 
@@ -26,15 +26,13 @@ namespace   FE
         {
             _NChanges   =   other._NChanges;
         }
-        void    addNotify(void* pKey,const NChange& notify)
+        inline  NChanges&   notify() 
         {
-            _NChanges[pKey] =   notify;
+            return  _NChanges;
         }
-        void    removeNotify(void* pKey,const NChange& notify)
+        const   NChanges&   notify() const
         {
-            (void)pKey;
-            (void)notify;
-            _NChanges.erase(pKey);
+            return  _NChanges;
         }
         void    fireNotify()
         {
@@ -43,15 +41,10 @@ namespace   FE
     protected:
         void    onChanged(Object sender) const
         {
-            for (auto& var : _NChanges)
-            {
-                if (!var.second)    
-                    continue;
-                var.second(sender);
-            }
+            _NChanges(sender);
         }
     public:
-        NChangeMap  _NChanges;
+        NChanges    _NChanges;
     };
 
     using   Notify      =   SharedPtr<FENotify>;
