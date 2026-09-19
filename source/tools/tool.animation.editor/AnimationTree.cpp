@@ -52,7 +52,7 @@ AnimationTree::AnimationTree(QWidget* parent)
     _model      =   new QStandardItemModel(this);
     _model->setHorizontalHeaderLabels(QStringList()<<u8"动画");
     auto    invisibleItem  =   _model->invisibleRootItem();
-    _rootItem   =   new AnimationItem(u8"总纲", AnimationItem::IT_Par, nullptr, iconOfObject(nullptr));
+    _rootItem   =   new AnimationItem(nullptr,u8"总纲", AnimationItem::IT_Par, nullptr, iconOfObject(nullptr));
     invisibleItem->appendRow(_rootItem);
 
     this->setStyleSheet(R"(QTreeView::item {height: 40px;})");
@@ -104,6 +104,12 @@ bool    AnimationTree::isExpand(AnimationItem* item)
 AnimationItem*  AnimationTree::rootItem() const
 {
     return  _rootItem;
+}
+
+void    AnimationTree::reset()
+{
+    _objects    =   {};
+    updateUi();
 }
 
 void    AnimationTree::linkToTickMgr(UiTickMgr* mgr)
@@ -291,13 +297,13 @@ AnimationItem*  AnimationTree::createItemForNode(FE::FENode* object, AnimationIt
     ///  - animation1
     ///    - track0
     ///    - track1
-    auto    rootItem    =   new AnimationItem(nameOfObject(*object), AnimationItem::IT_Par, object, iconOfObject(object));
+    auto    rootItem    =   new AnimationItem(nullptr,nameOfObject(*object), AnimationItem::IT_Par, object, iconOfObject(object));
     /// 获取当前节点的所有动画数据
     auto    anims       =   object->objects<FEAnimation>();
     /// 遍历所有动画
     for (auto anim : anims)
     {
-        auto    animItem    =   new AnimationItem(anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
+        auto    animItem    =   new AnimationItem(anim,anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
         rootItem->appendRow(animItem);
         auto    clip    =   anim->clip();
         assert(clip != nullptr);
@@ -306,7 +312,7 @@ AnimationItem*  AnimationTree::createItemForNode(FE::FENode* object, AnimationIt
         auto    tracks  =   clip->tracks();
         for (auto track : tracks)
         {
-            animItem->appendRow(new AnimationItem(track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track)));
+            animItem->appendRow(new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track)));
         }
     }
     return  rootItem;
@@ -322,7 +328,7 @@ AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, Animation
     ///  - animation1
     ///    - track0
     ///    - track1
-    auto        rootItem    =   new AnimationItem(nameOfObject(*pObject), AnimationItem::IT_Par, pObject,iconOfObject(pObject));
+    auto        rootItem    =   new AnimationItem(nullptr,nameOfObject(*pObject), AnimationItem::IT_Par, pObject,iconOfObject(pObject));
     Animations  anims;
     pObject->traverseObject([&](const FEObject& object, const FEObject&, const FEObject::FETrvsCtx&, uint)->bool
     {
@@ -337,7 +343,7 @@ AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, Animation
     /// 遍历所有动画
     for (auto anim : anims)
     {
-        auto    animItem    =   new AnimationItem(anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
+        auto    animItem    =   new AnimationItem(anim,anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
         rootItem->appendRow(animItem);
         auto    clip    =   anim->clip();
         assert(clip != nullptr);
@@ -346,7 +352,7 @@ AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, Animation
         auto    tracks  =   clip->tracks();
         for (auto track : tracks)
         {
-            animItem->appendRow(new AnimationItem(track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track)));
+            animItem->appendRow(new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track)));
         }
     }
     return  rootItem;

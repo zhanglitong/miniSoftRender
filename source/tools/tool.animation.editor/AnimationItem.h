@@ -14,11 +14,11 @@ public:
         IT_Par
     };
 public:
-    AnimationItem(const QString& text, ItemType type, FE::FEObject* obj, QIcon icon = QIcon());
+    AnimationItem(FE::Animation anim,const QString& text, ItemType type, FE::FEObject* obj, QIcon icon = QIcon());
 public:
     inline FE::FEKeyFrameTrack* animKeyframeTrack() const
     {
-        return ItemType::IT_Track == _type ? (FE::FEKeyFrameTrack*)(_obj.get()) : nullptr;
+        return ItemType::IT_Track == _type ? (FE::FEKeyFrameTrack*)(_object.get()) : nullptr;
     }
 
     inline ItemType itemType() const
@@ -30,12 +30,10 @@ public:
     {
         _isSelcted  =   isSelected;
     }
-
     inline bool     isSelected() const
     {
         return _isSelcted;
     }
-
     inline void     setRow(const int& row)
     {
         _row = row;
@@ -46,20 +44,23 @@ public:
         return _row;
     }
 
-    inline auto     object() const
+    inline  auto    object() const
     {
-        return _obj;
+        return _object;
+    }
+    inline  auto    animation() const
+    {
+        return  _animation;
     }
 public:
     bool    isExpanded() const;
     void    setIsExpanded(bool isExpand);
 private:
-    ItemType    _type;
-    bool        _isSelcted  =   false;
-    int         _row        =   -1;
-    FE::Object  _obj        =   nullptr;
-public:
-    std::map<int, bool> _drawKeyDatas;
+    ItemType        _type;
+    bool            _isSelcted  =   false;
+    int             _row        =   -1;
+    FE::Animation   _animation  =   nullptr;
+    FE::Object      _object     =   nullptr;
 };
 
 

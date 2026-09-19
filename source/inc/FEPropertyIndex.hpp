@@ -13,7 +13,6 @@ namespace   FE
         PROP_TRANSFORM_X,
         PROP_TRANSFORM_Y,
         PROP_TRANSFORM_Z,
-        PROP_TRANSFORM_XY,
         PROP_TRANSFORM_XYZ,
        
         /// <summary>
@@ -22,7 +21,6 @@ namespace   FE
         PROP_SCALE_X,
         PROP_SCALE_Y,
         PROP_SCALE_Z,
-        PROP_SCALE_XY,
         PROP_SCALE_XYZ,
         /// <summary>
         /// 欧拉角属性,数据类型是float, 单位角度
@@ -53,11 +51,45 @@ namespace   FE
         PROP_MAT_DIFFUSE,
     };
 
+    enum    NodeProperyBit
+    {
+        /// <summary>
+        /// 有该标记则创建 PROP_TRANSFORM_X 属性track
+        /// </summary>
+        NP_TRANSFORM_X      =   (1<<0),
+        NP_TRANSFORM_Y      =   (1<<1),
+        NP_TRANSFORM_Z      =   (1<<2),
+        NP_TRANSFORM_XYZ    =   (1<<3),
 
+        NP_SCALE_X          =   (1<<4),
+        NP_SCALE_Y          =   (1<<5),
+        NP_SCALE_Z          =   (1<<6),
+        NP_SCALE_XYZ        =   (1<<7),
+        /// <summary>
+        /// 欧拉角属性,数据类型是float, 单位角度
+        /// </summary>
+        NP_ROTATE_X         =   (1<<8),
+        NP_ROTATE_Y         =   (1<<9),
+        NP_ROTATE_Z         =   (1<<10),
+        NP_ROTATE_XYZ       =   (1<<11),
+        /// <summary>
+        /// 
+        /// </summary>
+        NP_QUAT             =   (1<<12),
+        NP_COLOR_RGB        =   (1<<13),
+        NP_COLOR_ALPHA      =   (1<<14),
+        NP_VISIBLE          =   (1<<15),
+        /// <summary>
+        /// 
+        /// </summary>
+        NP_Default          =   NP_TRANSFORM_XYZ | NP_SCALE_XYZ | NP_ROTATE_XYZ
+    };
+
+    using   NodeProperyBits     =   FEFlags<NodeProperyBit,uint32>;
     /// <summary>
     /// 关键帧值
     /// </summary>
-    using   KFValue =   std::variant<std::monostate,uint8,float,float2,float3,float4,quatf,real,real2,real3,real4,quatr>;
+    using   KFValue =   std::variant<std::monostate,uint8,float,float2,float3,float4,quatf,real,real2,real3,real4,quatr,uint8x4>;
 
     inline  KFValue operator+(const KFValue& x, const KFValue& y) 
     {
@@ -172,7 +204,6 @@ namespace   FE
                 return std::monostate{};
         }, x);
     }
-
 
     inline  KFValue operator/(const KFValue& x, const KFValue& y) 
     {

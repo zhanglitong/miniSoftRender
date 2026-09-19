@@ -15,6 +15,7 @@ class   AnimationTree : public QTreeView
 public:
     AnimationTree(QWidget* parent = nullptr);
 public:
+    
     void    linkToTickMgr(UiTickMgr* mgr);
     void    updateUi();
     void    setSelectWhenMoveTo(bool enable)
@@ -33,6 +34,24 @@ public:
     /// </summary>
     /// <returns></returns>
     AnimationItem*  rootItem() const;
+    /// <summary>
+    /// 获取当前选中项
+    /// </summary>
+    /// <returns></returns>
+    AnimationItem*  curItem() const
+    {
+        return  _curItem;
+    }
+    /// <summary>
+    /// 重置
+    /// </summary>
+    void            reset();
+    /// <summary>
+    /// 递归收集所有 IT_Track 子项的关键帧轨道
+    /// </summary>
+    /// <param name="item"></param>
+    /// <param name="results"></param>
+    void    collectAllTrackItemChildren(AnimationItem* item, std::vector<FE::FEKeyFrameTrack*>& results);
 public:
     /// <summary>
     /// 模型树选择对象同通知,
@@ -57,7 +76,6 @@ public:
 private:
     AnimationItem*  createItemForNode(FE::FENode* object,  AnimationItems& needExpand);
     AnimationItem*  createItemForObj(FE::FEObject* object, AnimationItems& needExpand);
-    void            collectAllTrackItemChildren(AnimationItem* item, std::vector<FE::FEKeyFrameTrack*>& results);
 private:
     FE::Objects             _objects;
     QStandardItemModel*     _model              =   nullptr;

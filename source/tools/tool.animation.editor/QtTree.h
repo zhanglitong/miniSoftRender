@@ -209,12 +209,12 @@ namespace   FE
             return  _rowHeight;
         }
         /// <summary>
-        /// 当前选中的item
+        /// 当前选中的items
         /// </summary>
         /// <returns></returns>
-        inline  Object  current() const
+        inline  Objects  current() const
         {
-            return  _curItem;
+            return      {_curItem};
         }
         /// <summary>
         /// 根节点
@@ -235,6 +235,7 @@ namespace   FE
         /// 释放插件
         /// </summary>
         virtual void    destroy();
+        virtual void    reset();
         /// <summary>
         /// 鼠标右键上下文菜单所在的item
         /// </summary>

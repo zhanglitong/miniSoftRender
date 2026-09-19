@@ -65,6 +65,10 @@ namespace   FE
         /// 时间线通知
         /// </summary>
         void    slotTimeLineChanged(double time);
+        /// <summary>
+        /// 关键帧变更通知,刷新动画范围
+        /// </summary>
+        void    slotKeyframesChanged();
     protected:
         void	onEngineStart();
         void    messageNotify(const FEMessage& msgIn);

@@ -2,9 +2,15 @@
 #include    <QPainter>
 #include    <QHeaderView>
 #include    <QMouseEvent>
+#include    <functional>
 #include    "AnimationItem.h"
 #include    "AnimationTree.h"
 #include    "animation/FEAnimation.hpp"
+#include    "animation/FEAnimationSys.hpp"
+#include    "graphic/FEScene.h"
+#include    "node/FENode.hpp"
+#include    "FEMathUtil.hpp"
+#include    "FEEulerObject.hpp"
 #include    <cmath>
 
 QShortcut* REGIST_SHORTCUT(const std::string& str,QObject* parent)
@@ -389,6 +395,207 @@ void    UiTickMgr::slotPlayToNextFrame()
         _timer->stop();
     else if(_timer)
         _timer->start((1000.0f/_fps));
+}
+
+void    UiTickMgr::slotAddKeyframe()
+{
+    if (!_pTree || !_pTree->curItem())
+        return;
+
+    auto    curItem =   _pTree->curItem();
+
+    /// 1. 获取 FENode
+    FE::FENode* node     =   nullptr;
+    auto    obj          =   curItem->object();
+    if (obj)
+    {
+        node    =   obj->cast<FE::FENode>();
+        if (!node)
+        {
+            auto    anim    =   obj->cast<FE::FEAnimation>();
+            if (anim)
+                node    =   anim->owner()->cast<FE::FENode>();
+        }
+        if (!node)
+        {
+            /// track item -> parent(anim item) -> owner(node)
+            auto    parentItem  =   dynamic_cast<AnimationItem*>(curItem->parent());
+            if (parentItem)
+            {
+                auto    anim2   =   parentItem->object()->cast<FE::FEAnimation>();
+                if (anim2)
+                    node    =   anim2->owner()->cast<FE::FENode>();
+            }
+        }
+    }
+    if (!node)
+        return;
+
+    /// 2. 分解 node 的 transform 获取位置/旋转/缩放
+    FE::real3   pos;
+    FE::real3   scale;
+    FE::quatr   rot;
+    FE::decompose<FE::real>(node->globalTransform(),pos,scale,rot);
+
+    /// 四元数转欧拉角(弧度) -> 角度
+    auto        eulerRad    =   FE::quatToEuler(rot);
+    FE::real3   eulerDeg(RAD2DEG(eulerRad.x), RAD2DEG(eulerRad.y), RAD2DEG(eulerRad.z));
+
+    /// 3. 当前时间(秒)
+    FE::real    curTime     =   FE::real(_curFrame) / FE::real(_fps);
+    bool        bCreatedNew =   false;
+    /// 4. 收集需要添加关键帧的轨道
+    KeyFrameTracks  tracks;
+    
+    auto    anims    =   node->objects<FE::FEAnimation>();
+    if (anims.empty())
+    {
+        /// 节点没有动画,创建动画 + clip + 5条轨道
+        auto&       ctx     =   node->ctx();
+        Animation   anim    =   new FE::FEAnimation(ctx);
+        AnimClip    clip    =   new FE::FEAnimClip(ctx);
+        anim->setClip(clip);
+        anim->setName("Animation");
+        node->addComponent(anim.get());
+
+        /// 注册到动画系统
+        auto    scene   =   ctx.scene();
+        if (scene)
+        {
+            auto    sys =   scene->animationSystem();
+            if (sys)
+                sys->getOrCreate()->addObject(anim);
+        }
+        /// 创建5条轨道:位置(real3),缩放(real3),旋转X/Y/Z(real,角度)
+        auto    createTrackReal3 = [&](FE::PropIndex propIdx, const char* name) -> KeyFrameTrack
+        {
+            KeyFrameTrack   track   =   new FE::FEKeyFrameTrack(ctx, propIdx);
+            track->setName(name);
+            track->setTimeObject(new FE::FERealsObject(ctx));
+            track->setValueObject(FE::Real3sObject(new FE::FEReal3sObject(ctx)));
+            clip->addTrack(track);
+            return  track;
+        };
+        /// 创建5条轨道:位置(real3),缩放(real3),旋转X/Y/Z(real,角度)
+        auto    createTrackReal = [&](FE::PropIndex propIdx, const char* name) -> KeyFrameTrack
+        {
+            KeyFrameTrack   track   =   new FE::FEKeyFrameTrack(ctx, propIdx);
+            track->setName(name);
+            track->setTimeObject(new FE::FERealsObject(ctx));
+            track->setValueObject(FE::RealsObject(new FE::FERealsObject(ctx)));
+            clip->addTrack(track);
+            return  track;
+        };
+        tracks.push_back(createTrackReal3(FE::PROP_TRANSFORM_XYZ,   "Position"));
+        tracks.push_back(createTrackReal3(FE::PROP_SCALE_XYZ,       "Scale"   ));
+        tracks.push_back(createTrackReal(FE::PROP_ROTATE_X,         "Rotation X"));
+        tracks.push_back(createTrackReal(FE::PROP_ROTATE_Y,         "Rotation Y"));
+        tracks.push_back(createTrackReal(FE::PROP_ROTATE_Z,         "Rotation Z"));
+        bCreatedNew  =   true;
+    }
+    else
+    {
+        /// 节点已有动画,通过动画对象获取clip,再获取所有track
+        auto    anim    =   curItem->animation();
+        if (anim)
+        {
+            /// 选中了动画或轨道,对该动画的所有track添加关键帧
+            auto    clip    =   anim->clip();
+            if (clip)
+            {
+                for (auto track : clip->tracks())
+                    tracks.push_back(track);
+            }
+        }
+        else
+        {
+            /// 选中了节点,遍历所有动画的所有track
+            for (auto& a : anims)
+            {
+                auto    clip    =   a->clip();
+                if (!clip) continue;
+                for (auto  track : clip->tracks())
+                    tracks.push_back(track);
+            }
+        }
+    }
+
+    if (tracks.empty())
+        return;
+
+    /// 5. 对每个轨道添加关键帧
+    for (auto track : tracks)
+    {
+        if (!track)
+            continue;
+
+        /// 添加时间
+        if (!track->_times)
+            track->setTimeObject(FE::RealsObject(new FE::FERealsObject(node->ctx())));
+        track->_times->values().push_back(curTime);
+
+        /// 添加值(根据 ValueObject variant 类型分发)
+        auto    propIndex   =   track->propertyIndex();
+        auto    valIdx      =   track->_values.index();
+        if (valIdx == 0)
+        {
+            /// std::monostate,空轨道无法确定类型,跳过
+        }
+        else if (valIdx == 1)
+        {
+            /// RealsObject (real)
+            auto&   arr =   std::get<1>(track->_values);
+            FE::real val =   0;
+            switch (propIndex)
+            {
+            case    FE::PROP_TRANSFORM_X:  val =   pos.x;      break;
+            case    FE::PROP_TRANSFORM_Y:  val =   pos.y;      break;
+            case    FE::PROP_TRANSFORM_Z:  val =   pos.z;      break;
+            case    FE::PROP_SCALE_X:      val =   scale.x;    break;
+            case    FE::PROP_SCALE_Y:      val =   scale.y;    break;
+            case    FE::PROP_SCALE_Z:      val =   scale.z;    break;
+            case    FE::PROP_ROTATE_X:     val =   eulerDeg.x; break;
+            case    FE::PROP_ROTATE_Y:     val =   eulerDeg.y; break;
+            case    FE::PROP_ROTATE_Z:     val =   eulerDeg.z; break;
+            }
+            arr->values().push_back(val);
+        }
+        else if (valIdx == 3)
+        {
+            /// Real3sObject (real3)
+            auto&   arr =   std::get<3>(track->_values);
+            FE::real3   val{};
+            switch (propIndex)
+            {
+            case    FE::PROP_TRANSFORM_XYZ: val =   pos;       break;
+            case    FE::PROP_SCALE_XYZ:     val =   scale;    break;
+            }
+            arr->values().push_back(val);
+        }
+        else if (valIdx == 5)
+        {
+            /// QuatrsObject (quatr)
+            auto&   arr =   std::get<5>(track->_values);
+            FE::quatr   val;
+            if (propIndex == FE::PROP_QUAT)
+                val =   rot;
+            arr->values().push_back(val);
+        }
+
+        /// 排序并标记变更
+        track->sortKeyFames();
+        track->flags().addFlag(FE::FEKeyFrameTrack::TrackChanged);
+    }
+
+    /// 6. 如果创建了新动画,刷新树
+    if (bCreatedNew)
+        _pTree->selectObject(FE::Object(node), false);
+
+    /// 7. 通知动画系统刷新范围(_range重算+清空cache),再重新应用当前帧
+    ///    emit同步调用slotKeyframesChanged -> sys->refreshRange()
+    ///    随后setCurFrame同步调用slotTimeLineChanged -> sys->setClipTime() 使用刷新后的_range
+    emit sigKeyframesChanged();
+    setCurFrame(_curFrame);
 }
 
 void    UiTickMgr::paintEvent(QPaintEvent* event)

@@ -101,6 +101,15 @@ namespace FE
         /// </summary>
         void        clearCache();
         /// <summary>
+        /// 刷新动画范围,在编辑模式下修改关键帧后调用
+        /// 重算_range并清空cache,确保后续setClipTime/update使用最新数据
+        /// </summary>
+        void        refreshRange()
+        {
+            _range  =   calcRange();
+            clearCache();
+        }
+        /// <summary>
         /// 播放
         /// </summary>
         void        play()

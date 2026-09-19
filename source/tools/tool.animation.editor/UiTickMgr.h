@@ -54,10 +54,15 @@ public slots:
     void    slotCopyKeyframes();
     void    slotSetInterpolate();
     void    slotPlayToNextFrame();
+    /// <summary>
+    /// 在当前帧添加关键帧,将选中节点的属性值写入到动画轨道
+    /// </summary>
+    void    slotAddKeyframe();
 
 signals:
     void    sigUpdatePropsUi();
     void    sigCurFrameChanged(double);
+    void    sigKeyframesChanged();
 public:
     void    paintEvent(QPaintEvent *event)              override ;
     void    mousePressEvent(QMouseEvent *event)         override ;
@@ -119,7 +124,7 @@ public:
     int             _preDeltaFrame = 0;
     bool            _isNeedUpdateKeyframeDatas = false;
 
-    int     _copyDeltaFrame = 0;
+    int             _copyDeltaFrame = 0;
 
 
     QShortcut*  _shortcutCopy;

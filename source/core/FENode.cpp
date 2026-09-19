@@ -185,8 +185,6 @@ namespace   FE
 
     bool    FENode::setProperty(int prop,const KFValue& value) 
     {
-        UNUSED(prop);
-        UNUSED(value);
         switch(prop)
         {
         case PROP_TRANSFORM_X:

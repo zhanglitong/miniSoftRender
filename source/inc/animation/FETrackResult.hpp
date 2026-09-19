@@ -14,6 +14,8 @@
 #include    "FEFloat4sObject.hpp"
 #include    "FEQuatfsObject.hpp"
 #include    "FEBoolsObject.hpp"
+#include    "FEColorObject.hpp"
+#include    "FEAlphaObject.hpp"
 
 
 namespace FE
@@ -24,7 +26,7 @@ namespace FE
     using   ValueObject     =   std::variant<std::monostate,
                                             RealsObject,Real2sObject,Real3sObject,Real4sObject,QuatrsObject,
                                             FloatsObject,Float2sObject,Float3sObject,Float4sObject,QuatfsObject,
-                                            BoolsObject>;
+                                            BoolsObject,RgbaObject,AlphaObject>;
     class   FEKeyFrameTrack;
     class   FETrackResult
     {

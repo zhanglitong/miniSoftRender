@@ -94,6 +94,18 @@ namespace   FE
         _itemDatas.clear();
     }
 
+    void    QtTree::reset()
+    {
+        _curItem            =   nullptr;
+        _startSearchItem    =   nullptr;
+        _contextItem        =   nullptr;
+        _nameLens           =   0;
+        _searchInsIndex     =   0;
+        _hideQuue.clear();
+        _arFinds.clear();
+        _itemDatas.clear();
+    }
+
     int     QtTree::getIconIndex(FEObject* object)
     {
         if(dynamic_cast<FENode*>(object))

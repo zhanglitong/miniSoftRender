@@ -34,7 +34,9 @@ MainWindow::MainWindow()
     /// 时间线编辑通知
     /// 用来控制动画
     connect(ui.timeLineEditor,  SIGNAL(sigCurFrameChanged(double)), ui.sceneViewer,     SLOT(slotTimeLineChanged(double)));
+    connect(ui.timeLineEditor,  SIGNAL(sigKeyframesChanged()),      ui.sceneViewer,     SLOT(slotKeyframesChanged()));
     connect(ui.frontRunBtn,     SIGNAL(clicked()),                  ui.timeLineEditor,  SLOT(slotPlayToNextFrame()));
+    connect(ui.pushButtonAddKey,SIGNAL(clicked()),                  ui.timeLineEditor,  SLOT(slotAddKeyframe()));
 
     setTitile("");
 
@@ -171,6 +173,8 @@ void    MainWindow::slotReset()
         scene()->clear();
         _projectName.clear();
         setTitile("");
+        ui.animationTree->reset();
+        ui.modelTree->reset();
     }
 }
 void    MainWindow::slotRedo()
@@ -190,8 +194,8 @@ void    MainWindow::slotMoveEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
     if (editor == nullptr)
         return;
-    Object  curObj  =   ui.modelTree->current();    
-    Node    node    =   curObj ? curObj->as<FENode>():nullptr;
+    Objects curObjs =   ui.modelTree->current();    
+    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
@@ -217,8 +221,8 @@ void    MainWindow::slotRotEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
     if (editor == nullptr)
         return;
-    Object  curObj  =   ui.modelTree->current();    
-    Node    node    =   curObj ? curObj->as<FENode>():nullptr;
+    Objects curObjs =   ui.modelTree->current();    
+    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
@@ -245,8 +249,8 @@ void    MainWindow::slotScaleEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeScaleEditor));
     if (editor == nullptr)
         return;
-    Object  curObj  =   ui.modelTree->current();    
-    Node    node    =   curObj ? curObj->as<FENode>():nullptr;
+    Objects curObjs =   ui.modelTree->current();    
+    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);

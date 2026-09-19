@@ -39,6 +39,8 @@ namespace FE
         case 9:     return  sortImpl(std::get<Float4sObject>(_values));
         case 10:    return  sortImpl(std::get<QuatfsObject>(_values));
         case 11:    return  sortImpl(std::get<BoolsObject>(_values));
+        case 12:    return  sortImpl(std::get<RgbaObject>(_values));
+        case 13:    return  sortImpl(std::get<AlphaObject>(_values));
         }
     }
     KFOff   FEKeyFrameTrack::calcFrameOffset(const real& clipTime) const
@@ -90,6 +92,8 @@ namespace FE
         case 9:     return  updateImpl(clipTm,result,std::get<Float4sObject>(_values));
         case 10:    return  updateImpl(clipTm,result,std::get<QuatfsObject>(_values));
         case 11:    return  updateImpl(clipTm,result,std::get<BoolsObject>(_values));
+        case 12:    return  updateImpl(clipTm,result,std::get<RgbaObject>(_values));
+        case 13:    return  updateImpl(clipTm,result,std::get<AlphaObject>(_values));
         default:    return  false;
         }
     }
@@ -111,6 +115,8 @@ namespace FE
         case 9:     return  updateImpl(kfOff,result,std::get<Float4sObject>(_values));
         case 10:    return  updateImpl(kfOff,result,std::get<QuatfsObject>(_values));
         case 11:    return  updateImpl(kfOff,result,std::get<BoolsObject>(_values));
+        case 12:    return  updateImpl(kfOff,result,std::get<RgbaObject>(_values));
+        case 13:    return  updateImpl(kfOff,result,std::get<AlphaObject>(_values));
         default:    return  false;
         }
     }
@@ -156,6 +162,8 @@ namespace FE
         case 9:     std::get<Float4sObject>(_values) ->serialize(writer,version,ctx);   break;
         case 10:    std::get<QuatfsObject>(_values)  ->serialize(writer,version,ctx);   break;
         case 11:    std::get<BoolsObject>(_values)   ->serialize(writer,version,ctx);   break;
+        case 12:    std::get<RgbaObject>(_values)    ->serialize(writer,version,ctx);   break;
+        case 13:    std::get<AlphaObject>(_values)   ->serialize(writer,version,ctx);   break;
         }
             
     }
@@ -202,6 +210,8 @@ namespace FE
                 case 9:     _values =   Float4sObject(ptr->as<FEFloat4sObject>());  break;
                 case 10:    _values =   QuatfsObject(ptr->as<FEQuatfsObject>());    break;
                 case 11:    _values =   BoolsObject(ptr->as<FEBoolsObject>());      break;
+                case 12:    _values =   RgbaObject(ptr->as<FEColorObject>());       break;
+                case 13:    _values =   AlphaObject(ptr->as<FEAlphaObject>());      break;
                 }
             }
         }

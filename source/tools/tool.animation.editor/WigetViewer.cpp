@@ -185,6 +185,12 @@ namespace   FE
         else
             sys->setClipTime(time);
     }
+    void    WigetViewer::slotKeyframesChanged()
+    {
+        auto    sys =   _scene ? _scene->animationSystem() : nullptr;
+        if (sys)
+            sys->refreshRange();
+    }
     void	WigetViewer::onEngineStart()
     {
         if (_scene)

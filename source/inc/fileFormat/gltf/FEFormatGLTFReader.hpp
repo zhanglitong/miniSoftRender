@@ -502,24 +502,46 @@ namespace   FE
                 {
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
-                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Real2sObject    values  =   new FEReal2sObject(_ctx);
-                        track->setTimeObject(times);
-                        track->setValueObject(values);
-                        track->setPropertyIndex(PROP_TRANSFORM_XY);
-                        readValues<real2,float2>(accessor,view,buffer,values->values());
-                        clip->addTrack(track);
+                        {
+                            KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                            RealsObject     values  =   new FERealsObject(_ctx);
+                            track->setTimeObject(times);
+                            track->setValueObject(values);
+                            track->setPropertyIndex(PROP_TRANSFORM_X);
+                            readValues<real,float>(accessor,view,buffer,values->values());
+                            clip->addTrack(track);
+                        }
+                        {
+                            KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                            RealsObject     values  =   new FERealsObject(_ctx);
+                            track->setTimeObject(times);
+                            track->setValueObject(values);
+                            track->setPropertyIndex(PROP_TRANSFORM_Y);
+                            readValues<real,float>(accessor,view,buffer,values->values());
+                            clip->addTrack(track);
+                        }
                     }
                     break;
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
-                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Real2sObject    values  =   new FEReal2sObject(_ctx);
-                        track->setTimeObject(times);
-                        track->setValueObject(values);
-                        track->setPropertyIndex(PROP_TRANSFORM_XY);
-                        readValues<real2,real2>(accessor,view,buffer,values->values());
-                        clip->addTrack(track);
+                       {
+                            KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                            RealsObject     values  =   new FERealsObject(_ctx);
+                            track->setTimeObject(times);
+                            track->setValueObject(values);
+                            track->setPropertyIndex(PROP_TRANSFORM_X);
+                            readValues<real,real>(accessor,view,buffer,values->values());
+                            clip->addTrack(track);
+                       }
+                       {
+                           KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                           RealsObject     values  =   new FERealsObject(_ctx);
+                           track->setTimeObject(times);
+                           track->setValueObject(values);
+                           track->setPropertyIndex(PROP_TRANSFORM_Y);
+                           readValues<real,real>(accessor,view,buffer,values->values());
+                           clip->addTrack(track);
+                       }
                     }
                     break;
                 default:
@@ -604,28 +626,28 @@ namespace   FE
             case TINYGLTF_TYPE_VEC2:
                 switch (accessor.componentType)
                 {
-                case TINYGLTF_COMPONENT_TYPE_FLOAT:
-                    {
-                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float2sObject   values  =   new FEFloat2sObject(_ctx);
-                        track->setTimeObject(times);
-                        track->setValueObject(values);
-                        track->setPropertyIndex(PROP_SCALE_XY);
-                        readValues<float2,float2>(accessor,view,buffer,values->values());
-                        clip->addTrack(track);
-                    }
-                    break;
-                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
-                    {
-                        KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float2sObject   values  =   new FEFloat2sObject(_ctx);
-                        track->setTimeObject(times);
-                        track->setValueObject(values);
-                        track->setPropertyIndex(PROP_SCALE_XY);
-                        readValues<float2,real2>(accessor,view,buffer,values->values());
-                        clip->addTrack(track);
-                    }
-                    break;
+                /// case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                ///     {
+                ///         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                ///         Float2sObject   values  =   new FEFloat2sObject(_ctx);
+                ///         track->setTimeObject(times);
+                ///         track->setValueObject(values);
+                ///         track->setPropertyIndex(PROP_SCALE_XY);
+                ///         readValues<float2,float2>(accessor,view,buffer,values->values());
+                ///         clip->addTrack(track);
+                ///     }
+                ///     break;
+                /// case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                ///     {
+                ///         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
+                ///         Float2sObject   values  =   new FEFloat2sObject(_ctx);
+                ///         track->setTimeObject(times);
+                ///         track->setValueObject(values);
+                ///         track->setPropertyIndex(PROP_SCALE_XY);
+                ///         readValues<float2,real2>(accessor,view,buffer,values->values());
+                ///         clip->addTrack(track);
+                ///     }
+                ///     break;
                 default:
                     assert(0!=0);
                     return  false;

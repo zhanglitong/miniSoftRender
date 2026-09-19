@@ -43,48 +43,73 @@ namespace FE
         virtual ~FEAnimClip();
     public:
         /// <summary>
+        /// 向 clip 中所有轨道添加关键帧
+        /// 值类型不匹配的轨道会被跳过(track->addKeyFrame 返回 false)
+        /// </summary>
+        /// <param name="time">关键帧时间点</param>
+        /// <param name="val">关键帧值</param>
+        /// <returns>是否有任意轨道添加成功</returns>
+        bool    addKeyFrame(const real& time,const KFValue& val);
+        /// <summary>
+        /// 在指定索引位置向 clip 中所有轨道插入关键帧
+        /// 值类型不匹配或索引越界的轨道会被跳过
+        /// </summary>
+        /// <param name="idx">插入位置索引</param>
+        /// <param name="time">关键帧时间点</param>
+        /// <param name="val">关键帧值</param>
+        /// <returns>是否有任意轨道插入成功</returns>
+        bool    insertKeyFrame(size_t idx,const real& time,const KFValue& val);
+        /// <summary>
+        /// 从 clip 中所有轨道移除指定时间点的关键帧
+        /// </summary>
+        /// <param name="time">关键帧时间点</param>
+        /// <returns>是否有任意轨道移除成功</returns>
+        bool    removeKeyFrame(const real& time);
+        /// <summary>
+        /// 从 clip 中所有轨道移除指定索引的关键帧
+        /// </summary>
+        /// <param name="idx">关键帧索引</param>
+        /// <returns>是否有任意轨道移除成功</returns>
+        bool    removeKeyFrame(size_t idx);
+        /// <summary>
+        /// 更新 clip 中所有轨道指定时间点的关键帧值
+        /// </summary>
+        /// <param name="time">关键帧时间点</param>
+        /// <param name="val">新关键帧值</param>
+        /// <returns>是否有任意轨道更新成功</returns>
+        bool    updateKeyFrame(const real& time,const KFValue& val);
+        /// <summary>
+        /// 更新 clip 中所有轨道指定索引的关键帧值
+        /// </summary>
+        /// <param name="idx">关键帧索引</param>
+        /// <param name="val">新关键帧值</param>
+        /// <returns>是否有任意轨道更新成功</returns>
+        bool    updateKeyFrame(size_t idx,const KFValue& val);
+        /// <summary>
+        /// 优化时间线:检测所有 track,若 times 值相同则共享同一个 RealsObject
+        /// 保留第一份,其余 track 通过 setTimeObject 引用同一份
+        /// 共享后可启用 FEAction::updateBatch 中"相同时间线只算一次 calcFrameOffset"的优化
+        /// </summary>
+        void    simplifyTimeline();
+        /// <summary>
         /// 是否发生变更
         /// </summary>
         /// <returns></returns>
-        bool        isChanged() const
-        {
-            if (flags().hasFlag(ClipChanged))
-                return  true;
-            for (auto& track : _objects)
-            {
-                if (track->isChanged())
-                    return  true;
-            }  
-            return  false;
-        }
-        void        clearChanged() 
+        bool    isChanged() const;
+        void    clearChanged() 
         {
             flags().removeFlag(ClipChanged);
         }
         /// <summary>
-        /// 鑾峰彇甯ц寖鍥?
+        /// 获取帧范围
         /// </summary>
         /// <returns></returns>
-        real2       range() const
-        {
-            real2   result(-1,-1);
-            if (_objects.empty())
-                return  result;
-            else
-                result  =   _objects.front()->range();
-            for (size_t i = 1; i < _objects.size(); ++i)
-            {
-                auto    tmp =   _objects[i]->range();
-                result.x    =   (std::min)(result.x,tmp.x);
-                result.y    =   (std::max)(result.y,tmp.y);
-            }
-            return  result;
-        }
+        real2   range() const;
         /// <summary>
         /// 获取所有track,只读
         /// </summary>
         /// <returns></returns>
-        auto&       tracks() const
+        auto&   tracks() const
         {
             return  _objects;
         }
@@ -94,7 +119,7 @@ namespace FE
         /// </summary>
         /// <param name="track"></param>
         /// <returns>添加的track对象数</returns>
-        size_t      addTrack(KeyFrameTrack track)
+        size_t  addTrack(KeyFrameTrack track)
         {
             return  addObject(track);
         }
@@ -103,7 +128,7 @@ namespace FE
         /// </summary>
         /// <param name="track"></param>
         /// <returns>添加的track对象数</returns>
-        size_t      addTracks(const KeyFrameTracks& tracks)
+        size_t  addTracks(const KeyFrameTracks& tracks)
         {
             return  addObjects(tracks);
         }
@@ -113,13 +138,13 @@ namespace FE
         /// </summary>
         /// <param name="clipTime">时间线时间(从开始播放开始计时),单位秒</param>
         /// <param name="results"></param>
-        void        update(const real& clipTime,TrackResults& results);
+        void    update(const real& clipTime,TrackResults& results);
     protected:
         /// <summary>
         /// 传统流程,速度慢
         /// </summary>
         /// <param name="frame"></param>
-        void        update0(const real& frame,TrackResults& results)
+        void    update0(const real& frame,TrackResults& results)
         {
             results.resize(_objects.size());
             /// 注意这里

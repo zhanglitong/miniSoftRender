@@ -107,6 +107,145 @@ namespace FE
             return (_times && !_times->values().empty());
         }
         /// <summary>
+        /// 添加关键帧
+        /// 在指定时间点插入一个关键帧,值为 val
+        /// _times 始终保持升序,采用 lower_bound 定位插入位置
+        /// 若该时间点已存在关键帧,则返回 false
+        /// </summary>
+        /// <param name="time">关键帧时间点</param>
+        /// <param name="val">关键帧值,类型需与轨道值数组类型一致</param>
+        /// <returns>是否添加成功</returns>
+        bool    addKeyFrame(const real& time,const KFValue& val)
+        {
+            if (!_times)
+                _times  =   RealsObject(new FERealsObject(ctx()));
+            auto&   times   =   _times->values();
+            /// _times 有序,使用 lower_bound 二分查找 O(log n)
+            auto    itr     =   std::lower_bound(times.begin(),times.end(),time);
+            /// 时间点已存在,返回失败
+            if (itr != times.end() && *itr == time)
+                return  false;
+            /// 直接在有序位置插入,无需再 sortKeyFames()
+            size_t  idx =   (size_t)std::distance(times.begin(),itr);
+            times.insert(itr,time);
+            if (!insertValue(idx,val))
+            {
+                times.erase(times.begin() + idx);
+                return  false;
+            }
+            flags().addFlag(TrackChanged);
+            return  true;
+        }
+        /// <summary>
+        /// 在指定索引位置插入关键帧
+        /// 与 addKeyFrame 不同,本函数不按时间排序定位,而是直接插入到 idx 位置
+        /// 调用方需自行保证插入后 _times 的有序性(若后续依赖二分查找)
+        /// idx 允许等于 times.size(),表示追加到末尾
+        /// </summary>
+        /// <param name="idx">插入位置索引</param>
+        /// <param name="time">关键帧时间点</param>
+        /// <param name="val">关键帧值,类型需与轨道值数组类型一致</param>
+        /// <returns>是否插入成功(索引越界或类型不匹配返回 false)</returns>
+        bool    insertKeyFrame(size_t idx,const real& time,const KFValue& val)
+        {
+            if (!_times)
+                _times  =   RealsObject(new FERealsObject(ctx()));
+            auto&   times   =   _times->values();
+            /// idx 允许等于 size(追加),但不能超过
+            if (idx > times.size())
+                return  false;
+            times.insert(times.begin() + idx,time);
+            if (!insertValue(idx,val))
+            {
+                times.erase(times.begin() + idx);
+                return  false;
+            }
+            flags().addFlag(TrackChanged);
+            return  true;
+        }
+        /// <summary>
+        /// 移除指定时间点的关键帧
+        /// _times 升序,使用 lower_bound 定位
+        /// 同步移除 _times 与值数组中对应索引的元素
+        /// </summary>
+        /// <param name="time">关键帧时间点</param>
+        /// <returns>是否移除成功(时间点不存在返回 false)</returns>
+        bool    removeKeyFrame(const real& time)
+        {
+            if (!_times)
+                return  false;
+            auto&   times   =   _times->values();
+            /// _times 有序,使用 lower_bound 二分查找 O(log n)
+            auto    itr     =   std::lower_bound(times.begin(),times.end(),time);
+            if (itr == times.end() || *itr != time)
+                return  false;
+            size_t  idx =   (size_t)std::distance(times.begin(),itr);
+            times.erase(itr);
+            eraseValue(idx);
+            flags().addFlag(TrackChanged);
+            return  true;
+        }
+        /// <summary>
+        /// 通过索引移除关键帧
+        /// 直接操作 _times 与值数组中指定索引的元素,无需查找时间
+        /// </summary>
+        /// <param name="idx">关键帧索引</param>
+        /// <returns>是否移除成功(索引越界返回 false)</returns>
+        bool    removeKeyFrame(size_t idx)
+        {
+            if (!_times)
+                return  false;
+            auto&   times   =   _times->values();
+            if (idx >= times.size())
+                return  false;
+            times.erase(times.begin() + idx);
+            eraseValue(idx);
+            flags().addFlag(TrackChanged);
+            return  true;
+        }
+        /// <summary>
+        /// 更新指定时间点的关键帧值
+        /// 若该时间点不存在,返回 false
+        /// 用 val 覆盖值数组中对应索引处的元素
+        /// </summary>
+        /// <param name="time">关键帧时间点</param>
+        /// <param name="val">新关键帧值,类型需与轨道值数组类型一致</param>
+        /// <returns>是否更新成功</returns>
+        bool    updateKeyFrame(const real& time,const KFValue& val)
+        {
+            if (!_times)
+                return  false;
+            auto&   times   =   _times->values();
+            /// _times 有序,使用 lower_bound 二分查找 O(log n)
+            auto    itr     =   std::lower_bound(times.begin(),times.end(),time);
+            if (itr == times.end() || *itr != time)
+                return  false;
+            size_t  idx =   (size_t)std::distance(times.begin(),itr);
+            if (!replaceValue(idx,val))
+                return  false;
+            flags().addFlag(TrackChanged);
+            return  true;
+        }
+        /// <summary>
+        /// 通过索引更新关键帧值
+        /// 直接覆盖值数组中指定索引处的元素,无需查找时间
+        /// </summary>
+        /// <param name="idx">关键帧索引</param>
+        /// <param name="val">新关键帧值,类型需与轨道值数组类型一致</param>
+        /// <returns>是否更新成功(索引越界或类型不匹配返回 false)</returns>
+        bool    updateKeyFrame(size_t idx,const KFValue& val)
+        {
+            if (!_times)
+                return  false;
+            auto&   times   =   _times->values();
+            if (idx >= times.size())
+                return  false;
+            if (!replaceValue(idx,val))
+                return  false;
+            flags().addFlag(TrackChanged);
+            return  true;
+        }
+        /// <summary>
         /// 是否发生变更
         /// </summary>
         /// <returns></returns>
@@ -118,7 +257,6 @@ namespace FE
         {
             flags().removeFlag(TrackChanged);
         }
-
         /// <summary>
         /// 设置属性索引
         /// </summary>
@@ -149,8 +287,6 @@ namespace FE
         {
             return _times;
         }
-
-
         /// <summary>
         /// 获取数据信息
         /// </summary>
@@ -286,6 +422,117 @@ namespace FE
             }
         }
     protected:
+
+        /// <summary>
+        /// 将 KFValue 追加到当前轨道的值数组末尾
+        /// 要求 KFValue 持有的类型与 _values variant 的当前类型一致
+        /// </summary>
+        /// <param name="val">关键帧值</param>
+        /// <returns>是否成功写入</returns>
+        bool    pushValue(const KFValue& val)
+        {
+            bool    ok  =   false;
+            std::visit([this,&ok](auto&& v)
+            {
+                using   T   =   std::decay_t<decltype(v)>;
+                if constexpr      (std::is_same_v<T,real>)    { if(std::holds_alternative<RealsObject>(_values))   { std::get<RealsObject>(_values)->values().push_back(v);   ok=true; } }
+                else if constexpr (std::is_same_v<T,real2>)   { if(std::holds_alternative<Real2sObject>(_values))  { std::get<Real2sObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,real3>)   { if(std::holds_alternative<Real3sObject>(_values))  { std::get<Real3sObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,real4>)   { if(std::holds_alternative<Real4sObject>(_values))  { std::get<Real4sObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,quatr>)   { if(std::holds_alternative<QuatrsObject>(_values))  { std::get<QuatrsObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,float>)   { if(std::holds_alternative<FloatsObject>(_values))  { std::get<FloatsObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,float2>)  { if(std::holds_alternative<Float2sObject>(_values)) { std::get<Float2sObject>(_values)->values().push_back(v); ok=true; } }
+                else if constexpr (std::is_same_v<T,float3>)  { if(std::holds_alternative<Float3sObject>(_values)) { std::get<Float3sObject>(_values)->values().push_back(v); ok=true; } }
+                else if constexpr (std::is_same_v<T,float4>)  { if(std::holds_alternative<Float4sObject>(_values)) { std::get<Float4sObject>(_values)->values().push_back(v); ok=true; } }
+                else if constexpr (std::is_same_v<T,quatf>)   { if(std::holds_alternative<QuatfsObject>(_values))  { std::get<QuatfsObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint8>)   { if(std::holds_alternative<BoolsObject>(_values))   { std::get<BoolsObject>(_values)->values().push_back(v);   ok=true; }
+                                                                 else if(std::holds_alternative<AlphaObject>(_values)){ std::get<AlphaObject>(_values)->values().push_back(v);ok=true; } }
+                else if constexpr (std::is_same_v<T,uint8x4>) { if(std::holds_alternative<RgbaObject>(_values))    { std::get<RgbaObject>(_values)->values().push_back(v);    ok=true; } }
+            }, val);
+            return  ok;
+        }
+        /// <summary>
+        /// 在值数组指定索引处插入 KFValue,与 _times 保持同步
+        /// 要求 KFValue 持有的类型与 _values variant 的当前类型一致
+        /// </summary>
+        /// <param name="idx">插入位置索引</param>
+        /// <param name="val">关键帧值</param>
+        /// <returns>是否成功写入</returns>
+        bool    insertValue(size_t idx,const KFValue& val)
+        {
+            bool    ok  =   false;
+            std::visit([this,idx,&ok](auto&& v)
+            {
+                using   T   =   std::decay_t<decltype(v)>;
+                if constexpr      (std::is_same_v<T,real>)    { if(std::holds_alternative<RealsObject>(_values))   { auto& arr=std::get<RealsObject>(_values)->values();   arr.insert(arr.begin()+idx,v);   ok=true; } }
+                else if constexpr (std::is_same_v<T,real2>)   { if(std::holds_alternative<Real2sObject>(_values))  { auto& arr=std::get<Real2sObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,real3>)   { if(std::holds_alternative<Real3sObject>(_values))  { auto& arr=std::get<Real3sObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,real4>)   { if(std::holds_alternative<Real4sObject>(_values))  { auto& arr=std::get<Real4sObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,quatr>)   { if(std::holds_alternative<QuatrsObject>(_values))  { auto& arr=std::get<QuatrsObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,float>)   { if(std::holds_alternative<FloatsObject>(_values))  { auto& arr=std::get<FloatsObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,float2>)  { if(std::holds_alternative<Float2sObject>(_values)) { auto& arr=std::get<Float2sObject>(_values)->values(); arr.insert(arr.begin()+idx,v); ok=true; } }
+                else if constexpr (std::is_same_v<T,float3>)  { if(std::holds_alternative<Float3sObject>(_values)) { auto& arr=std::get<Float3sObject>(_values)->values(); arr.insert(arr.begin()+idx,v); ok=true; } }
+                else if constexpr (std::is_same_v<T,float4>)  { if(std::holds_alternative<Float4sObject>(_values)) { auto& arr=std::get<Float4sObject>(_values)->values(); arr.insert(arr.begin()+idx,v); ok=true; } }
+                else if constexpr (std::is_same_v<T,quatf>)   { if(std::holds_alternative<QuatfsObject>(_values))  { auto& arr=std::get<QuatfsObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint8>)   { if(std::holds_alternative<BoolsObject>(_values))   { auto& arr=std::get<BoolsObject>(_values)->values();   arr.insert(arr.begin()+idx,v);   ok=true; }
+                                                                 else if(std::holds_alternative<AlphaObject>(_values)){ auto& arr=std::get<AlphaObject>(_values)->values();arr.insert(arr.begin()+idx,v);ok=true; } }
+                else if constexpr (std::is_same_v<T,uint8x4>) { if(std::holds_alternative<RgbaObject>(_values))    { auto& arr=std::get<RgbaObject>(_values)->values();    arr.insert(arr.begin()+idx,v);    ok=true; } }
+            }, val);
+            return  ok;
+        }
+        /// <summary>
+        /// 删除值数组中指定索引的元素,与 _times 保持同步
+        /// </summary>
+        /// <param name="idx">索引</param>
+        void    eraseValue(size_t idx)
+        {
+            switch (_values.index())
+            {
+            case 1:     std::get<1>(_values)->values().erase(std::get<1>(_values)->values().begin() + idx);   break;
+            case 2:     std::get<2>(_values)->values().erase(std::get<2>(_values)->values().begin() + idx);   break;
+            case 3:     std::get<3>(_values)->values().erase(std::get<3>(_values)->values().begin() + idx);   break;
+            case 4:     std::get<4>(_values)->values().erase(std::get<4>(_values)->values().begin() + idx);   break;
+            case 5:     std::get<5>(_values)->values().erase(std::get<5>(_values)->values().begin() + idx);   break;
+            case 6:     std::get<6>(_values)->values().erase(std::get<6>(_values)->values().begin() + idx);   break;
+            case 7:     std::get<7>(_values)->values().erase(std::get<7>(_values)->values().begin() + idx);   break;
+            case 8:     std::get<8>(_values)->values().erase(std::get<8>(_values)->values().begin() + idx);   break;
+            case 9:     std::get<9>(_values)->values().erase(std::get<9>(_values)->values().begin() + idx);   break;
+            case 10:    std::get<10>(_values)->values().erase(std::get<10>(_values)->values().begin() + idx); break;
+            case 11:    std::get<11>(_values)->values().erase(std::get<11>(_values)->values().begin() + idx); break;
+            case 12:    std::get<12>(_values)->values().erase(std::get<12>(_values)->values().begin() + idx); break;
+            case 13:    std::get<13>(_values)->values().erase(std::get<13>(_values)->values().begin() + idx); break;
+            default:    break;
+            }
+        }
+        /// <summary>
+        /// 用 val 覆盖值数组中指定索引处的元素
+        /// 要求 KFValue 持有的类型与 _values variant 的当前类型一致
+        /// </summary>
+        /// <param name="idx">索引</param>
+        /// <param name="val">新值</param>
+        /// <returns>是否成功写入</returns>
+        bool    replaceValue(size_t idx,const KFValue& val)
+        {
+            bool    ok  =   false;
+            std::visit([this,idx,&ok](auto&& v)
+            {
+                using   T   =   std::decay_t<decltype(v)>;
+                if constexpr      (std::is_same_v<T,real>)    { if(std::holds_alternative<RealsObject>(_values))   { std::get<RealsObject>(_values)->values()[idx] = v;   ok=true; } }
+                else if constexpr (std::is_same_v<T,real2>)   { if(std::holds_alternative<Real2sObject>(_values))  { std::get<Real2sObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,real3>)   { if(std::holds_alternative<Real3sObject>(_values))  { std::get<Real3sObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,real4>)   { if(std::holds_alternative<Real4sObject>(_values))  { std::get<Real4sObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,quatr>)   { if(std::holds_alternative<QuatrsObject>(_values))  { std::get<QuatrsObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,float>)   { if(std::holds_alternative<FloatsObject>(_values))  { std::get<FloatsObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,float2>)  { if(std::holds_alternative<Float2sObject>(_values)) { std::get<Float2sObject>(_values)->values()[idx] = v; ok=true; } }
+                else if constexpr (std::is_same_v<T,float3>)  { if(std::holds_alternative<Float3sObject>(_values)) { std::get<Float3sObject>(_values)->values()[idx] = v; ok=true; } }
+                else if constexpr (std::is_same_v<T,float4>)  { if(std::holds_alternative<Float4sObject>(_values)) { std::get<Float4sObject>(_values)->values()[idx] = v; ok=true; } }
+                else if constexpr (std::is_same_v<T,quatf>)   { if(std::holds_alternative<QuatfsObject>(_values))  { std::get<QuatfsObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint8>)   { if(std::holds_alternative<BoolsObject>(_values))   { std::get<BoolsObject>(_values)->values()[idx] = v;   ok=true; }
+                                                                 else if(std::holds_alternative<AlphaObject>(_values)){ std::get<AlphaObject>(_values)->values()[idx] = v;ok=true; } }
+                else if constexpr (std::is_same_v<T,uint8x4>) { if(std::holds_alternative<RgbaObject>(_values))    { std::get<RgbaObject>(_values)->values()[idx] = v;    ok=true; } }
+            }, val);
+            return  ok;
+        }
 
         template<typename TValueObject>
         static  void    serializeValueObject(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx,const TValueObject& values)  

@@ -122,6 +122,16 @@ namespace   FE
                 var.second->setClipTime(clipTime);
             }
         }
+        /// <summary>
+        /// 刷新所有动画的范围,在编辑模式下修改关键帧后调用
+        /// </summary>
+        virtual void    refreshRange()
+        {
+            for (auto& var : _actions)
+            {
+                var.second->refreshRange();
+            }
+        }
     protected:
         ActionMap   _actions;
     };
