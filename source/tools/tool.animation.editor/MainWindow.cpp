@@ -28,6 +28,9 @@ MainWindow::MainWindow()
     /// 模型树选择通知到动画树更新数据
     ui.modelTree->_selectEvts   +=  {ui.animationTree,&AnimationTree::selectObject};
 
+    /// 将模型树链接到时间线编辑器,用于获取选中节点添加关键帧
+    ui.timeLineEditor->setModelTree(ui.modelTree);
+
     _undoStack  =   new QUndoStack(this);
     ui.undoView->setStack(_undoStack);
 
@@ -194,7 +197,7 @@ void    MainWindow::slotMoveEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
     if (editor == nullptr)
         return;
-    Objects curObjs =   ui.modelTree->current();    
+    Objects curObjs =   ui.modelTree->selected();
     Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
@@ -221,7 +224,7 @@ void    MainWindow::slotRotEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
     if (editor == nullptr)
         return;
-    Objects curObjs =   ui.modelTree->current();    
+    Objects curObjs =   ui.modelTree->selected();
     Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
@@ -249,7 +252,7 @@ void    MainWindow::slotScaleEditor()
     auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeScaleEditor));
     if (editor == nullptr)
         return;
-    Objects curObjs =   ui.modelTree->current();    
+    Objects curObjs =   ui.modelTree->selected();
     Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {

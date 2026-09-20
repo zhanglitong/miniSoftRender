@@ -113,7 +113,6 @@ namespace   FE
         FERect          text;
         Object          item;
         int             parentIndex;
-        FEObject*       obj;
     public:
         inline  auto    getName() 
         {
@@ -165,29 +164,11 @@ namespace   FE
         int             _rowHeight      =   32;
         int             _space          =   16;
         FERect          _rect           =   {};
-        /// 水平滚动的位置，在滚动事件中作处理
-        int             _hscrollPos     =   0;
         /// 水平方向滚动条的宽度
         int             _hscrollMax     =   0;
         /// 图标大小
         int             _bmpWidth       =   16;
         int             _bmpHeight      =   16;
-        /// 需要查找的字符串地址(不用参数目的是减少开销) 
-        char*           _pSearchPtr         =   nullptr;
-        /// 查找字符串的长度
-        unsigned        _nameLens;
-        //  需要查找的Item的Index
-        unsigned        _searchInsIndex;
-        /// 从哪一个item开始查找
-        Object         _startSearchItem    =   nullptr;
-        /// 查找标记
-        bool            _startFlag          =   false;
-        /// 为了实现向上搜索，用一个数组记录下来已经找到的item
-        /// 如果点向上搜索，检测数组中是否有数据，如果有，则定位到最后一项
-        /// 同时删除最后一项
-        Objects         _arFinds;
-        /// 隐藏队列
-        Objects         _hideQuue;
         int2            _downPos;
         int2            _upPos;
         QPixmap         _icon;
@@ -212,7 +193,7 @@ namespace   FE
         /// 当前选中的items
         /// </summary>
         /// <returns></returns>
-        inline  Objects  current() const
+        inline  Objects  selected() const
         {
             return      {_curItem};
         }
@@ -222,8 +203,9 @@ namespace   FE
         /// <returns></returns>
         const   Nodes&  roots()
         {
+            static  Nodes   s_empty;
             if (_scene == nullptr)
-                return  {};
+                return  s_empty;
             else
                 return  _scene->nodeTree().topLevelNodes();
         }
@@ -299,12 +281,6 @@ namespace   FE
     protected:
         void    closeEvent(QCloseEvent *event)  override ;
         /// <summary>
-        /// 暂时保留，无用
-        /// </summary>
-        /// <param name="item"></param>
-        void    pushItemToHideQueue(Object item);
-        Object  popItemFromHideQueue(Object item);
-        /// <summary>
         /// 获取图标的索引
         /// </summary>
         int     getIconIndex(FEObject* node);
@@ -342,7 +318,7 @@ namespace   FE
         int     getVScroll();
         int     getHScroll();
         void    drawItem(QPainter& hDC, ItemData& item, int x, int y);
-        void    paintItem(QPainter& hDC,FEObject& item,int& x,int& y,int parentIndex);
+        void    paintItem(QPainter& hDC,FEObject& item,int& x,int& y,int parentIndex,int& rowIndex);
     protected:
         void    paintEvent(QPaintEvent *event)              override ;
         void    mousePressEvent(QMouseEvent *event)         override ;

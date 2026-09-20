@@ -29,6 +29,8 @@ namespace   FE
         :QWidget(parent)
     {
         _icon.load(":/EditorRes/res/buttons.bmp");
+        /// BMP 无 alpha 通道,将白色背景设为透明
+        _icon.setMask(_icon.createMaskFromColor(Qt::white));
         _bmpHeight      =   (std::max)(_icon.height(),16);
         _bmpWidth       =   (std::max)(_icon.width(),512);
         QVBoxLayout*    vlayout = new QVBoxLayout(this);
@@ -85,24 +87,14 @@ namespace   FE
         }
         _scene              =   nullptr;
         _curItem            =   nullptr;
-        _startSearchItem    =   nullptr;
         _contextItem        =   nullptr;
-        _nameLens           =   0;
-        _searchInsIndex     =   0;
-        _hideQuue.clear();
-        _arFinds.clear();
         _itemDatas.clear();
     }
 
     void    QtTree::reset()
     {
         _curItem            =   nullptr;
-        _startSearchItem    =   nullptr;
         _contextItem        =   nullptr;
-        _nameLens           =   0;
-        _searchInsIndex     =   0;
-        _hideQuue.clear();
-        _arFinds.clear();
         _itemDatas.clear();
     }
 
@@ -167,65 +159,15 @@ namespace   FE
 
     bool    QtTree::selectItem(FEObject& item)
     {
-        auto    old     =   _curItem;
-        
+        /// 取消旧选中项
         if (_curItem)
-        {
-            FE::setSelected(*_curItem,false);
-        }
+            FE::setSelected(*_curItem, false);
+
         _curItem    =   &item;
-        if (_curItem)
-        {
-            FE::setSelected(*_curItem,true);
-        }
-        _selectEvts(_curItem,false);
-       
+        FE::setSelected(*_curItem, true);
+        _selectEvts(_curItem, false);
+
         return  true;
-    }
-
-    void    QtTree::pushItemToHideQueue(Object item)
-    {
-        Object   pNodeItem = item;
-        if (pNodeItem == nullptr)
-        {
-            return;
-        }
-        auto itr = std::find(_hideQuue.begin(), _hideQuue.end(), pNodeItem);
-        if (itr == _hideQuue.end())
-        {
-            _hideQuue.push_back((Object)pNodeItem);
-        }
-    }
-
-    Object  QtTree::popItemFromHideQueue(Object item)
-    {
-        if (_hideQuue.empty())
-        {
-            return  nullptr;
-        }
-        if (item)
-        {
-            /// TODO:
-            Object   pNodeItem = nullptr;
-            if (pNodeItem == nullptr)
-                return nullptr;
-            auto    itr = std::find(_hideQuue.begin(), _hideQuue.end(), pNodeItem);
-            if (itr != _hideQuue.end())
-            {
-                item = *itr;
-                _hideQuue.erase(itr);
-            }
-            else
-            {
-                item = nullptr;
-            }
-        }
-        else
-        {
-            item = _hideQuue.back();
-            _hideQuue.pop_back();
-        }
-        return  item;
     }
 
     inline  bool    traverseShow(const FEObject& object,const FEObject&,const FEObject::FETrvsCtx&,uint)
@@ -264,186 +206,111 @@ namespace   FE
 
     void    QtTree::drawItem(QPainter& hDC, ItemData& item, int x, int y)
     {
-        /// 滚动条窗口宽度
-        int     scrollW =   _vScrollBar->width();
+        /// 滚动条可见时才扣除其宽度,隐藏时内容占满整行
+        int     scrollW =   _vScrollBar->isVisible() ? _vScrollBar->width() : 0;
         _hscrollMax     =   _rect.right - _rect.left - scrollW - _leftMargin * 2;
 
         int     icoIdx  =   getIconIndex(item.item);
         int     xStart  =   x;
         int     yOff    =   (_rowHeight - _bmpHeight) / 2;
                 y       +=  yOff;
-        /// 绘制展开(+ - )图标
-        if (item.isExpand())
-        {
-            setRect(&item.expands,xStart,y,xStart + _bmpHeight,y + _bmpHeight);
-            hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,ID_SUB * _bmpHeight,0,_bmpHeight,_bmpHeight);
-            xStart  +=  _bmpHeight;
-            xStart  +=  0;
-            hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,icoIdx * _bmpHeight,0,_bmpHeight,_bmpHeight);
-            xStart +=   _bmpHeight;
-            xStart +=   0;
-        }
-        else
-        {   
-            if (item.item->objectCount() != 0)
-            {
-                setRect(&item.expands, xStart, y, xStart + _bmpHeight, y + _bmpHeight);
 
-                hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,ID_PLUS * _bmpHeight,0,_bmpHeight,_bmpHeight);
-                xStart += _bmpHeight;
-                xStart += 0;
+        /// 绘制展开(+ - )图标:叶子节点与展开节点都画 SUB,未展开画 PLUS
+        int     expandId    =   (item.isExpand() || item.item->objectCount() == 0) ? ID_SUB : ID_PLUS;
+        setRect(&item.expands, xStart, y, xStart + _bmpHeight, y + _bmpHeight);
+        hDC.drawPixmap(xStart, y, _bmpHeight, _bmpHeight, _icon, expandId * _bmpHeight, 0, _bmpHeight, _bmpHeight);
+        xStart  +=  _bmpHeight;
 
-                hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,icoIdx * _bmpHeight,0,_bmpHeight,_bmpHeight);
-                xStart += _bmpHeight;
-                xStart += 0;
-            }
-            else
-            {
-                setRect(&item.expands, xStart, y, xStart + _bmpHeight, y + _bmpHeight);
-                hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,    ID_SUB * _bmpHeight,0,_bmpHeight,_bmpHeight);
-                xStart += _bmpHeight;
-                xStart += 0;
+        /// 绘制节点类型图标
+        hDC.drawPixmap(xStart, y, _bmpHeight, _bmpHeight, _icon, icoIdx * _bmpHeight, 0, _bmpHeight, _bmpHeight);
+        xStart  +=  _bmpHeight;
 
-                hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,    icoIdx * _bmpHeight,0,_bmpHeight,_bmpHeight);
-                xStart +=   _bmpHeight;
-                xStart +=   0;
-            }
-        }
         /// 绘制checkbox图标
-        if (item.isVisible())
-        {
-            setRect(&item.checkBox,xStart,y,xStart + _bmpHeight,y + _bmpHeight);
-            hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,    ID_CHECK * _bmpHeight,0,_bmpHeight,_bmpHeight);
-           
-            xStart  +=  _bmpHeight;
-            xStart  +=  4;
-        }
-        else
-        {
-            setRect(&item.checkBox,xStart,y,xStart + _bmpHeight,y + _bmpHeight);
-            hDC.drawPixmap(xStart,y,_bmpHeight,_bmpHeight,_icon,    ID_UNCHECK * _bmpHeight,0,_bmpHeight,_bmpHeight);
+        int     checkId =   item.isVisible() ? ID_CHECK : ID_UNCHECK;
+        setRect(&item.checkBox, xStart, y, xStart + _bmpHeight, y + _bmpHeight);
+        hDC.drawPixmap(xStart, y, _bmpHeight, _bmpHeight, _icon, checkId * _bmpHeight, 0, _bmpHeight, _bmpHeight);
+        xStart  +=  _bmpHeight;
+        xStart  +=  4;
 
-            xStart  +=  _bmpHeight;
-            xStart  +=  4;
-        }
-        
-        FERect  rect    =   {xStart,y,_hscrollMax,y + _bmpHeight};
-        FERect  srcRT   =   rect;
-        /// 绘制文字
-        /// TCHAR   buf[512]=   {0};
-        /// getItemTextIn(item.item,buf);
-
-        QRect   qRT(xStart,y, _hscrollMax, _bmpHeight);
+        /// 绘制文字,选中时使用高亮文字色保证可读性
         QString text    =   item.getName();
+        QRect   qRT(xStart, y, _hscrollMax, _bmpHeight);
         QRect   br;
         int     flags   =   Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine;
-        hDC.drawText(qRT,flags,text,&br);
-        
-        rect.right      =   rect.left + br.width();
-        
+
+        auto    oldPen  =   hDC.pen();
         if (item.isSelect())
-        {
-            auto    oldPen  =   hDC.pen();
-            // 设置边框
-            QPen pen(Qt::blue);        // 蓝色边框
-            pen.setWidth(1);           // 线宽2像素
-            pen.setStyle(Qt::DashLine); // 虚线样式
-            hDC.setPen(pen);
-
-            // 设置填充
-            QBrush brush(Qt::green, Qt::Dense3Pattern); // 绿色+密集点图案
-            hDC.setBrush(brush);
-            QRect   rtTmp(rect.left,rect.top, rect.right - rect.left, rect.bottom - rect.top);
-            hDC.drawRect(rtTmp);
-            hDC.setPen(oldPen);
-        }
-        QRect   rtTmp(rect.left,rect.top, rect.right - rect.left, rect.bottom - rect.top);
-        hDC.drawText(rtTmp,flags,text);
-
-        rect.right  +=  40;
-        rect.top    -=  4;
-        rect.bottom +=  4;
-        item.text   =   rect;
+            hDC.setPen(QPen(palette().color(QPalette::HighlightedText)));
+        hDC.drawText(qRT, flags, text, &br);
+        hDC.setPen(oldPen);
     }
-    void    QtTree::paintItem(QPainter& hDC,FEObject& item,int& x,int& y,int parentIndex)
+    void    QtTree::paintItem(QPainter& hDC,FEObject& item,int& x,int& y,int parentIndex,int& rowIndex)
     {
         auto    rt      =   rect();
-
-        /// 递归结束条件
         int     height  =   rt.height();
         if (y > height)
-        {
             return;
-        }
+        if (!nameIsValid(item))
+            return;
+
         int     xOffset    =   _space;
         int     yOffset    =   _rowHeight;
-        if (!nameIsValid(item))
-        {
-            return;
-        }
-        if (!isEmpty(item))
-        {
-            if (isExpand(item))
-            {
-                if (y + yOffset > 0)
-                {
-                    ItemData    temp    =   
-                    {
-                         x,                     y,  x + _bmpHeight,         y + _bmpHeight
-                        ,x + _bmpHeight + 4,    y,  x + _bmpHeight * 2 + 4, y + _bmpHeight
-                        ,x + _bmpHeight * 2 + 4,y,  x + _bmpHeight * 6 + 4, y + _bmpHeight
-                        ,&item,parentIndex
-                    };
 
-                    drawItem(hDC,temp,x,y);
-                    _itemDatas.push_back(temp);
-                }
-                x   +=  xOffset;
-                y   +=  yOffset;
-                /// 绘制数据节点
-                item.traverseObject([this,&hDC,&x,&y,parentIndex](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx&,uint)->bool
-                {
-                    paintItem(hDC,(FEObject&)object,x,y,parentIndex);
-                    return  true;
-                });
-                /// for (auto itr = item->begin() ; itr != item->end();++ itr )
-                /// {
-                ///     paintItem(hDC,*itr,x,y,parentIndex);
-                /// }
-                x   -=  xOffset;
-            }
+        /// 绘制行背景:选中态整行高亮,否则奇偶行交替底色
+        {
+            int     scrollW =   _vScrollBar->isVisible() ? _vScrollBar->width() : 0;
+            int     rowLeft =   _leftMargin;
+            int     rowRight=   width() - scrollW;
+            QRect   rowRt(rowLeft, y, rowRight - rowLeft, yOffset);
+
+            if (FE::isSelect(item))
+                hDC.fillRect(rowRt, palette().color(QPalette::Highlight));
             else
             {
-                if (y + yOffset > 0)
-                {
-                    ItemData    temp    =   
-                    {
-                        x,                     y,  x + _bmpHeight,         y + _bmpHeight
-                        ,x + _bmpHeight + 4,    y,  x + _bmpHeight * 2 + 4, y + _bmpHeight
-                        ,x + _bmpHeight * 2 + 4,y,  x + _bmpHeight * 6 + 4, y + _bmpHeight
-                        ,&item,parentIndex
-                    };
-                    drawItem(hDC,temp,x,y);
-                    _itemDatas.push_back(temp);
-                }
-                y   +=  yOffset;
+                QColor  bg  =   (rowIndex % 2 == 0)
+                                ? palette().color(QPalette::Base)
+                                : palette().color(QPalette::AlternateBase);
+                hDC.fillRect(rowRt, bg);
             }
         }
-        else
+
+        /// 绘制当前节点内容
+        if (y + yOffset > 0)
         {
-            if (y + yOffset > 0)
+            ItemData    temp    =
             {
-                ItemData    temp    =   
-                {
-                     x,                     y,  x + _bmpHeight,         y + _bmpHeight
-                    ,x + _bmpHeight + 4,    y,  x + _bmpHeight * 2 + 4, y + _bmpHeight
-                    ,x + _bmpHeight * 2 + 4,y,  x + _bmpHeight * 6 + 4, y + _bmpHeight
-                    ,&item,parentIndex
-                };
-                drawItem(hDC,temp,x,y);
-                _itemDatas.push_back(temp);
-            }
-            y   +=  yOffset;
+                 x,                     y,  x + _bmpHeight,         y + _bmpHeight
+                ,x + _bmpHeight + 4,    y,  x + _bmpHeight * 2 + 4, y + _bmpHeight
+                ,x + _bmpHeight * 2 + 4,y,  x + _bmpHeight * 6 + 4, y + _bmpHeight
+                ,&item,parentIndex
+            };
+            drawItem(hDC,temp,x,y);
+            /// text 命中区域扩大为整行,便于点击空白处也能选中
+            int     scrollW =   _vScrollBar->isVisible() ? _vScrollBar->width() : 0;
+            temp.text.left   =   _leftMargin;
+            temp.text.right  =   width() - scrollW;
+            temp.text.top    =   y;
+            temp.text.bottom =   y + yOffset;
+            _itemDatas.push_back(temp);
+        }
+
+        ++rowIndex;
+
+        bool    hasChildren =   !isEmpty(item);
+        bool    expanded    =   hasChildren && isExpand(item);
+
+        y   +=  yOffset;
+
+        /// 仅展开且有子节点时递归绘制子节点
+        if (expanded)
+        {
+            x   +=  xOffset;
+            item.traverseObject([this,&hDC,&x,&y,parentIndex,&rowIndex](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx&,uint)->bool
+            {
+                paintItem(hDC,(FEObject&)object,x,y,parentIndex,rowIndex);
+                return  true;
+            });
+            x   -=  xOffset;
         }
     }
 
@@ -467,24 +334,23 @@ namespace   FE
 
         painter.setPen(QPen()); 
 
-        float   fontSize    =   (float)font().pointSize();
         _rowHeight          =   _bmpHeight  + _bmpHeight/4;
 
         _itemDatas.clear();
 
-        int     width   =   rt.width();
         int     height  =   rt.height();
 
         int     pos     =   getVScroll();
         int     x       =   _leftMargin - getHScroll();
         int     y       =   _topMargin  - pos;
         int     i       =   0;
+        int     rowIndex    =   0;
         for (auto node: roots())
         {
             if (y > height)
                 break;
             FEObject&   object  =   *node;
-            paintItem(painter, object, x, y, i);
+            paintItem(painter, object, x, y, i, rowIndex);
         }
     }
 
@@ -663,6 +529,7 @@ namespace   FE
 
     void    QtTree::closeEvent(QCloseEvent *event)
     {
+        UNUSED(event);
         destroy();
     }
 
@@ -684,47 +551,20 @@ namespace   FE
 
     void    QtTree::setTreeItemSelect(Object item, bool expandTo, bool beCenter, bool forceVisible, bool isSelf)
     {
-        UNUSED(expandTo,beCenter,forceVisible,isSelf);
-        
-        auto    node    =   item->as<FENode>();
-        UNUSED(node);
-        if(beCenter)
-        {
-            /// CELLSceneBrowser& sceneBrowser = CELLSceneBrowser::Get(_app->ctx());
-            /// auto    root    =   dynamic_cast<const FE::CELLNodeLonlat*>(objectRoot(*item).get());
-            /// if (root == nullptr)
-            /// {
-            ///     sceneBrowser.moveTo(FE::objectAabb(*item), 1.0, CELLSceneBrowser::AabbFaceIndex::None);
-            /// }
-            /// else
-            /// {
-            ///     if (node)
-            ///     {
-            ///         auto    box =   node->globalAabb();
-            ///         sceneBrowser.moveTo(box, 1.0, CELLSceneBrowser::AabbFaceIndex::None);
-            ///     }
-            /// }
-        }
-        /// if(forceVisible && node)
-        /// {
-        ///     node->addFlagWithChild(FENode::FLAG_VISIBLE);
-        /// }
-        FE::setObjectSelected(*item);
-        /// if (node)
-        /// {
-        ///     _app->setContextNode(node);
-        ///     prj->setSelectNode(node,false,true,this);
-        /// }
+        UNUSED(expandTo, beCenter, forceVisible, isSelf);
+
+        /// 仅设置对象的选中标记,不更新 _curItem(由 selectItem 负责)
+        if (item)
+            FE::setObjectSelected(*item);
     }
 
     bool    QtTree::gotoItem(Object pNode)
     {
         Objects     routes;
-        int         temp    =   0;
         bool        bFind   =   false;
         for (auto node : roots())
         {
-            node->traverseObject([this,&temp,&pNode,&routes,&bFind](const FEObject& object,const FEObject& parent,const FEObject::FETrvsCtx&,uint depth)->bool
+            node->traverseObject([this,&pNode,&routes,&bFind](const FEObject& object,const FEObject& parent,const FEObject::FETrvsCtx&,uint depth)->bool
             {
                 if (!bFind && routes.size() != depth)
                 {
@@ -737,46 +577,36 @@ namespace   FE
                     return  false;
                 }
                 return  true;
-            },1,true);
+            }, 1, true);
         }
-        
+
         if (!bFind)
             return  false;
 
-        /// 首先把所有父节点状态展开
-        /// 目录可以计算节点的偏移量
-
+        /// 展开所有父节点,使目标节点可见
         for (auto& var : routes)
-        {
-            FE::setExpand(*var,true);
-        }
+            FE::setExpand(*var, true);
+
+        /// 计算目标节点的垂直偏移并滚动到该位置
         int     diff    =   0;
         for (auto node : roots())
         {
             diff += _rowHeight;
             if (!isExpand(*node))
                 continue;
-            auto    result  =   node->traverseObject([this,&diff,&pNode,&bFind](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx& ctx,uint depth)->bool
+            node->traverseObject([this,&diff,&pNode](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx& ctx,uint depth)->bool
             {
                 if (pNode.get() == &object)
-                {
-                    bFind   =   true;
                     return  false;
-                }
                 if (!nameIsValid((FEObject&)object))
-                {
                     return  true;
-                } 
-
                 diff += _rowHeight;
                 if (!isExpand((FEObject&)object) || object.objectCount() == 0)
                     return  true;
-                else
-                    return  object.traverseObject(ctx.callback,depth + 1,false);
-            },1,false);
+                return  object.traverseObject(ctx.callback, depth + 1, false);
+            }, 1, false);
         }
         _vScrollBar->setValue(diff);
-        /// 设置滚动位置 
         postRepaint();
         return  true;
     }
@@ -785,29 +615,22 @@ namespace   FE
     {
         int     diff    =   0;
         if (roots().empty())
-        {
             return  0;
-        }
         for (auto node : roots())
-        {   
+        {
             diff += _rowHeight;
             if (!isExpand(*node))
                 continue;
-            auto    result  =   node->traverseObject([this,&diff](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx& ctx,uint depth)->bool
+            node->traverseObject([this,&diff](const FEObject& object,const FEObject&,const FEObject::FETrvsCtx& ctx,uint depth)->bool
             {
                 if (!nameIsValid((FEObject&)object))
-                {
                     return  true;
-                } 
                 diff += _rowHeight;
+                /// 未展开或叶子节点不再递归
                 if (!isExpand((FEObject&)object) || object.objectCount() == 0)
                     return  true;
-                else if(isExpand((FEObject&)object))
-                    return  object.traverseObject(ctx.callback,depth + 1,false);
-                else
-                    return  true;
-            },1,false);
-            UNUSED(result);
+                return  object.traverseObject(ctx.callback, depth + 1, false);
+            }, 1, false);
         }
         return  diff;
     }

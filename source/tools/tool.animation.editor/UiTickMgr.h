@@ -9,6 +9,8 @@
 
 class   AnimationItem;
 class   AnimationTree;
+namespace   FE { class QtTree; }
+using   QtTree  =   FE::QtTree;
 class   UiTickMgr : public QWidget
 {
     Q_OBJECT
@@ -19,6 +21,7 @@ public:
 public:
     void    linkScrollBar(QScrollBar* bar);
     void    setAniTree(AnimationTree* pTree);
+    void    setModelTree(QtTree* pTree);
     void    setKeyRowHeight(int rowHeight);
     void    setTimeRowHeight(int height);
     void    setCurFrame(const int& frame, bool applyToAnim = true);
@@ -56,6 +59,11 @@ public slots:
     void    slotPlayToNextFrame();
     /// <summary>
     /// 在当前帧添加关键帧,将选中节点的属性值写入到动画轨道
+    /// 优先查看 动画树， 先从动画树上(AnimationTree)获取是否有选择的动画，如果有，则直接更新，如果动画树上没有被选择 ，则从模型树上选择
+    ///     1. 先从modelTree (QtTree) 中获取当前选择的对象(Node)  通过 selected() 获取
+    ///     2. 循环所有selected()对象,如果没有创建animation() 对象，则创建
+    ///     3. 如果有对象，则添加或者更新关键帧
+    /// 有可能从模型树上选择多个节点，其中一部分有动画，一部分没有动画
     /// </summary>
     void    slotAddKeyframe();
 
@@ -110,6 +118,7 @@ public:
     TimeSlider      _timeSlider;
     QRect           _timeLineRect;
     AnimationTree*  _pTree;
+    QtTree*         _pModelTree =   nullptr;
     bool            _isDragTimeSlider   =   false;
     bool            _isPressKeyframe    =   false; // 是否点击到关键帧
     bool            _isPressSelected    =   false; // 否是点击到已经选择的关键帧

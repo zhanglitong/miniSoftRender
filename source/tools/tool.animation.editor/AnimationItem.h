@@ -39,11 +39,6 @@ public:
         _row = row;
     }
 
-    inline int      getRow() const
-    {
-        return _row;
-    }
-
     inline  auto    object() const
     {
         return _object;
