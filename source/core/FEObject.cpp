@@ -13,7 +13,7 @@ namespace   FE
     FEObject::FEObject(FEContext& ctx,bool genId)
         :_ctx(ctx)
     {
-        _flags          =   FLAG_VISIBLE | FLAG_UPDATE | FLAG_SERIAL;
+        _flags          =   FLAG_VISIBLE | FLAG_UPDATE | FLAG_SERIAL | FLAG_ENABLE;
         if (genId)  _id =   FEUuid::create();
     }
     FEObject::FEObject(const FEObject& other)

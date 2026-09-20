@@ -40,6 +40,10 @@ namespace FE
             /// 开始播放时间
             /// </summary>
             real            _offTime;
+            /// <summary>
+            /// 所属动画,用于检查 isEnable
+            /// </summary>
+            Animation       _anim;
         };
         using   TrackObjects    =   std::vector<TrackObject>;
     public:

@@ -26,6 +26,11 @@ namespace FE
             /// 标记数据变更
             /// </summary>
             AnimationChanged    =   (FLAG_ACTOR <<1),
+            /// <summary>
+            /// 动画是否被禁用
+            /// 禁用不能编辑，不能播放
+            /// </summary>
+            AnimationEnabled    =   (AnimationChanged<<1),
         };
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)

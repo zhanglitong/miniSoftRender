@@ -132,14 +132,15 @@ namespace FE
         {
             buildCache();
         }
-        /// TODO:      ȷ  飬   ̼߳   
-        ///---  ͬʱ   ----   ͬʱ    ---   ͬ    ---
         RealsObject             timeLine    =   nullptr;
         FEKeyFrameTrack::KFOff  kfValue     =   {};
         Object                  owner       =   nullptr;
         bool                    bNotify     =   false;
         for (auto& var : _cache)
         {
+            /// 禁用的动画不播放
+            if (var._anim && !var._anim->isEnable())
+                continue;
             auto    track   =   var._track;
             auto    range   =   track->range() + real2(var._offTime);
             if (clipTime < (range.x - delta) || clipTime > range.y + delta)
@@ -183,7 +184,7 @@ namespace FE
             real    offTime =   var->offset();
             for (auto& track : tracks)
             {
-                TrackObject obj =   {track,owner,offTime};
+                TrackObject obj =   {track,owner,offTime,var};
                 _cache.emplace_back(obj);
             }
         }

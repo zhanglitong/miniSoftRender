@@ -19,7 +19,7 @@
 namespace FE
 {
    
-    class   FE_API  FEAnimationHelper : public FEComponent
+    class   FEAnimationHelper : public FEComponent
     {
     public:
         /// <summary>
@@ -199,6 +199,9 @@ namespace FE
                 }
             };
 
+            /// 标记是否有轨道已存在该时间点(用于决定返回值)
+            bool    bTimeExisted    =   false;
+
             for (auto track : clip->tracks())
             {
                 PropIndex   propIdx =   track->propertyIndex();
@@ -207,12 +210,15 @@ namespace FE
                 if (bit == 0 || !propBits.hasFlag((NodeProperyBit)bit))
                     continue;
 
-                /// 时间点已存在,返回失败(跳过该轨道)
+                /// 时间点已存在,跳过该轨道并标记
                 if (track->_times)
                 {
                     auto&   times   =   track->_times->values();
                     if (std::find(times.begin(),times.end(),time) != times.end())
+                    {
+                        bTimeExisted    =   true;
                         continue;
+                    }
                 }
 
                 /// 确保时间对象存在
@@ -279,7 +285,8 @@ namespace FE
                 track->sortKeyFames();
                 track->flags().addFlag(FEKeyFrameTrack::TrackChanged);
             }
-            return  true;
+            /// 有轨道已存在该时间点 -> 返回失败,由调用方决定是否 update
+            return  !bTimeExisted;
         }
         /// <summary>
         /// 移除指定时间点的关键帧

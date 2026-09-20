@@ -66,6 +66,9 @@ public slots:
     void        slotItemCollapsed(const QModelIndex & index);
     void        slotSelectItemChanged(const QItemSelection&, const QItemSelection&);
     void        slotDeleteTrack();
+    void        slotCreateAnimation();
+    void        slotDeleteAnimation();
+    void        slotToggleEnable();
     void        slotDoubleClikced(const QModelIndex&);
 public:
     virtual void    mousePressEvent(QMouseEvent* evt)           override;

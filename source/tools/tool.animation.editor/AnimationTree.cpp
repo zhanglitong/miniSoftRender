@@ -7,6 +7,9 @@
 #include    "AnimationItem.h"
 #include    "MainWindow.h"
 #include    "mesh/FEMesh.hpp"
+#include    "animation/FEAnimationHelper.hpp"
+#include    "animation/FEAnimationSys.hpp"
+#include    "graphic/FEScene.h"
 
 using    namespace    FE;
 
@@ -64,11 +67,8 @@ AnimationTree::AnimationTree(QWidget* parent)
     connect(this,   SIGNAL(collapsed(const QModelIndex &)), this,       SLOT(slotItemCollapsed(const QModelIndex &)));
     connect(selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)), this, SLOT(slotSelectItemChanged(const QItemSelection&, const QItemSelection&)));
 
-    /// 添加右键菜单
+    /// 添加右键菜单(在 contextMenuEvent 中按选中类型动态构建)
     _menu   =   new QMenu(this);
-    QAction*    deleteTrack = new QAction("删除轨道", this);
-    _menu->addAction(deleteTrack);
-    connect(deleteTrack, SIGNAL(triggered()), this, SLOT(slotDeleteTrack()));
     _shortcutDelete     =   REGIST_SHORTCUT("Delete", this);
     connect(_shortcutDelete, &QShortcut::activated, [&]()
     {
@@ -212,6 +212,88 @@ void    AnimationTree::slotDeleteTrack()
     /// UNDO_STACK->endMacro();
 }
 
+void    AnimationTree::slotCreateAnimation()
+{
+    if (!_curItem || !_curItem->object())
+        return;
+    auto    node    =   _curItem->object()->cast<FENode>();
+    if (!node)
+        return;
+
+    auto    anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
+    node->addComponent(anim.get());
+    auto    scene   =   node->ctx().scene();
+    if (scene)
+    {
+        auto    sys =   scene->animationSystem();
+        if (sys) sys->addObject(anim.get());
+    }
+    /// TODO: undo/redo
+    updateUi();
+}
+
+void    AnimationTree::slotDeleteAnimation()
+{
+    if (!_curItem || !_curItem->object())
+        return;
+
+    auto    obj     =   _curItem->object();
+    auto    anim    =   obj->cast<FEAnimation>();
+    auto    node    =   obj->cast<FENode>();
+
+    if (anim != nullptr)
+    {
+        /// 删除指定动画
+        auto    owner       =   anim->owner();
+        auto    ownerNode   =   owner ? owner->cast<FENode>() : nullptr;
+        auto    scene       =   anim->ctx().scene();
+        if (scene)
+        {
+            auto    sys =   scene->animationSystem();
+            if (sys) sys->removeObject(anim);
+        }
+        if (ownerNode)
+            ownerNode->removeComponent(anim);
+    }
+    else if (node != nullptr)
+    {
+        /// 删除节点上所有动画
+        auto    anims   =   node->objects<FEAnimation>();
+        auto    scene   =   node->ctx().scene();
+        auto    sys     =   scene ? scene->animationSystem() : nullptr;
+        for (auto* animPtr : anims)
+        {
+            if (sys) sys->removeObject(animPtr);
+            node->removeComponent(animPtr);
+        }
+    }
+    /// TODO: undo/redo
+    updateUi();
+}
+
+void    AnimationTree::slotToggleEnable()
+{
+    if (!_curItem || !_curItem->object())
+        return;
+
+    auto    obj     =   _curItem->object();
+    auto    anim    =   obj->cast<FEAnimation>();
+    auto    node    =   obj->cast<FENode>();
+
+    if (anim != nullptr)
+    {
+        anim->setEnable(!anim->isEnable());
+    }
+    else if (node != nullptr)
+    {
+        if (node->flags().hasFlag(FE::FLAG_ENABLE))
+            node->flags().removeFlag(FE::FLAG_ENABLE);
+        else
+            node->flags().addFlag(FE::FLAG_ENABLE);
+    }
+    updateUi();
+}
+
 void    AnimationTree::slotDoubleClikced(const QModelIndex& index)
 {
     auto item = dynamic_cast<AnimationItem*>(_model->itemFromIndex(index));
@@ -259,8 +341,45 @@ void    AnimationTree::paintEvent(QPaintEvent* evt)
 
 void    AnimationTree::contextMenuEvent(QContextMenuEvent* event)
 {
-    if (!_curItem)
+    if (!_curItem || !_curItem->object())
         return;
+
+    _menu->clear();
+
+    auto    obj     =   _curItem->object();
+    auto    node    =   obj->cast<FENode>();
+    auto    anim    =   obj->cast<FEAnimation>();
+    auto    track   =   _curItem->animKeyframeTrack();
+
+    if (node != nullptr)
+    {
+        /// Node: 创建动画 + 删除动画 + 启用/禁用
+        auto    createAnim =   _menu->addAction(u8"创建动画");
+        auto    deleteAnim =   _menu->addAction(u8"删除动画");
+        _menu->addSeparator();
+        bool    enabled =   node->flags().hasFlag(FE::FLAG_ENABLE);
+        auto    toggleEn  =   _menu->addAction(enabled ? u8"禁用" : u8"启用");
+        connect(createAnim, &QAction::triggered, this, &AnimationTree::slotCreateAnimation);
+        connect(deleteAnim, &QAction::triggered, this, &AnimationTree::slotDeleteAnimation);
+        connect(toggleEn,  &QAction::triggered, this, &AnimationTree::slotToggleEnable);
+    }
+    else if (anim != nullptr)
+    {
+        /// Animation: 删除动画 + 启用/禁用
+        auto    deleteAnim =   _menu->addAction(u8"删除动画");
+        _menu->addSeparator();
+        bool    enabled =   anim->isEnable();
+        auto    toggleEn  =   _menu->addAction(enabled ? u8"禁用" : u8"启用");
+        connect(deleteAnim, &QAction::triggered, this, &AnimationTree::slotDeleteAnimation);
+        connect(toggleEn,  &QAction::triggered, this, &AnimationTree::slotToggleEnable);
+    }
+    else if (track != nullptr)
+    {
+        /// Track: 删除
+        auto    deleteTrack =   _menu->addAction(u8"删除");
+        connect(deleteTrack, &QAction::triggered, this, &AnimationTree::slotDeleteTrack);
+    }
+
     _menu->exec(event->globalPos());
 
     QWidget::contextMenuEvent(event);
@@ -298,12 +417,18 @@ AnimationItem*  AnimationTree::createItemForNode(FE::FENode* object, AnimationIt
     ///    - track0
     ///    - track1
     auto    rootItem    =   new AnimationItem(nullptr,nameOfObject(*object), AnimationItem::IT_Par, object, iconOfObject(object));
+    /// 禁用状态用灰色文字
+    if (!object->flags().hasFlag(FE::FLAG_ENABLE))
+        rootItem->setForeground(Qt::gray);
     /// 获取当前节点的所有动画数据
     auto    anims       =   object->objects<FEAnimation>();
     /// 遍历所有动画
     for (auto anim : anims)
     {
         auto    animItem    =   new AnimationItem(anim,anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
+        bool    animDisabled=   !anim->isEnable();
+        if (animDisabled)
+            animItem->setForeground(Qt::gray);
         rootItem->appendRow(animItem);
         auto    clip    =   anim->clip();
         assert(clip != nullptr);
@@ -312,7 +437,10 @@ AnimationItem*  AnimationTree::createItemForNode(FE::FENode* object, AnimationIt
         auto    tracks  =   clip->tracks();
         for (auto track : tracks)
         {
-            animItem->appendRow(new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track)));
+            auto    trackItem   =   new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track));
+            if (animDisabled)
+                trackItem->setForeground(Qt::gray);
+            animItem->appendRow(trackItem);
         }
     }
     return  rootItem;
@@ -329,6 +457,9 @@ AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, Animation
     ///    - track0
     ///    - track1
     auto        rootItem    =   new AnimationItem(nullptr,nameOfObject(*pObject), AnimationItem::IT_Par, pObject,iconOfObject(pObject));
+    /// 禁用状态用灰色文字
+    if (!pObject->flags().hasFlag(FE::FLAG_ENABLE))
+        rootItem->setForeground(Qt::gray);
     Animations  anims;
     pObject->traverseObject([&](const FEObject& object, const FEObject&, const FEObject::FETrvsCtx&, uint)->bool
     {
@@ -344,6 +475,9 @@ AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, Animation
     for (auto anim : anims)
     {
         auto    animItem    =   new AnimationItem(anim,anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
+        bool    animDisabled=   !anim->isEnable();
+        if (animDisabled)
+            animItem->setForeground(Qt::gray);
         rootItem->appendRow(animItem);
         auto    clip    =   anim->clip();
         assert(clip != nullptr);
@@ -352,7 +486,10 @@ AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, Animation
         auto    tracks  =   clip->tracks();
         for (auto track : tracks)
         {
-            animItem->appendRow(new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track)));
+            auto    trackItem   =   new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track));
+            if (animDisabled)
+                trackItem->setForeground(Qt::gray);
+            animItem->appendRow(trackItem);
         }
     }
     return  rootItem;

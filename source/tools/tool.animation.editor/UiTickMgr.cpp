@@ -13,6 +13,7 @@
 #include    "node/FENode.hpp"
 #include    "FEMathUtil.hpp"
 #include    "FEEulerObject.hpp"
+#include    "UndoCommand.h"
 #include    <cmath>
 
 QShortcut* REGIST_SHORTCUT(const std::string& str,QObject* parent)
@@ -278,16 +279,89 @@ int     UiTickMgr::rowFromPos(const QPoint& p) const
     return (p.y() - _timeRowHeight) / _keyRowHeight;
 }
 
+
+void    UiTickMgr::drawKeyframeTimeline(QPainter& painter,AnimationItem* item)
+{
+    using   FuncWalk    =   std::function<void(AnimationItem*)>;
+    if  (item == nullptr)
+        return;
+
+    /// 总纲行:以传入 item 的行位置作为统一 y 坐标
+    int     xOffset =   _bar ? _bar->value() : 0;
+    QRect   rect    =   _pTree->visualRect(item->index());
+    int     rowH    =   rect.height();
+    int     yStart  =   rect.top() + _timeRowHeight + 1;
+    int     centerY =   yStart + rowH/2;
+    int     radius  =   _pointPixel/2;
+
+    /// 第一遍:绘制所有 animation 的范围矩形(灰色半透明背景块,上下留4px)
+    painter.setBrush(_blockColor);
+    painter.setPen(QPen(_blockBorder, 1));
+
+    FuncWalk drawAnimBlocks = [&](AnimationItem* it)
+    {
+        if  (it == nullptr)
+            return;
+        auto    anim    =   it->object()->cast<FEAnimation>();
+        if  (anim != nullptr && anim->clip())
+        {
+            auto    rng     =   anim->range();
+            real    xStart  =   time2Pixel(rng.x,_framePixel,_fps) - xOffset;
+            real    width   =   time2Pixel((rng.y - rng.x),_framePixel,_fps);
+            QRect   temp((int)xStart, yStart, (int)width, rowH);
+            QRect   tmp     =   temp.marginsRemoved(QMargins(0, 4, 0, 4));
+            painter.drawRect(tmp);
+        }
+        int     cnt     =   it->rowCount();
+        for  (int r = 0; r < cnt; ++r)
+            drawAnimBlocks((AnimationItem*)it->child(r,0));
+    };
+    drawAnimBlocks(item);
+
+    /// 第二遍:绘制所有 track 的关键帧(深灰半透明前景点)
+    painter.setBrush(_dotColor);
+    painter.setPen(QPen(_dotBorder, 1));
+
+    FuncWalk drawKeyDots = [&](AnimationItem* it)
+    {
+        if  (it == nullptr)
+            return;
+        auto    track   =   it->object()->cast<FEKeyFrameTrack>();
+        if  (track != nullptr && track->times())
+        {
+            auto&   key     =   track->times()->values();
+            for  (size_t i = 0; i < key.size(); i++)
+            {
+                int     centerX =   int(time2Pixel(key[i],_framePixel,_fps) - xOffset);
+                painter.drawEllipse(centerX - radius, centerY - radius, _pointPixel, _pointPixel);
+            }
+        }
+        int     cnt     =   it->rowCount();
+        for  (int r = 0; r < cnt; ++r)
+            drawKeyDots((AnimationItem*)it->child(r,0));
+    };
+    drawKeyDots(item);
+}
+
 void    UiTickMgr::drawItem(QPainter& painter,AnimationItem* item)
 {
     if (item == nullptr)
         return;
-    if (item->hasChildren() && !_pTree->isExpand(item))
-        return;
+
+    /// 若为 FENode,绘制该节点所有动画的总纲(矩形范围,全部画到该节点所在行)
+    auto    node    =   item->object()->cast<FENode>();
+    if  (node != nullptr)
+    {
+        drawNodeAnimations(painter,item);
+        if (!_pTree->isExpand(item))
+            return;
+    }
     auto    anim    =   item->object()->cast<FEAnimation>();
     if (anim != nullptr)
     {
         drawAnimation(painter,item);
+        if (!_pTree->isExpand(item))
+            return;
     }
     auto    track   =   item->object()->cast<FEKeyFrameTrack>();
     if (track)
@@ -337,20 +411,94 @@ void    UiTickMgr::drawAnimation(QPainter& painter,AnimationItem* item)
         return;
     int     xOffset =   _bar ? _bar->value() : 0;
     QRect   rect    =   _pTree->visualRect(item->index());
-    int     cnt     =   item->rowCount();
     int     rowH    =   rect.height();
+    int     yStart  =   rect.top()+ _timeRowHeight + 1;
+    int     centerY =   yStart + rowH/2;
+    int     radius  =   _pointPixel/2;
+
+    /// 第一遍:绘制 animation 的范围矩形(灰色半透明背景块,上下留4px)
     auto    rng     =   anim->range();
-    /// 计算从哪开始，到哪里结束
-    real    xStart  =   time2Pixel(rng.x,_framePixel ,_fps) - xOffset;
+    real    xStart  =   time2Pixel(rng.x,_framePixel,_fps) - xOffset;
     real    width   =   time2Pixel((rng.y - rng.x),_framePixel,_fps);
-    int     yStart  =   rect.top()+ _timeRowHeight + 1 ;
-    QColor  color(0, 0, 255, 100); 
-    QColor  border(0, 0, 255, 200);
-    QRect   temp(xStart,yStart,width,rowH);
-    QRect   tmp     =   temp.marginsRemoved(QMargins(0, 1, 0, 1));
-    painter.setBrush(color);
-    painter.setPen(QPen(border, 2));
+    QRect   temp((int)xStart, yStart, (int)width, rowH);
+    QRect   tmp     =   temp.marginsRemoved(QMargins(0, 4, 0, 4));
+    painter.setBrush(_blockColor);
+    painter.setPen(QPen(_blockBorder, 1));
     painter.drawRect(tmp);
+
+    /// 第二遍:绘制所有 track 的关键帧(深灰半透明前景点)
+    painter.setBrush(_dotColor);
+    painter.setPen(QPen(_dotBorder, 1));
+
+    if  (anim->clip())
+    {
+        for  (auto track : anim->clip()->tracks())
+        {
+            if  (!track || !track->times())
+                continue;
+            auto&   key     =   track->times()->values();
+            for  (size_t i = 0; i < key.size(); i++)
+            {
+                int     centerX =   int(time2Pixel(key[i],_framePixel,_fps) - xOffset);
+                painter.drawEllipse(centerX - radius, centerY - radius, _pointPixel, _pointPixel);
+            }
+        }
+    }
+}
+
+void    UiTickMgr::drawNodeAnimations(QPainter& painter,AnimationItem* item)
+{
+    auto    node    =   item->object()->cast<FENode>();
+    if  (node == nullptr)
+        return;
+
+    int     xOffset =   _bar ? _bar->value() : 0;
+    QRect   rect    =   _pTree->visualRect(item->index());
+    int     rowH    =   rect.height();
+    int     yStart  =   rect.top() + _timeRowHeight + 1;
+    int     centerY =   yStart + rowH/2;
+    int     radius  =   _pointPixel/2;
+
+    auto    anims   =   node->objects<FEAnimation>();
+
+    /// 第一遍:绘制每个 animation 的范围矩形(灰色半透明背景块,上下留4px)
+    painter.setBrush(_blockColor);
+    painter.setPen(QPen(_blockBorder, 1));
+
+    for  (auto* animPtr : anims)
+    {
+        FE::Animation   anim(animPtr);
+        if  (!anim || !anim->clip())
+            continue;
+        auto    rng     =   anim->range();
+        real    xStart  =   time2Pixel(rng.x,_framePixel,_fps) - xOffset;
+        real    width   =   time2Pixel((rng.y - rng.x),_framePixel,_fps);
+        QRect   temp((int)xStart, yStart, (int)width, rowH);
+        QRect   tmp     =   temp.marginsRemoved(QMargins(0, 4, 0, 4));
+        painter.drawRect(tmp);
+    }
+
+    /// 第二遍:绘制所有 track 的关键帧(深灰半透明前景点)
+    painter.setBrush(_dotColor);
+    painter.setPen(QPen(_dotBorder, 1));
+
+    for  (auto* animPtr : anims)
+    {
+        FE::Animation   anim(animPtr);
+        if  (!anim || !anim->clip())
+            continue;
+        for  (auto track : anim->clip()->tracks())
+        {
+            if  (!track || !track->times())
+                continue;
+            auto&   key     =   track->times()->values();
+            for  (size_t i = 0; i < key.size(); i++)
+            {
+                int     centerX =   int(time2Pixel(key[i],_framePixel,_fps) - xOffset);
+                painter.drawEllipse(centerX - radius, centerY - radius, _pointPixel, _pointPixel);
+            }
+        }
+    }
 }
 
 int     UiTickMgr::calcDeltaFrame(const int& p0, const int& p1) const
@@ -406,81 +554,106 @@ void    UiTickMgr::slotPlayToNextFrame()
 
 void    UiTickMgr::slotAddKeyframe()
 {
+    if  (!_undoStack)
+        return;
+
     /// 当前时间(秒)
     FE::real    curTime     =   FE::real(_curFrame) / FE::real(_fps);
-    bool        bCreatedNew =   false;
 
-    /// 1. 优先从动画树获取选中的动画(动画项或轨道项选中均可)
+    /// 收集所有 (node, anim) 操作前快照
+    std::vector<FE::AddKeyframeCmd::AnimState>   states;
+
+    /// 1. 优先从动画树获取选中的动画
     FE::Animation   selectedAnim    =   nullptr;
-    if (_pTree != nullptr && _pTree->curItem() != nullptr)
+    if  (_pTree != nullptr && _pTree->curItem() != nullptr)
         selectedAnim    =   _pTree->curItem()->animation();
 
-    if (selectedAnim != nullptr)
+    if  (selectedAnim != nullptr)
     {
-        /// 动画树上有选中的动画,直接更新关键帧
-        /// 从动画的 owner 获取所属节点(用于读取当前属性值)
         auto    ownerObj    =   selectedAnim->owner();
         auto    node        =   ownerObj ? ownerObj->cast<FE::FENode>() : nullptr;
-        if (node != nullptr)
+        if  (node != nullptr)
         {
-            if (!FE::FEAnimationHelper::addNodeKeyFrame(selectedAnim, curTime, node))
-                FE::FEAnimationHelper::updateNodeKeyFrame(selectedAnim, curTime, node);
+            FE::AddKeyframeCmd::AnimState  st;
+            st.node     =   node;
+            st.anim     =   selectedAnim;
+            st.createdNew=  false;
+            st.time     =   curTime;
+            st.snapshots=   FE::AddKeyframeCmd::snapshotTracks(selectedAnim, curTime);
+            states.push_back(std::move(st));
         }
     }
     else
     {
         /// 2. 动画树没有选中动画,从模型树获取选中节点
-        if (_pModelTree == nullptr)
+        if  (_pModelTree == nullptr)
             return;
         auto    selected    =   _pModelTree->selected();
-        if (selected.empty())
+        if  (selected.empty())
             return;
 
-        /// 3. 循环所有选中对象
         for (auto& obj : selected)
         {
             auto    node    =   obj ? obj->cast<FE::FENode>() : nullptr;
-            if (node == nullptr)
+            if  (node == nullptr)
                 continue;
 
-            /// 4. 获取节点的所有动画
             auto    anims   =   node->objects<FE::FEAnimation>();
-            if (anims.empty())
+            if  (anims.empty())
             {
-                /// 节点没有动画,通过 FEAnimationHelper 创建动画(含 clip + 默认轨道)
+                /// 节点没有动画,创建新动画(暂不挂载,由命令 redo 负责)
                 FE::Animation   anim    =   FE::FEAnimationHelper::createNodeAnimtion(node->ctx());
-                node->addComponent(anim.get());
-
-                /// 注册到动画系统
-                auto    scene   =   node->ctx().scene();
-                if (scene)
-                {
-                    auto    sys =   scene->animationSystem();
-                    if (sys)
-                        sys->addObject(anim.get());
-                }
-                anims.push_back(anim.get());
-                bCreatedNew =   true;
+                FE::AddKeyframeCmd::AnimState  st;
+                st.node     =   node;
+                st.anim     =   anim;
+                st.createdNew=  true;
+                st.time     =   curTime;
+                /// 新动画无关键帧,快照为空
+                states.push_back(std::move(st));
             }
-
-            /// 5. 对每个动画添加或更新关键帧
-            ///    时间点已存在 -> updateNodeKeyFrame;否则 -> addNodeKeyFrame
-            for (auto* animPtr : anims)
+            else
             {
-                FE::Animation   anim(animPtr);
-                if (!FE::FEAnimationHelper::addNodeKeyFrame(anim, curTime, node))
-                    FE::FEAnimationHelper::updateNodeKeyFrame(anim, curTime, node);
+                for (auto* animPtr : anims)
+                {
+                    FE::Animation   anim(animPtr);
+                    FE::AddKeyframeCmd::AnimState  st;
+                    st.node     =   node;
+                    st.anim     =   anim;
+                    st.createdNew=  false;
+                    st.time     =   curTime;
+                    st.snapshots=   FE::AddKeyframeCmd::snapshotTracks(anim, curTime);
+                    states.push_back(std::move(st));
+                }
             }
         }
-
-        /// 6. 如果创建了新动画,刷新动画树
-        if (bCreatedNew && _pTree)
-            _pTree->selectObject(selected.front(), false);
     }
 
-    /// 7. 通知动画系统刷新范围(_range重算+清空cache),再重新应用当前帧
-    emit sigKeyframesChanged();
-    setCurFrame(_curFrame);
+    if  (states.empty())
+        return;
+
+    /// 捕获第一个节点用于动画树刷新
+    FE::Object    firstObj    =   states.front().node.get();
+    bool        bCreatedNew=   false;
+    for (auto& st : states)
+    {
+        if  (st.createdNew)
+        {
+            bCreatedNew =   true;
+            break;
+        }
+    }
+
+    /// 创建刷新回调(redo/undo 后均调用)
+    auto    refreshCb   =   [this, firstObj, bCreatedNew]()
+    {
+        if  (bCreatedNew && _pTree && firstObj)
+            _pTree->selectObject(firstObj, false);
+        emit sigKeyframesChanged();
+        setCurFrame(_curFrame);
+    };
+
+    /// 推入 undo 栂,首次 redo 由栈自动调用
+    _undoStack->push(new FE::AddKeyframeCmd(std::move(states), std::move(refreshCb)));
 }
 
 void    UiTickMgr::paintEvent(QPaintEvent* event)
@@ -549,7 +722,12 @@ void    UiTickMgr::paintEvent(QPaintEvent* event)
     }
     if (_pTree != nullptr && _pTree->rootItem() != nullptr)
     {
-        drawItem(painter,_pTree->rootItem());
+        auto    item    =   _pTree->rootItem();
+        drawKeyframeTimeline(painter,item);
+        if (_pTree->isExpand(item))
+        {
+            drawItem(painter,_pTree->rootItem());
+        }
     }
     
     /// 绘制框选框

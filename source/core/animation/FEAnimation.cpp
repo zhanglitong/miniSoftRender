@@ -11,6 +11,7 @@ namespace FE
         :FEComponent(ctx,true)
     {
         _name       =   "FEAnimation";
+        setEnable(true);
     }
     FEAnimation::FEAnimation(const FEAnimation& other)
         :FEComponent(other)
@@ -19,6 +20,7 @@ namespace FE
         _results    =   other._results;
         _offset     =   other._offset;
         _name       =   other._name;
+        setEnable(other.isEnable());
     }
     
     FEAnimation::~FEAnimation() 
@@ -27,6 +29,8 @@ namespace FE
 
     bool    FEAnimation::update(const real& clipTime)
     {
+        if (!isEnable())
+            return  false;
         if (!isValid())
             return  false;
         auto    rng =   range();

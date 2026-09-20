@@ -4,6 +4,8 @@
 #include    <QShortcut>
 #include    <QMenu>
 #include    <QTimer>
+#include    <QUndoStack>
+#include    <QColor>
 #include    "TimeSlider.h"
 
 
@@ -22,6 +24,7 @@ public:
     void    linkScrollBar(QScrollBar* bar);
     void    setAniTree(AnimationTree* pTree);
     void    setModelTree(QtTree* pTree);
+    void    setUndoStack(QUndoStack* stack) { _undoStack = stack; }
     void    setKeyRowHeight(int rowHeight);
     void    setTimeRowHeight(int height);
     void    setCurFrame(const int& frame, bool applyToAnim = true);
@@ -44,9 +47,19 @@ private:
     double  timeFromPos(int x);
     int     posFromFrame(int frame);
     int     rowFromPos(const QPoint& p) const;
+    /// <summary>
+    /// 绘制所有关键帧，只是快捷展示
+    /// </summary>
+    /// <param name="painter"></param>
+    /// <param name=""></param>
+    void    drawKeyframeTimeline(QPainter& painter,AnimationItem*);
     void    drawItem(QPainter& painter,AnimationItem*);
     void    drawTrack(QPainter& painter,AnimationItem*);
     void    drawAnimation(QPainter& painter,AnimationItem*);
+    /// <summary>
+    /// 绘制 FENode 所有动画的总纲(矩形范围,全部画到该节点所在行)
+    /// </summary>
+    void    drawNodeAnimations(QPainter& painter,AnimationItem*);
     int     calcDeltaFrame(const int& p0, const int& p1) const;
 public slots:
     void    slotScrollValueChanged(int value);
@@ -103,6 +116,14 @@ public:
     /// 关键点的大小
     /// </summary>
     int             _pointPixel         =   16;
+
+    /// 背景块颜色(灰色半透明填充 + 深灰边框)
+    static inline const QColor _blockColor   = QColor(128, 128, 128, 100);
+    static inline const QColor _blockBorder  = QColor(80,  80,  80,  200);
+    /// 关键帧点颜色(深灰半透明填充 + 深灰边框)
+    static inline const QColor _dotColor     = QColor(64,  64,  64,  180);
+    static inline const QColor _dotBorder    = QColor(40,  40,  40,  220);
+
     // 每隔几帧画一条时间线
     int             _frameFrequency     =   10;
 
@@ -140,4 +161,6 @@ public:
     QShortcut*  _shortcutPaste;
     QShortcut*  _shortcutCopyPaste;
     QShortcut*  _shortcutDelete;
+
+    QUndoStack*     _undoStack  =   nullptr;
 };

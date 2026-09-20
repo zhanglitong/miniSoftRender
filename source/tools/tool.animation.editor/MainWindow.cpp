@@ -17,6 +17,8 @@ MainWindow::MainWindow()
     ui.setupUi(this);
 
     ui.action_savePrj->setShortcut(QKeySequence::Save);
+    ui.action_undo->setShortcut(QKeySequence::Undo);
+    ui.action_redo->setShortcut(QKeySequence::Redo);
 
     ui.timeLineEditor->linkScrollBar(ui.horizontalScrollBar);
     ui.splitter->setSizes({200, 800});
@@ -33,6 +35,7 @@ MainWindow::MainWindow()
 
     _undoStack  =   new QUndoStack(this);
     ui.undoView->setStack(_undoStack);
+    ui.timeLineEditor->setUndoStack(_undoStack);
 
     /// 时间线编辑通知
     /// 用来控制动画
@@ -182,9 +185,13 @@ void    MainWindow::slotReset()
 }
 void    MainWindow::slotRedo()
 {
+    if  (_undoStack)
+        _undoStack->redo();
 }
 void    MainWindow::slotUndo()
 {
+    if  (_undoStack)
+        _undoStack->undo();
 }
 
 void    MainWindow::slotMoveEditor()
