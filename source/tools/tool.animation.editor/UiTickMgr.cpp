@@ -393,11 +393,15 @@ void    UiTickMgr::drawTrack(QPainter& painter,AnimationItem* item)
     int     yStart  =   rect.top()+ _timeRowHeight + 1 ;
     
     auto&    key =   track->times()->values();
+    /// 根据所属动画的 enable 状态选择颜色
+    auto    anim    =   item->animation();
+    bool    enabled =   anim && anim->isEnable();
+    painter.setBrush(enabled ? _dotColorEn : _dotColor);
+    painter.setPen(QPen(enabled ? _dotBorderEn : _dotBorder, 1));
+
     for (size_t i = 0; i <key.size(); i++)
     {
         auto    time    =   time2Pixel(key[i], _framePixel , _fps) - xOffset;
-        painter.setBrush(Qt::yellow);
-        painter.setPen(Qt::black);
         int     centerX =   int(time);
         int     centerY =   yStart + rowH/2;
         int     radius  =   _pointPixel/2;

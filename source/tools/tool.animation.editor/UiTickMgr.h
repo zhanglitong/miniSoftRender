@@ -123,6 +123,9 @@ public:
     /// 关键帧点颜色(深灰半透明填充 + 深灰边框)
     static inline const QColor _dotColor     = QColor(64,  64,  64,  180);
     static inline const QColor _dotBorder    = QColor(40,  40,  40,  220);
+    /// 启用态关键帧点颜色(深绿色填充 + 绿色边框)
+    static inline const QColor _dotColorEn   = QColor(55,  125, 34, 180);
+    static inline const QColor _dotBorderEn  = QColor(100, 200, 100, 220);
 
     // 每隔几帧画一条时间线
     int             _frameFrequency     =   10;
