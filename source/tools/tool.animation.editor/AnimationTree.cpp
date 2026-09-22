@@ -359,9 +359,9 @@ void    AnimationTree::contextMenuEvent(QContextMenuEvent* event)
         _menu->addSeparator();
         bool    enabled =   node->flags().hasFlag(FE::FLAG_ENABLE);
         auto    toggleEn  =   _menu->addAction(enabled ? u8"禁用" : u8"启用");
-        connect(createAnim, &QAction::triggered, this, &AnimationTree::slotCreateAnimation);
-        connect(deleteAnim, &QAction::triggered, this, &AnimationTree::slotDeleteAnimation);
-        connect(toggleEn,  &QAction::triggered, this, &AnimationTree::slotToggleEnable);
+        connect(createAnim,     &QAction::triggered, this, &AnimationTree::slotCreateAnimation);
+        connect(deleteAnim,     &QAction::triggered, this, &AnimationTree::slotDeleteAnimation);
+        connect(toggleEn,       &QAction::triggered, this, &AnimationTree::slotToggleEnable);
     }
     else if (anim != nullptr)
     {

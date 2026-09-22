@@ -1,8 +1,10 @@
 #pragma     once
 #include    <functional>
 #include    <format>
+#include    "../FETransform.hpp"
 #include    "../FEComponent.hpp"
 #include    "FEAnimClip.hpp"
+
 
 
 namespace FE
@@ -26,11 +28,6 @@ namespace FE
             /// 标记数据变更
             /// </summary>
             AnimationChanged    =   (FLAG_ACTOR <<1),
-            /// <summary>
-            /// 动画是否被禁用
-            /// 禁用不能编辑，不能播放
-            /// </summary>
-            AnimationEnabled    =   (AnimationChanged<<1),
         };
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)
@@ -171,6 +168,7 @@ namespace FE
         /// 记录动画播放到哪里了
         /// </summary>
         real            _clipTime   =   0;
+        FETransform     _gloabal;
         TrackResults    _results; 
         String          _name;
     };

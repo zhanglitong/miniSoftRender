@@ -76,7 +76,7 @@ namespace   FE
             return  result;
         }
         /// <summary>
-        /// 情况
+        /// 清空
         /// </summary>
         virtual void    clear() override
         {

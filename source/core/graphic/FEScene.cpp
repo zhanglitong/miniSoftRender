@@ -27,6 +27,7 @@ namespace   FE
         ,_nodeTree(ctx)
         ,_factorys(ctx)
         ,_viewerMgr(ctx)
+        ,_updateList(ObjectLessFunc)
         ,_comSysMgr(ctx)
     {
         _nodeTree.eventsChangedNode()   +=  {this,[this](const FENode* node)
@@ -39,6 +40,7 @@ namespace   FE
         ,_nodeTree(other._nodeTree)
         ,_factorys(other._factorys)
         ,_viewerMgr(other._viewerMgr)
+        ,_updateList(ObjectLessFunc)
         ,_comSysMgr(other._comSysMgr)
     {}
     FEScene::~FEScene()
@@ -256,6 +258,7 @@ namespace   FE
     {
         if (_frame == nullptr || _frame->_cmd == nullptr)
             return;
+        updateList().clearObjects();
         /// all componentSys for update
         /// 复制一份
         auto    comSyss     =   _comSysMgr.objects();
@@ -269,7 +272,7 @@ namespace   FE
             else
                 return  prioLeft.priority() <  prioRight.priority();
         });
-        /// 所有组件系统更新
+        
         for (auto& var : comSyss)
         {
             var->update(_ctx.deltaTime());

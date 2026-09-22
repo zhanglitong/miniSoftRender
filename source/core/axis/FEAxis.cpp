@@ -10,7 +10,7 @@ namespace   FE
         :FEInputCom(ctx)
     {
         _axisType       =   AxisTypeBase;
-        _transform      =   mat4r(1.0);
+        _gloabalMat      =   mat4r(1.0);
         _internalFlags  =   { InteralFlag_Update, InteralFlag_Visible };
     }
     FEAxis::~FEAxis()

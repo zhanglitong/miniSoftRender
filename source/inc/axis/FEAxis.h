@@ -27,7 +27,7 @@ namespace   FE
             AxisTypeBrowse  =   2,
         };
     protected:
-        mat4r           _transform;
+        mat4r           _gloabalMat;
         AxisType        _axisType;
     public:
         static const real3 AxisX()
@@ -66,9 +66,9 @@ namespace   FE
         /// <param name="transform">轴变换矩阵</param>
         inline void     setTransform(const mat4r& transform)
         {
-            if (_transform == transform)
+            if (_gloabalMat == transform)
                 return;
-            _transform = transform;
+            _gloabalMat = transform;
             _internalFlags.addFlag(InteralFlag_Update);
             _ctx.requireNextFrame();
         }
@@ -78,12 +78,12 @@ namespace   FE
         /// <param name="trans"></param>
         inline  void    setTranslation(const real3& trans)
         {
-            _transform[3] = glm::vec4(trans, 1.0f); 
+            _gloabalMat[3] = glm::vec4(trans, 1.0f); 
         }
         inline  void    appTranslation(const real3& trans)
         {
-            _transform[3]   += glm::vec4(trans, 0.0f); 
-            _transform[3].w =   1;
+            _gloabalMat[3]   += glm::vec4(trans, 0.0f); 
+            _gloabalMat[3].w =   1;
             _internalFlags.addFlag(InteralFlag_Update);
             _ctx.requireNextFrame();
         }
@@ -93,7 +93,7 @@ namespace   FE
         /// <returns>轴变换矩阵</returns>
         const mat4r&    transform() const
         {
-            return _transform;
+            return _gloabalMat;
         }
         /// <summary>
         /// 获取轴的位置
@@ -101,7 +101,7 @@ namespace   FE
         /// <returns>轴的位置</returns>
         inline real3    position() const
         {
-            return real3(_transform[3][0], _transform[3][1], _transform[3][2]);
+            return real3(_gloabalMat[3][0], _gloabalMat[3][1], _gloabalMat[3][2]);
         }
         /// <summary>
         /// 获取X轴方向

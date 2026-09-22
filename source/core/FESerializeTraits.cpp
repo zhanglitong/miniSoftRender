@@ -201,7 +201,6 @@ namespace   FE
         case 2: cnt =   reader.readValue<uint16>();break;
         case 3: cnt =   reader.readValue<uint32>();break;
         }
-        _coms.reserve(cnt);
         for (uint i = 0 ;i < cnt; ++ i)
         {
             OBJId   objectId ;

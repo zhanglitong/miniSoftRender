@@ -180,7 +180,7 @@ namespace   FE
         inline  auto&   setGlobalTranslation(const real3& vec)
         {
             if (_parent != nullptr)
-                _trans  =   FE::inverse(_parent->as<FENode>()->globalTransform()) * real4(vec,1.0);
+                _trans  =   FE::inverse(_parent->globalTransform()) * real4(vec,1.0);
             else
                 _trans  =   vec;
             flags().addFlag(FLAG_PROP_TRANS);
@@ -199,7 +199,7 @@ namespace   FE
             real3   pos;
             real3   scale;
             quatr   rot;
-            FE::decompose<real>(_transform, pos, scale, rot);
+            FE::decompose<real>(_gloabal, pos, scale, rot);
             return  rot;
         }
         /// <summary>
@@ -230,7 +230,7 @@ namespace   FE
             real3   pos;
             real3   scale;
             quatr   rot;
-            FE::decompose<real>(_transform, pos, scale, rot);
+            FE::decompose<real>(_gloabal, pos, scale, rot);
             return  scale;
         }
 
@@ -302,11 +302,11 @@ namespace   FE
         {
             if (com == nullptr)
                 return  false;
-            auto    itr =   std::find(_coms.begin(),_coms.end(),com);
-            if (itr != _coms.end()) 
-                return  false;
+            auto    itr     =   std::lower_bound(_coms.begin(), _coms.end(), com,FEComponent::compare);
+            if (itr != _coms.end() && *itr == com)
+                return  0;
             com->attach(this);
-            _coms.push_back(com);
+            _coms.insert(itr, com);
             return  true;
         }
         /// <summary>
@@ -318,13 +318,14 @@ namespace   FE
         {
             if (com == nullptr)
                 return  false;
-            auto    itr =   std::find(_coms.begin(),_coms.end(),com);
-            if (itr == _coms.end()) 
-                return  false;
-            else
+            auto    itr     =   std::lower_bound(_coms.begin(), _coms.end(), com,FEComponent::compare);
+            if (itr != _coms.end() && *itr == com)
+            {
                 _coms.erase(itr);
-            com->detach();
-            return  true;
+                com->detach();
+                return  true;
+            }
+            return  false;
         }
         /// <summary>
         /// 移除所有组件
@@ -422,7 +423,7 @@ namespace   FE
         /// <returns></returns>
         inline  mat4r   globalTransform() const
         {
-            return  _transform;
+            return  _gloabal;
         }
         inline  aabb3dr globalAabb() const
         {
@@ -485,6 +486,12 @@ namespace   FE
         /// <returns>true,表示修改成功,否则没有修改</returns>
         virtual bool    setProperty(int prop,const KFValue& value) override;
         /// <summary>
+        /// 获取属性函数
+        /// </summary>
+        /// <param name=""></param>
+        /// <returns></returns>
+        virtual KFValue getProperty(int) const override;
+        /// <summary>
         /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>
         /// <param name="bModify"></param>
@@ -499,7 +506,7 @@ namespace   FE
         quatf       _rotate;
         RenderFlags _renderBits;
         aabb3r      _aabb;
-        mat4r       _transform;
+        mat4r       _gloabal;
         /// <summary>
         /// 经常被访问的组件
         /// </summary>

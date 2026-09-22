@@ -47,11 +47,7 @@ namespace   FE
         /// <returns></returns>
         inline  bool    exists(const TObject& object) const
         {
-            auto        itr =   std::lower_bound(_objects.begin(), _objects.end(), object,_sortFunc);
-            if (itr != _objects.end() && *itr == object)
-                return  true;
-            else
-                return  false;
+            return std::binary_search(_objects.begin(), _objects.end(), object, _sortFunc);
         }
         inline  bool    contains(const TObject& object) const
         {

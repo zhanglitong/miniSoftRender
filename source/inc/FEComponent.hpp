@@ -1,10 +1,25 @@
 #pragma     once  
 #include    "FEObject.h"  
 #include    "FEPriority.hpp"
+#include    "FETransform.hpp"
+#include    "FEObjectsTemplate.hpp"
+
 namespace   FE 
 {     
-    class   FE_API FEComponent :public FEObject     
+    /// 按照优先级排序,优先级相同的按照order排序
+    constexpr   auto    ObjectLessFunc = [](const Object& l, const Object& r)
+    {
+        return  l.get() < r.get();
+    };
+    /// 推导出来类型
+    using   ObjectLess  =   decltype(ObjectLessFunc);
+
+    using   ObjectList  =   FEObjectsTemplate<Object,ObjectLess>;
+    class   FE_API  FEComponent :public FEObject     
     {     
+    public:
+        using   Component       =   SharedPtr<FEComponent>;
+        using   Components      =   std::vector<Component>;
     public:
         enum    COMFlag :uint32_t
         {
@@ -100,6 +115,15 @@ namespace   FE
             UNUSED(deltaTm);
             return  false;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="parent"></param>
+        /// <param name=""></param>
+        virtual void    appTransform(const mat4r& parent,FETransform& local)
+        {
+            UNUSED(parent,local);
+        }
         
     protected:
         /// <summary>
@@ -110,8 +134,28 @@ namespace   FE
         /// 优先级
         /// </summary>
         FEPriority  _priority;
+    public:
+        static  inline  bool    compare(const Component& a, const Component& b)
+        {
+            const auto& pa = a->priority();
+            const auto& pb = b->priority();
+            if (pa.priority() != pb.priority())
+                return pa.priority() < pb.priority();
+            if (pa.order() != pb.order())
+                return pa.order() < pb.order();
+            return a.get() < a.get();
+        }
     };
 
-    using   Component   =   SharedPtr<FEComponent>;
-    using   Components  =   std::vector<Component>;
+    using   Component       =   SharedPtr<FEComponent>;
+    using   Components      =   std::vector<Component>;
+
+    struct  ComponentCmp
+    {
+        bool    operator()(const Component& a, const Component& b) const
+        {
+            return  FEComponent::compare(a,b);
+        }
+    };
+    using   ComponentSet    =   std::set<Component,ComponentCmp>;
 }

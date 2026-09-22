@@ -329,10 +329,12 @@ void    UiTickMgr::drawKeyframeTimeline(QPainter& painter,AnimationItem* item)
         auto    track   =   it->object()->cast<FEKeyFrameTrack>();
         if  (track != nullptr && track->times())
         {
+            auto    anim    =   it->animation();
+            real    offset  =   anim ? anim->offset() : 0;
             auto&   key     =   track->times()->values();
             for  (size_t i = 0; i < key.size(); i++)
             {
-                int     centerX =   int(time2Pixel(key[i],_framePixel,_fps) - xOffset);
+                int     centerX =   int(time2Pixel(key[i] + offset,_framePixel,_fps) - xOffset);
                 painter.drawEllipse(centerX - radius, centerY - radius, _pointPixel, _pointPixel);
             }
         }
@@ -396,12 +398,13 @@ void    UiTickMgr::drawTrack(QPainter& painter,AnimationItem* item)
     /// 根据所属动画的 enable 状态选择颜色
     auto    anim    =   item->animation();
     bool    enabled =   anim && anim->isEnable();
+    real    offset  =   anim ? anim->offset() : 0;
     painter.setBrush(enabled ? _dotColorEn : _dotColor);
     painter.setPen(QPen(enabled ? _dotBorderEn : _dotBorder, 1));
 
     for (size_t i = 0; i <key.size(); i++)
     {
-        auto    time    =   time2Pixel(key[i], _framePixel , _fps) - xOffset;
+        auto    time    =   time2Pixel(key[i] + offset, _framePixel , _fps) - xOffset;
         int     centerX =   int(time);
         int     centerY =   yStart + rowH/2;
         int     radius  =   _pointPixel/2;
@@ -431,6 +434,7 @@ void    UiTickMgr::drawAnimation(QPainter& painter,AnimationItem* item)
     painter.drawRect(tmp);
 
     /// 第二遍:绘制所有 track 的关键帧(深灰半透明前景点)
+    real    offset  =   anim->offset();
     painter.setBrush(_dotColor);
     painter.setPen(QPen(_dotBorder, 1));
 
@@ -443,7 +447,7 @@ void    UiTickMgr::drawAnimation(QPainter& painter,AnimationItem* item)
             auto&   key     =   track->times()->values();
             for  (size_t i = 0; i < key.size(); i++)
             {
-                int     centerX =   int(time2Pixel(key[i],_framePixel,_fps) - xOffset);
+                int     centerX =   int(time2Pixel(key[i] + offset,_framePixel,_fps) - xOffset);
                 painter.drawEllipse(centerX - radius, centerY - radius, _pointPixel, _pointPixel);
             }
         }
@@ -491,6 +495,7 @@ void    UiTickMgr::drawNodeAnimations(QPainter& painter,AnimationItem* item)
         FE::Animation   anim(animPtr);
         if  (!anim || !anim->clip())
             continue;
+        real    offset  =   anim->offset();
         for  (auto track : anim->clip()->tracks())
         {
             if  (!track || !track->times())
@@ -498,7 +503,7 @@ void    UiTickMgr::drawNodeAnimations(QPainter& painter,AnimationItem* item)
             auto&   key     =   track->times()->values();
             for  (size_t i = 0; i < key.size(); i++)
             {
-                int     centerX =   int(time2Pixel(key[i],_framePixel,_fps) - xOffset);
+                int     centerX =   int(time2Pixel(key[i] + offset,_framePixel,_fps) - xOffset);
                 painter.drawEllipse(centerX - radius, centerY - radius, _pointPixel, _pointPixel);
             }
         }
@@ -565,7 +570,7 @@ void    UiTickMgr::slotAddKeyframe()
     FE::real    curTime     =   FE::real(_curFrame) / FE::real(_fps);
 
     /// 收集所有 (node, anim) 操作前快照
-    std::vector<FE::AddKeyframeCmd::AnimState>   states;
+    FE::AddKeyframeCmd::AnimStates   states;
 
     /// 1. 优先从动画树获取选中的动画
     FE::Animation   selectedAnim    =   nullptr;

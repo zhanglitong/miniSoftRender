@@ -383,6 +383,15 @@ namespace   FE
             return  false;
         }
         /// <summary>
+        /// 获取属性函数
+        /// </summary>
+        /// <param name=""></param>
+        /// <returns></returns>
+        virtual KFValue     getProperty(int) const
+        {
+            return  {};
+        }
+        /// <summary>
         /// 动画系统独有接口
         /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>

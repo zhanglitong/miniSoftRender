@@ -15,7 +15,7 @@ namespace   FE
         _rotate     =   quatf(1,0,0,0);
         /// 默认情况下颜色会 color x fragment 
         _color      =   Rgba8(255,255,255,255);
-        _transform  =   FE::makeTransform<real>(_trans,_scale,_rotate);
+        _gloabal    =   FE::makeTransform<real>(_trans,_scale,_rotate);
         _renderBits =   RF_VISIBLE;
     }
 
@@ -28,7 +28,7 @@ namespace   FE
         _renderBits =   other._renderBits   ;
         _aabb       =   other._aabb         ;
 
-        _transform  =   other._transform    ;
+        _gloabal  =   other._gloabal    ;
         _material   =   other._material     ; 
         _mesh       =   other._mesh         ; 
         _color      =   other._color        ;
@@ -46,7 +46,7 @@ namespace   FE
         updateTransform(true);
         updateAabb(true);
     }
-    void   FENode::fireChanged()
+    void    FENode::fireChanged()
     {
         if ( flags().hasFlags(ModifyValue) )
         {   
@@ -98,12 +98,25 @@ namespace   FE
     
     void    FENode::updateTransform(bool recursion)
     {
-        auto    pParent =   parent() ? parent()->as<FENode>() : nullptr;
-        if (pParent != nullptr)
-            _transform  =   pParent->_transform * makeTransform(_trans, real3(_scale), FE::quatr(_rotate));
+        FETransform tranform(_trans,_rotate,_scale);
+        
+        if (parent() != nullptr)
+        {
+            for (auto var: _coms)
+            {
+                var->appTransform(parent()->_gloabal,tranform);
+            }
+            _gloabal  =   parent()->_gloabal * tranform.toMatrix();
+        } 
         else
-            _transform  =   makeTransform(_trans, real3(_scale), FE::quatr(_rotate));
-
+        {
+            static  mat4r   matId(1);
+            for (auto var: _coms)
+            {
+                var->appTransform(matId,tranform);
+            }
+            _gloabal  =   tranform.toMatrix();
+        }
         if (!recursion || children().empty() )
             return ;
         auto&   chs =   children();
@@ -125,7 +138,7 @@ namespace   FE
         if (_mesh)
         {
             FEPickup    result  =   {};
-            if(_mesh->intersect(ray,_transform,result))
+            if(_mesh->intersect(ray,_gloabal,result))
             {
                 result.object   =   const_cast<FENode*>(this);
                 result.point    =   ray.getPoint(result.time);
@@ -152,7 +165,7 @@ namespace   FE
             return  0;
         if (_mesh)
         {
-            _mesh->intersect(ray,_transform,result);
+            _mesh->intersect(ray,_gloabal,result);
         }
         /// 递归所有子孙节点
         auto&   chs  =   children();
@@ -220,7 +233,7 @@ namespace   FE
             _scale      =   std::get<float3>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
-
+        /// 欧拉角实现
         case PROP_ROTATE_X:
         case PROP_ROTATE_Y:
         case PROP_ROTATE_Z:
@@ -253,6 +266,30 @@ namespace   FE
         }
     }
 
+    KFValue FENode::getProperty(int prop) const
+    {
+        switch(prop)
+        {
+        case PROP_TRANSFORM_X:  return  _trans.x;
+        case PROP_TRANSFORM_Y:  return  _trans.y;
+        case PROP_TRANSFORM_Z:  return  _trans.z;
+        case PROP_TRANSFORM_XYZ:return  _trans;
+        case PROP_SCALE_X:      return  _scale.x;
+        case PROP_SCALE_Y:      return  _scale.y;
+        case PROP_SCALE_Z:      return  _scale.z;
+        case PROP_SCALE_XYZ:    return  _scale;
+        case PROP_ROTATE_X:     return  RAD2DEG(quatToEuler(_rotate).x);
+        case PROP_ROTATE_Y:     return  RAD2DEG(quatToEuler(_rotate).y);
+        case PROP_ROTATE_Z:     return  RAD2DEG(quatToEuler(_rotate).z);
+        case PROP_ROTATE_XYZ:   return  quatToEuler(_rotate);
+        case PROP_QUAT:         return  _rotate;
+        case PROP_COLOR_RGB:    return  _color.value();
+        case PROP_COLOR_ALPHA:  return  _color.value().a;
+        default:
+            assert(0!=0);
+            return  {};
+        }
+    }
     void    FENode::endSetProp(bool bModify)
     {
         UNUSED(bModify);

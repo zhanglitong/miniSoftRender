@@ -160,6 +160,8 @@ namespace FE
             auto    clip    =   anim->clip();
             if (clip == nullptr || clip->tracks().empty())
                 return  false;
+            /// 时间线时间转内部时间
+            real    internalTime    =   time - anim->offset();
 
             /// 分解 node 的 transform
             real3   pos,scale;
@@ -214,7 +216,7 @@ namespace FE
                 if (track->_times)
                 {
                     auto&   times   =   track->_times->values();
-                    if (std::find(times.begin(),times.end(),time) != times.end())
+                    if (std::find(times.begin(),times.end(),internalTime) != times.end())
                     {
                         bTimeExisted    =   true;
                         continue;
@@ -224,7 +226,7 @@ namespace FE
                 /// 确保时间对象存在
                 if (!track->_times)
                     track->setTimeObject(RealsObject(new FERealsObject(node->ctx())));
-                track->_times->values().push_back(time);
+                track->_times->values().push_back(internalTime);
 
                 /// 根据属性索引写入对应的值
                 auto    valIdx  =   track->_values.index();
@@ -302,6 +304,8 @@ namespace FE
             auto    clip    =   anim->clip();
             if (clip == nullptr)
                 return  false;
+            /// 时间线时间转内部时间
+            real    internalTime    =   time - anim->offset();
 
             bool    bRemoved    =   false;
             for (auto track : clip->tracks())
@@ -309,7 +313,7 @@ namespace FE
                 if (!track->_times)
                     continue;
                 auto&   times   =   track->_times->values();
-                auto    itr     =   std::find(times.begin(),times.end(),time);
+                auto    itr     =   std::find(times.begin(),times.end(),internalTime);
                 if (itr == times.end())
                     continue;
                 size_t  idx =   (size_t)std::distance(times.begin(),itr);
@@ -356,6 +360,8 @@ namespace FE
             auto    clip    =   anim->clip();
             if (clip == nullptr || clip->tracks().empty())
                 return  false;
+            /// 时间线时间转内部时间
+            real    internalTime    =   time - anim->offset();
 
             /// 分解 node 的 transform
             real3   pos,scale;
@@ -407,7 +413,7 @@ namespace FE
                 if (!track->_times)
                     continue;
                 auto&   times   =   track->_times->values();
-                auto    itr     =   std::find(times.begin(),times.end(),time);
+                auto    itr     =   std::find(times.begin(),times.end(),internalTime);
                 if (itr == times.end())
                     continue;
                 size_t  idx =   (size_t)std::distance(times.begin(),itr);

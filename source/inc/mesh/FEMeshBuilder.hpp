@@ -44,7 +44,7 @@ namespace   FE
                 {
                     subMesh.setBuffer(colors.data(),   colors.size()  * sizeof( Rgba8));
                 }
-                if (var.slot() & (IS_VERTEX_COLOR0))
+                if (var.slot() & (IS_VERTEX_TEXCOORD0))
                 {
                     subMesh.setBuffer(uvs.data(),       uvs.size()  * sizeof(float));
                 }

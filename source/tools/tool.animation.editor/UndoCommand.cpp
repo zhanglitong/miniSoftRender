@@ -55,6 +55,8 @@ namespace   FE
         TrackSnapshots  snaps;
         if  (!anim || !anim->clip())
             return  snaps;
+        /// 时间线时间转内部时间
+        real    internalTime    =   time - anim->offset();
         for (auto track : anim->clip()->tracks())
         {
             AddKeyframeCmd::TrackSnapshot  snap;
@@ -63,7 +65,7 @@ namespace   FE
             if  (track->_times)
             {
                 auto&   times   =   track->_times->values();
-                auto    itr     =   std::find(times.begin(), times.end(), time);
+                auto    itr     =   std::find(times.begin(), times.end(), internalTime);
                 if  (itr != times.end())
                 {
                     snap.existed=   true;
@@ -111,15 +113,17 @@ namespace   FE
     {
         for (auto& st : _states)
         {
+            /// 时间线时间转内部时间
+            real    internalTime    =   st.time - st.anim->offset();
             /// 逐轨道恢复: 原有 -> 还原旧值, 新增 -> 移除关键帧
             for (auto& snap : st.snapshots)
             {
                 if  (!snap.track)
                     continue;
                 if  (snap.existed)
-                    snap.track->updateKeyFrame(st.time, snap.oldVal);
+                    snap.track->updateKeyFrame(internalTime, snap.oldVal);
                 else
-                    snap.track->removeKeyFrame(st.time);
+                    snap.track->removeKeyFrame(internalTime);
             }
             /// 新建动画: 从节点和动画系统移除
             if (st.createdNew)

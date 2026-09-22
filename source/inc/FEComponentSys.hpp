@@ -1,8 +1,10 @@
 #pragma     once  
 #include    "FEComponent.hpp"
 #include    "FEFactory.hpp"
+#include    "FEObjectsTemplate.hpp"
 namespace   FE 
 {     
+
     /// <summary>
     /// 是组件系统的基类
     /// 典型应用: 
@@ -44,7 +46,7 @@ namespace   FE
         /// 组件每一帧更新
         /// </summary>
         /// <param name="deltaTm"></param>
-        /// <returns></returns>
+        /// <param name="updateList">输出需要更新的对象</param>
         virtual void    update(const real& deltaTm)
         {
             UNUSED(deltaTm);

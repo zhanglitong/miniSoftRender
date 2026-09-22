@@ -13,8 +13,7 @@ namespace   FE
         using   ActionMap   =   std::map<String, Action>;
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimationSys)
-    public:
-    public:         
+    public:       
         FEAnimationSys(FEContext& ctx)
             :FEComponentSys(ctx)   
         {}         
