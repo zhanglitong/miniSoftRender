@@ -2,6 +2,7 @@
 #include    <QTreeView>
 #include    <QShortcut>
 #include    <QStandardItemModel>
+#include    <QUndoStack>
 #include    "node/FENode.hpp"
 #include    "animation/FEKeyFrameTrack.hpp"
 #include    "AnimationItem.h"
@@ -15,9 +16,17 @@ class   AnimationTree : public QTreeView
 public:
     AnimationTree(QWidget* parent = nullptr);
 public:
-    
+
     void    linkToTickMgr(UiTickMgr* mgr);
     void    updateUi();
+    void    setUndoStack(QUndoStack* stack) { _undoStack = stack; }
+    QUndoStack* undoStack() const { return _undoStack; }
+    /// 供 undo 命令直接操作 _objects 列表(不触发 updateUi)
+    void    addObjectToList(Object item);
+    void    removeObjectFromList(Object item);
+    void    clearObjectList();
+    void    setObjectList(const FE::Objects& objs);
+    FE::Objects snapshotObjectList() const;
     void    setSelectWhenMoveTo(bool enable)
     {
         _isSelectWhenMoveTo = enable;
@@ -98,6 +107,7 @@ private:
     QStandardItemModel*     _model              =   nullptr;
     QMenu*                  _menu               =   nullptr;
     UiTickMgr*              _tickMgr            =   nullptr;
+    QUndoStack*             _undoStack          =   nullptr;
     AnimationItem*          _rootItem           =   nullptr;
     AnimationItem*          _curItem            =   nullptr;
     QShortcut*              _shortcutDelete     =   nullptr;

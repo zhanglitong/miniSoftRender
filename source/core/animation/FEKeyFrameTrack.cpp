@@ -41,6 +41,14 @@ namespace FE
         case 11:    return  sortImpl(std::get<BoolsObject>(_values));
         case 12:    return  sortImpl(std::get<RgbaObject>(_values));
         case 13:    return  sortImpl(std::get<AlphaObject>(_values));
+        case 14:    return  sortImpl(std::get<IntsObject>(_values));
+        case 15:    return  sortImpl(std::get<Int2sObject>(_values));
+        case 16:    return  sortImpl(std::get<Int3sObject>(_values));
+        case 17:    return  sortImpl(std::get<Int4sObject>(_values));
+        case 18:    return  sortImpl(std::get<UintsObject>(_values));
+        case 19:    return  sortImpl(std::get<Uint2sObject>(_values));
+        case 20:    return  sortImpl(std::get<Uint3sObject>(_values));
+        case 21:    return  sortImpl(std::get<Uint4sObject>(_values));
         }
     }
     KFOff   FEKeyFrameTrack::calcFrameOffset(const real& clipTime) const

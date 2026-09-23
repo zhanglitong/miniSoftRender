@@ -33,9 +33,23 @@ namespace FE
         static  Animation   createNodeAnimtion(FEContext& _ctx,NodeProperyBits prop = NP_Default)
         {
             auto    anim    =   new FEAnimation(_ctx);
-            auto    clip    =   new FEAnimClip(_ctx); 
+            auto    clip    =   new FEAnimClip(_ctx);
             anim->setClip(clip);
             anim->setName("Animation");
+            addDefaultTracks(clip, _ctx, prop);
+            return  anim;
+        }
+        /// <summary>
+        /// 向已存在的 clip 添加默认轨道(位置/缩放/旋转等),轨道初始为空(无关键帧)
+        /// 用于动画 clip 没有任何 track 的场景
+        /// </summary>
+        /// <param name="clip">目标 clip</param>
+        /// <param name="_ctx">上下文</param>
+        /// <param name="prop">需要创建的轨道属性位掩码,默认位置+缩放+旋转</param>
+        static  void    addDefaultTracks(AnimClip clip, FEContext& _ctx, NodeProperyBits prop = NP_Default)
+        {
+            if  (!clip)
+                return;
 
             /// 创建共享的时间线(空),由各轨道引用
             /// 注意:track共享同一时间线对象时,FEAction::updateBatch 会做相同时间线优化
@@ -141,7 +155,6 @@ namespace FE
                 track->setValueObject(values);
                 clip->addTrack(track);
             }
-            return  anim;
         }
         /// <summary>
         /// 动画中添加关键帧数据,time 时间，如果时间点存在,返回失败,propBits 指定哪些属性轨道需要添加关键帧
@@ -164,8 +177,10 @@ namespace FE
             real    internalTime    =   time - anim->offset();
 
             /// 分解 node 的 transform
-            real3   pos,scale;
-            quatr   rot;
+            real3   pos         =   anim->transform().position();
+            real3   scale       =   anim->transform().scale();
+            quatr   rot         =   anim->transform().rotation();
+            
             decompose<real>(node->globalTransform(),pos,scale,rot);
             auto    eulerRad    =   quatToEuler(rot);
             real3   eulerDeg(RAD2DEG(eulerRad.x),RAD2DEG(eulerRad.y),RAD2DEG(eulerRad.z));
@@ -226,10 +241,34 @@ namespace FE
                 /// 确保时间对象存在
                 if (!track->_times)
                     track->setTimeObject(RealsObject(new FERealsObject(node->ctx())));
+
+                /// 先检查值类型是否匹配,不匹配则跳过(避免 times/values 尺寸不一致)
+                auto    valIdx  =   track->_values.index();
+                bool    bTypeMatch  =   false;
+                switch (propIdx)
+                {
+                case    PROP_TRANSFORM_X:   case PROP_TRANSFORM_Y:   case PROP_TRANSFORM_Z:
+                case    PROP_SCALE_X:       case PROP_SCALE_Y:       case PROP_SCALE_Z:
+                case    PROP_ROTATE_X:      case PROP_ROTATE_Y:      case PROP_ROTATE_Z:
+                    bTypeMatch  =   (valIdx == 1);  break;
+                case    PROP_TRANSFORM_XYZ: case PROP_SCALE_XYZ:     case PROP_ROTATE_XYZ:
+                    bTypeMatch  =   (valIdx == 3);  break;
+                case    PROP_QUAT:
+                    bTypeMatch  =   (valIdx == 5);  break;
+                case    PROP_COLOR_RGB:
+                    bTypeMatch  =   (valIdx == 12); break;
+                case    PROP_COLOR_ALPHA:
+                    bTypeMatch  =   (valIdx == 13); break;
+                case    PROP_VISIBLE:
+                    bTypeMatch  =   (valIdx == 11); break;
+                default:    break;
+                }
+                if  (!bTypeMatch)
+                    continue;
+
                 track->_times->values().push_back(internalTime);
 
                 /// 根据属性索引写入对应的值
-                auto    valIdx  =   track->_values.index();
                 switch (propIdx)
                 {
                 case    PROP_TRANSFORM_X:
@@ -364,9 +403,9 @@ namespace FE
             real    internalTime    =   time - anim->offset();
 
             /// 分解 node 的 transform
-            real3   pos,scale;
-            quatr   rot;
-            decompose<real>(node->globalTransform(),pos,scale,rot);
+            real3   pos         =   anim->transform().position();
+            real3   scale       =   anim->transform().scale();
+            quatr   rot         =   anim->transform().rotation();
             auto    eulerRad    =   quatToEuler(rot);
             real3   eulerDeg(RAD2DEG(eulerRad.x),RAD2DEG(eulerRad.y),RAD2DEG(eulerRad.z));
 

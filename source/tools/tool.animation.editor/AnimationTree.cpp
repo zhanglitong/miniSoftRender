@@ -6,6 +6,7 @@
 #include    "UiTickMgr.h"
 #include    "AnimationItem.h"
 #include    "MainWindow.h"
+#include    "UndoCommand.h"
 #include    "mesh/FEMesh.hpp"
 #include    "animation/FEAnimationHelper.hpp"
 #include    "animation/FEAnimationSys.hpp"
@@ -197,6 +198,56 @@ bool    AnimationTree::toggleObject(Object item, double curTime)
     return  true;  ///< 已添加
 }
 
+/// 供 undo 命令直接操作 _objects 列表
+void    AnimationTree::addObjectToList(Object item)
+{
+    _objects.push_back(item);
+}
+
+void    AnimationTree::removeObjectFromList(Object item)
+{
+    for (auto it = _objects.begin(); it != _objects.end(); ++it)
+    {
+        if (it->get() == item.get())
+        {
+            _objects.erase(it);
+            break;
+        }
+    }
+}
+
+void    AnimationTree::clearObjectList()
+{
+    _objects.clear();
+}
+
+void    AnimationTree::setObjectList(const FE::Objects& objs)
+{
+    _objects    =   objs;
+}
+
+FE::Objects AnimationTree::snapshotObjectList() const
+{
+    return  _objects;
+}
+
+/// 递归收集所有子项的 (clip, track) 对
+static  void    collectTrackInfos(AnimationItem* item, FE::DeleteTrackCmd::TrackInfos& infos)
+{
+    auto    track   =   item->animKeyframeTrack();
+    if  (track)
+    {
+        auto    anim    =   item->animation();
+        if  (anim)
+        {
+            auto    clip    =   anim->clip();
+            if  (clip)
+                infos.push_back({clip, track});
+        }
+    }
+    for (int i = 0; i < item->rowCount(); ++i)
+        collectTrackInfos((AnimationItem*)item->child(i), infos);
+}
 
 void    AnimationTree::slotItemExpanded(const QModelIndex& index)
 {
@@ -229,31 +280,25 @@ void    AnimationTree::slotSelectItemChanged(const QItemSelection& cur, const QI
 void    AnimationTree::slotDeleteTrack()
 {
     if (!_curItem)
-    {
         return;
-    }
 
-    /// 删除当前所有轨道
-    std::vector<FE::FEKeyFrameTrack*> tracks;
-    collectAllTrackItemChildren(_curItem, tracks);
-
-    if (tracks.empty())
-    {
+    FE::DeleteTrackCmd::TrackInfos   infos;
+    collectTrackInfos(_curItem, infos);
+    if (infos.empty())
         return;
-    }
 
-    /// TODO: UNDO_STACK 待实现
-    /// UNDO_STACK->beginMacro(u8"删除轨道");
-    /// for (auto& pTrack : tracks)
-    /// {
-    ///     auto pAnim = pTrack->getAnimObject();
-    ///     UNDO_STACK->push(new RemoveKeyframeTrackCmd(pAnim, CUR_ANIMMIXER, CUR_ANIMCLIP, pTrack));
-    ///     if (pAnim->mixerGroupCnt() == 0)
-    ///     {
-    ///         UNDO_STACK->push(new SetAnimObjectCmd(pAnim->getObject(), nullptr));
-    ///     }
-    /// }
-    /// UNDO_STACK->endMacro();
+    if (_undoStack)
+    {
+        _undoStack->beginMacro(u8"删除轨道");
+        _undoStack->push(new FE::DeleteTrackCmd(std::move(infos), [this]{ updateUi(); }));
+        _undoStack->endMacro();
+    }
+    else
+    {
+        for (auto& info : infos)
+            info.clip->removeObject(info.track.get());
+        updateUi();
+    }
 }
 
 void    AnimationTree::slotCreateAnimation()
@@ -265,15 +310,23 @@ void    AnimationTree::slotCreateAnimation()
         return;
 
     auto    anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
-    node->addComponent(anim.get());
-    auto    scene   =   node->ctx().scene();
-    if (scene)
+    if (_undoStack)
     {
-        auto    sys =   scene->animationSystem();
-        if (sys) sys->addObject(anim.get());
+        _undoStack->beginMacro(u8"添加动画");
+        _undoStack->push(new FE::CreateAnimCmd(node, anim, [this]{ updateUi(); }));
+        _undoStack->endMacro();
     }
-    /// TODO: undo/redo
-    updateUi();
+    else
+    {
+        node->addComponent(anim.get());
+        auto    scene   =   node->ctx().scene();
+        if (scene)
+        {
+            auto    sys =   scene->animationSystem();
+            if (sys) sys->addObject(anim.get());
+        }
+        updateUi();
+    }
 }
 
 void    AnimationTree::slotDeleteAnimation()
@@ -285,34 +338,56 @@ void    AnimationTree::slotDeleteAnimation()
     auto    anim    =   obj->cast<FEAnimation>();
     auto    node    =   obj->cast<FENode>();
 
-    if (anim != nullptr)
+    if (_undoStack)
     {
-        /// 删除指定动画
-        auto    owner       =   anim->owner();
-        auto    ownerNode   =   owner ? owner->cast<FENode>() : nullptr;
-        auto    scene       =   anim->ctx().scene();
-        if (scene)
+        FE::DeleteAnimCmd::AnimInfos   infos;
+        if (anim != nullptr)
         {
-            auto    sys =   scene->animationSystem();
-            if (sys) sys->removeObject(anim);
+            auto    owner       =   anim->owner();
+            auto    ownerNode   =   owner ? owner->cast<FENode>() : nullptr;
+            infos.push_back({ownerNode, anim});
         }
-        if (ownerNode)
-            ownerNode->removeComponent(anim);
-    }
-    else if (node != nullptr)
-    {
-        /// 删除节点上所有动画
-        auto    anims   =   node->objects<FEAnimation>();
-        auto    scene   =   node->ctx().scene();
-        auto    sys     =   scene ? scene->animationSystem() : nullptr;
-        for (auto* animPtr : anims)
+        else if (node != nullptr)
         {
-            if (sys) sys->removeObject(animPtr);
-            node->removeComponent(animPtr);
+            auto    anims   =   node->objects<FEAnimation>();
+            for (auto* animPtr : anims)
+                infos.push_back({node, animPtr});
+        }
+        if (!infos.empty())
+        {
+            _undoStack->beginMacro(u8"删除动画");
+            _undoStack->push(new FE::DeleteAnimCmd(std::move(infos), [this]{ updateUi(); }));
+            _undoStack->endMacro();
         }
     }
-    /// TODO: undo/redo
-    updateUi();
+    else
+    {
+        if (anim != nullptr)
+        {
+            auto    owner       =   anim->owner();
+            auto    ownerNode   =   owner ? owner->cast<FENode>() : nullptr;
+            auto    scene       =   anim->ctx().scene();
+            if (scene)
+            {
+                auto    sys =   scene->animationSystem();
+                if (sys) sys->removeObject(anim);
+            }
+            if (ownerNode)
+                ownerNode->removeComponent(anim);
+        }
+        else if (node != nullptr)
+        {
+            auto    anims   =   node->objects<FEAnimation>();
+            auto    scene   =   node->ctx().scene();
+            auto    sys     =   scene ? scene->animationSystem() : nullptr;
+            for (auto* animPtr : anims)
+            {
+                if (sys) sys->removeObject(animPtr);
+                node->removeComponent(animPtr);
+            }
+        }
+        updateUi();
+    }
 }
 
 void    AnimationTree::slotToggleEnable()
@@ -324,39 +399,69 @@ void    AnimationTree::slotToggleEnable()
     auto    anim    =   obj->cast<FEAnimation>();
     auto    node    =   obj->cast<FENode>();
 
-    if (anim != nullptr)
+    if (_undoStack)
     {
-        anim->setEnable(!anim->isEnable());
+        _undoStack->beginMacro(u8"启用/禁用动画");
+        _undoStack->push(new FE::ToggleEnableCmd(obj, [this]{ updateUi(); }));
+        _undoStack->endMacro();
     }
-    else if (node != nullptr)
+    else
     {
-        if (node->flags().hasFlag(FE::FLAG_ENABLE))
-            node->flags().removeFlag(FE::FLAG_ENABLE);
-        else
-            node->flags().addFlag(FE::FLAG_ENABLE);
+        if (anim != nullptr)
+        {
+            anim->setEnable(!anim->isEnable());
+        }
+        else if (node != nullptr)
+        {
+            if (node->flags().hasFlag(FE::FLAG_ENABLE))
+                node->flags().removeFlag(FE::FLAG_ENABLE);
+            else
+                node->flags().addFlag(FE::FLAG_ENABLE);
+        }
+        updateUi();
     }
-    updateUi();
 }
 
 void    AnimationTree::slotClearAllAnimations()
 {
-    /// 清除所有对象的所有动画
-    for (auto& obj : _objects)
+    if (_undoStack)
     {
-        auto    node    =   obj->cast<FENode>();
-        if (node == nullptr)
-            continue;
-        auto    anims   =   node->objects<FEAnimation>();
-        auto    scene   =   node->ctx().scene();
-        auto    sys     =   scene ? scene->animationSystem() : nullptr;
-        for (auto* animPtr : anims)
+        /// 收集所有动画信息
+        FE::DeleteAnimCmd::AnimInfos   animInfos;
+        for (auto& obj : _objects)
         {
-            if (sys) sys->removeObject(animPtr);
-            node->removeComponent(animPtr);
+            auto    node    =   obj->cast<FENode>();
+            if (node == nullptr)
+                continue;
+            auto    anims   =   node->objects<FEAnimation>();
+            for (auto* animPtr : anims)
+                animInfos.push_back({node, animPtr});
         }
+        _undoStack->beginMacro(u8"清除所有动画");
+        if (!animInfos.empty())
+            _undoStack->push(new FE::DeleteAnimCmd(std::move(animInfos), [this]{ updateUi(); }));
+        _undoStack->push(new FE::ClearTreeCmd(this));
+        _undoStack->endMacro();
     }
-    _objects.clear();
-    updateUi();
+    else
+    {
+        for (auto& obj : _objects)
+        {
+            auto    node    =   obj->cast<FENode>();
+            if (node == nullptr)
+                continue;
+            auto    anims   =   node->objects<FEAnimation>();
+            auto    scene   =   node->ctx().scene();
+            auto    sys     =   scene ? scene->animationSystem() : nullptr;
+            for (auto* animPtr : anims)
+            {
+                if (sys) sys->removeObject(animPtr);
+                node->removeComponent(animPtr);
+            }
+        }
+        _objects.clear();
+        updateUi();
+    }
 }
 
 void    AnimationTree::slotRemoveNode()
@@ -367,25 +472,39 @@ void    AnimationTree::slotRemoveNode()
     if (node == nullptr)
         return;
 
-    /// 从动画树移除节点(同时清理其所有动画)
-    auto    anims   =   node->objects<FEAnimation>();
-    auto    scene   =   node->ctx().scene();
-    auto    sys     =   scene ? scene->animationSystem() : nullptr;
-    for (auto* animPtr : anims)
+    if (_undoStack)
     {
-        if (sys) sys->removeObject(animPtr);
-        node->removeComponent(animPtr);
+        /// 收集节点上所有动画
+        FE::DeleteAnimCmd::AnimInfos   animInfos;
+        auto    anims   =   node->objects<FEAnimation>();
+        for (auto* animPtr : anims)
+            animInfos.push_back({node, animPtr});
+        _undoStack->beginMacro(u8"移除节点");
+        if (!animInfos.empty())
+            _undoStack->push(new FE::DeleteAnimCmd(std::move(animInfos), [this]{ updateUi(); }));
+        _undoStack->push(new FE::RemoveFromTreeCmd(this, _curItem->object()));
+        _undoStack->endMacro();
     }
-    /// 从 _objects 中移除该节点
-    for (auto it = _objects.begin(); it != _objects.end(); ++it)
+    else
     {
-        if (it->get() == node)
+        auto    anims   =   node->objects<FEAnimation>();
+        auto    scene   =   node->ctx().scene();
+        auto    sys     =   scene ? scene->animationSystem() : nullptr;
+        for (auto* animPtr : anims)
         {
-            _objects.erase(it);
-            break;
+            if (sys) sys->removeObject(animPtr);
+            node->removeComponent(animPtr);
         }
+        for (auto it = _objects.begin(); it != _objects.end(); ++it)
+        {
+            if (it->get() == node)
+            {
+                _objects.erase(it);
+                break;
+            }
+        }
+        updateUi();
     }
-    updateUi();
 }
 
 void    AnimationTree::slotDeleteTrackNode()
@@ -399,9 +518,22 @@ void    AnimationTree::slotDeleteTrackNode()
     if (anim == nullptr)
         return;
     auto    clip    =   anim->clip();
-    if (clip)
+    if (!clip)
+        return;
+
+    if (_undoStack)
+    {
+        FE::DeleteTrackCmd::TrackInfos   infos;
+        infos.push_back({clip, track});
+        _undoStack->beginMacro(u8"删除轨道");
+        _undoStack->push(new FE::DeleteTrackCmd(std::move(infos), [this]{ updateUi(); }));
+        _undoStack->endMacro();
+    }
+    else
+    {
         clip->removeObject(track);
-    updateUi();
+        updateUi();
+    }
 }
 
 void    AnimationTree::slotToggleTrackEnable()
@@ -411,11 +543,21 @@ void    AnimationTree::slotToggleTrackEnable()
     auto    track   =   _curItem->animKeyframeTrack();
     if (track == nullptr)
         return;
-    if (track->flags().hasFlag(FE::FLAG_ENABLE))
-        track->flags().removeFlag(FE::FLAG_ENABLE);
+
+    if (_undoStack)
+    {
+        _undoStack->beginMacro(u8"启用/禁用轨道");
+        _undoStack->push(new FE::ToggleTrackEnableCmd(track, [this]{ updateUi(); }));
+        _undoStack->endMacro();
+    }
     else
-        track->flags().addFlag(FE::FLAG_ENABLE);
-    updateUi();
+    {
+        if (track->flags().hasFlag(FE::FLAG_ENABLE))
+            track->flags().removeFlag(FE::FLAG_ENABLE);
+        else
+            track->flags().addFlag(FE::FLAG_ENABLE);
+        updateUi();
+    }
 }
 
 void    AnimationTree::slotDoubleClikced(const QModelIndex& index)

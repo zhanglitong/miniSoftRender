@@ -82,50 +82,50 @@ namespace FE
         case PROP_SCALE_X:
             {
                 float3  scl =   _transform.scale();
-                scl.x       =   std::get<float>(value);
+                scl.x       =   (float)std::get<real>(value);
                 _transform.setScale(scl);
             }
             break;
         case PROP_SCALE_Y:
             {
                 float3  scl =   _transform.scale();
-                scl.y       =   std::get<float>(value);
+                scl.y       =   (float)std::get<real>(value);
                 _transform.setScale(scl);
             }
             break;
         case PROP_SCALE_Z:
             {
                 float3  scl =   _transform.scale();
-                scl.z       =   std::get<float>(value);
+                scl.z       =   (float)std::get<real>(value);
                 _transform.setScale(scl);
             }
             break;
         case PROP_SCALE_XYZ:
-            _transform.setScale(std::get<float3>(value));
+            _transform.setScale(float3(std::get<real3>(value)));
             break;
         case PROP_ROTATE_X:
             {
                 float3  euler   =   _transform.euler();
-                euler.x         =   std::get<float>(value);
+                euler.x         =   (float)std::get<real>(value);
                 _transform.setEuler(euler);
             }
             break;
         case PROP_ROTATE_Y:
             {
                 float3  euler   =   _transform.euler();
-                euler.y         =   std::get<float>(value);
+                euler.y         =   (float)std::get<real>(value);
                 _transform.setEuler(euler);
             }
             break;
         case PROP_ROTATE_Z:
             {
                 float3  euler   =   _transform.euler();
-                euler.z         =   std::get<float>(value);
+                euler.z         =   (float)std::get<real>(value);
                 _transform.setEuler(euler);
             }
             break;
         case PROP_ROTATE_XYZ:
-            _transform.setEuler(std::get<float3>(value));
+            _transform.setEuler(float3(std::get<real3>(value)));
             break;
         case PROP_QUAT:
             _transform.setRotation(std::get<quatf>(value));
@@ -164,21 +164,21 @@ namespace FE
             case PROP_TRANSFORM_XYZ:
                 return  _transform.position();
             case PROP_SCALE_X:
-                return  _transform.scale().x;
+                return  (real)_transform.scale().x;
             case PROP_SCALE_Y:
-                return  _transform.scale().y;
+                return  (real)_transform.scale().y;
             case PROP_SCALE_Z:
-                return  _transform.scale().z;
+                return  (real)_transform.scale().z;
             case PROP_SCALE_XYZ:
-                return  _transform.scale();
+                return  real3(_transform.scale());
             case PROP_ROTATE_X:
-                return  _transform.euler().x;
+                return  (real)_transform.euler().x;
             case PROP_ROTATE_Y:
-                return  _transform.euler().y;
+                return  (real)_transform.euler().y;
             case PROP_ROTATE_Z:
-                return  _transform.euler().z;
+                return  (real)_transform.euler().z;
             case PROP_ROTATE_XYZ:
-                return  _transform.euler();
+                return  real3(_transform.euler());
             case PROP_QUAT:
                 return  _transform.rotation();
             default:
@@ -221,7 +221,7 @@ namespace FE
         if (clipTime <= rng.x && _clipTime  == rng.x)
             return  false;
         else if(clipTime >= rng.y && _clipTime == rng.y)
-            return  false; 
+            return  false;
 
         _clipTime   =   std::clamp(clipTime,rng.x,rng.y);
         _clip->update(_clipTime - _offset,_results);

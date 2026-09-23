@@ -2,6 +2,7 @@
 #include    <QPainter>
 #include    <QHeaderView>
 #include    <QMouseEvent>
+#include    <QMessageBox>
 #include    <functional>
 #include    "AnimationItem.h"
 #include    "AnimationTree.h"
@@ -839,103 +840,65 @@ void    UiTickMgr::slotAddKeyframe()
     if  (!_undoStack)
         return;
 
+    /// 1. 从动画树获取当前选中项,并校验是否为动画对象
+    FE::Animation   selectedAnim    =   nullptr;
+    if  (_pTree != nullptr && _pTree->curItem() != nullptr)
+    {
+        auto    item    =   _pTree->curItem();
+        /// track 项的 object 是 FEKeyFrameTrack, cast 到 FEAnimation 返回 nullptr
+        /// 节点项的 object 是 FENode, cast 同样返回 nullptr
+        /// 只有动画项的 object 是 FEAnimation
+        auto    obj     =   item->object();
+        if  (obj)
+            selectedAnim    =   obj->cast<FE::FEAnimation>();
+    }
+
+    /// 2. 没有选中动画对象,提示用户
+    if  (selectedAnim == nullptr)
+    {
+        QMessageBox::warning(this, u8"提示", u8"请先在动画树上选择一个动画对象");
+        return;
+    }
+
     /// 当前时间(秒)
     FE::real    curTime     =   FE::real(_curFrame) / FE::real(_fps);
 
-    /// 收集所有 (node, anim) 操作前快照
-    FE::AddKeyframeCmd::AnimStates   states;
-
-    /// 1. 优先从动画树获取选中的动画
-    FE::Animation   selectedAnim    =   nullptr;
-    if  (_pTree != nullptr && _pTree->curItem() != nullptr)
-        selectedAnim    =   _pTree->curItem()->animation();
-
-    if  (selectedAnim != nullptr)
+    /// 3. 获取动画所属节点(关键帧数据来源)
+    auto    ownerObj    =   selectedAnim->owner();
+    auto    node        =   ownerObj ? ownerObj->cast<FE::FENode>() : nullptr;
+    if  (node == nullptr)
     {
-        auto    ownerObj    =   selectedAnim->owner();
-        auto    node        =   ownerObj ? ownerObj->cast<FE::FENode>() : nullptr;
-        if  (node != nullptr)
-        {
-            FE::AddKeyframeCmd::AnimState  st;
-            st.node     =   node;
-            st.anim     =   selectedAnim;
-            st.createdNew=  false;
-            st.time     =   curTime;
-            st.snapshots=   FE::AddKeyframeCmd::snapshotTracks(selectedAnim, curTime);
-            states.push_back(std::move(st));
-        }
-    }
-    else
-    {
-        /// 2. 动画树没有选中动画,从模型树获取选中节点
-        if  (_pModelTree == nullptr)
-            return;
-        auto    selected    =   _pModelTree->selected();
-        if  (selected.empty())
-            return;
-
-        for (auto& obj : selected)
-        {
-            auto    node    =   obj ? obj->cast<FE::FENode>() : nullptr;
-            if  (node == nullptr)
-                continue;
-
-            auto    anims   =   node->objects<FE::FEAnimation>();
-            if  (anims.empty())
-            {
-                /// 节点没有动画,创建新动画(暂不挂载,由命令 redo 负责)
-                FE::Animation   anim    =   FE::FEAnimationHelper::createNodeAnimtion(node->ctx());
-                FE::AddKeyframeCmd::AnimState  st;
-                st.node     =   node;
-                st.anim     =   anim;
-                st.createdNew=  true;
-                st.time     =   curTime;
-                /// 新动画无关键帧,快照为空
-                states.push_back(std::move(st));
-            }
-            else
-            {
-                for (auto* animPtr : anims)
-                {
-                    FE::Animation   anim(animPtr);
-                    FE::AddKeyframeCmd::AnimState  st;
-                    st.node     =   node;
-                    st.anim     =   anim;
-                    st.createdNew=  false;
-                    st.time     =   curTime;
-                    st.snapshots=   FE::AddKeyframeCmd::snapshotTracks(anim, curTime);
-                    states.push_back(std::move(st));
-                }
-            }
-        }
-    }
-
-    if  (states.empty())
+        QMessageBox::warning(this, u8"提示", u8"所选动画没有关联的节点,无法添加关键帧");
         return;
-
-    /// 捕获第一个节点用于动画树刷新
-    FE::Object    firstObj    =   states.front().node.get();
-    bool        bCreatedNew=   false;
-    for (auto& st : states)
-    {
-        if  (st.createdNew)
-        {
-            bCreatedNew =   true;
-            break;
-        }
     }
 
-    /// 创建刷新回调(redo/undo 后均调用)
-    auto    refreshCb   =   [this, firstObj, bCreatedNew]()
+    /// 4. 判断动画 clip 是否为空(没有 track)
+    ///    若为空,redo 时先创建默认轨道,再添加关键帧;undo 时清空轨道
+    auto    clip                =   selectedAnim->clip();
+    bool    bEmptyClip          =   (clip == nullptr) || clip->tracks().empty();
+
+    /// 5. 收集操作前快照(空 clip 时快照为空, redo 会先建 track 再添加关键帧)
+    FE::AddKeyframeCmd::AnimStates   states;
+    FE::AddKeyframeCmd::AnimState    st;
+    st.node                     =   node;
+    st.anim                     =   selectedAnim;
+    st.createdNew               =   false;
+    st.createdDefaultTracks     =   bEmptyClip;
+    st.time                     =   curTime;
+    st.snapshots                =   FE::AddKeyframeCmd::snapshotTracks(selectedAnim, curTime);
+    states.push_back(std::move(st));
+
+    /// 6. 创建刷新回调(redo/undo 后均调用)
+    auto    refreshCb   =   [this]()
     {
-        if  (bCreatedNew && _pTree && firstObj)
-            _pTree->selectObject(firstObj, false);
         emit sigKeyframesChanged();
         setCurFrame(_curFrame);
     };
 
-    /// 推入 undo 栂,首次 redo 由栈自动调用
+    /// 7. 推入 undo 栈,首次 redo 由栈自动调用
+    _undoStack->beginMacro(u8"添加关键帧");
     _undoStack->push(new FE::AddKeyframeCmd(std::move(states), std::move(refreshCb)));
+    _undoStack->endMacro();
 }
 
 void    UiTickMgr::paintEvent(QPaintEvent* event)
@@ -1305,34 +1268,97 @@ void    UiTickMgr::mouseReleaseEvent(QMouseEvent* event)
                         {
                             /// 整体拖动: 修改 _offset
                             FE::real    newOffset   =   firstAnim->offset() + FE::real(deltaTime);
-                            firstAnim->setOffset(newOffset);
+                            if  (_undoStack)
+                            {
+                                FE::MoveOffsetCmd::AnimOffsets  offsets;
+                                offsets.push_back({firstAnim, firstAnim->offset(), newOffset});
+                                auto    refreshCb   =   [this]()
+                                {
+                                    emit sigKeyframesChanged();
+                                    setCurFrame(_curFrame);
+                                };
+                                _undoStack->beginMacro(u8"拖动关键帧");
+                                _undoStack->push(new FE::MoveOffsetCmd(std::move(offsets), std::move(refreshCb)));
+                                _undoStack->endMacro();
+                            }
+                            else
+                            {
+                                firstAnim->setOffset(newOffset);
+                                emit sigKeyframesChanged();
+                            }
                         }
                         else
                         {
                             /// 部分拖动: 逐 track 修改选中关键帧时间
-                            for (auto& [track, origData] : _dragOrigTimes)
+                            if  (_undoStack)
                             {
-                                if (!track->times())
-                                    continue;
-                                auto&   times   =   track->times()->values();
-                                if (times.size() != origData.times.size())
-                                    continue;
-
-                                for (size_t i = 0; i < times.size(); ++i)
+                                /// 收集 old/new 数据,直接应用后创建命令(redo 为 no-op)
+                                FE::MoveKeyframesCmd::TrackMoves    moves;
+                                for (auto& [track, origData] : _dragOrigTimes)
                                 {
-                                    if (!isKeyframeSelected(track, i))
+                                    if (!track->times())
                                         continue;
-                                    FE::real    newTime =   origData.times[i] + FE::real(deltaTime);
-                                    /// 钳制: 时间线时间(局部+offset)不能小于0
-                                    if (newTime + origData.offset < 0)
-                                        newTime =   -origData.offset;
-                                    times[i]    =   newTime;
+                                    auto&   times   =   track->times()->values();
+                                    if (times.size() != origData.times.size())
+                                        continue;
+
+                                    FE::MoveKeyframesCmd::TrackMove mv;
+                                    mv.track    =   track;
+                                    mv.oldTimes =   origData.times;
+                                    mv.oldValues=   FE::MoveKeyframesCmd::readAllValues(track->values());
+
+                                    /// 应用新时间到 track
+                                    for (size_t i = 0; i < times.size(); ++i)
+                                    {
+                                        if (!isKeyframeSelected(track, i))
+                                            continue;
+                                        FE::real    newTime =   origData.times[i] + FE::real(deltaTime);
+                                        /// 钳制: 时间线时间(局部+offset)不能小于0
+                                        if (newTime + origData.offset < 0)
+                                            newTime =   -origData.offset;
+                                        times[i]    =   newTime;
+                                    }
+                                    track->sortKeyFames();
+
+                                    /// 读取排序后的新状态
+                                    mv.newTimes =   track->times()->values();
+                                    mv.newValues=   FE::MoveKeyframesCmd::readAllValues(track->values());
+                                    moves.push_back(std::move(mv));
                                 }
-                                track->sortKeyFames();
+
+                                auto    refreshCb   =   [this]()
+                                {
+                                    emit sigKeyframesChanged();
+                                    setCurFrame(_curFrame);
+                                };
+                                _undoStack->beginMacro(u8"拖动关键帧");
+                                _undoStack->push(new FE::MoveKeyframesCmd(std::move(moves), std::move(refreshCb)));
+                                _undoStack->endMacro();
+                            }
+                            else
+                            {
+                                for (auto& [track, origData] : _dragOrigTimes)
+                                {
+                                    if (!track->times())
+                                        continue;
+                                    auto&   times   =   track->times()->values();
+                                    if (times.size() != origData.times.size())
+                                        continue;
+
+                                    for (size_t i = 0; i < times.size(); ++i)
+                                    {
+                                        if (!isKeyframeSelected(track, i))
+                                            continue;
+                                        FE::real    newTime =   origData.times[i] + FE::real(deltaTime);
+                                        if (newTime + origData.offset < 0)
+                                            newTime =   -origData.offset;
+                                        times[i]    =   newTime;
+                                    }
+                                    track->sortKeyFames();
+                                }
+                                emit sigKeyframesChanged();
                             }
                         }
-
-                        emit sigKeyframesChanged();
                     }
                     /// 操作完成,清除关键帧选择标记
                     traverseTree([&](AnimationItem* item)
@@ -1353,22 +1379,50 @@ void    UiTickMgr::mouseReleaseEvent(QMouseEvent* event)
 
                         auto    obj     =   _dragBlockItem->object();
                         auto    anim    =   obj ? obj->cast<FE::FEAnimation>() : nullptr;
-                        if (anim)
+                        if  (_undoStack)
                         {
-                            anim->setOffset(newOffset);
+                            FE::MoveOffsetCmd::AnimOffsets  offsets;
+                            if (anim)
+                            {
+                                offsets.push_back({anim, anim->offset(), newOffset});
+                            }
+                            else
+                            {
+                                auto    node    =   obj ? obj->cast<FE::FENode>() : nullptr;
+                                if (node)
+                                {
+                                    auto    anims   =   node->objects<FE::FEAnimation>();
+                                    for (auto* animPtr : anims)
+                                        offsets.push_back({FE::Animation(animPtr), animPtr->offset(), newOffset});
+                                }
+                            }
+                            auto    refreshCb   =   [this]()
+                            {
+                                emit sigKeyframesChanged();
+                                setCurFrame(_curFrame);
+                            };
+                            _undoStack->beginMacro(u8"拖动动画范围");
+                            _undoStack->push(new FE::MoveOffsetCmd(std::move(offsets), std::move(refreshCb)));
+                            _undoStack->endMacro();
                         }
                         else
                         {
-                            auto    node    =   obj ? obj->cast<FE::FENode>() : nullptr;
-                            if (node)
+                            if (anim)
                             {
-                                auto    anims   =   node->objects<FE::FEAnimation>();
-                                for (auto* animPtr : anims)
-                                    animPtr->setOffset(newOffset);
+                                anim->setOffset(newOffset);
                             }
+                            else
+                            {
+                                auto    node    =   obj ? obj->cast<FE::FENode>() : nullptr;
+                                if (node)
+                                {
+                                    auto    anims   =   node->objects<FE::FEAnimation>();
+                                    for (auto* animPtr : anims)
+                                        animPtr->setOffset(newOffset);
+                                }
+                            }
+                            emit sigKeyframesChanged();
                         }
-
-                        emit sigKeyframesChanged();
                     }
                     _dragBlockItem  =   nullptr;
                 }

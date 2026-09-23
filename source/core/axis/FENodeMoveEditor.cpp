@@ -118,6 +118,7 @@ namespace   FE
                 node    =   com->owner()->cast<FENode>();
                 if (node)
                 {
+                    node->flags().addFlag(FENode::FLAG_PROP_TRANS);
                     node->update();
                     node->fireChanged();
                 }

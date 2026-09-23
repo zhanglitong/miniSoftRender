@@ -8,6 +8,7 @@
 #include    "axis/FENodeRotateEditor.h"
 #include    "axis/FENodeScaleEditor.h"
 #include    "animation/FEAnimationSys.hpp"
+#include    "UndoCommand.h"
 
 MainWindow* _mainApp   =   nullptr;
 
@@ -43,7 +44,17 @@ MainWindow::MainWindow()
         connect(action, &QAction::triggered, this, [this, obj]()
         {
             double  curTime =   ui.timeLineEditor->curTime();
-            ui.animationTree->toggleObject(obj, curTime);
+            if  (_undoStack)
+            {
+                bool    inTree  =   ui.animationTree->containsObject(obj);
+                _undoStack->beginMacro(inTree ? u8"从动画树移除" : u8"添加到动画树");
+                _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, obj, curTime));
+                _undoStack->endMacro();
+            }
+            else
+            {
+                ui.animationTree->toggleObject(obj, curTime);
+            }
         });
         menu.exec(ui.modelTree->mapToGlobal(pt));
     });
@@ -54,6 +65,7 @@ MainWindow::MainWindow()
     _undoStack  =   new QUndoStack(this);
     ui.undoView->setStack(_undoStack);
     ui.timeLineEditor->setUndoStack(_undoStack);
+    ui.animationTree->setUndoStack(_undoStack);
 
     /// 时间线编辑通知
     /// 用来控制动画
@@ -339,12 +351,11 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
                 if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
                     pEditor->setObjects({object});
                 else
-                    pEditor->setObjects({}); 
+                    pEditor->setObjects({});
             }};
         }
     }
 }
-
 
 QIcon   MainWindow::objectIcon(ImageIndex type)
 {
