@@ -89,7 +89,8 @@ namespace   FE
     /// <summary>
     /// 关键帧值
     /// </summary>
-    using   KFValue =   std::variant<std::monostate,uint8,float,float2,float3,float4,quatf,real,real2,real3,real4,quatr,uint8x4>;
+    using   KFValue =   std::variant<std::monostate,uint8,float,float2,float3,float4,quatf,real,real2,real3,real4,quatr,uint8x4
+                                    ,int,int2,int3,int4,uint,uint2,uint3,uint4>;
 
     inline  KFValue operator+(const KFValue& x, const KFValue& y) 
     {
@@ -162,7 +163,7 @@ namespace   FE
                 return std::monostate{};
         }, x, y);
     }
-    template<typename TValue>
+    template<typename TValue, typename = std::enable_if_t<std::is_arithmetic_v<TValue>>>
     inline  KFValue operator*(const KFValue& x, const TValue& y) 
     {
         return std::visit([&](auto&& a) -> KFValue 
@@ -183,7 +184,7 @@ namespace   FE
                 return std::monostate{};
         }, x);
     }
-    template<typename TValue>
+    template<typename TValue, typename = std::enable_if_t<std::is_arithmetic_v<TValue>>>
     inline  KFValue operator*(const TValue& y,const KFValue& x) 
     {
         return std::visit([&](auto&& a) -> KFValue 

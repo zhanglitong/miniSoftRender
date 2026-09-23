@@ -117,7 +117,6 @@ namespace FE
         {
             for (auto& var : _objects)
             {
-                real2   range   =   var->range();
                 var->update(_clipTime);
             }
         }
@@ -233,11 +232,11 @@ namespace FE
         if (_objects.empty())
             return  result;
         else
-            result  =   _objects.front()->clip()->range();
+            result  =   _objects.front()->range();
 
         for (size_t i = 1 ;i < _objects.size(); ++ i)
         {
-            auto    rng =   _objects[i]->clip()->range();
+            auto    rng =   _objects[i]->range();
             result.x    =   (std::min)(result.x,rng.x);
             result.y    =   (std::max)(result.y,rng.y);
         }

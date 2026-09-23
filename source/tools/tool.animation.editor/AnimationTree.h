@@ -59,6 +59,16 @@ public:
     /// <param name="item">被选择对象</param>
     /// <param name="multiSelect">是否是多选</param>
     void        selectObject(Object item,bool multiSelect);
+    /// <summary>
+    /// 添加对象到动画树(如果已存在则移除)
+    /// </summary>
+    /// <param name="item">目标对象</param>
+    /// <returns>true=已添加, false=已移除</returns>
+    bool        toggleObject(Object item, double curTime = 0);
+    /// <summary>
+    /// 判断对象是否已在动画树中
+    /// </summary>
+    bool        containsObject(Object item) const;
 signals:
     void        sigPaintEvent();
 public slots:
@@ -69,6 +79,10 @@ public slots:
     void        slotCreateAnimation();
     void        slotDeleteAnimation();
     void        slotToggleEnable();
+    void        slotClearAllAnimations();
+    void        slotRemoveNode();
+    void        slotDeleteTrackNode();
+    void        slotToggleTrackEnable();
     void        slotDoubleClikced(const QModelIndex&);
 public:
     virtual void    mousePressEvent(QMouseEvent* evt)           override;

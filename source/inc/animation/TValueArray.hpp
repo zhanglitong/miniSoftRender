@@ -1,6 +1,7 @@
 #pragma     once
 #include    "../FEMath.hpp"
 #include    "../FEObject.h"
+#include    "../FEUserObject.hpp"
 #include    "../FEWriterHelper.hpp"
 #include    "../FEReaderHelper.hpp"
 
@@ -19,6 +20,7 @@ namespace FE
     template<typename TValue>
     class  TValueArray 
         : public FEObject
+        , public FEUserObject
     {
     public:
         using   ValueType   =   TValue;

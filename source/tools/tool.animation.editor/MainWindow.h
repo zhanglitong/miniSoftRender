@@ -114,6 +114,11 @@ public slots:
     void    slotMoveEditor();
     void    slotRotEditor();
     void    slotScaleEditor();
+private:
+    /// <summary>
+    /// 禁用动画系统中所有动画(标记为不可播放/不可编辑)
+    /// </summary>
+    void    disableAllAnimations();
 protected:
     /// <summary>
     /// 引擎启动后通知，函数内可以对依赖引擎的组件模块进行初始化

@@ -26,6 +26,16 @@ namespace FE
         , public FEObjectsTemplate<Animation, AnimationLess>
     {
     public:
+        using   FEObjectsTemplate<Animation, AnimationLess>::objects;
+        /// <summary>
+        /// 获取对象列表(非const版本)
+        /// </summary>
+        /// <returns></returns>
+        auto&   objects()
+        {
+            return  _objects;
+        }
+    public:
         struct  TrackObject
         {
             /// <summary>

@@ -449,6 +449,14 @@ namespace FE
                 else if constexpr (std::is_same_v<T,uint8>)   { if(std::holds_alternative<BoolsObject>(_values))   { std::get<BoolsObject>(_values)->values().push_back(v);   ok=true; }
                                                                  else if(std::holds_alternative<AlphaObject>(_values)){ std::get<AlphaObject>(_values)->values().push_back(v);ok=true; } }
                 else if constexpr (std::is_same_v<T,uint8x4>) { if(std::holds_alternative<RgbaObject>(_values))    { std::get<RgbaObject>(_values)->values().push_back(v);    ok=true; } }
+                else if constexpr (std::is_same_v<T,int>)     { if(std::holds_alternative<IntsObject>(_values))   { std::get<IntsObject>(_values)->values().push_back(v);   ok=true; } }
+                else if constexpr (std::is_same_v<T,int2>)    { if(std::holds_alternative<Int2sObject>(_values))  { std::get<Int2sObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,int3>)    { if(std::holds_alternative<Int3sObject>(_values))  { std::get<Int3sObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,int4>)    { if(std::holds_alternative<Int4sObject>(_values))  { std::get<Int4sObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint>)    { if(std::holds_alternative<UintsObject>(_values))  { std::get<UintsObject>(_values)->values().push_back(v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint2>)   { if(std::holds_alternative<Uint2sObject>(_values)) { std::get<Uint2sObject>(_values)->values().push_back(v); ok=true; } }
+                else if constexpr (std::is_same_v<T,uint3>)   { if(std::holds_alternative<Uint3sObject>(_values)) { std::get<Uint3sObject>(_values)->values().push_back(v); ok=true; } }
+                else if constexpr (std::is_same_v<T,uint4>)   { if(std::holds_alternative<Uint4sObject>(_values)) { std::get<Uint4sObject>(_values)->values().push_back(v); ok=true; } }
             }, val);
             return  ok;
         }
@@ -478,6 +486,14 @@ namespace FE
                 else if constexpr (std::is_same_v<T,uint8>)   { if(std::holds_alternative<BoolsObject>(_values))   { auto& arr=std::get<BoolsObject>(_values)->values();   arr.insert(arr.begin()+idx,v);   ok=true; }
                                                                  else if(std::holds_alternative<AlphaObject>(_values)){ auto& arr=std::get<AlphaObject>(_values)->values();arr.insert(arr.begin()+idx,v);ok=true; } }
                 else if constexpr (std::is_same_v<T,uint8x4>) { if(std::holds_alternative<RgbaObject>(_values))    { auto& arr=std::get<RgbaObject>(_values)->values();    arr.insert(arr.begin()+idx,v);    ok=true; } }
+                else if constexpr (std::is_same_v<T,int>)     { if(std::holds_alternative<IntsObject>(_values))   { auto& arr=std::get<IntsObject>(_values)->values();   arr.insert(arr.begin()+idx,v);   ok=true; } }
+                else if constexpr (std::is_same_v<T,int2>)    { if(std::holds_alternative<Int2sObject>(_values))  { auto& arr=std::get<Int2sObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,int3>)    { if(std::holds_alternative<Int3sObject>(_values))  { auto& arr=std::get<Int3sObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,int4>)    { if(std::holds_alternative<Int4sObject>(_values))  { auto& arr=std::get<Int4sObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint>)    { if(std::holds_alternative<UintsObject>(_values))  { auto& arr=std::get<UintsObject>(_values)->values();  arr.insert(arr.begin()+idx,v);  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint2>)   { if(std::holds_alternative<Uint2sObject>(_values)) { auto& arr=std::get<Uint2sObject>(_values)->values(); arr.insert(arr.begin()+idx,v); ok=true; } }
+                else if constexpr (std::is_same_v<T,uint3>)   { if(std::holds_alternative<Uint3sObject>(_values)) { auto& arr=std::get<Uint3sObject>(_values)->values(); arr.insert(arr.begin()+idx,v); ok=true; } }
+                else if constexpr (std::is_same_v<T,uint4>)   { if(std::holds_alternative<Uint4sObject>(_values)) { auto& arr=std::get<Uint4sObject>(_values)->values(); arr.insert(arr.begin()+idx,v); ok=true; } }
             }, val);
             return  ok;
         }
@@ -502,6 +518,14 @@ namespace FE
             case 11:    std::get<11>(_values)->values().erase(std::get<11>(_values)->values().begin() + idx); break;
             case 12:    std::get<12>(_values)->values().erase(std::get<12>(_values)->values().begin() + idx); break;
             case 13:    std::get<13>(_values)->values().erase(std::get<13>(_values)->values().begin() + idx); break;
+            case 14:    std::get<14>(_values)->values().erase(std::get<14>(_values)->values().begin() + idx); break;
+            case 15:    std::get<15>(_values)->values().erase(std::get<15>(_values)->values().begin() + idx); break;
+            case 16:    std::get<16>(_values)->values().erase(std::get<16>(_values)->values().begin() + idx); break;
+            case 17:    std::get<17>(_values)->values().erase(std::get<17>(_values)->values().begin() + idx); break;
+            case 18:    std::get<18>(_values)->values().erase(std::get<18>(_values)->values().begin() + idx); break;
+            case 19:    std::get<19>(_values)->values().erase(std::get<19>(_values)->values().begin() + idx); break;
+            case 20:    std::get<20>(_values)->values().erase(std::get<20>(_values)->values().begin() + idx); break;
+            case 21:    std::get<21>(_values)->values().erase(std::get<21>(_values)->values().begin() + idx); break;
             default:    break;
             }
         }
@@ -531,6 +555,14 @@ namespace FE
                 else if constexpr (std::is_same_v<T,uint8>)   { if(std::holds_alternative<BoolsObject>(_values))   { std::get<BoolsObject>(_values)->values()[idx] = v;   ok=true; }
                                                                  else if(std::holds_alternative<AlphaObject>(_values)){ std::get<AlphaObject>(_values)->values()[idx] = v;ok=true; } }
                 else if constexpr (std::is_same_v<T,uint8x4>) { if(std::holds_alternative<RgbaObject>(_values))    { std::get<RgbaObject>(_values)->values()[idx] = v;    ok=true; } }
+                else if constexpr (std::is_same_v<T,int>)     { if(std::holds_alternative<IntsObject>(_values))   { std::get<IntsObject>(_values)->values()[idx] = v;   ok=true; } }
+                else if constexpr (std::is_same_v<T,int2>)    { if(std::holds_alternative<Int2sObject>(_values))  { std::get<Int2sObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,int3>)    { if(std::holds_alternative<Int3sObject>(_values))  { std::get<Int3sObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,int4>)    { if(std::holds_alternative<Int4sObject>(_values))  { std::get<Int4sObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint>)    { if(std::holds_alternative<UintsObject>(_values))  { std::get<UintsObject>(_values)->values()[idx] = v;  ok=true; } }
+                else if constexpr (std::is_same_v<T,uint2>)   { if(std::holds_alternative<Uint2sObject>(_values)) { std::get<Uint2sObject>(_values)->values()[idx] = v; ok=true; } }
+                else if constexpr (std::is_same_v<T,uint3>)   { if(std::holds_alternative<Uint3sObject>(_values)) { std::get<Uint3sObject>(_values)->values()[idx] = v; ok=true; } }
+                else if constexpr (std::is_same_v<T,uint4>)   { if(std::holds_alternative<Uint4sObject>(_values)) { std::get<Uint4sObject>(_values)->values()[idx] = v; ok=true; } }
             }, val);
             return  ok;
         }

@@ -7,6 +7,7 @@
 #include    "axis/FENodeMoveEditor.h"
 #include    "axis/FENodeRotateEditor.h"
 #include    "axis/FENodeScaleEditor.h"
+#include    "animation/FEAnimationSys.hpp"
 
 MainWindow* _mainApp   =   nullptr;
 
@@ -27,8 +28,25 @@ MainWindow::MainWindow()
     ui.modelTree->setup(ui.sceneViewer->scene());
     ui.sceneViewer->notify()    +=  {this,&MainWindow::notifyEngineStart};
 
-    /// 模型树选择通知到动画树更新数据
-    ui.modelTree->_selectEvts   +=  {ui.animationTree,&AnimationTree::selectObject};
+    /// 模型树右键菜单: 添加/移除到动画树
+    connect(ui.modelTree, &QtTree::signalContextMenu, this
+        , [this](const QPoint& pt, Object obj)
+    {
+        if (!obj)
+            return;
+        auto    node    =   obj->cast<FENode>();
+        if (!node)
+            return;
+        QMenu   menu(ui.modelTree);
+        bool    inTree  =   ui.animationTree->containsObject(obj);
+        auto    action  =   menu.addAction(inTree ? u8"从动画树移除" : u8"添加到动画树");
+        connect(action, &QAction::triggered, this, [this, obj]()
+        {
+            double  curTime =   ui.timeLineEditor->curTime();
+            ui.animationTree->toggleObject(obj, curTime);
+        });
+        menu.exec(ui.modelTree->mapToGlobal(pt));
+    });
 
     /// 将模型树链接到时间线编辑器,用于获取选中节点添加关键帧
     ui.timeLineEditor->setModelTree(ui.modelTree);
@@ -75,6 +93,26 @@ void    MainWindow::setTitile(QString fileName)
         setWindowTitle("FEEditor - " + fileName);
 
 }
+void    MainWindow::disableAllAnimations()
+{
+    auto    scene   =   this->scene();
+    if (!scene)
+        return;
+    auto    sys     =   scene->animationSystem();
+    if (!sys)
+        return;
+    /// 遍历动画系统中所有 action,禁用每个 action 管理的动画
+    for (auto& pair : sys->actions())
+    {
+        auto&   action  =   pair.second;
+        auto&   anims   =   action->objects();
+        for (auto& anim : anims)
+        {
+            anim->setEnable(false);
+        }
+    }
+}
+
 void    MainWindow::slotImportModel()
 {
     String  sptList =   "";
@@ -133,6 +171,8 @@ void    MainWindow::slotImportModel()
     }
     scene()->dispatchNodesToSystem(nodes);
     scene()->addNodesToTree(nodes);
+    /// 模型导入后禁用所有动画
+    disableAllAnimations();
 }
 void    MainWindow::slotOpenProject()
 {
@@ -146,8 +186,9 @@ void    MainWindow::slotOpenProject()
     {
         _projectName    =   fileName;
         setTitile(_projectName);
+        /// 工程打开后禁用所有动画
+        disableAllAnimations();
         QMessageBox::information(this, C2Q("提示"), C2Q("打开工程文件成功!"), QMessageBox::Ok);
-        /// 同步时间线数据到动画 ？
     }  
     else
     {

@@ -8,6 +8,7 @@
 #include    <QScrollArea>
 #include    <QPoint>
 #include    "MainWindow.h"
+#include    "animation/FEAnimation.hpp"
 
 
 namespace   FE
@@ -233,7 +234,18 @@ namespace   FE
         xStart  +=  4;
 
         /// 绘制文字,选中时使用高亮文字色保证可读性
+        /// 如果是 FENode 且有动画组件,在名称后追加 [A数量]
         QString text    =   item.getName();
+        if (item.item)
+        {
+            auto    node    =   item.item->cast<FENode>();
+            if (node)
+            {
+                auto    anims   =   node->objects<FEAnimation>();
+                if (!anims.empty())
+                    text    +=  QString(" [A%1]").arg(anims.size());
+            }
+        }
         QRect   qRT(xStart, y, _hscrollMax, _bmpHeight);
         QRect   br;
         int     flags   =   Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine;

@@ -6,13 +6,27 @@
 #include    <QTimer>
 #include    <QUndoStack>
 #include    <QColor>
+#include    <map>
 #include    "TimeSlider.h"
 
 
 class   AnimationItem;
 class   AnimationTree;
 namespace   FE { class QtTree; }
+namespace   FE { class FEKeyFrameTrack; }
 using   QtTree  =   FE::QtTree;
+
+/// <summary>
+/// 鼠标命中测试结果
+/// </summary>
+enum    HitType { HT_None, HT_Keyframe, HT_Block, HT_Empty };
+struct  HitResult
+{
+    HitType         type    =   HT_None;
+    AnimationItem*  item    =   nullptr;
+    size_t          keyIndex=   0;
+};
+
 class   UiTickMgr : public QWidget
 {
     Q_OBJECT
@@ -28,6 +42,8 @@ public:
     void    setKeyRowHeight(int rowHeight);
     void    setTimeRowHeight(int height);
     void    setCurFrame(const int& frame, bool applyToAnim = true);
+    /// 获取当前时间线时间(秒)
+    double  curTime() const  { return _curFrame / double(_fps); }
    
     void    toPreKeyframe();
     void    toFirstKeyframe();
@@ -61,6 +77,42 @@ private:
     /// </summary>
     void    drawNodeAnimations(QPainter& painter,AnimationItem*);
     int     calcDeltaFrame(const int& p0, const int& p1) const;
+    /// <summary>
+    /// 鼠标命中测试: 检测点击的是关键帧、范围块还是空白区域
+    /// </summary>
+    HitResult   hitTest(const QPoint& pos);
+    /// <summary>
+    /// 遍历动画树中所有可见 Track 的关键帧,收集帧号集合
+    /// </summary>
+    void    collectAllKeyframeFrames(std::vector<int>& frames);
+    /// <summary>
+    /// 清除动画树中所有选择状态(FLAG_SELECTED + track user objects)
+    /// </summary>
+    void    clearSelection();
+    /// <summary>
+    /// 框选: 遍历动画树,选中范围内的关键帧
+    /// </summary>
+    void    boxSelect(const QRect& rect);
+    /// <summary>
+    /// 遍历动画树,对每个 item 执行回调
+    /// </summary>
+    void    traverseTree(std::function<void(AnimationItem*)> cb);
+    /// <summary>
+    /// 在 track 的 value object 上设置 UintsObject 选择标记
+    /// </summary>
+    static  void    setTrackKeySelection(FE::FEKeyFrameTrack* track, size_t keyIndex, bool selected);
+    /// <summary>
+    /// 创建/重置 track 的选择标记数组(全 0)
+    /// </summary>
+    static  void    initTrackKeySelection(FE::FEKeyFrameTrack* track);
+    /// <summary>
+    /// 查询关键帧是否被选中
+    /// </summary>
+    static  bool    isKeyframeSelected(FE::FEKeyFrameTrack* track, size_t keyIndex);
+    /// <summary>
+    /// 清除 track 的选择标记
+    /// </summary>
+    static  void    clearTrackKeySelection(FE::FEKeyFrameTrack* track);
 public slots:
     void    slotScrollValueChanged(int value);
     void    slotDoPaint();
@@ -166,4 +218,19 @@ public:
     QShortcut*  _shortcutDelete;
 
     QUndoStack*     _undoStack  =   nullptr;
+
+    /// 拖动关键帧时保存原始时间(按 track 分组, 含动画 offset)
+    struct  DragOrigData
+    {
+        std::vector<double>  times;
+        double               offset  =   0;
+    };
+    std::map<FE::FEKeyFrameTrack*, DragOrigData> _dragOrigTimes;
+    /// 拖动范围块时的原始 offset
+    double          _dragOrigOffset  =   0;
+    /// 正在拖动的范围块所属 item(FENode 或 FEAnimation)
+    AnimationItem*  _dragBlockItem   =   nullptr;
+    /// 选中高亮颜色
+    static inline const QColor _selColor   = QColor(0, 162, 232, 200);
+    static inline const QColor _selBorder  = QColor(255, 255, 255, 220);
 };
