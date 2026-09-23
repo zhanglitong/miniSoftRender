@@ -205,21 +205,15 @@ void    MainWindow::slotMoveEditor()
     if (editor == nullptr)
         return;
     Objects curObjs =   ui.modelTree->selected();
-    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeMoveEditor>()->setNodes({});
+        editor->as<FENodeMoveEditor>()->setObjects({});
     }  
-    else if(node)
-    {
-        editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeMoveEditor>()->setNodes({node});
-    }
     else
     {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeMoveEditor>()->setNodes({});
+        editor->as<FENodeMoveEditor>()->setObjects(curObjs);
     }
 }
 void    MainWindow::slotRotEditor()
@@ -232,21 +226,15 @@ void    MainWindow::slotRotEditor()
     if (editor == nullptr)
         return;
     Objects curObjs =   ui.modelTree->selected();
-    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeRotateEditor>()->setNodes({});
+        editor->as<FENodeRotateEditor>()->setObjects({});
     }  
-    else if(node)
-    {
-        editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeRotateEditor>()->setNodes({node});
-    }
     else
     {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeRotateEditor>()->setNodes({});
+        editor->as<FENodeRotateEditor>()->setObjects(curObjs);
     }
 }
 void    MainWindow::slotScaleEditor()
@@ -260,21 +248,15 @@ void    MainWindow::slotScaleEditor()
     if (editor == nullptr)
         return;
     Objects curObjs =   ui.modelTree->selected();
-    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeScaleEditor>()->setNodes({});
+        editor->as<FENodeScaleEditor>()->setObjects({});
     }  
-    else if(node)
-    {
-        editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeScaleEditor>()->setNodes({node});
-    }
     else
     {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeScaleEditor>()->setNodes({});
+        editor->as<FENodeScaleEditor>()->setObjects(curObjs);
     }
 }
 
@@ -289,14 +271,11 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
             auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
             ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
             {
-                auto    node    =   object->cast<FENode>();
-                if (node == nullptr)
-                    return;
                 auto pEditor =   (FENodeRotateEditor*)(editor->as<FENodeRotateEditor>());
                 if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
-                    pEditor->setNodes({node});
+                    pEditor->setObjects({object});
                 else
-                    pEditor->setNodes({}); 
+                    pEditor->setObjects({}); 
                 
             }};
         }
@@ -304,28 +283,22 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
             auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
             ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
             {
-                auto    node    =   object->cast<FENode>();
-                if (node == nullptr)
-                    return;
                 auto pEditor =   (FENodeMoveEditor*)(editor->as<FENodeMoveEditor>());
                 if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
-                    pEditor->setNodes({node});
+                    pEditor->setObjects({object});
                 else
-                    pEditor->setNodes({}); 
+                    pEditor->setObjects({}); 
             }};
         }
         {
             auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
             ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
             {
-                auto    node    =   object->cast<FENode>();
-                if (node == nullptr)
-                    return;
                 auto pEditor =   (FENodeRotateEditor*)(editor->as<FENodeRotateEditor>());
                 if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
-                    pEditor->setNodes({node});
+                    pEditor->setObjects({object});
                 else
-                    pEditor->setNodes({}); 
+                    pEditor->setObjects({}); 
             }};
         }
     }

@@ -23,7 +23,7 @@ namespace   FE
         /// 设置要编辑的节点
         /// </summary>
         /// <param name="nodes"></param>
-        void    setNodes(const Nodes& nodes);
+        void    setObjects(const Objects& objects);
         /// <summary>
         /// 同步更新编辑器到节点的包围盒中心
         /// </summary>
@@ -34,7 +34,7 @@ namespace   FE
                         , const real3& absoluteOffset
                         , FEEditAxisMove& sender);
     protected:
-        Nodes   _nodes;
+        Objects _objects;
     };
 
     using   NodeMoveEditor  =   SharedPtr<FENodeMoveEditor>;

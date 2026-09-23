@@ -21,14 +21,14 @@ namespace   FE
         /// 移除节点通知
         ctx.scene()->nodeTree().eventsRemoveNode() += {this,[this](const FENode* obj)
         {
-            auto    itr =   std::remove_if(_nodes.begin(),_nodes.end(),[obj](const Node& e) { return e.get() == obj; });
-            _nodes.erase(itr,_nodes.end());
+            auto    itr =   std::remove_if(_objects.begin(),_objects.end(),[obj](const Object& e) { return e.get() == obj; });
+            _objects.erase(itr,_objects.end());
             sync();
         }};
         /// 清除节点通知
         ctx.scene()->nodeTree().eventsClear() += {this,[this]()
         {
-            _nodes  =   {};
+            _objects    =   {};
             sync();
         }};
         /// 节点属性更改通知
@@ -54,10 +54,10 @@ namespace   FE
         _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
     }
 
-    void    FENodeMoveEditor::setNodes(const Nodes& nodes)
+    void    FENodeMoveEditor::setObjects(const Objects& objects)
     {
-        _nodes   =   nodes;
-        if (_nodes.empty())
+        _objects   =   objects;
+        if (_objects.empty())
             mDelegate()     -=  this;
         else
             mDelegate()     +=  {this,&FENodeMoveEditor::onMAxis};
@@ -66,9 +66,23 @@ namespace   FE
     void    FENodeMoveEditor::sync()
     {
         aabb3dr box;
-        for (auto& var: _nodes)
+        for (auto& var: _objects)
         {
-            box.merge(var->globalAabb());
+            auto    node    =   var->cast<FENode>();
+            if (node)
+            {
+                box.merge(node->globalAabb());
+                continue;
+            }
+            auto    com     =   var->cast<FEComponent>();
+            if (com && com->owner())
+            {
+                node    =   com->owner()->cast<FENode>(); 
+                if (node)
+                {
+                    box.merge(node->globalAabb());
+                }
+            }
         }
         setTranslation(box.center());
     }
@@ -78,12 +92,36 @@ namespace   FE
                                         , const real3& absoluteOffset
                                         , FEEditAxisMove& sender)
     {
-        for (auto node : _nodes)
+        for (auto object : _objects)
         {
-            auto    trans   =   node->localTranslation() + relativeOffset;
-            node->setLocalTranslation(trans); 
-            node->update();
-            node->fireChanged();
+            auto    node    =   object->cast<FENode>();
+            if (node)
+            {
+                auto    trans   =   node->localTranslation() + relativeOffset;
+                node->setLocalTranslation(trans); 
+                node->update();
+                node->fireChanged();
+                continue;
+            }
+            /// 如果有transform接口，通过接口设置数据
+            auto    transform   =   (FETransform*)object->queryInterface("FETransform");
+            if (transform)
+            {
+                auto    trans   =   transform->position() + relativeOffset;
+                transform->setPosition(trans);
+            }
+            /// 如果是组件,获取owner
+            /// 触发更新
+            auto    com     =   object->cast<FEComponent>();
+            if (com && com->owner())
+            {
+                node    =   com->owner()->cast<FENode>();
+                if (node)
+                {
+                    node->update();
+                    node->fireChanged();
+                }
+            }
         }
     }
 }

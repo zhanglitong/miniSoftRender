@@ -322,6 +322,7 @@ namespace FE
         /// <param name="frame"></param>
         bool    update(const KFOff& kfOff,FETrackResult& result);
     public:
+        
         /// <summary>
         /// 获取依赖的对象,子类实现
         /// </summary>

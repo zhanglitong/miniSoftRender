@@ -20,14 +20,14 @@ namespace   FE
         /// 移除节点通知
         ctx.scene()->nodeTree().eventsRemoveNode() += {this,[this](const FENode* obj)
         {
-            auto    itr =   std::remove_if(_nodes.begin(),_nodes.end(),[obj](const Node& e) { return e.get() == obj; });
-            _nodes.erase(itr,_nodes.end());
+            auto    itr =   std::remove_if(_objects.begin(),_objects.end(),[obj](const Object& e) { return e.get() == obj; });
+            _objects.erase(itr,_objects.end());
             sync();
         }};
         /// 清除节点通知
         ctx.scene()->nodeTree().eventsClear() += {this,[this]()
         {
-            _nodes  =   {};
+            _objects    =   {};
             sync();
         }};
         /// 节点属性更改通知
@@ -53,10 +53,10 @@ namespace   FE
         _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
     }
 
-    void    FENodeScaleEditor::setNodes(const Nodes& nodes)
+    void    FENodeScaleEditor::setObjects(const Objects& objects)
     {
-        _nodes   =   nodes;
-        if (_nodes.empty())
+        _objects   =   objects;
+        if (_objects.empty())
             mDelegate()     -=  this;
         else
             mDelegate()     +=  {this,&FENodeScaleEditor::onSAxis};
@@ -65,9 +65,23 @@ namespace   FE
     void    FENodeScaleEditor::sync()
     {
         aabb3dr box;
-        for (auto& var: _nodes)
+        for (auto& var: _objects)
         {
-            box.merge(var->globalAabb());
+            auto    node    =   var->cast<FENode>();
+            if (node)
+            {
+                box.merge(node->globalAabb());
+                continue;
+            }
+            auto    com     =   var->cast<FEComponent>();
+            if (com && com->owner())
+            {
+                node    =   com->owner()->cast<FENode>();
+                if (node)
+                {
+                    box.merge(node->globalAabb());
+                }
+            }
         }
         setTranslation(box.center());
     }
@@ -80,8 +94,17 @@ namespace   FE
         (void)status;
         (void)absoluteOffset;
         real3       pivot   =   position();
-        for (auto node : _nodes)
+        for (auto object : _objects)
         {
+            auto    node    =   object->cast<FENode>();
+            if (!node)
+            {
+                auto    com =   object->cast<FEComponent>();
+                if (com && com->owner())
+                    node    =   com->owner()->cast<FENode>();
+            }
+            if (!node)
+                continue;
             ///围绕编辑器位置缩放节点
             real3   worldPos    =   node->globalTranslation();
             real3   offset      =   worldPos - pivot;

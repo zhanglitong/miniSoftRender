@@ -99,9 +99,9 @@ namespace   FE
         else if (nCom < MaxUint32)  bits._hasCom    =   3;
 
         bits._hasColor      =   (_color == Rgba8(0,0,0,255)) ? 0:1;
-        bits._hasScale      =   _scale  ==  float3(1,1,1)  ? 1 : 0;
-        bits._hasTrans      =   _trans  ==  real3(0,0,0)   ? 1 : 0;
-        bits._hasRotate     =   _rotate ==  quatf(1,0,0,0) ? 1 : 0;
+        bits._hasScale      =   _transform._scale     ==  float3(1,1,1)  ? 1 : 0;
+        bits._hasTrans      =   _transform._position  ==  real3(0,0,0)   ? 1 : 0;
+        bits._hasRotate     =   _transform._rotation  ==  quatf(1,0,0,0) ? 1 : 0;
         bits._hasGeometry   =   _mesh       ? 1 : 0;
         bits._hasMaterial   =   _material   ? 1 : 0;
 
@@ -117,9 +117,9 @@ namespace   FE
         else if (nChild < MaxUint32)    chunk._hasChild =   3;
 
         
-        if (bits._hasScale )    writer.write(_scale);
-        if (bits._hasTrans )    writer.write(_trans);
-        if (bits._hasRotate )   writer.write(_rotate);
+        if (bits._hasScale )    writer.write(_transform._scale);
+        if (bits._hasTrans )    writer.write(_transform._position);
+        if (bits._hasRotate )   writer.write(_transform._rotation);
         if (bits._hasColor )    writer.write(_color);
         if (_mesh)              writer.write(_mesh->objectId());
         if (_material)          writer.write(_material->objectId());
@@ -159,12 +159,11 @@ namespace   FE
     {
         UNUSED(reader,chunk,version,ctx);
         NodeChunkBit    bits(chunk._flags);
-
         OBJId   matId;
         OBJId   geoId;
-        if (bits._hasScale )    reader.read(_scale);
-        if (bits._hasTrans )    reader.read(_trans);
-        if (bits._hasRotate )   reader.read(_rotate);
+        if (bits._hasScale )    reader.read(_transform._scale);
+        if (bits._hasTrans )    reader.read(_transform._position);
+        if (bits._hasRotate )   reader.read(_transform._rotation);
         if (bits._hasColor)     reader.read(_color);
        
         /// 读几何体
@@ -511,7 +510,6 @@ namespace   FE
             _mesh   =   triangular(inputs);
         }
     }
-
 
     void    FEMaterialPBR::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const 
     {

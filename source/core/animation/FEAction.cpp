@@ -3,6 +3,7 @@
 #include    "../inc/FEWriterHelper.hpp"
 #include    "../inc/FEObjectHelper.hpp"
 #include    "../inc/FENodeHelper.hpp"
+#include    "../../inc/graphic/FEScene.h"
 #include    "../inc/animation/FEAction.hpp"
 
 namespace FE
@@ -135,7 +136,9 @@ namespace FE
         RealsObject             timeLine    =   nullptr;
         FEKeyFrameTrack::KFOff  kfValue     =   {};
         Object                  owner       =   nullptr;
-        bool                    bNotify     =   false;
+        ObjectUSet              transOwners;    ///< 需要更新变换的所有者
+        ObjectUSet              modOwners;      ///< 有任意属性修改的所有者
+
         for (auto& var : _cache)
         {
             /// 禁用的动画不播放
@@ -153,20 +156,37 @@ namespace FE
             if (owner != var._owner)
             {
                 if (owner)
-                    owner->endSetProp(bNotify);
+                    owner->endSetProp(false);
                 owner   =   var._owner;
                 if (owner)
                     owner->beginSetProp();
-                bNotify =   false;
             }
             FETrackResult   result;
             result._track   =   track;
             result._prop    =   track->propertyIndex();
             result._valid   =   track->update(kfValue,result);
-            bNotify         |=   var._owner->setProperty(result._prop ,result._value);
+            if (!result._valid)
+                continue;
+            /// 变换属性写入动画组件自身 _transform,其他属性写入 _owner
+            if (var._anim->applyTrackResult(result._prop,result._value))
+                transOwners.emplace(var._owner);
+            modOwners.emplace(var._owner);
         }
         if (owner)
-            owner->endSetProp(bNotify);
+            owner->endSetProp(false);
+
+        /// 标记变换变更标志,由 updateList 统一触发节点 updateTransform -> appTransform
+        for (Object o : transOwners)
+        {
+            o->flags().addFlag(FENode::FLAG_PROP_TRANS  |
+                               FENode::FLAG_PROP_SCALE  |
+                               FENode::FLAG_PROP_ROT);
+        }
+        /// 所有修改过的对象加入更新列表,引擎统一执行 update + fireChanged
+        for (auto& o : modOwners)
+        {
+            _ctx.scene()->updateList().addObject(o);
+        }
     }
 
     void    FEAction::buildCache()

@@ -5,8 +5,6 @@
 #include    "../FEComponent.hpp"
 #include    "FEAnimClip.hpp"
 
-
-
 namespace FE
 {
     DEFINE_CLASS_UUID(FEAnimation, "{D0749EE9-7126-4A57-B4F2-84798E4F40F2}");
@@ -43,6 +41,18 @@ namespace FE
         inline  void    setName(const String& name)
         {
             _name   =   name;
+        }
+        /// <summary>
+        /// 返回节点自身的transform;不含组件信息
+        /// </summary>
+        /// <returns></returns>
+        inline  auto&   transform()
+        {
+            return  _transform;
+        }
+        const   auto&   transform() const
+        {
+            return  _transform;
         }
         /// <summary>
         /// 关联所有者
@@ -124,6 +134,13 @@ namespace FE
             flags().removeFlag(AnimationChanged);
         }
         /// <summary>
+        /// 返回子对象个数，用于树形访问遍历使用
+        /// 配合traverseObject使用
+        /// </summary>
+        /// <returns></returns>
+        virtual size_t  objectCount() const override;
+        virtual bool    traverseObject(const ObjectVisitor&,uint depth = 0,bool recur = false) const override;
+        /// <summary>
         /// 组件每一帧更新
         /// 返回值表示，是否已经修改了 _owner
         /// 如果修改了 返回true,没有修改返回false
@@ -131,7 +148,43 @@ namespace FE
         /// <param name="deltaTm"></param>
         /// <returns>true/false</returns>
         virtual bool    update(const real& clipTime) override;
+        /// <summary>
+        /// 组件会把自己的变换数据应用到 global上
+        /// </summary>
+        /// <param name="parent"></param>
+        /// <param name=""></param>
+        virtual void    appTransform(mat4r& global) override
+        {
+            global  =   global * _transform.toMatrix();
+        }
+        /// <summary>
+        /// 应用一条轨道的采样结果
+        /// 变换属性写入自身 _transform,其他属性写入 _owner
+        /// </summary>
+        /// <param name="prop">属性索引</param>
+        /// <param name="value">采样值</param>
+        /// <returns>是否修改了变换(true 表示需要触发节点 updateTransform)</returns>
+        bool    applyTrackResult(int prop,const KFValue& value);
+        /// <summary>
+        /// 获取属性值
+        /// 变换属性从自身 _transform 读取,其他属性从 _owner 读取
+        /// </summary>
+        /// <param name="prop">属性索引</param>
+        /// <returns>属性值</returns>
+        virtual KFValue     getProperty(int prop) const override;
     protected:
+        /// <summary>
+        /// 判断属性是否属于变换相关属性(位置/旋转/缩放)
+        /// </summary>
+        /// <param name="prop"></param>
+        /// <returns></returns>
+        static  bool    isTransformProperty(int prop);
+        /// <summary>
+        /// 将变换相关属性写入 _transform
+        /// </summary>
+        /// <param name="prop"></param>
+        /// <param name="value"></param>
+        void    setTransformProperty(int prop,const KFValue& value);
         /// <summary>
         /// 获取依赖的对象,子类实现
         /// </summary>
@@ -155,6 +208,12 @@ namespace FE
         /// <param name="ctx"></param>
         /// <returns></returns>
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
+        /// <summary>
+        /// 根据类型id获取接口信息
+        /// </summary>
+        /// <param name="classId"></param>
+        /// <returns></returns>
+        virtual void*   queryInterface(const char* clsName) override;
     protected:
         /// <summary>
         /// AnimClip 类型的变量，用于保存动画剪辑。
@@ -168,7 +227,7 @@ namespace FE
         /// 记录动画播放到哪里了
         /// </summary>
         real            _clipTime   =   0;
-        FETransform     _gloabal;
+        FETransform     _transform;
         TrackResults    _results; 
         String          _name;
     };

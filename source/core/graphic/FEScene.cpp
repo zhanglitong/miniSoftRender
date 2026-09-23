@@ -258,7 +258,6 @@ namespace   FE
     {
         if (_frame == nullptr || _frame->_cmd == nullptr)
             return;
-        updateList().clearObjects();
         /// all componentSys for update
         /// 复制一份
         auto    comSyss     =   _comSysMgr.objects();
@@ -277,6 +276,18 @@ namespace   FE
         {
             var->update(_ctx.deltaTime());
         }
+
+        for (auto var : _updateList.objects())
+        {   
+            auto    node    =   var->cast<FENode>();
+            if (node)
+            {
+                node->update();
+                node->fireChanged();
+            }
+        }
+        _updateList.clearObjects();
+        
         /// 渲染工厂
         auto    factorys    =   _factorys.objects();
         /// 按照优先级排序

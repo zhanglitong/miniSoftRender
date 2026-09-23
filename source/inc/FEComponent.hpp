@@ -116,15 +116,14 @@ namespace   FE
             return  false;
         }
         /// <summary>
-        /// 
+        /// 组件会把自己的变换数据应用到 global上
         /// </summary>
         /// <param name="parent"></param>
         /// <param name=""></param>
-        virtual void    appTransform(const mat4r& parent,FETransform& local)
+        virtual void    appTransform(mat4r& global)
         {
-            UNUSED(parent,local);
+            UNUSED(global);
         }
-        
     protected:
         /// <summary>
         /// 组件的拥有者

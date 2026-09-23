@@ -10,25 +10,23 @@ namespace   FE
     FENode::FENode(FEContext& ctx)
         :FEItem<FENode>(ctx)
     {
-        _scale      =   float3(1,1,1);
-        _trans      =   real3(0,0,0);
-        _rotate     =   quatf(1,0,0,0);
+        _transform._scale       =   float3(1,1,1);
+        _transform._position    =   real3(0,0,0);
+        _transform._rotation    =   quatf(1,0,0,0);
         /// 默认情况下颜色会 color x fragment 
         _color      =   Rgba8(255,255,255,255);
-        _gloabal    =   FE::makeTransform<real>(_trans,_scale,_rotate);
+        _gloabal    =   _transform.toMatrix();
         _renderBits =   RF_VISIBLE;
     }
 
     FENode::FENode(const FENode& other)
         :FEItem<FENode>(other)
     {
-        _trans      =   other._trans        ;
-        _scale      =   other._scale        ;
-        _rotate     =   other._rotate       ;
+        _transform  =   other._transform    ;
         _renderBits =   other._renderBits   ;
         _aabb       =   other._aabb         ;
 
-        _gloabal  =   other._gloabal    ;
+        _gloabal    =   other._gloabal      ;
         _material   =   other._material     ; 
         _mesh       =   other._mesh         ; 
         _color      =   other._color        ;
@@ -98,24 +96,13 @@ namespace   FE
     
     void    FENode::updateTransform(bool recursion)
     {
-        FETransform tranform(_trans,_rotate,_scale);
-        
         if (parent() != nullptr)
-        {
-            for (auto var: _coms)
-            {
-                var->appTransform(parent()->_gloabal,tranform);
-            }
-            _gloabal  =   parent()->_gloabal * tranform.toMatrix();
-        } 
+            _gloabal  =   parent()->_gloabal * _transform.toMatrix();
         else
+            _gloabal  =   _transform.toMatrix();
+        for (auto var: _coms)
         {
-            static  mat4r   matId(1);
-            for (auto var: _coms)
-            {
-                var->appTransform(matId,tranform);
-            }
-            _gloabal  =   tranform.toMatrix();
+            var->appTransform(_gloabal);
         }
         if (!recursion || children().empty() )
             return ;
@@ -193,44 +180,51 @@ namespace   FE
         return  uset.size() - vSize;
     }
 
+    void*   FENode::queryInterface(const char* clsName)
+    {
+        if (strcmp(clsName,"FETransform") == 0)
+            return  &_transform ;
+        else
+            return  nullptr;
+    }
     void    FENode::beginSetProp() 
     {}
 
     bool    FENode::setProperty(int prop,const KFValue& value) 
     {
+        
         switch(prop)
         {
         case PROP_TRANSFORM_X:
-            _trans.x    =   std::get<real>(value);
+            _transform._position.x    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_Y:
-            _trans.y    =   std::get<real>(value);
+            _transform._position.y    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_Z:
-            _trans.z    =   std::get<real>(value);
+            _transform._position.z    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_XYZ:
-            _trans      =   std::get<real3>(value);
+            _transform._position      =   std::get<real3>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
-
         case PROP_SCALE_X:
-            _scale.x    =   (float)std::get<float>(value);
+            _transform._scale.x    =   (float)std::get<float>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Y:
-            _scale.y    =   (float)std::get<float>(value);
+            _transform._scale.y    =   (float)std::get<float>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Z:
-            _scale.z    =   (float)std::get<float>(value);
+            _transform._scale.z    =   (float)std::get<float>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_XYZ:
-            _scale      =   std::get<float3>(value);
+            _transform._scale      =   std::get<float3>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         /// 欧拉角实现
@@ -241,7 +235,7 @@ namespace   FE
             return  false;
         case PROP_QUAT:
             flags().addFlag(FLAG_PROP_ROT); 
-            _rotate     =   std::get<quatf>(value);
+            _transform._rotation    =   std::get<quatf>(value);
             return  true;
          
         case PROP_COLOR_RGB:
@@ -270,19 +264,19 @@ namespace   FE
     {
         switch(prop)
         {
-        case PROP_TRANSFORM_X:  return  _trans.x;
-        case PROP_TRANSFORM_Y:  return  _trans.y;
-        case PROP_TRANSFORM_Z:  return  _trans.z;
-        case PROP_TRANSFORM_XYZ:return  _trans;
-        case PROP_SCALE_X:      return  _scale.x;
-        case PROP_SCALE_Y:      return  _scale.y;
-        case PROP_SCALE_Z:      return  _scale.z;
-        case PROP_SCALE_XYZ:    return  _scale;
-        case PROP_ROTATE_X:     return  RAD2DEG(quatToEuler(_rotate).x);
-        case PROP_ROTATE_Y:     return  RAD2DEG(quatToEuler(_rotate).y);
-        case PROP_ROTATE_Z:     return  RAD2DEG(quatToEuler(_rotate).z);
-        case PROP_ROTATE_XYZ:   return  quatToEuler(_rotate);
-        case PROP_QUAT:         return  _rotate;
+        case PROP_TRANSFORM_X:  return  _transform._position.x;
+        case PROP_TRANSFORM_Y:  return  _transform._position.y;
+        case PROP_TRANSFORM_Z:  return  _transform._position.z;
+        case PROP_TRANSFORM_XYZ:return  _transform._position;
+        case PROP_SCALE_X:      return  _transform._scale.x;
+        case PROP_SCALE_Y:      return  _transform._scale.y;
+        case PROP_SCALE_Z:      return  _transform._scale.z;
+        case PROP_SCALE_XYZ:    return  _transform._scale;
+        case PROP_ROTATE_X:     return  RAD2DEG(quatToEuler(_transform._rotation).x);
+        case PROP_ROTATE_Y:     return  RAD2DEG(quatToEuler(_transform._rotation).y);
+        case PROP_ROTATE_Z:     return  RAD2DEG(quatToEuler(_transform._rotation).z);
+        case PROP_ROTATE_XYZ:   return  quatToEuler(_transform._rotation);
+        case PROP_QUAT:         return  _transform._rotation;
         case PROP_COLOR_RGB:    return  _color.value();
         case PROP_COLOR_ALPHA:  return  _color.value().a;
         default:

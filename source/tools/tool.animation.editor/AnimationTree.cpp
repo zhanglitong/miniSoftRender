@@ -448,6 +448,7 @@ AnimationItem*  AnimationTree::createItemForNode(FE::FENode* object, AnimationIt
 
 AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, AnimationItems& needExpand)
 {
+    using   MapItem     =   std::map<const FEObject*,AnimationItem*>;
     /// 建立树形结构
     /// Object(mat,geo...)
     ///  - animation0
@@ -460,38 +461,51 @@ AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, Animation
     /// 禁用状态用灰色文字
     if (!pObject->flags().hasFlag(FE::FLAG_ENABLE))
         rootItem->setForeground(Qt::gray);
-    Animations  anims;
-    pObject->traverseObject([&](const FEObject& object, const FEObject&, const FEObject::FETrvsCtx&, uint)->bool
+    
+    MapItem     mapObjectItem;
+
+    mapObjectItem[pObject]  =   rootItem;
+
+    pObject->traverseObject([&](const FEObject& object, const FEObject& parent, const FEObject::FETrvsCtx&, uint)->bool
     {
+        /// 如果是动画对象
         auto    pAnim   =   dynamic_cast<const FEAnimation*>(&object);
         if (pAnim)
         {
-            Animation   tmp =   (FEAnimation*)pAnim;
-            anims.push_back(tmp);
+            Animation   anim        =   (FEAnimation*)pAnim;
+            auto        item        =   new AnimationItem(anim,anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
+            bool        isEnable    =   !anim->isEnable();
+            if (isEnable)
+                item->setForeground(Qt::gray);
+
+            auto        itemParent  =   mapObjectItem[&parent];
+            if (itemParent)
+            {
+                itemParent->appendRow(item);
+            }
+            mapObjectItem[&object]  =   item;
+        }
+        /// 如果是
+        auto    pTrack   =   dynamic_cast<const FEKeyFrameTrack*>(&object);
+        if (pTrack)
+        {
+            pAnim                   =   dynamic_cast<const FEAnimation*>(&parent);
+            Animation   anim        =   (FEAnimation*)pAnim;
+            auto        track       =   (FEKeyFrameTrack*)pTrack; 
+            bool        isEnable    =   !anim->isEnable();
+            auto        item        =   new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track));
+            if (isEnable)
+                item->setForeground(Qt::gray);
+            auto            itemParent  =   mapObjectItem[&parent];
+            if (itemParent)
+            {
+                itemParent->appendRow(item);
+            }
+            mapObjectItem[&object]  =   item;
         }
         return true;
     });
-    /// 遍历所有动画
-    for (auto anim : anims)
-    {
-        auto    animItem    =   new AnimationItem(anim,anim->name().c_str(), AnimationItem::IT_Par, anim,iconOfObject(anim));
-        bool    animDisabled=   !anim->isEnable();
-        if (animDisabled)
-            animItem->setForeground(Qt::gray);
-        rootItem->appendRow(animItem);
-        auto    clip    =   anim->clip();
-        assert(clip != nullptr);
-        if (clip == nullptr)
-            continue;
-        auto    tracks  =   clip->tracks();
-        for (auto track : tracks)
-        {
-            auto    trackItem   =   new AnimationItem(anim,track->name().c_str(), AnimationItem::IT_Track, track,iconOfObject(track));
-            if (animDisabled)
-                trackItem->setForeground(Qt::gray);
-            animItem->appendRow(trackItem);
-        }
-    }
+    
     return  rootItem;
 }
 

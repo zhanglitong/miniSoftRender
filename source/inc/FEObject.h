@@ -352,7 +352,7 @@ namespace   FE
         /// </summary>
         /// <param name="classId"></param>
         /// <returns></returns>
-        virtual Object      queryInterface(const CLSId& classId);
+        virtual void*       queryInterface(const char* name);
         /// <summary>
         /// 对象的初始化版本,子类可以升级重写,但不能低于初始化版本
         /// </summary>
