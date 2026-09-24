@@ -192,15 +192,11 @@ namespace   FE
         /// <returns>从世界到节点的位置变换</returns>
         inline  real3   globalTranslation() const
         {
-            return this->globalTransform() * real4(0,0,0,1);
+            return  _gloabal.position();
         }
         inline  quatr   globalRotation() const
         {
-            real3   pos;
-            real3   scale;
-            quatr   rot;
-            FE::decompose<real>(_gloabal, pos, scale, rot);
-            return  rot;
+            return  quatr(_gloabal.rotation());
         }
         /// <summary>
         /// 设置 从世界到节点的旋转变换
@@ -226,13 +222,9 @@ namespace   FE
             flags().addFlag(FLAG_PROP_TRANS);
             return  *this;
         }
-        inline  quatr   globalScaling() const
+        inline  real3   globalScaling() const
         {
-            real3   pos;
-            real3   scale;
-            quatr   rot;
-            FE::decompose<real>(_gloabal, pos, scale, rot);
-            return  scale;
+            return  real3(_gloabal.scale());
         }
 
         inline  void    setName(const String& name)
@@ -424,7 +416,7 @@ namespace   FE
         /// <returns></returns>
         inline  mat4r   globalTransform() const
         {
-            return  _gloabal;
+            return  _gloabal.toMatrix();
         }
         /// <summary>
         /// 返回节点自身的transform;不含组件信息
@@ -519,9 +511,10 @@ namespace   FE
         void            blend(FETransform& result);
     protected:
         FETransform _transform;
+        FETransform _gloabal;
         RenderFlags _renderBits;
         aabb3r      _aabb;
-        mat4r       _gloabal;
+        
         /// <summary>
         /// 经常被访问的组件
         /// </summary>

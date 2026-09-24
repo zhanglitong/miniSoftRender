@@ -15,7 +15,7 @@ namespace   FE
         _transform._rotation    =   quatf(1,0,0,0);
         /// 默认情况下颜色会 color x fragment 
         _color      =   Rgba8(255,255,255,255);
-        _gloabal    =   _transform.toMatrix();
+        _gloabal    =   _transform;
         _renderBits =   RF_VISIBLE;
     }
 
@@ -101,9 +101,9 @@ namespace   FE
 
         /// 全局变换 = 父全局 * (局部 * 混合组件变换)
         if (parent() != nullptr)
-            _gloabal    =   parent()->_gloabal * (_transform * blended).toMatrix();
+            _gloabal    =   FETransform::fromMatrix(parent()->_gloabal.toMatrix() * (_transform * blended).toMatrix());
         else
-            _gloabal    =   (_transform * blended).toMatrix();
+            _gloabal    =   FETransform::fromMatrix((_transform * blended).toMatrix());
 
         if (!recursion || children().empty())
             return;
@@ -126,7 +126,7 @@ namespace   FE
         if (_mesh)
         {
             FEPickup    result  =   {};
-            if(_mesh->intersect(ray,_gloabal,result))
+            if(_mesh->intersect(ray,_gloabal.toMatrix(),result))
             {
                 result.object   =   const_cast<FENode*>(this);
                 result.point    =   ray.getPoint(result.time);
@@ -153,7 +153,7 @@ namespace   FE
             return  0;
         if (_mesh)
         {
-            _mesh->intersect(ray,_gloabal,result);
+            _mesh->intersect(ray,_gloabal.toMatrix(),result);
         }
         /// 递归所有子孙节点
         auto&   chs  =   children();
