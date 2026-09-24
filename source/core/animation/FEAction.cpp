@@ -186,7 +186,7 @@ namespace FE
         if (owner)
             owner->endSetProp(false);
 
-        /// 标记变换变更标志,由 updateList 统一触发节点 updateTransform -> appTransform
+        /// 标记变换变更标志,由 updateList 统一触发节点 updateTransform -> getTransform 混合
         for (Object o : transOwners)
         {
             o->flags().addFlag(FENode::FLAG_PROP_TRANS  |

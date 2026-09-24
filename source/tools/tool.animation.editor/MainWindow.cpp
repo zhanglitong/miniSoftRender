@@ -8,6 +8,7 @@
 #include    "axis/FENodeRotateEditor.h"
 #include    "axis/FENodeScaleEditor.h"
 #include    "animation/FEAnimationSys.hpp"
+#include    "animation/FEAnimationHelper.hpp"
 #include    "UndoCommand.h"
 
 MainWindow* _mainApp   =   nullptr;
@@ -29,33 +30,165 @@ MainWindow::MainWindow()
     ui.modelTree->setup(ui.sceneViewer->scene());
     ui.sceneViewer->notify()    +=  {this,&MainWindow::notifyEngineStart};
 
-    /// 模型树右键菜单: 添加/移除到动画树
+    /// 模型树右键菜单: 添加/移除到动画树 + 创建/删除/清除动画
     connect(ui.modelTree, &QtTree::signalContextMenu, this
         , [this](const QPoint& pt, Object obj)
     {
         if (!obj)
             return;
         auto    node    =   obj->cast<FENode>();
-        if (!node)
+        auto    anim    =   obj->cast<FEAnimation>();
+        if  (!node && !anim)
             return;
         QMenu   menu(ui.modelTree);
-        bool    inTree  =   ui.animationTree->containsObject(obj);
-        auto    action  =   menu.addAction(inTree ? u8"从动画树移除" : u8"添加到动画树");
-        connect(action, &QAction::triggered, this, [this, obj]()
+
+        if  (node)
         {
-            double  curTime =   ui.timeLineEditor->curTime();
-            if  (_undoStack)
+            /// FENode: 添加/移除到动画树 + 创建动画 + 清除动画
+            bool    inTree  =   ui.animationTree->containsObject(obj);
+            auto    action  =   menu.addAction(inTree ? u8"从动画树移除" : u8"添加到动画树");
+            connect(action, &QAction::triggered, this, [this, obj]()
             {
-                bool    inTree  =   ui.animationTree->containsObject(obj);
-                _undoStack->beginMacro(inTree ? u8"从动画树移除" : u8"添加到动画树");
-                _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, obj, curTime));
-                _undoStack->endMacro();
-            }
-            else
+                double  curTime =   ui.timeLineEditor->curTime();
+                if  (_undoStack)
+                {
+                    bool    inTree  =   ui.animationTree->containsObject(obj);
+                    _undoStack->beginMacro(inTree ? u8"从动画树移除" : u8"添加到动画树");
+                    _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, obj, curTime));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    ui.animationTree->toggleObject(obj, curTime);
+                }
+            });
+
+            menu.addSeparator();
+
+            /// 添加已有动画到动画树: 递归遍历所有子节点,将有动画的节点添加到动画树
+            auto    addExistAnim =   menu.addAction(u8"添加已有动画到动画树");
+            connect(addExistAnim, &QAction::triggered, this, [this, node]()
             {
-                ui.animationTree->toggleObject(obj, curTime);
-            }
-        });
+                /// 递归收集有动画的节点
+                std::vector<FE::FENode*>   nodesWithAnim;
+                std::function<void(FE::FENode*)>  collect;
+                collect    =   [&](FE::FENode* n)
+                {
+                    if  (!n)    return;
+                    auto    anims   =   n->objects<FEAnimation>();
+                    if  (!anims.empty())
+                        nodesWithAnim.push_back(n);
+                    for (auto& child : n->children())
+                        collect(child.get());
+                };
+                collect(node);
+
+                double  curTime =   ui.timeLineEditor->curTime();
+                if  (_undoStack)
+                {
+                    _undoStack->beginMacro(u8"添加已有动画到动画树");
+                    for (auto* n : nodesWithAnim)
+                    {
+                        if  (!ui.animationTree->containsObject(n))
+                            _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, n, curTime));
+                    }
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    for (auto* n : nodesWithAnim)
+                    {
+                        if  (!ui.animationTree->containsObject(n))
+                            ui.animationTree->toggleObject(n, curTime);
+                    }
+                }
+            });
+
+            /// 创建动画
+            auto    createAnim =   menu.addAction(u8"创建动画");
+            connect(createAnim, &QAction::triggered, this, [this, node]()
+            {
+                auto    anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
+                if  (_undoStack)
+                {
+                    _undoStack->beginMacro(u8"添加动画");
+                    _undoStack->push(new FE::CreateAnimCmd(node, anim, [this]{ ui.animationTree->updateUi(); }));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    node->addComponent(anim.get());
+                    auto    scene   =   node->ctx().scene();
+                    if  (scene)
+                    {
+                        auto    sys =   scene->animationSystem();
+                        if  (sys)   sys->addObject(anim.get());
+                    }
+                    ui.animationTree->updateUi();
+                }
+            });
+
+            /// 清除动画(清除动画树中所有节点的动画)
+            auto    clearAnim  =   menu.addAction(u8"清除动画");
+            connect(clearAnim, &QAction::triggered, this, [this]()
+            {
+                ui.animationTree->slotClearAllAnimations();
+            });
+        }
+        else    /// FEAnimation
+        {
+            /// FEAnimation: 添加到动画树(同步选中) + 删除动画
+            auto    owner       =   anim->owner();
+            auto    ownerNode   =   owner ? owner->cast<FENode>() : nullptr;
+            bool    inTree      =   ownerNode && ui.animationTree->containsObject(ownerNode);
+            auto    action      =   menu.addAction(inTree ? u8"从动画树移除" : u8"添加到动画树");
+            connect(action, &QAction::triggered, this, [this, ownerNode, anim]()
+            {
+                if  (!ownerNode)
+                    return;
+                double  curTime =   ui.timeLineEditor->curTime();
+                if  (_undoStack)
+                {
+                    bool    inTree  =   ui.animationTree->containsObject(ownerNode);
+                    _undoStack->beginMacro(inTree ? u8"从动画树移除" : u8"添加到动画树");
+                    _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, ownerNode, curTime));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    ui.animationTree->toggleObject(ownerNode, curTime);
+                }
+            });
+
+            menu.addSeparator();
+
+            /// 删除动画
+            auto    deleteAnim =   menu.addAction(u8"删除动画");
+            connect(deleteAnim, &QAction::triggered, this, [this, anim, ownerNode]()
+            {
+                if  (_undoStack)
+                {
+                    FE::DeleteAnimCmd::AnimInfos   infos;
+                    infos.push_back({ownerNode, anim});
+                    _undoStack->beginMacro(u8"删除动画");
+                    _undoStack->push(new FE::DeleteAnimCmd(std::move(infos), [this]{ ui.animationTree->updateUi(); }));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    auto    scene   =   anim->ctx().scene();
+                    if  (scene)
+                    {
+                        auto    sys =   scene->animationSystem();
+                        if  (sys)   sys->removeObject(anim);
+                    }
+                    if  (ownerNode)
+                        ownerNode->removeComponent(anim);
+                    ui.animationTree->updateUi();
+                }
+            });
+        }
+
         menu.exec(ui.modelTree->mapToGlobal(pt));
     });
 
@@ -66,6 +199,16 @@ MainWindow::MainWindow()
     ui.undoView->setStack(_undoStack);
     ui.timeLineEditor->setUndoStack(_undoStack);
     ui.animationTree->setUndoStack(_undoStack);
+
+    /// 模型树选择事件: 选中动画对象时同步选中动画树对应项
+    ui.modelTree->_selectEvts += {this,[this](Object obj, bool)
+    {
+        if  (!obj)
+            return;
+        auto    anim    =   obj->cast<FEAnimation>();
+        if  (anim)
+            ui.animationTree->selectItemByObject(anim);
+    }};
 
     /// 时间线编辑通知
     /// 用来控制动画

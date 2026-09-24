@@ -515,7 +515,8 @@ namespace   FE
         /// </summary>
         /// <param name="bModify"></param>
         virtual void    endSetProp(bool bModify) override;
-
+    protected:
+        void            blend(FETransform& result);
     protected:
         FETransform _transform;
         RenderFlags _renderBits;

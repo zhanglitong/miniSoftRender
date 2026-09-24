@@ -25,7 +25,8 @@ namespace FE
             /// <summary>
             /// 标记数据变更
             /// </summary>
-            AnimationChanged    =   (FLAG_ACTOR <<1),
+            AnimationChanged    =   (FE::FLAG_LAST),
+            OutOfRange          =   (AnimationChanged<<1),
         };
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)
@@ -120,6 +121,14 @@ namespace FE
         {
             return  _clip != nullptr &&  owner() != nullptr;
         }
+        /// <summary>
+        /// update 函数计算完成后，会设置标记
+        /// </summary>
+        /// <returns></returns>
+        inline  bool   outOfRange() const
+        {
+            return  flags().hasFlag(OutOfRange);
+        }
         inline  auto    clip() const
         {
             return  _clip;
@@ -149,13 +158,15 @@ namespace FE
         /// <returns>true/false</returns>
         virtual bool    update(const real& clipTime) override;
         /// <summary>
-        /// 组件会把自己的变换数据应用到 global上
+        /// 获取动画组件的变换数据,有效则参与节点变换混合计算
         /// </summary>
-        /// <param name="parent"></param>
-        /// <param name=""></param>
-        virtual void    appTransform(mat4r& global) override
+        virtual FETransform*    getTransform() override;
+        /// <summary>
+        /// 动画组件默认权重为 1.0,参与节点变换混合
+        /// </summary>
+        virtual float   weight() const override
         {
-            global  =   global * _transform.toMatrix();
+            return  1.0f;
         }
         /// <summary>
         /// 动画系统独有接口

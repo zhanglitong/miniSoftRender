@@ -20,35 +20,18 @@ namespace   FE
     public:
         using   Component       =   SharedPtr<FEComponent>;
         using   Components      =   std::vector<Component>;
-    public:
-        enum    COMFlag :uint32_t
-        {
-            FLAG_ACTOR  =   FE::FLAG_LAST,
-            FLAG_LAST   =   FLAG_ACTOR<<1,
-        };
+       
     public:         
-        FEComponent(FEContext& ctx,bool bActor = false)             
+        FEComponent(FEContext& ctx)             
             :FEObject(ctx)    
         {
-            if (bActor)
-                flags().addFlag(FLAG_ACTOR);
-            else
-                flags().removeFlag(FLAG_ACTOR);
         }         
         FEComponent(const FEComponent& other)            
             :FEObject(other)         
         {
             _owner      =   other._owner;
             _priority   =   other._priority;
-            if (other.isActor())
-                flags().addFlag(FLAG_ACTOR);
-            else
-                flags().removeFlag(FLAG_ACTOR);
         } 
-        inline  bool    isActor() const
-        {
-            return  flags().hasFlag(FLAG_ACTOR);
-        }
         /// <summary>
         /// 获取优先级
         /// </summary>
@@ -116,13 +99,20 @@ namespace   FE
             return  false;
         }
         /// <summary>
-        /// 组件会把自己的变换数据应用到 global上
+        /// 获取权重值
         /// </summary>
-        /// <param name="parent"></param>
-        /// <param name=""></param>
-        virtual void    appTransform(mat4r& global)
+        /// <returns></returns>
+        virtual float   weight() const
         {
-            UNUSED(global);
+            return  0.0f;
+        }
+        /// <summary>
+        /// 获取组件的变换数据,返回有效指针则参与节点变换混合计算
+        /// </summary>
+        /// <returns>组件变换指针,无效则不参与计算</returns>
+        virtual FETransform*    getTransform()
+        {
+            return  nullptr;
         }
     protected:
         /// <summary>

@@ -9,7 +9,7 @@
 namespace FE
 {
     FEAnimation::FEAnimation(FEContext& ctx)  
-        :FEComponent(ctx,true)
+        :FEComponent(ctx)
     {
         _name       =   "FEAnimation";
         setEnable(true);
@@ -320,11 +320,21 @@ namespace FE
         if (!isValid())
             return  false;
         auto    rng =   range();
-        if (clipTime <= rng.x && _clipTime  == rng.x)
+        /// 可能只有一个点
+        if (rng.x >= 0 && rng.x == rng.y)
+        {
+        }
+        else if (clipTime <= rng.x && _clipTime  == rng.x)
+        {
+            flags().addFlag(OutOfRange);
             return  false;
+        } 
         else if(clipTime >= rng.y && _clipTime == rng.y)
+        {
+            flags().addFlag(OutOfRange);
             return  false;
-
+        }
+        flags().removeFlag(OutOfRange);
         _clipTime   =   std::clamp(clipTime,rng.x,rng.y);
         _clip->update(_clipTime - _offset,_results);
         /// 画对象应用对象 
@@ -342,6 +352,13 @@ namespace FE
         }
         this->endSetProp(bModify);
         return  bModify;
+    }
+
+    FETransform*    FEAnimation::getTransform()
+    {
+        if (!isEnable() || !isValid())
+            return  nullptr;
+        return  &_transform;
     }
 
     size_t  FEAnimation::queryDepends(ObjectUSet& uSet) const

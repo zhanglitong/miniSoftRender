@@ -143,6 +143,9 @@ void    AnimationTree::updateUi()
             _rootItem->appendRow(pItem);
         }
     }
+
+    expand(_model->indexFromItem(_rootItem));
+    syncExpandFromFlags();
     for (auto& var : needExpand)
     {
         expand(_model->indexFromItem(var));
@@ -422,6 +425,48 @@ void    AnimationTree::slotToggleEnable()
     }
 }
 
+void    AnimationTree::slotToggleAllEnable()
+{
+    /// 收集所有动画,判断是否有启用的
+    std::vector<FE::FEAnimation*>   allAnims;
+    bool    hasEnabled  =   false;
+    for (auto& obj : _objects)
+    {
+        auto    node    =   obj->cast<FENode>();
+        if (!node)  continue;
+        auto    anims   =   node->objects<FEAnimation>();
+        for (auto* animPtr : anims)
+        {
+            allAnims.push_back(animPtr);
+            if (animPtr->isEnable())
+                hasEnabled  =   true;
+        }
+    }
+    if (allAnims.empty())
+        return;
+
+    if (_undoStack)
+    {
+        _undoStack->beginMacro(hasEnabled ? u8"禁用所有动画" : u8"启用所有动画");
+        for (auto* animPtr : allAnims)
+        {
+            /// 有启用的 → 禁用所有(仅 toggle 启用的); 无启用的 → 启用所有(仅 toggle 禁用的)
+            if (hasEnabled == animPtr->isEnable())
+                _undoStack->push(new FE::ToggleEnableCmd(animPtr, [this]{ updateUi(); }));
+        }
+        _undoStack->endMacro();
+    }
+    else
+    {
+        for (auto* animPtr : allAnims)
+        {
+            if (hasEnabled == animPtr->isEnable())
+                animPtr->setEnable(!animPtr->isEnable());
+        }
+        updateUi();
+    }
+}
+
 void    AnimationTree::slotClearAllAnimations()
 {
     if (_undoStack)
@@ -612,8 +657,28 @@ void    AnimationTree::contextMenuEvent(QContextMenuEvent* event)
     /// 选中根节点(_curItem 为 null 或 _rootItem)
     if (_curItem == nullptr || _curItem == _rootItem)
     {
-        /// 根节点: 清除所有动画
+        /// 根节点: 禁用/启用所有动画 + 清除所有动画
+        /// 判断是否有启用的动画
+        bool    hasEnabled  =   false;
+        for (auto& obj : _objects)
+        {
+            auto    node    =   obj->cast<FENode>();
+            if (!node)  continue;
+            auto    anims   =   node->objects<FEAnimation>();
+            for (auto* animPtr : anims)
+            {
+                if (animPtr->isEnable())
+                {
+                    hasEnabled  =   true;
+                    break;
+                }
+            }
+            if (hasEnabled) break;
+        }
+        auto    toggleAll   =   _menu->addAction(hasEnabled ? u8"禁用所有动画" : u8"启用所有动画");
+        _menu->addSeparator();
         auto    clearAll    =   _menu->addAction(u8"清除所有动画");
+        connect(toggleAll,  &QAction::triggered, this, &AnimationTree::slotToggleAllEnable);
         connect(clearAll, &QAction::triggered, this, &AnimationTree::slotClearAllAnimations);
         _menu->exec(event->globalPos());
         QWidget::contextMenuEvent(event);
@@ -630,13 +695,18 @@ void    AnimationTree::contextMenuEvent(QContextMenuEvent* event)
 
     if (node != nullptr)
     {
-        /// FENode: 添加动画 + 移除节点 + 启用/禁用
+        /// FENode: 添加动画 + 删除动画 + 清除动画 + 移除节点 + 启用/禁用
         auto    createAnim =   _menu->addAction(u8"添加动画");
+        auto    deleteAnim =   _menu->addAction(u8"删除动画");
+        auto    clearAnim  =   _menu->addAction(u8"清除动画");
+        _menu->addSeparator();
         auto    removeNode =   _menu->addAction(u8"移除节点");
         _menu->addSeparator();
         bool    enabled =   node->flags().hasFlag(FE::FLAG_ENABLE);
         auto    toggleEn  =   _menu->addAction(enabled ? u8"禁用" : u8"启用");
         connect(createAnim,     &QAction::triggered, this, &AnimationTree::slotCreateAnimation);
+        connect(deleteAnim,     &QAction::triggered, this, &AnimationTree::slotDeleteAnimation);
+        connect(clearAnim,      &QAction::triggered, this, &AnimationTree::slotClearAllAnimations);
         connect(removeNode,     &QAction::triggered, this, &AnimationTree::slotRemoveNode);
         connect(toggleEn,       &QAction::triggered, this, &AnimationTree::slotToggleEnable);
     }
@@ -801,4 +871,55 @@ void    AnimationTree::collectAllTrackItemChildren(AnimationItem* item, std::vec
     {
         collectAllTrackItemChildren((AnimationItem*)item->child(i), results);
     }
+}
+
+void    AnimationTree::syncExpandFromFlags()
+{
+    /// 递归遍历,展开 FLAG_EXPAND 的项
+    std::function<void(QStandardItem*)>    sync;
+    sync    =   [&](QStandardItem* parent)
+    {
+        for (int i = 0; i < parent->rowCount(); ++i)
+        {
+            auto    child   =   parent->child(i);
+            auto    item    =   dynamic_cast<AnimationItem*>(child);
+            if  (item && item->object() && item->object()->flags().hasFlag(FE::FLAG_EXPAND))
+            {
+                auto    index   =   _model->indexFromItem(item);
+                setExpanded(index, true);
+                selectionModel()->select(index, QItemSelectionModel::SelectCurrent);
+                setCurrentIndex(index);
+                scrollTo(index, QAbstractItemView::PositionAtCenter);
+            }
+            sync(child);
+        }
+    };
+    sync(_rootItem);
+}
+
+bool    AnimationTree::selectItemByObject(FE::FEObject* obj)
+{
+    if (!obj)
+        return  false;
+    /// 递归查找 object 匹配的 AnimationItem
+    std::function<AnimationItem*(QStandardItem*)>  find;
+    find    =   [&](QStandardItem* parent) -> AnimationItem*
+    {
+        for (int i = 0; i < parent->rowCount(); ++i)
+        {
+            auto    child   =   parent->child(i);
+            auto    item    =   dynamic_cast<AnimationItem*>(child);
+            if  (item && item->object().get() == obj)
+                return  item;
+            auto    found   =   find(child);
+            if  (found)   return  found;
+        }
+        return  nullptr;
+    };
+    auto    item    =   find(_rootItem);
+    if  (!item)     return  false;
+    auto    idx     =   _model->indexFromItem(item);
+    selectionModel()->select(idx, QItemSelectionModel::SelectCurrent);
+    setCurrentIndex(idx);
+    return  true;
 }

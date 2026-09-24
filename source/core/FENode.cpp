@@ -96,18 +96,19 @@ namespace   FE
     
     void    FENode::updateTransform(bool recursion)
     {
+        FETransform blended;
+        blend(blended);
+
+        /// 全局变换 = 父全局 * (局部 * 混合组件变换)
         if (parent() != nullptr)
-            _gloabal  =   parent()->_gloabal * _transform.toMatrix();
+            _gloabal    =   parent()->_gloabal * (_transform * blended).toMatrix();
         else
-            _gloabal  =   _transform.toMatrix();
-        for (auto var: _coms)
-        {
-            var->appTransform(_gloabal);
-        }
-        if (!recursion || children().empty() )
-            return ;
+            _gloabal    =   (_transform * blended).toMatrix();
+
+        if (!recursion || children().empty())
+            return;
         auto&   chs =   children();
-        for(auto& child : chs)
+        for (auto& child : chs)
         {
             auto    node    =   child->as<FENode>();
             node->flags().addFlag(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT);
@@ -292,6 +293,53 @@ namespace   FE
         if (bModify)
         {
             fireChanged();
+        }
+    }
+
+    void    FENode::blend(FETransform& blended)
+    {
+        /// 第一遍: 计算权重总和 (weight <= 0 不参与)
+        float   allW    =   0;
+        int     cnt     =   0;
+        for (auto& var : _coms)
+        {
+            if (!var->getTransform())   continue;
+            float   w   =   var->weight();
+            if (w <= 0.0f)              continue;
+            allW    +=  w;
+            ++cnt;
+        }
+
+        /// 计算混合后的组件变换
+        if (cnt == 1)
+        {
+            /// 单组件: 直接使用
+            for (auto& var : _coms)
+            {
+                auto*   tf  =   var->getTransform();
+                if (tf) { blended = *tf; break; }
+            }
+        }
+        else if (cnt > 1)
+        {
+            /// 多组件: 按权重混合 position/scale/rotation
+            real3   pos(0);
+            float3  scl(0);
+            quatf   rot(0,0,0,0);
+            for (auto& var : _coms)
+            {
+                auto*   tf  =   var->getTransform();
+                if (!tf)        continue;
+                float   w   =   var->weight();
+                if (w <= 0.0f)  continue;
+                float   wn  =   w / allW;
+                pos     +=  tf->position() * real(wn);
+                scl     +=  tf->scale()    * wn;
+                rot     +=  tf->rotation() * wn;
+            }
+            blended.setPosition(pos);
+            blended.setScale(scl);
+            blended.setRotation(FE::normalize(rot));
         }
     }
     size_t  FENode::objectCount() const 

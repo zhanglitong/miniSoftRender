@@ -61,6 +61,16 @@ public:
     /// <param name="item"></param>
     /// <param name="results"></param>
     void    collectAllTrackItemChildren(AnimationItem* item, std::vector<FE::FEKeyFrameTrack*>& results);
+    /// <summary>
+    /// 同步展开状态: 遍历树,对 object 拥有 FLAG_EXPAND 的项执行展开
+    /// </summary>
+    void    syncExpandFromFlags();
+    /// <summary>
+    /// 按 FEObject 查找并选中对应的 AnimationItem
+    /// </summary>
+    /// <param name="obj">目标对象</param>
+    /// <returns>true=找到并选中</returns>
+    bool    selectItemByObject(FE::FEObject* obj);
 public:
     /// <summary>
     /// 模型树选择对象同通知,
@@ -88,6 +98,7 @@ public slots:
     void        slotCreateAnimation();
     void        slotDeleteAnimation();
     void        slotToggleEnable();
+    void        slotToggleAllEnable();
     void        slotClearAllAnimations();
     void        slotRemoveNode();
     void        slotDeleteTrackNode();
