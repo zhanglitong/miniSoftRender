@@ -26,43 +26,58 @@ namespace   FE
     };
 
     /// <summary>
-    /// 添加关键帧命令,支持 undo/redo
-    /// 每个 AnimState 记录一个 (node, anim) 对的操作前快照
+    /// 创建关键帧命令,支持 undo/redo
+    /// 当指定时间点不存在关键帧时使用
+    /// redo: 创建默认轨道(若空clip) + 添加关键帧; undo: 移除关键帧 + 清空轨道(若空clip)
     /// </summary>
-    class AddKeyframeCmd : public QUndoCommand
+    class CreateKeyframeCmd : public QUndoCommand
+    {
+    public:
+        CreateKeyframeCmd(Node node, Animation anim, real time, bool createdDefaultTracks, std::function<void()> refreshCb, QUndoCommand* parent = nullptr);
+    public:
+        virtual void    redo() override;
+        virtual void    undo() override;
+    private:
+        Node                    _node;
+        Animation               _anim;
+        real                    _time                    =   0;
+        /// 标记此次操作是否为空 clip 创建了默认轨道
+        /// redo 时创建,undo 时移除
+        bool                    _createdDefaultTracks    =   false;
+        std::function<void()>   _refreshCb;
+    };
+
+    /// <summary>
+    /// 更新关键帧命令,支持 undo/redo
+    /// 当指定时间点已存在关键帧时使用
+    /// redo: 用节点当前属性覆盖关键帧值; undo: 从快照恢复旧值
+    /// </summary>
+    class UpdateKeyframeCmd : public QUndoCommand
     {
     public:
         struct TrackSnapshot
         {
             KeyFrameTrack       track       =   nullptr;
             KFValue             oldVal      =   {};
-            bool                existed     =   false;
         };
         using   TrackSnapshots   =   std::vector<TrackSnapshot>;
-        struct AnimState
-        {
-            Node                node;
-            Animation           anim;
-            real                time        =   0;
-            TrackSnapshots      snapshots;
-            bool                createdNew  =   false;
-            /// 标记此次操作是否为空 clip 创建了默认轨道
-            /// redo 时创建,undo 时移除
-            bool                createdDefaultTracks =   false;
-        };
-        using   AnimStates      =   std::vector<AnimState>;
     public:
-        AddKeyframeCmd(AnimStates&& states, std::function<void()> refreshCb, QUndoCommand* parent = nullptr);
+        UpdateKeyframeCmd(Node node, Animation anim, real time, TrackSnapshots snapshots, std::function<void()> refreshCb, QUndoCommand* parent = nullptr);
     public:
         virtual void    redo() override;
         virtual void    undo() override;
         /// <summary>
-        /// 对指定动画的所有轨道做时间点快照(供调用方在 push 前捕获状态)
+        /// 对指定动画做时间点快照
+        /// 仅返回该时间点已存在关键帧的轨道及其旧值
+        /// 返回为空表示该时间点无关键帧(应使用 CreateKeyframeCmd)
         /// </summary>
         static  TrackSnapshots  snapshotTracks(Animation anim, real time);
     private:
-        std::vector<AnimState>      _states;
-        std::function<void()>       _refreshCb;
+        Node                    _node;
+        Animation               _anim;
+        real                    _time        =   0;
+        TrackSnapshots          _snapshots;
+        std::function<void()>   _refreshCb;
     };
 
     /// <summary>
@@ -258,5 +273,34 @@ namespace   FE
     private:
         AnimationTree*  _tree;
         FE::Objects     _savedObjects;
+    };
+
+    /// <summary>
+    /// 节点移动命令,支持 undo/redo
+    /// 记录每个对象移动前后的位置
+    /// 对象可以是 FENode (localTranslation) 或带 FETransform 接口的对象 (transform.position)
+    /// redo: 设置新位置; undo: 恢复旧位置
+    /// </summary>
+    class MoveNodeCmd : public QUndoCommand
+    {
+    public:
+        struct ObjectMove
+        {
+            Object  obj;
+            real3   oldPos;
+            real3   newPos;
+        };
+        using ObjectMoves = std::vector<ObjectMove>;
+    public:
+        MoveNodeCmd(ObjectMoves&& moves, QUndoCommand* parent = nullptr);
+    public:
+        virtual void    redo() override;
+        virtual void    undo() override;
+        /// 读取对象当前位置 (FENode: localTranslation, 其他: transform.position)
+        static  real3   getPosition(Object obj);
+        /// 设置对象位置, 逻辑与 FENodeMoveEditor::onMAxis 一致
+        static  void    setPosition(Object obj, const real3& pos);
+    private:
+        ObjectMoves _moves;
     };
 }

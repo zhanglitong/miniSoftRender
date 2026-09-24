@@ -354,6 +354,65 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
                     pEditor->setObjects({});
             }};
         }
+        /// 移动编辑器拖拽通知: 用于 undo/redo
+        /// EditStart 时快照旧位置, EditEnd 时构造 MoveNodeCmd push 到 undoStack
+        {
+            auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
+            auto    moveEditor  =   editor ? editor->as<FENodeMoveEditor>() : nullptr;
+            if  (moveEditor)
+            {
+                moveEditor->mDelegate() +=  {this,[this](FE::FEEditAxis::EditStatus status
+                    , const real3&, const real3&, FEEditAxisMove&)
+                {
+                    if  (status == FE::FEEditAxis::EditStart)
+                    {
+                        _moveSnapshots.clear();
+                        auto    ed  =   this->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
+                        auto    me  =   ed ? ed->as<FENodeMoveEditor>() : nullptr;
+                        if  (me)
+                        {
+                            for (auto obj : me->objects())
+                            {
+                                if  (!obj)
+                                    continue;
+                                MoveNodeCmd::ObjectMove  snap;
+                                snap.obj    =   obj;
+                                snap.oldPos =   MoveNodeCmd::getPosition(obj);
+                                snap.newPos =   snap.oldPos;
+                                _moveSnapshots.push_back(snap);
+                            }
+                        }
+                    }
+                    else if (status == FE::FEEditAxis::EditEnd)
+                    {
+                        if  (_moveSnapshots.empty())
+                            return;
+                        MoveNodeCmd::ObjectMoves   moves;
+                        for (auto& snap : _moveSnapshots)
+                        {
+                            if  (!snap.obj)
+                                continue;
+                            real3   newPos  =   MoveNodeCmd::getPosition(snap.obj);
+                            if  (newPos != snap.oldPos)
+                            {
+                                MoveNodeCmd::ObjectMove  m;
+                                m.obj    =   snap.obj;
+                                m.oldPos =   snap.oldPos;
+                                m.newPos =   newPos;
+                                moves.push_back(std::move(m));
+                            }
+                        }
+                        if  (!moves.empty() && _undoStack)
+                        {
+                            _undoStack->beginMacro(u8"移动节点");
+                            _undoStack->push(new MoveNodeCmd(std::move(moves)));
+                            _undoStack->endMacro();
+                        }
+                        _moveSnapshots.clear();
+                    }
+                }};
+            }
+        }
     }
 }
 

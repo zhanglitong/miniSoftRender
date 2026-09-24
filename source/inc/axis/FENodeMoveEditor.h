@@ -25,6 +25,13 @@ namespace   FE
         /// <param name="nodes"></param>
         void    setObjects(const Objects& objects);
         /// <summary>
+        /// 获取当前正在编辑的对象列表
+        /// </summary>
+        const   Objects&   objects()   const
+        {
+            return  _objects;
+        }
+        /// <summary>
         /// 同步更新编辑器到节点的包围盒中心
         /// </summary>
         void    sync();

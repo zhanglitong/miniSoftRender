@@ -195,7 +195,10 @@ namespace   FE
         /// <returns></returns>
         inline  Objects  selected() const
         {
-            return      {_curItem};
+            if (_curItem)
+                return  {_curItem};
+            else
+                return  {};
         }
         /// <summary>
         /// 根节点

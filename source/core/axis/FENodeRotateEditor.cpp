@@ -35,6 +35,14 @@ namespace   FE
         {
             sync();
         }};
+
+        mDelegate()     +=  {this,&FENodeRotateEditor::onRAxis};
+    }
+    FENodeRotateEditor::FENodeRotateEditor(const FENodeRotateEditor& other)
+        :FEEditAxisRotate(other)
+    {
+        _priority       =   other.priority();
+        mDelegate()     +=  {this,&FENodeRotateEditor::onRAxis};
     }
     FENodeRotateEditor::~FENodeRotateEditor()
     {
@@ -46,20 +54,12 @@ namespace   FE
         _ctx.scene()->nodeTree().eventsClear()          -= {this};
         /// 移除节点属性更改通知
         _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
-    }
-    FENodeRotateEditor::FENodeRotateEditor(const FENodeRotateEditor& other)
-        :FEEditAxisRotate(other)
-    {
-        _priority = other.priority();
+        mDelegate()                                     -=  this;
     }
 
     void    FENodeRotateEditor::setObjects(const Objects& objects)
     {
         _objects   =   objects;
-        if (_objects.empty())
-            mDelegate()     -=  this;
-        else
-            mDelegate()     +=  {this,&FENodeRotateEditor::onRAxis};
         sync();
     }
     void    FENodeRotateEditor::sync()
@@ -67,21 +67,9 @@ namespace   FE
         aabb3dr box;
         for (auto& var: _objects)
         {
-            auto    node    =   var->cast<FENode>();
-            if (node)
-            {
-                box.merge(node->globalAabb());
-                continue;
-            }
-            auto    com     =   var->cast<FEComponent>();
-            if (com && com->owner())
-            {
-                node    =   com->owner()->cast<FENode>();
-                if (node)
-                {
-                    box.merge(node->globalAabb());
-                }
-            }
+            auto    val =   var->getProperty(PROP_G_TRANSFORM_XYZ);
+            if (std::holds_alternative<real3>(val))
+                box.merge(std::get<real3>(val));
         }
         setTranslation(box.center());
     }
@@ -92,32 +80,41 @@ namespace   FE
                                         , real absoluteOffsetAngle
                                         , FEEditAxisRotate& sender)
     {
-        (void)status;
-        (void)absoluteOffsetAngle;
+        UNUSED(status,absoluteOffsetAngle,sender);
         real3       pivot   =   position();
         auto        rad     =   DEG2RAD(relativeOffsetAngle);
         quatr       delta   =   FE::angleAxis(rad, normalize(axis));
+        quatf       deltaF  =   quatf((float)delta.w,(float)delta.x,(float)delta.y,(float)delta.z);
         for (auto object : _objects)
         {
-            auto    node    =   object->cast<FENode>();
-            if (!node)
-            {
-                auto    com =   object->cast<FEComponent>();
-                if (com && com->owner())
-                    node    =   com->owner()->cast<FENode>();
-            }
-            if (!node)
+            bool    bModify =   false;
+            /// 读取全局位置,围绕编辑器位置旋转
+            auto    gval    =   object->getProperty(PROP_G_TRANSFORM_XYZ);
+            if (!std::holds_alternative<real3>(gval))
                 continue;
-            ///围绕编辑器位置旋转节点
-            real3   worldPos    =   node->globalTranslation();
-            real3   offset      =   worldPos - pivot;
-            real3   newWorldPos =   pivot + delta * offset;
-            node->setGlobalTranslation(newWorldPos);
-            ///旋转节点朝向
-            quatr   worldRot    =   node->globalRotation();
-            node->setGlobalRotation(normalize(delta * worldRot));
-            node->update();
-            node->fireChanged();
+            real3   globalPos   =   std::get<real3>(gval);
+            real3   offset      =   globalPos - pivot;
+            real3   newGlobalPos=   pivot + delta * offset;
+            real3   posDelta    =   newGlobalPos - globalPos;
+            /// 读取局部位置,叠加位置增量
+            auto    lval    =   object->getProperty(PROP_TRANSFORM_XYZ);
+            if (!std::holds_alternative<real3>(lval))
+                continue;
+            real3   localPos    =   std::get<real3>(lval);
+            real3   newLocalPos =   localPos + posDelta;
+            /// 读取局部旋转,叠加旋转增量
+            auto    rval    =   object->getProperty(PROP_QUAT);
+            if (!std::holds_alternative<quatf>(rval))
+                continue;
+            quatf   curRot      =   std::get<quatf>(rval);
+            quatf   newRot      =   normalize(deltaF * curRot);
+
+            object->beginSetProp();
+            if  (newLocalPos != localPos)
+                bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,newLocalPos);
+            if  (newRot != curRot)
+                bModify |=  object->setProperty(PROP_QUAT,newRot);
+            object->endSetProp(bModify);
         }
     }
 }

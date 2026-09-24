@@ -32,15 +32,19 @@ namespace   FE
             sync();
         }};
         /// 节点属性更改通知
+        /// 拖拽期间跳过 sync, 避免 editor 位置变动导致 calcMove 参考偏移 → 抖动
         ctx.scene()->nodeTree().eventsChangedNode() += {this,[this](const FENode*)
         {
-            sync();
+             sync();
         }};
+
+        mDelegate()     +=  {this,&FENodeMoveEditor::onMAxis};
     }
     FENodeMoveEditor::FENodeMoveEditor(const FENodeMoveEditor& other)
         :FEEditAxisMove(other)
     {
-        _priority = other.priority();
+        _priority       =   other.priority();
+        mDelegate()     +=  {this,&FENodeMoveEditor::onMAxis};
     }
     FENodeMoveEditor::~FENodeMoveEditor()
     {
@@ -52,15 +56,13 @@ namespace   FE
         _ctx.scene()->nodeTree().eventsClear()          -= {this};
         /// 移除节点属性更改通知
         _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
+        mDelegate()                                     -=  this;
     }
 
     void    FENodeMoveEditor::setObjects(const Objects& objects)
     {
+        /// 这里注意，进来后就
         _objects   =   objects;
-        if (_objects.empty())
-            mDelegate()     -=  this;
-        else
-            mDelegate()     +=  {this,&FENodeMoveEditor::onMAxis};
         sync();
     }
     void    FENodeMoveEditor::sync()
@@ -68,61 +70,37 @@ namespace   FE
         aabb3dr box;
         for (auto& var: _objects)
         {
-            auto    node    =   var->cast<FENode>();
-            if (node)
-            {
-                box.merge(node->globalAabb());
-                continue;
-            }
-            auto    com     =   var->cast<FEComponent>();
-            if (com && com->owner())
-            {
-                node    =   com->owner()->cast<FENode>(); 
-                if (node)
-                {
-                    box.merge(node->globalAabb());
-                }
-            }
+            auto    val =   var->getProperty(PROP_G_TRANSFORM_XYZ);
+
+            if (std::holds_alternative<real3>(val))
+                box.merge(std::get<real3>(val));
         }
         setTranslation(box.center());
     }
+
     void    FENodeMoveEditor::onMAxis(
                                         FEEditAxis::EditStatus status
                                         , const real3& relativeOffset
                                         , const real3& absoluteOffset
                                         , FEEditAxisMove& sender)
     {
+        UNUSED(status,absoluteOffset,sender);
+
         for (auto object : _objects)
         {
-            auto    node    =   object->cast<FENode>();
-            if (node)
-            {
-                auto    trans   =   node->localTranslation() + relativeOffset;
-                node->setLocalTranslation(trans); 
-                node->update();
-                node->fireChanged();
+            
+            bool    bModify =   false;
+            auto    val     =   object->getProperty(PROP_TRANSFORM_XYZ);
+
+            if (!std::holds_alternative<real3>(val))
                 continue;
-            }
-            /// 如果有transform接口，通过接口设置数据
-            auto    transform   =   (FETransform*)object->queryInterface("FETransform");
-            if (transform)
-            {
-                auto    trans   =   transform->position() + relativeOffset;
-                transform->setPosition(trans);
-            }
-            /// 如果是组件,获取owner
-            /// 触发更新
-            auto    com     =   object->cast<FEComponent>();
-            if (com && com->owner())
-            {
-                node    =   com->owner()->cast<FENode>();
-                if (node)
-                {
-                    node->flags().addFlag(FENode::FLAG_PROP_TRANS);
-                    node->update();
-                    node->fireChanged();
-                }
-            }
+            object->beginSetProp();
+            real3   curVal  =   std::get<real3>(val);
+            real3   nValue  =   curVal + relativeOffset;
+            /// 仅在实际有变化时才 setProperty (跳过 EditStart/EditEnd 的 0 偏移)
+            if  (nValue != curVal)
+                bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,nValue);
+            object->endSetProp(bModify);
         }
     }
 }

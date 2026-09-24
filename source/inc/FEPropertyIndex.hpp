@@ -14,7 +14,6 @@ namespace   FE
         PROP_TRANSFORM_Y,
         PROP_TRANSFORM_Z,
         PROP_TRANSFORM_XYZ,
-       
         /// <summary>
         /// 缩放属性,数据类型是float
         /// </summary>
@@ -49,6 +48,10 @@ namespace   FE
         /// 材质环境光属性,float3
         /// </summary>
         PROP_MAT_DIFFUSE,
+        /// <summary>
+        /// global xyz
+        /// </summary>
+        PROP_G_TRANSFORM_XYZ,
     };
 
     enum    NodeProperyBit

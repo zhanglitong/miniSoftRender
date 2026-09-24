@@ -6,7 +6,9 @@
 #include    <QMessageBox>
 #include    <string>
 #include    <map>
+#include    <vector>
 #include    "ui_MainWindow.h"
+#include    "UndoCommand.h"
 
 class   MainWindow;
 extern  MainWindow* _mainApp;
@@ -133,4 +135,6 @@ protected:
     QString         _projectName;
     QUndoStack*     _undoStack;
     Ui::MainWindow  ui;
+    /// 移动编辑器拖拽期间暂存的旧位置 (EditStart 快照,EditEnd 时消费)
+    std::vector<FE::MoveNodeCmd::ObjectMove>  _moveSnapshots;
 };

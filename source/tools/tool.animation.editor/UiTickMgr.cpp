@@ -877,16 +877,9 @@ void    UiTickMgr::slotAddKeyframe()
     auto    clip                =   selectedAnim->clip();
     bool    bEmptyClip          =   (clip == nullptr) || clip->tracks().empty();
 
-    /// 5. 收集操作前快照(空 clip 时快照为空, redo 会先建 track 再添加关键帧)
-    FE::AddKeyframeCmd::AnimStates   states;
-    FE::AddKeyframeCmd::AnimState    st;
-    st.node                     =   node;
-    st.anim                     =   selectedAnim;
-    st.createdNew               =   false;
-    st.createdDefaultTracks     =   bEmptyClip;
-    st.time                     =   curTime;
-    st.snapshots                =   FE::AddKeyframeCmd::snapshotTracks(selectedAnim, curTime);
-    states.push_back(std::move(st));
+    /// 5. 快照当前时间点已存在的关键帧
+    ///    快照为空 → 创建; 非空 → 更新
+    auto    snapshots           =   FE::UpdateKeyframeCmd::snapshotTracks(selectedAnim, curTime);
 
     /// 6. 创建刷新回调(redo/undo 后均调用)
     auto    refreshCb   =   [this]()
@@ -897,7 +890,16 @@ void    UiTickMgr::slotAddKeyframe()
 
     /// 7. 推入 undo 栈,首次 redo 由栈自动调用
     _undoStack->beginMacro(u8"添加关键帧");
-    _undoStack->push(new FE::AddKeyframeCmd(std::move(states), std::move(refreshCb)));
+    if  (snapshots.empty())
+    {
+        /// 无关键帧 → 创建
+        _undoStack->push(new FE::CreateKeyframeCmd(node, selectedAnim, curTime, bEmptyClip, std::move(refreshCb)));
+    }
+    else
+    {
+        /// 有关键帧 → 更新
+        _undoStack->push(new FE::UpdateKeyframeCmd(node, selectedAnim, curTime, std::move(snapshots), std::move(refreshCb)));
+    }
     _undoStack->endMacro();
 }
 

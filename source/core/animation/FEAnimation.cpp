@@ -135,57 +135,158 @@ namespace FE
         }
     }
 
-    bool    FEAnimation::applyTrackResult(int prop,const KFValue& value)
+    void    FEAnimation::beginSetProp()
     {
-        if (isTransformProperty(prop))
+        if (_owner)
+            _owner->beginSetProp();
+    }
+    bool    FEAnimation::setProperty(int prop,const KFValue& value)
+    {
+        if (!isTransformProperty(prop))
         {
-            setTransformProperty(prop,value);
-            return  true;
+            if (_owner)
+                return  _owner->setProperty(prop,value);
+            else
+                return  false;
         }
-        else
+        switch(prop)
         {
-            _owner->setProperty(prop,value);
+        case PROP_TRANSFORM_X:
+            {
+                real3   pos =   _transform.position();
+                pos.x       =   std::get<real>(value);
+                _transform.setPosition(pos);
+            }
+            break;
+        case PROP_TRANSFORM_Y:
+            {
+                real3   pos =   _transform.position();
+                pos.y       =   std::get<real>(value);
+                _transform.setPosition(pos);
+            }
+            break;
+        case PROP_TRANSFORM_Z:
+            {
+                real3   pos =   _transform.position();
+                pos.z       =   std::get<real>(value);
+                _transform.setPosition(pos);
+            }
+            break;
+        case PROP_TRANSFORM_XYZ:
+            _transform.setPosition(std::get<real3>(value));
+            break;
+        case PROP_SCALE_X:
+            {
+                float3  scl =   _transform.scale();
+                scl.x       =   (float)std::get<real>(value);
+                _transform.setScale(scl);
+            }
+            break;
+        case PROP_SCALE_Y:
+            {
+                float3  scl =   _transform.scale();
+                scl.y       =   (float)std::get<real>(value);
+                _transform.setScale(scl);
+            }
+            break;
+        case PROP_SCALE_Z:
+            {
+                float3  scl =   _transform.scale();
+                scl.z       =   (float)std::get<real>(value);
+                _transform.setScale(scl);
+            }
+            break;
+        case PROP_SCALE_XYZ:
+            _transform.setScale(float3(std::get<real3>(value)));
+            break;
+        case PROP_ROTATE_X:
+            {
+                float3  euler   =   _transform.euler();
+                euler.x         =   (float)std::get<real>(value);
+                _transform.setEuler(euler);
+            }
+            break;
+        case PROP_ROTATE_Y:
+            {
+                float3  euler   =   _transform.euler();
+                euler.y         =   (float)std::get<real>(value);
+                _transform.setEuler(euler);
+            }
+            break;
+        case PROP_ROTATE_Z:
+            {
+                float3  euler   =   _transform.euler();
+                euler.z         =   (float)std::get<real>(value);
+                _transform.setEuler(euler);
+            }
+            break;
+        case PROP_ROTATE_XYZ:
+            _transform.setEuler(float3(std::get<real3>(value)));
+            break;
+        case PROP_QUAT:
+            _transform.setRotation(std::get<quatf>(value));
+            break;
+        default:
             return  false;
         }
+        return  true;
     }
 
     KFValue FEAnimation::getProperty(int prop) const
     {
-        if (isTransformProperty(prop))
+        if (!isTransformProperty(prop))
         {
-            switch(prop)
-            {
-            case PROP_TRANSFORM_X:
-                return  _transform.position().x;
-            case PROP_TRANSFORM_Y:
-                return  _transform.position().y;
-            case PROP_TRANSFORM_Z:
-                return  _transform.position().z;
-            case PROP_TRANSFORM_XYZ:
-                return  _transform.position();
-            case PROP_SCALE_X:
-                return  (real)_transform.scale().x;
-            case PROP_SCALE_Y:
-                return  (real)_transform.scale().y;
-            case PROP_SCALE_Z:
-                return  (real)_transform.scale().z;
-            case PROP_SCALE_XYZ:
-                return  real3(_transform.scale());
-            case PROP_ROTATE_X:
-                return  (real)_transform.euler().x;
-            case PROP_ROTATE_Y:
-                return  (real)_transform.euler().y;
-            case PROP_ROTATE_Z:
-                return  (real)_transform.euler().z;
-            case PROP_ROTATE_XYZ:
-                return  real3(_transform.euler());
-            case PROP_QUAT:
-                return  _transform.rotation();
-            default:
-                break;
-            }
+            if (_owner)
+                return  _owner->getProperty(prop);
+            else
+                return  {};
         }
-        return  _owner->getProperty(prop);
+        switch(prop)
+        {
+        case PROP_TRANSFORM_X:
+            return  _transform.position().x;
+        case PROP_TRANSFORM_Y:
+            return  _transform.position().y;
+        case PROP_TRANSFORM_Z:
+            return  _transform.position().z;
+        case PROP_TRANSFORM_XYZ:
+            return  _transform.position();
+        case PROP_SCALE_X:
+            return  (real)_transform.scale().x;
+        case PROP_SCALE_Y:
+            return  (real)_transform.scale().y;
+        case PROP_SCALE_Z:
+            return  (real)_transform.scale().z;
+        case PROP_SCALE_XYZ:
+            return  real3(_transform.scale());
+        case PROP_ROTATE_X:
+            return  (real)_transform.euler().x;
+        case PROP_ROTATE_Y:
+            return  (real)_transform.euler().y;
+        case PROP_ROTATE_Z:
+            return  (real)_transform.euler().z;
+        case PROP_ROTATE_XYZ:
+            return  real3(_transform.euler());
+        case PROP_QUAT:
+            return  _transform.rotation();
+        default:
+            return  {};
+        }
+    }
+
+    void    FEAnimation::endSetProp(bool bModify) 
+    {
+        if (_owner)
+        {
+            _owner->flags().addFlag(FENode::FLAG_PROP_TRANS| FENode::FLAG_PROP_SCALE| FENode::FLAG_PROP_ROT);
+            _owner->endSetProp(false);
+        }
+        /// 把需要更新的对象加入到更新列表,引擎在所有组件更新完成后统一执行 update + fireChanged
+        /// 不在 endSetProp 中立即触发,避免与更新列表重复执行 update/fireChanged
+        if (bModify)
+            _ctx.scene()->updateList().addObject(_owner);
+
+        LOG_DBG("_translation = %lf,%lf,%lf",_transform.position().x,_transform.position().y,_transform.position().z);
     }
 
     size_t  FEAnimation::objectCount() const 
@@ -195,6 +296,7 @@ namespace FE
         else
             return  0;
     }
+
     bool    FEAnimation::traverseObject(const ObjectVisitor& fun,uint depth,bool recur) const
     {
         UNUSED(depth,recur);
@@ -225,37 +327,20 @@ namespace FE
 
         _clipTime   =   std::clamp(clipTime,rng.x,rng.y);
         _clip->update(_clipTime - _offset,_results);
+        /// 画对象应用对象 
         _owner->beginSetProp();
-
+        /// 动画对象
+        this->beginSetProp();
         bool    bModify     =   false;
-        bool    bTransMod   =   false;
-
+        
         for (auto& var: _results)
         {
             if (!var._valid)
                 continue;
-            if (applyTrackResult(var._prop,var._value))
-                bTransMod   =   true;
-            else
+            if (this->setProperty(var._prop,var._value))
                 bModify     =   true;
         }
-
-        /// 变换数据写入动画自身的 _transform,由节点 updateTransform -> appTransform 应用到节点
-        /// 标记所有者需要更新变换,确保 update() 触发 updateTransform() 调用组件的 appTransform
-        if (bTransMod)
-        {
-            _owner->flags().addFlag(FENode::FLAG_PROP_TRANS  |
-                                    FENode::FLAG_PROP_SCALE  |
-                                    FENode::FLAG_PROP_ROT);
-            bModify =   true;
-        }
-
-        /// 把需要更新的对象加入到更新列表,引擎在所有组件更新完成后统一执行 update + fireChanged
-        /// 不在 endSetProp 中立即触发,避免与更新列表重复执行 update/fireChanged
-        if (bModify)
-            _ctx.scene()->updateList().addObject(_owner);
-
-        _owner->endSetProp(false);
+        this->endSetProp(bModify);
         return  bModify;
     }
 

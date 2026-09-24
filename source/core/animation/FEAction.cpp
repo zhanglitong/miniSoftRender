@@ -113,17 +113,23 @@ namespace FE
     void    FEAction::setClipTime(const real& clipTime)
     {
         _clipTime   =   std::clamp(clipTime,_range.x,_range.y);
-        if (_cache.empty())
+
+        for (auto& var : _objects)
         {
-            for (auto& var : _objects)
-            {
-                var->update(_clipTime);
-            }
+            var->update(_clipTime);
         }
-        else
-        {
-            updateBatch(_clipTime,0);
-        }
+
+        /// if (_cache.empty())
+        /// {
+        ///     for (auto& var : _objects)
+        ///     {
+        ///         var->update(_clipTime);
+        ///     }
+        /// }
+        /// else
+        /// {
+        ///     updateBatch(_clipTime,0);
+        /// }
     }
 
     void    FEAction::updateBatch(const real& clipTime,const real& delta)
@@ -155,10 +161,16 @@ namespace FE
             if (owner != var._owner)
             {
                 if (owner)
+                {
                     owner->endSetProp(false);
+                    var._anim->endSetProp(false);
+                }
                 owner   =   var._owner;
                 if (owner)
+                {
                     owner->beginSetProp();
+                    var._anim->beginSetProp();
+                }
             }
             FETrackResult   result;
             result._track   =   track;
@@ -166,8 +178,8 @@ namespace FE
             result._valid   =   track->update(kfValue,result);
             if (!result._valid)
                 continue;
-            /// 变换属性写入动画组件自身 _transform,其他属性写入 _owner
-            if (var._anim->applyTrackResult(result._prop,result._value))
+            
+            if (var._anim->setProperty(result._prop,result._value))
                 transOwners.emplace(var._owner);
             modOwners.emplace(var._owner);
         }

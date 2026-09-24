@@ -4,11 +4,10 @@
 #include    "animation/FEAnimationSys.hpp"
 #include    "graphic/FEScene.h"
 #include    "animation/FETrackResult.hpp"
+#include    "FETransform.hpp"
 
 namespace   FE
 {
-    using   TrackSnapshots  =   AddKeyframeCmd::TrackSnapshots;
-    using   AnimStates      =   AddKeyframeCmd::AnimStates;
 
     RenameNodeCmd::RenameNodeCmd(Node pNode, const char* redoName, const char* undoName, QUndoCommand* parent)
         : QUndoCommand(parent)
@@ -50,10 +49,46 @@ namespace   FE
         }, values);
     }
 
-    /// <summary>
-    /// 对指定动画的所有轨道做时间点快照
-    /// </summary>
-    TrackSnapshots  AddKeyframeCmd::snapshotTracks(Animation anim, real time)
+
+    /// =================== CreateKeyframeCmd ===================
+
+    CreateKeyframeCmd::CreateKeyframeCmd(Node node, Animation anim, real time, bool createdDefaultTracks, std::function<void()> refreshCb, QUndoCommand* parent)
+        : QUndoCommand(parent)
+        , _node(node)
+        , _anim(anim)
+        , _time(time)
+        , _createdDefaultTracks(createdDefaultTracks)
+        , _refreshCb(std::move(refreshCb))
+    {
+    }
+
+    void    CreateKeyframeCmd::redo()
+    {
+        /// 空 clip: 先创建默认轨道,再添加关键帧
+        if  (_createdDefaultTracks && _anim && _anim->clip())
+        {
+            FEAnimationHelper::addDefaultTracks(_anim->clip(), _node->ctx());
+        }
+        FEAnimationHelper::addNodeKeyFrame(_anim, _time, _node);
+        if  (_refreshCb)
+            _refreshCb();
+    }
+
+    void    CreateKeyframeCmd::undo()
+    {
+        FEAnimationHelper::removeNodeKeyFrame(_anim, _time);
+        /// 空 clip 创建的默认轨道: undo 时清空
+        if  (_createdDefaultTracks && _anim && _anim->clip())
+        {
+            _anim->clip()->clearObjects();
+        }
+        if  (_refreshCb)
+            _refreshCb();
+    }
+
+    /// =================== UpdateKeyframeCmd ===================
+
+    UpdateKeyframeCmd::TrackSnapshots  UpdateKeyframeCmd::snapshotTracks(Animation anim, real time)
     {
         TrackSnapshots  snaps;
         if  (!anim || !anim->clip())
@@ -62,94 +97,45 @@ namespace   FE
         real    internalTime    =   time - anim->offset();
         for (auto track : anim->clip()->tracks())
         {
-            AddKeyframeCmd::TrackSnapshot  snap;
+            if  (!track->_times)
+                continue;
+            auto&   times   =   track->_times->values();
+            auto    itr     =   std::find(times.begin(), times.end(), internalTime);
+            if  (itr == times.end())
+                continue;
+            TrackSnapshot   snap;
             snap.track  =   track;
-            snap.existed=   false;
-            if  (track->_times)
-            {
-                auto&   times   =   track->_times->values();
-                auto    itr     =   std::find(times.begin(), times.end(), internalTime);
-                if  (itr != times.end())
-                {
-                    snap.existed=   true;
-                    size_t  idx =   (size_t)std::distance(times.begin(), itr);
-                    snap.oldVal =   readTrackValue(track->_values, idx);
-                }
-            }
+            size_t  idx =   (size_t)std::distance(times.begin(), itr);
+            snap.oldVal =   readTrackValue(track->_values, idx);
             snaps.push_back(std::move(snap));
         }
         return  snaps;
     }
 
-    AddKeyframeCmd::AddKeyframeCmd(AnimStates&& states, std::function<void()> refreshCb, QUndoCommand* parent)
+    UpdateKeyframeCmd::UpdateKeyframeCmd(Node node, Animation anim, real time, TrackSnapshots snapshots, std::function<void()> refreshCb, QUndoCommand* parent)
         : QUndoCommand(parent)
-        , _states(std::move(states))
+        , _node(node)
+        , _anim(anim)
+        , _time(time)
+        , _snapshots(std::move(snapshots))
         , _refreshCb(std::move(refreshCb))
     {
     }
 
-    void    AddKeyframeCmd::redo()
+    void    UpdateKeyframeCmd::redo()
     {
-        for (auto& st : _states)
-        {
-            /// 新建动画: 先挂回节点和动画系统
-            if (st.createdNew)
-            {
-                st.node->addComponent(st.anim.get());
-                auto    scene   =   st.node->ctx().scene();
-                if  (scene)
-                {
-                    auto    sys =   scene->animationSystem();
-                    if  (sys)
-                        sys->addObject(st.anim.get());
-                }
-            }
-            /// 空 clip: 先创建默认轨道,再添加关键帧
-            if  (st.createdDefaultTracks && st.anim && st.anim->clip())
-            {
-                FEAnimationHelper::addDefaultTracks(st.anim->clip(), st.node->ctx());
-            }
-            /// 添加/更新关键帧
-            if  (!FEAnimationHelper::addNodeKeyFrame(st.anim, st.time, st.node))
-                FEAnimationHelper::updateNodeKeyFrame(st.anim, st.time, st.node);
-        }
+        FEAnimationHelper::updateNodeKeyFrame(_anim, _time, _node);
         if  (_refreshCb)
             _refreshCb();
     }
 
-    void    AddKeyframeCmd::undo()
+    void    UpdateKeyframeCmd::undo()
     {
-        for (auto& st : _states)
+        real    internalTime    =   _time - _anim->offset();
+        for (auto& snap : _snapshots)
         {
-            /// 时间线时间转内部时间
-            real    internalTime    =   st.time - st.anim->offset();
-            /// 逐轨道恢复: 原有 -> 还原旧值, 新增 -> 移除关键帧
-            for (auto& snap : st.snapshots)
-            {
-                if  (!snap.track)
-                    continue;
-                if  (snap.existed)
-                    snap.track->updateKeyFrame(internalTime, snap.oldVal);
-                else
-                    snap.track->removeKeyFrame(internalTime);
-            }
-            /// 空 clip 创建的默认轨道: undo 时清空
-            if  (st.createdDefaultTracks && st.anim && st.anim->clip())
-            {
-                st.anim->clip()->clearObjects();
-            }
-            /// 新建动画: 从节点和动画系统移除
-            if (st.createdNew)
-            {
-                auto    scene   =   st.node->ctx().scene();
-                if  (scene)
-                {
-                    auto    sys =   scene->animationSystem();
-                    if  (sys)
-                        sys->removeObject(st.anim.get());
-                }
-                st.node->removeComponent(st.anim.get());
-            }
+            if  (snap.track)
+                snap.track->updateKeyFrame(internalTime, snap.oldVal);
         }
         if  (_refreshCb)
             _refreshCb();
@@ -538,6 +524,56 @@ namespace   FE
         {
             _tree->setObjectList(_savedObjects);
             _tree->updateUi();
+        }
+    }
+
+    /// =================== MoveNodeCmd ===================
+
+    MoveNodeCmd::MoveNodeCmd(ObjectMoves&& moves, QUndoCommand* parent)
+        : QUndoCommand(parent)
+        , _moves(std::move(moves))
+    {
+    }
+
+    real3   MoveNodeCmd::getPosition(Object obj)
+    {
+        if  (!obj)
+            return  real3(0.0);
+        auto    val =   obj->getProperty(PROP_G_TRANSFORM_XYZ);
+
+        if (std::holds_alternative<real3>(val))
+            return  std::get<real3>(val);
+        else
+            return  real3(0.0);
+    }
+
+    void    MoveNodeCmd::setPosition(Object object, const real3& pos)
+    {
+        if  (!object)
+            return;
+        auto    val     =   object->getProperty(PROP_TRANSFORM_XYZ);
+        if (!std::holds_alternative<real3>(val))
+            return;
+        object->beginSetProp();
+        bool    bModify    =   object->setProperty(PROP_TRANSFORM_XYZ,pos);
+        object->endSetProp(bModify);
+    }
+
+    void    MoveNodeCmd::redo()
+    {
+        for (auto& m : _moves)
+        {
+            if  (m.obj)
+                setPosition(m.obj, m.newPos);
+        }
+    }
+
+    void    MoveNodeCmd::undo()
+    {
+        for (auto& m : _moves)
+        {
+            if  (m.obj)
+                setPosition(m.obj, m.oldPos);
         }
     }
 }

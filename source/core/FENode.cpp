@@ -212,19 +212,19 @@ namespace   FE
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_SCALE_X:
-            _transform._scale.x    =   (float)std::get<float>(value);
+            _transform._scale.x    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Y:
-            _transform._scale.y    =   (float)std::get<float>(value);
+            _transform._scale.y    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Z:
-            _transform._scale.z    =   (float)std::get<float>(value);
+            _transform._scale.z    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_XYZ:
-            _transform._scale      =   std::get<float3>(value);
+            _transform._scale      =   std::get<real3>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         /// 欧拉角实现
@@ -264,21 +264,22 @@ namespace   FE
     {
         switch(prop)
         {
-        case PROP_TRANSFORM_X:  return  _transform._position.x;
-        case PROP_TRANSFORM_Y:  return  _transform._position.y;
-        case PROP_TRANSFORM_Z:  return  _transform._position.z;
-        case PROP_TRANSFORM_XYZ:return  _transform._position;
-        case PROP_SCALE_X:      return  _transform._scale.x;
-        case PROP_SCALE_Y:      return  _transform._scale.y;
-        case PROP_SCALE_Z:      return  _transform._scale.z;
-        case PROP_SCALE_XYZ:    return  _transform._scale;
-        case PROP_ROTATE_X:     return  RAD2DEG(quatToEuler(_transform._rotation).x);
-        case PROP_ROTATE_Y:     return  RAD2DEG(quatToEuler(_transform._rotation).y);
-        case PROP_ROTATE_Z:     return  RAD2DEG(quatToEuler(_transform._rotation).z);
-        case PROP_ROTATE_XYZ:   return  quatToEuler(_transform._rotation);
-        case PROP_QUAT:         return  _transform._rotation;
-        case PROP_COLOR_RGB:    return  _color.value();
-        case PROP_COLOR_ALPHA:  return  _color.value().a;
+        case PROP_TRANSFORM_X:      return  _transform._position.x;
+        case PROP_TRANSFORM_Y:      return  _transform._position.y;
+        case PROP_TRANSFORM_Z:      return  _transform._position.z;
+        case PROP_TRANSFORM_XYZ:    return  _transform._position;
+        case PROP_SCALE_X:          return  _transform._scale.x;
+        case PROP_SCALE_Y:          return  _transform._scale.y;
+        case PROP_SCALE_Z:          return  _transform._scale.z;
+        case PROP_SCALE_XYZ:        return  _transform._scale;
+        case PROP_ROTATE_X:         return  RAD2DEG(quatToEuler(_transform._rotation).x);
+        case PROP_ROTATE_Y:         return  RAD2DEG(quatToEuler(_transform._rotation).y);
+        case PROP_ROTATE_Z:         return  RAD2DEG(quatToEuler(_transform._rotation).z);
+        case PROP_ROTATE_XYZ:       return  quatToEuler(_transform._rotation);
+        case PROP_QUAT:             return  _transform._rotation;
+        case PROP_COLOR_RGB:        return  _color.value();
+        case PROP_COLOR_ALPHA:      return  _color.value().a;
+        case PROP_G_TRANSFORM_XYZ:  return  globalTranslation();
         default:
             assert(0!=0);
             return  {};
@@ -287,9 +288,9 @@ namespace   FE
     void    FENode::endSetProp(bool bModify)
     {
         UNUSED(bModify);
+        update();
         if (bModify)
         {
-            update();
             fireChanged();
         }
     }

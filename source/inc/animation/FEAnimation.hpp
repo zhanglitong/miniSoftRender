@@ -158,20 +158,33 @@ namespace FE
             global  =   global * _transform.toMatrix();
         }
         /// <summary>
-        /// 应用一条轨道的采样结果
-        /// 变换属性写入自身 _transform,其他属性写入 _owner
+        /// 动画系统独有接口
+        /// 通用设置对象属性接口，子类实现
         /// </summary>
-        /// <param name="prop">属性索引</param>
-        /// <param name="value">采样值</param>
-        /// <returns>是否修改了变换(true 表示需要触发节点 updateTransform)</returns>
-        bool    applyTrackResult(int prop,const KFValue& value);
+        virtual void    beginSetProp() override;
+        /// <summary>
+        /// 动画系统独有接口
+        /// 设置属性
+        /// </summary>
+        /// <param name="prop">属性索引(别名)</param>
+        /// <param name="value">属性值</param>
+        /// <returns>true,表示修改成功,否则没有修改</returns>
+        virtual bool    setProperty(int prop,const KFValue& value) override;
+
         /// <summary>
         /// 获取属性值
         /// 变换属性从自身 _transform 读取,其他属性从 _owner 读取
         /// </summary>
         /// <param name="prop">属性索引</param>
         /// <returns>属性值</returns>
-        virtual KFValue     getProperty(int prop) const override;
+        virtual KFValue getProperty(int prop) const override;
+
+        /// <summary>
+        /// 动画系统独有接口
+        /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
+        /// </summary>
+        /// <param name="bModify"></param>
+        virtual void    endSetProp(bool bModify) override;
     protected:
         /// <summary>
         /// 判断属性是否属于变换相关属性(位置/旋转/缩放)
