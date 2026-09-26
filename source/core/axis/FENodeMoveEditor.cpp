@@ -21,26 +21,30 @@ namespace   FE
         /// 移除节点通知
         ctx.scene()->nodeTree().eventsRemoveNode() += {this,[this](const FENode* obj)
         {
-            auto    itr =   std::remove_if(_nodes.begin(),_nodes.end(),[obj](const Node& e) { return e.get() == obj; });
-            _nodes.erase(itr,_nodes.end());
+            auto    itr =   std::remove_if(_objects.begin(),_objects.end(),[obj](const Object& e) { return e.get() == obj; });
+            _objects.erase(itr,_objects.end());
             sync();
         }};
         /// 清除节点通知
         ctx.scene()->nodeTree().eventsClear() += {this,[this]()
         {
-            _nodes  =   {};
+            _objects    =   {};
             sync();
         }};
         /// 节点属性更改通知
+        /// 拖拽期间跳过 sync, 避免 editor 位置变动导致 calcMove 参考偏移 → 抖动
         ctx.scene()->nodeTree().eventsChangedNode() += {this,[this](const FENode*)
         {
-            sync();
+             sync();
         }};
+
+        mDelegate()     +=  {this,&FENodeMoveEditor::onMAxis};
     }
     FENodeMoveEditor::FENodeMoveEditor(const FENodeMoveEditor& other)
         :FEEditAxisMove(other)
     {
-        _priority = other.priority();
+        _priority       =   other.priority();
+        mDelegate()     +=  {this,&FENodeMoveEditor::onMAxis};
     }
     FENodeMoveEditor::~FENodeMoveEditor()
     {
@@ -52,38 +56,51 @@ namespace   FE
         _ctx.scene()->nodeTree().eventsClear()          -= {this};
         /// 移除节点属性更改通知
         _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
+        mDelegate()                                     -=  this;
     }
 
-    void    FENodeMoveEditor::setNodes(const Nodes& nodes)
+    void    FENodeMoveEditor::setObjects(const Objects& objects)
     {
-        _nodes   =   nodes;
-        if (_nodes.empty())
-            mDelegate()     -=  this;
-        else
-            mDelegate()     +=  {this,&FENodeMoveEditor::onMAxis};
+        /// 这里注意，进来后就
+        _objects   =   objects;
         sync();
     }
     void    FENodeMoveEditor::sync()
     {
         aabb3dr box;
-        for (auto& var: _nodes)
+        for (auto& var: _objects)
         {
-            box.merge(var->globalAabb());
+            auto    val =   var->getProperty(PROP_G_TRANSFORM_XYZ);
+
+            if (std::holds_alternative<real3>(val))
+                box.merge(std::get<real3>(val));
         }
         setTranslation(box.center());
     }
+
     void    FENodeMoveEditor::onMAxis(
                                         FEEditAxis::EditStatus status
                                         , const real3& relativeOffset
                                         , const real3& absoluteOffset
                                         , FEEditAxisMove& sender)
     {
-        for (auto node : _nodes)
+        UNUSED(status,absoluteOffset,sender);
+
+        for (auto object : _objects)
         {
-            auto    trans   =   node->localTranslation() + relativeOffset;
-            node->setLocalTranslation(trans); 
-            node->update();
-            node->fireChanged();
+            
+            bool    bModify =   false;
+            auto    val     =   object->getProperty(PROP_TRANSFORM_XYZ);
+
+            if (!std::holds_alternative<real3>(val))
+                continue;
+            object->beginSetProp();
+            real3   curVal  =   std::get<real3>(val);
+            real3   nValue  =   curVal + relativeOffset;
+            /// 仅在实际有变化时才 setProperty (跳过 EditStart/EditEnd 的 0 偏移)
+            if  (nValue != curVal)
+                bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,nValue);
+            object->endSetProp(bModify);
         }
     }
 }

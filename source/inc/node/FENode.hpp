@@ -28,7 +28,7 @@ namespace   FE
             /// <summary>
             /// 添加对象
             /// </summary>
-            FLAG_ADD_CHILD      =   ((FE::FLAG_LAST)        <<1),
+            FLAG_ADD_CHILD      =   ((FE::FLAG_LAST)    <<1),
             /// <summary>
             /// 移除对象
             /// </summary>
@@ -73,7 +73,7 @@ namespace   FE
             /// </summary>
             FLAG_RECV_LIGHTING  =   (FLAG_RECV_SHADOW   << 1),
             FLAG_EFFECT_AO      =   (FLAG_RECV_LIGHTING << 1),
-            FLAG_EFFECT_BLOOM   =   (FLAG_EFFECT_AO << 1),
+            FLAG_EFFECT_BLOOM   =   (FLAG_EFFECT_AO     << 1),
         };
         enum    EModify
         {
@@ -145,31 +145,31 @@ namespace   FE
 
         inline  auto    localTranslation() const
         {
-            return  _trans;
+            return  _local._position;
         }
         inline  auto    localScaling() const
         {
-            return  _scale;
+            return  _local._scale;
         }
         inline  auto    localRotation() const
         {
-            return  _rotate;
+            return  _local._rotation;
         }
         inline  FENode& setLocalTranslation(const real3& trans)
         {
-            _trans  =   trans;
+            _local.setPosition(trans);
             flags().addFlag(FLAG_PROP_TRANS);
             return  *this;
         }
         inline  FENode& setLocalScaling(const real3& scale)
         {
-            _scale  =   scale;
+            _local.setScale(scale);
             flags().addFlag(FLAG_PROP_SCALE);
             return  *this;
         }
         inline  FENode& setLocalRotation(const quatr& rot)
         {
-            _rotate =   rot;
+            _local.setRotation(rot);
             flags().addFlag(FLAG_PROP_ROT);
             return  *this;
         }
@@ -180,9 +180,9 @@ namespace   FE
         inline  auto&   setGlobalTranslation(const real3& vec)
         {
             if (_parent != nullptr)
-                _trans  =   FE::inverse(_parent->globalTransform()) * real4(vec,1.0);
+                _local._position    =   FE::inverse(_parent->globalTransform()) * real4(vec,1.0);
             else
-                _trans  =   vec;
+                _local._position    =   vec;
             flags().addFlag(FLAG_PROP_TRANS);
             return  *this;
         }
@@ -192,15 +192,11 @@ namespace   FE
         /// <returns>从世界到节点的位置变换</returns>
         inline  real3   globalTranslation() const
         {
-            return this->globalTransform() * real4(0,0,0,1);
+            return  _gloabal.position();
         }
         inline  quatr   globalRotation() const
         {
-            real3   pos;
-            real3   scale;
-            quatr   rot;
-            FE::decompose<real>(_gloabal, pos, scale, rot);
-            return  rot;
+            return  quatr(_gloabal.rotation());
         }
         /// <summary>
         /// 设置 从世界到节点的旋转变换
@@ -216,22 +212,19 @@ namespace   FE
                 real3   scale;
                 quatr   rot;
                 FE::decompose<real>(rMat, pos, scale, rot);
-                _rotate =   rot;
+                _local._rotation =   rot;
+                
             }
             else
             {
-                _rotate =   quat;
+                _local._rotation =   quat;
             }
             flags().addFlag(FLAG_PROP_TRANS);
             return  *this;
         }
-        inline  quatr   globalScaling() const
+        inline  real3   globalScaling() const
         {
-            real3   pos;
-            real3   scale;
-            quatr   rot;
-            FE::decompose<real>(_gloabal, pos, scale, rot);
-            return  scale;
+            return  real3(_gloabal.scale());
         }
 
         inline  void    setName(const String& name)
@@ -405,7 +398,7 @@ namespace   FE
         /// <returns></returns>
         inline  mat4r   localTransform() const
         {
-            return  FE::makeTransform<real>(_trans,_scale,_rotate);
+            return  _local.toMatrix();
         }
         /// <summary>
         /// 没有平移信息
@@ -423,7 +416,19 @@ namespace   FE
         /// <returns></returns>
         inline  mat4r   globalTransform() const
         {
-            return  _gloabal;
+            return  _gloabal.toMatrix();
+        }
+        /// <summary>
+        /// 返回节点自身的transform;不含组件信息
+        /// </summary>
+        /// <returns></returns>
+        inline  auto&   transform()
+        {
+            return  _local;
+        }
+        const   auto&   transform() const
+        {
+            return  _local;
         }
         inline  aabb3dr globalAabb() const
         {
@@ -475,6 +480,12 @@ namespace   FE
         /// <returns>返回以来的对象个数</returns>
         virtual size_t  queryDepends(ObjectUSet& uset) const override;
         /// <summary>
+        /// 根据类型id获取接口信息
+        /// </summary>
+        /// <param name="classId"></param>
+        /// <returns></returns>
+        virtual void*   queryInterface(const char*) override;
+        /// <summary>
         /// 通用设置对象属性接口，子类实现
         /// </summary>
         virtual void    beginSetProp() override;
@@ -496,17 +507,14 @@ namespace   FE
         /// </summary>
         /// <param name="bModify"></param>
         virtual void    endSetProp(bool bModify) override;
-
     protected:
-        real3       _trans;
-        /// <summary>
-        /// 这两个值精度够用
-        /// </summary>
-        float3      _scale;
-        quatf       _rotate;
+        void            blend(FETransform& result);
+    protected:
+        FETransform _local;
+        FETransform _gloabal;
         RenderFlags _renderBits;
         aabb3r      _aabb;
-        mat4r       _gloabal;
+        
         /// <summary>
         /// 经常被访问的组件
         /// </summary>

@@ -6,7 +6,9 @@
 #include    <QMessageBox>
 #include    <string>
 #include    <map>
+#include    <vector>
 #include    "ui_MainWindow.h"
+#include    "UndoCommand.h"
 
 class   MainWindow;
 extern  MainWindow* _mainApp;
@@ -114,6 +116,11 @@ public slots:
     void    slotMoveEditor();
     void    slotRotEditor();
     void    slotScaleEditor();
+private:
+    /// <summary>
+    /// 禁用动画系统中所有动画(标记为不可播放/不可编辑)
+    /// </summary>
+    void    disableAllAnimations();
 protected:
     /// <summary>
     /// 引擎启动后通知，函数内可以对依赖引擎的组件模块进行初始化
@@ -128,4 +135,6 @@ protected:
     QString         _projectName;
     QUndoStack*     _undoStack;
     Ui::MainWindow  ui;
+    /// 移动编辑器拖拽期间暂存的旧位置 (EditStart 快照,EditEnd 时消费)
+    std::vector<FE::MoveNodeCmd::ObjectMove>  _moveSnapshots;
 };

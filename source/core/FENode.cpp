@@ -10,25 +10,23 @@ namespace   FE
     FENode::FENode(FEContext& ctx)
         :FEItem<FENode>(ctx)
     {
-        _scale      =   float3(1,1,1);
-        _trans      =   real3(0,0,0);
-        _rotate     =   quatf(1,0,0,0);
+        _local._scale       =   float3(1,1,1);
+        _local._position    =   real3(0,0,0);
+        _local._rotation    =   quatf(1,0,0,0);
         /// 默认情况下颜色会 color x fragment 
         _color      =   Rgba8(255,255,255,255);
-        _gloabal    =   FE::makeTransform<real>(_trans,_scale,_rotate);
+        _gloabal    =   _local;
         _renderBits =   RF_VISIBLE;
     }
 
     FENode::FENode(const FENode& other)
         :FEItem<FENode>(other)
     {
-        _trans      =   other._trans        ;
-        _scale      =   other._scale        ;
-        _rotate     =   other._rotate       ;
+        _local  =   other._local    ;
         _renderBits =   other._renderBits   ;
         _aabb       =   other._aabb         ;
 
-        _gloabal  =   other._gloabal    ;
+        _gloabal    =   other._gloabal      ;
         _material   =   other._material     ; 
         _mesh       =   other._mesh         ; 
         _color      =   other._color        ;
@@ -98,29 +96,19 @@ namespace   FE
     
     void    FENode::updateTransform(bool recursion)
     {
-        FETransform tranform(_trans,_rotate,_scale);
-        
+        FETransform blended;
+        blend(blended);
+
+        /// 全局变换 = 父全局 * (局部 * 混合组件变换)
         if (parent() != nullptr)
-        {
-            for (auto var: _coms)
-            {
-                var->appTransform(parent()->_gloabal,tranform);
-            }
-            _gloabal  =   parent()->_gloabal * tranform.toMatrix();
-        } 
+            _gloabal    =   FETransform::fromMatrix(parent()->_gloabal.toMatrix() * (_local * blended).toMatrix());
         else
-        {
-            static  mat4r   matId(1);
-            for (auto var: _coms)
-            {
-                var->appTransform(matId,tranform);
-            }
-            _gloabal  =   tranform.toMatrix();
-        }
-        if (!recursion || children().empty() )
-            return ;
+            _gloabal    =   FETransform::fromMatrix((_local * blended).toMatrix());
+
+        if (!recursion || children().empty())
+            return;
         auto&   chs =   children();
-        for(auto& child : chs)
+        for (auto& child : chs)
         {
             auto    node    =   child->as<FENode>();
             node->flags().addFlag(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT);
@@ -138,7 +126,7 @@ namespace   FE
         if (_mesh)
         {
             FEPickup    result  =   {};
-            if(_mesh->intersect(ray,_gloabal,result))
+            if(_mesh->intersect(ray,_gloabal.toMatrix(),result))
             {
                 result.object   =   const_cast<FENode*>(this);
                 result.point    =   ray.getPoint(result.time);
@@ -165,7 +153,7 @@ namespace   FE
             return  0;
         if (_mesh)
         {
-            _mesh->intersect(ray,_gloabal,result);
+            _mesh->intersect(ray,_gloabal.toMatrix(),result);
         }
         /// 递归所有子孙节点
         auto&   chs  =   children();
@@ -193,44 +181,51 @@ namespace   FE
         return  uset.size() - vSize;
     }
 
+    void*   FENode::queryInterface(const char* clsName)
+    {
+        if (strcmp(clsName,"FETransform") == 0)
+            return  &_local ;
+        else
+            return  nullptr;
+    }
     void    FENode::beginSetProp() 
     {}
 
     bool    FENode::setProperty(int prop,const KFValue& value) 
     {
+        
         switch(prop)
         {
         case PROP_TRANSFORM_X:
-            _trans.x    =   std::get<real>(value);
+            _local._position.x    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_Y:
-            _trans.y    =   std::get<real>(value);
+            _local._position.y    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_Z:
-            _trans.z    =   std::get<real>(value);
+            _local._position.z    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_XYZ:
-            _trans      =   std::get<real3>(value);
+            _local._position      =   std::get<real3>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
-
         case PROP_SCALE_X:
-            _scale.x    =   (float)std::get<float>(value);
+            _local._scale.x    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Y:
-            _scale.y    =   (float)std::get<float>(value);
+            _local._scale.y    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Z:
-            _scale.z    =   (float)std::get<float>(value);
+            _local._scale.z    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_XYZ:
-            _scale      =   std::get<float3>(value);
+            _local._scale      =   std::get<real3>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         /// 欧拉角实现
@@ -241,7 +236,7 @@ namespace   FE
             return  false;
         case PROP_QUAT:
             flags().addFlag(FLAG_PROP_ROT); 
-            _rotate     =   std::get<quatf>(value);
+            _local._rotation    =   std::get<quatf>(value);
             return  true;
          
         case PROP_COLOR_RGB:
@@ -270,21 +265,22 @@ namespace   FE
     {
         switch(prop)
         {
-        case PROP_TRANSFORM_X:  return  _trans.x;
-        case PROP_TRANSFORM_Y:  return  _trans.y;
-        case PROP_TRANSFORM_Z:  return  _trans.z;
-        case PROP_TRANSFORM_XYZ:return  _trans;
-        case PROP_SCALE_X:      return  _scale.x;
-        case PROP_SCALE_Y:      return  _scale.y;
-        case PROP_SCALE_Z:      return  _scale.z;
-        case PROP_SCALE_XYZ:    return  _scale;
-        case PROP_ROTATE_X:     return  RAD2DEG(quatToEuler(_rotate).x);
-        case PROP_ROTATE_Y:     return  RAD2DEG(quatToEuler(_rotate).y);
-        case PROP_ROTATE_Z:     return  RAD2DEG(quatToEuler(_rotate).z);
-        case PROP_ROTATE_XYZ:   return  quatToEuler(_rotate);
-        case PROP_QUAT:         return  _rotate;
-        case PROP_COLOR_RGB:    return  _color.value();
-        case PROP_COLOR_ALPHA:  return  _color.value().a;
+        case PROP_TRANSFORM_X:      return  _local._position.x;
+        case PROP_TRANSFORM_Y:      return  _local._position.y;
+        case PROP_TRANSFORM_Z:      return  _local._position.z;
+        case PROP_TRANSFORM_XYZ:    return  _local._position;
+        case PROP_SCALE_X:          return  _local._scale.x;
+        case PROP_SCALE_Y:          return  _local._scale.y;
+        case PROP_SCALE_Z:          return  _local._scale.z;
+        case PROP_SCALE_XYZ:        return  _local._scale;
+        case PROP_ROTATE_X:         return  RAD2DEG(quatToEuler(_local._rotation).x);
+        case PROP_ROTATE_Y:         return  RAD2DEG(quatToEuler(_local._rotation).y);
+        case PROP_ROTATE_Z:         return  RAD2DEG(quatToEuler(_local._rotation).z);
+        case PROP_ROTATE_XYZ:       return  quatToEuler(_local._rotation);
+        case PROP_QUAT:             return  _local._rotation;
+        case PROP_COLOR_RGB:        return  _color.value();
+        case PROP_COLOR_ALPHA:      return  _color.value().a;
+        case PROP_G_TRANSFORM_XYZ:  return  globalTranslation();
         default:
             assert(0!=0);
             return  {};
@@ -293,10 +289,57 @@ namespace   FE
     void    FENode::endSetProp(bool bModify)
     {
         UNUSED(bModify);
+        update();
         if (bModify)
         {
-            update();
             fireChanged();
+        }
+    }
+
+    void    FENode::blend(FETransform& blended)
+    {
+        /// 第一遍: 计算权重总和 (weight <= 0 不参与)
+        float   allW    =   0;
+        int     cnt     =   0;
+        for (auto& var : _coms)
+        {
+            if (!var->getTransform())   continue;
+            float   w   =   var->weight();
+            if (w <= 0.0f)              continue;
+            allW    +=  w;
+            ++cnt;
+        }
+
+        /// 计算混合后的组件变换
+        if (cnt == 1)
+        {
+            /// 单组件: 直接使用
+            for (auto& var : _coms)
+            {
+                auto*   tf  =   var->getTransform();
+                if (tf) { blended = *tf; break; }
+            }
+        }
+        else if (cnt > 1)
+        {
+            /// 多组件: 按权重混合 position/scale/rotation
+            real3   pos(0);
+            float3  scl(0);
+            quatf   rot(0,0,0,0);
+            for (auto& var : _coms)
+            {
+                auto*   tf  =   var->getTransform();
+                if (!tf)        continue;
+                float   w   =   var->weight();
+                if (w <= 0.0f)  continue;
+                float   wn  =   w / allW;
+                pos     +=  tf->position() * real(wn);
+                scl     +=  tf->scale()    * wn;
+                rot     +=  tf->rotation() * wn;
+            }
+            blended.setPosition(pos);
+            blended.setScale(scl);
+            blended.setRotation(FE::normalize(rot));
         }
     }
     size_t  FENode::objectCount() const 

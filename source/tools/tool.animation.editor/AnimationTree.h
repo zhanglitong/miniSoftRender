@@ -2,6 +2,7 @@
 #include    <QTreeView>
 #include    <QShortcut>
 #include    <QStandardItemModel>
+#include    <QUndoStack>
 #include    "node/FENode.hpp"
 #include    "animation/FEKeyFrameTrack.hpp"
 #include    "AnimationItem.h"
@@ -15,9 +16,17 @@ class   AnimationTree : public QTreeView
 public:
     AnimationTree(QWidget* parent = nullptr);
 public:
-    
+
     void    linkToTickMgr(UiTickMgr* mgr);
     void    updateUi();
+    void    setUndoStack(QUndoStack* stack) { _undoStack = stack; }
+    QUndoStack* undoStack() const { return _undoStack; }
+    /// 供 undo 命令直接操作 _objects 列表(不触发 updateUi)
+    void    addObjectToList(Object item);
+    void    removeObjectFromList(Object item);
+    void    clearObjectList();
+    void    setObjectList(const FE::Objects& objs);
+    FE::Objects snapshotObjectList() const;
     void    setSelectWhenMoveTo(bool enable)
     {
         _isSelectWhenMoveTo = enable;
@@ -52,6 +61,16 @@ public:
     /// <param name="item"></param>
     /// <param name="results"></param>
     void    collectAllTrackItemChildren(AnimationItem* item, std::vector<FE::FEKeyFrameTrack*>& results);
+    /// <summary>
+    /// 同步展开状态: 遍历树,对 object 拥有 FLAG_EXPAND 的项执行展开
+    /// </summary>
+    void    syncExpandFromFlags();
+    /// <summary>
+    /// 按 FEObject 查找并选中对应的 AnimationItem
+    /// </summary>
+    /// <param name="obj">目标对象</param>
+    /// <returns>true=找到并选中</returns>
+    bool    selectItemByObject(FE::FEObject* obj);
 public:
     /// <summary>
     /// 模型树选择对象同通知,
@@ -59,6 +78,16 @@ public:
     /// <param name="item">被选择对象</param>
     /// <param name="multiSelect">是否是多选</param>
     void        selectObject(Object item,bool multiSelect);
+    /// <summary>
+    /// 添加对象到动画树(如果已存在则移除)
+    /// </summary>
+    /// <param name="item">目标对象</param>
+    /// <returns>true=已添加, false=已移除</returns>
+    bool        toggleObject(Object item, double curTime = 0);
+    /// <summary>
+    /// 判断对象是否已在动画树中
+    /// </summary>
+    bool        containsObject(Object item) const;
 signals:
     void        sigPaintEvent();
 public slots:
@@ -69,6 +98,11 @@ public slots:
     void        slotCreateAnimation();
     void        slotDeleteAnimation();
     void        slotToggleEnable();
+    void        slotToggleAllEnable();
+    void        slotClearAllAnimations();
+    void        slotRemoveNode();
+    void        slotDeleteTrackNode();
+    void        slotToggleTrackEnable();
     void        slotDoubleClikced(const QModelIndex&);
 public:
     virtual void    mousePressEvent(QMouseEvent* evt)           override;
@@ -84,6 +118,7 @@ private:
     QStandardItemModel*     _model              =   nullptr;
     QMenu*                  _menu               =   nullptr;
     UiTickMgr*              _tickMgr            =   nullptr;
+    QUndoStack*             _undoStack          =   nullptr;
     AnimationItem*          _rootItem           =   nullptr;
     AnimationItem*          _curItem            =   nullptr;
     QShortcut*              _shortcutDelete     =   nullptr;

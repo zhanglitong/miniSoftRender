@@ -3,7 +3,7 @@
 
 namespace   FE
 {
-    class   FEUserObject
+    class   FE_API  FEUserObject
     {
     protected:
         Object  _userObject;

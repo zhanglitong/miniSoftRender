@@ -3,6 +3,7 @@
 #include    "../inc/FEWriterHelper.hpp"
 #include    "../inc/FEObjectHelper.hpp"
 #include    "../inc/FENodeHelper.hpp"
+#include    "../../inc/graphic/FEScene.h"
 #include    "../inc/animation/FEAction.hpp"
 
 namespace FE
@@ -112,18 +113,23 @@ namespace FE
     void    FEAction::setClipTime(const real& clipTime)
     {
         _clipTime   =   std::clamp(clipTime,_range.x,_range.y);
-        if (_cache.empty())
+
+        for (auto& var : _objects)
         {
-            for (auto& var : _objects)
-            {
-                real2   range   =   var->range();
-                var->update(_clipTime);
-            }
+            var->update(_clipTime);
         }
-        else
-        {
-            updateBatch(_clipTime,0);
-        }
+
+        /// if (_cache.empty())
+        /// {
+        ///     for (auto& var : _objects)
+        ///     {
+        ///         var->update(_clipTime);
+        ///     }
+        /// }
+        /// else
+        /// {
+        ///     updateBatch(_clipTime,0);
+        /// }
     }
 
     void    FEAction::updateBatch(const real& clipTime,const real& delta)
@@ -135,7 +141,9 @@ namespace FE
         RealsObject             timeLine    =   nullptr;
         FEKeyFrameTrack::KFOff  kfValue     =   {};
         Object                  owner       =   nullptr;
-        bool                    bNotify     =   false;
+        ObjectUSet              transOwners;    ///< 需要更新变换的所有者
+        ObjectUSet              modOwners;      ///< 有任意属性修改的所有者
+
         for (auto& var : _cache)
         {
             /// 禁用的动画不播放
@@ -153,20 +161,43 @@ namespace FE
             if (owner != var._owner)
             {
                 if (owner)
-                    owner->endSetProp(bNotify);
+                {
+                    owner->endSetProp(false);
+                    var._anim->endSetProp(false);
+                }
                 owner   =   var._owner;
                 if (owner)
+                {
                     owner->beginSetProp();
-                bNotify =   false;
+                    var._anim->beginSetProp();
+                }
             }
             FETrackResult   result;
             result._track   =   track;
             result._prop    =   track->propertyIndex();
             result._valid   =   track->update(kfValue,result);
-            bNotify         |=   var._owner->setProperty(result._prop ,result._value);
+            if (!result._valid)
+                continue;
+            
+            if (var._anim->setProperty(result._prop,result._value))
+                transOwners.emplace(var._owner);
+            modOwners.emplace(var._owner);
         }
         if (owner)
-            owner->endSetProp(bNotify);
+            owner->endSetProp(false);
+
+        /// 标记变换变更标志,由 updateList 统一触发节点 updateTransform -> getTransform 混合
+        for (Object o : transOwners)
+        {
+            o->flags().addFlag(FENode::FLAG_PROP_TRANS  |
+                               FENode::FLAG_PROP_SCALE  |
+                               FENode::FLAG_PROP_ROT);
+        }
+        /// 所有修改过的对象加入更新列表,引擎统一执行 update + fireChanged
+        for (auto& o : modOwners)
+        {
+            _ctx.scene()->updateList().addObject(o);
+        }
     }
 
     void    FEAction::buildCache()
@@ -213,11 +244,11 @@ namespace FE
         if (_objects.empty())
             return  result;
         else
-            result  =   _objects.front()->clip()->range();
+            result  =   _objects.front()->range();
 
         for (size_t i = 1 ;i < _objects.size(); ++ i)
         {
-            auto    rng =   _objects[i]->clip()->range();
+            auto    rng =   _objects[i]->range();
             result.x    =   (std::min)(result.x,rng.x);
             result.y    =   (std::max)(result.y,rng.y);
         }

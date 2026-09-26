@@ -7,6 +7,9 @@
 #include    "axis/FENodeMoveEditor.h"
 #include    "axis/FENodeRotateEditor.h"
 #include    "axis/FENodeScaleEditor.h"
+#include    "animation/FEAnimationSys.hpp"
+#include    "animation/FEAnimationHelper.hpp"
+#include    "UndoCommand.h"
 
 MainWindow* _mainApp   =   nullptr;
 
@@ -27,8 +30,167 @@ MainWindow::MainWindow()
     ui.modelTree->setup(ui.sceneViewer->scene());
     ui.sceneViewer->notify()    +=  {this,&MainWindow::notifyEngineStart};
 
-    /// 模型树选择通知到动画树更新数据
-    ui.modelTree->_selectEvts   +=  {ui.animationTree,&AnimationTree::selectObject};
+    /// 模型树右键菜单: 添加/移除到动画树 + 创建/删除/清除动画
+    connect(ui.modelTree, &QtTree::signalContextMenu, this
+        , [this](const QPoint& pt, Object obj)
+    {
+        if (!obj)
+            return;
+        auto    node    =   obj->cast<FENode>();
+        auto    anim    =   obj->cast<FEAnimation>();
+        if  (!node && !anim)
+            return;
+        QMenu   menu(ui.modelTree);
+
+        if  (node)
+        {
+            /// FENode: 添加/移除到动画树 + 创建动画 + 清除动画
+            bool    inTree  =   ui.animationTree->containsObject(obj);
+            auto    action  =   menu.addAction(inTree ? u8"从动画树移除" : u8"添加到动画树");
+            connect(action, &QAction::triggered, this, [this, obj]()
+            {
+                double  curTime =   ui.timeLineEditor->curTime();
+                if  (_undoStack)
+                {
+                    bool    inTree  =   ui.animationTree->containsObject(obj);
+                    _undoStack->beginMacro(inTree ? u8"从动画树移除" : u8"添加到动画树");
+                    _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, obj, curTime));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    ui.animationTree->toggleObject(obj, curTime);
+                }
+            });
+
+            menu.addSeparator();
+
+            /// 添加已有动画到动画树: 递归遍历所有子节点,将有动画的节点添加到动画树
+            auto    addExistAnim =   menu.addAction(u8"添加已有动画到动画树");
+            connect(addExistAnim, &QAction::triggered, this, [this, node]()
+            {
+                /// 递归收集有动画的节点
+                std::vector<FE::FENode*>   nodesWithAnim;
+                std::function<void(FE::FENode*)>  collect;
+                collect    =   [&](FE::FENode* n)
+                {
+                    if  (!n)    return;
+                    auto    anims   =   n->objects<FEAnimation>();
+                    if  (!anims.empty())
+                        nodesWithAnim.push_back(n);
+                    for (auto& child : n->children())
+                        collect(child.get());
+                };
+                collect(node);
+
+                double  curTime =   ui.timeLineEditor->curTime();
+                if  (_undoStack)
+                {
+                    _undoStack->beginMacro(u8"添加已有动画到动画树");
+                    for (auto* n : nodesWithAnim)
+                    {
+                        if  (!ui.animationTree->containsObject(n))
+                            _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, n, curTime));
+                    }
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    for (auto* n : nodesWithAnim)
+                    {
+                        if  (!ui.animationTree->containsObject(n))
+                            ui.animationTree->toggleObject(n, curTime);
+                    }
+                }
+            });
+
+            /// 创建动画
+            auto    createAnim =   menu.addAction(u8"创建动画");
+            connect(createAnim, &QAction::triggered, this, [this, node]()
+            {
+                auto    anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
+                if  (_undoStack)
+                {
+                    _undoStack->beginMacro(u8"添加动画");
+                    _undoStack->push(new FE::CreateAnimCmd(node, anim, [this]{ ui.animationTree->updateUi(); }));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    node->addComponent(anim.get());
+                    auto    scene   =   node->ctx().scene();
+                    if  (scene)
+                    {
+                        auto    sys =   scene->animationSystem();
+                        if  (sys)   sys->addObject(anim.get());
+                    }
+                    ui.animationTree->updateUi();
+                }
+            });
+
+            /// 清除动画(清除动画树中所有节点的动画)
+            auto    clearAnim  =   menu.addAction(u8"清除动画");
+            connect(clearAnim, &QAction::triggered, this, [this]()
+            {
+                ui.animationTree->slotClearAllAnimations();
+            });
+        }
+        else    /// FEAnimation
+        {
+            /// FEAnimation: 添加到动画树(同步选中) + 删除动画
+            auto    owner       =   anim->owner();
+            auto    ownerNode   =   owner ? owner->cast<FENode>() : nullptr;
+            bool    inTree      =   ownerNode && ui.animationTree->containsObject(ownerNode);
+            auto    action      =   menu.addAction(inTree ? u8"从动画树移除" : u8"添加到动画树");
+            connect(action, &QAction::triggered, this, [this, ownerNode, anim]()
+            {
+                if  (!ownerNode)
+                    return;
+                double  curTime =   ui.timeLineEditor->curTime();
+                if  (_undoStack)
+                {
+                    bool    inTree  =   ui.animationTree->containsObject(ownerNode);
+                    _undoStack->beginMacro(inTree ? u8"从动画树移除" : u8"添加到动画树");
+                    _undoStack->push(new FE::ToggleTreeObjectCmd(ui.animationTree, ownerNode, curTime));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    ui.animationTree->toggleObject(ownerNode, curTime);
+                }
+            });
+
+            menu.addSeparator();
+
+            /// 删除动画
+            auto    deleteAnim =   menu.addAction(u8"删除动画");
+            connect(deleteAnim, &QAction::triggered, this, [this, anim, ownerNode]()
+            {
+                if  (_undoStack)
+                {
+                    FE::DeleteAnimCmd::AnimInfos   infos;
+                    infos.push_back({ownerNode, anim});
+                    _undoStack->beginMacro(u8"删除动画");
+                    _undoStack->push(new FE::DeleteAnimCmd(std::move(infos), [this]{ ui.animationTree->updateUi(); }));
+                    _undoStack->endMacro();
+                }
+                else
+                {
+                    auto    scene   =   anim->ctx().scene();
+                    if  (scene)
+                    {
+                        auto    sys =   scene->animationSystem();
+                        if  (sys)   sys->removeObject(anim);
+                    }
+                    if  (ownerNode)
+                        ownerNode->removeComponent(anim);
+                    ui.animationTree->updateUi();
+                }
+            });
+        }
+
+        menu.exec(ui.modelTree->mapToGlobal(pt));
+    });
 
     /// 将模型树链接到时间线编辑器,用于获取选中节点添加关键帧
     ui.timeLineEditor->setModelTree(ui.modelTree);
@@ -36,6 +198,17 @@ MainWindow::MainWindow()
     _undoStack  =   new QUndoStack(this);
     ui.undoView->setStack(_undoStack);
     ui.timeLineEditor->setUndoStack(_undoStack);
+    ui.animationTree->setUndoStack(_undoStack);
+
+    /// 模型树选择事件: 选中动画对象时同步选中动画树对应项
+    ui.modelTree->_selectEvts += {this,[this](Object obj, bool)
+    {
+        if  (!obj)
+            return;
+        auto    anim    =   obj->cast<FEAnimation>();
+        if  (anim)
+            ui.animationTree->selectItemByObject(anim);
+    }};
 
     /// 时间线编辑通知
     /// 用来控制动画
@@ -75,6 +248,26 @@ void    MainWindow::setTitile(QString fileName)
         setWindowTitle("FEEditor - " + fileName);
 
 }
+void    MainWindow::disableAllAnimations()
+{
+    auto    scene   =   this->scene();
+    if (!scene)
+        return;
+    auto    sys     =   scene->animationSystem();
+    if (!sys)
+        return;
+    /// 遍历动画系统中所有 action,禁用每个 action 管理的动画
+    for (auto& pair : sys->actions())
+    {
+        auto&   action  =   pair.second;
+        auto&   anims   =   action->objects();
+        for (auto& anim : anims)
+        {
+            anim->setEnable(false);
+        }
+    }
+}
+
 void    MainWindow::slotImportModel()
 {
     String  sptList =   "";
@@ -133,6 +326,8 @@ void    MainWindow::slotImportModel()
     }
     scene()->dispatchNodesToSystem(nodes);
     scene()->addNodesToTree(nodes);
+    /// 模型导入后禁用所有动画
+    disableAllAnimations();
 }
 void    MainWindow::slotOpenProject()
 {
@@ -146,8 +341,9 @@ void    MainWindow::slotOpenProject()
     {
         _projectName    =   fileName;
         setTitile(_projectName);
+        /// 工程打开后禁用所有动画
+        disableAllAnimations();
         QMessageBox::information(this, C2Q("提示"), C2Q("打开工程文件成功!"), QMessageBox::Ok);
-        /// 同步时间线数据到动画 ？
     }  
     else
     {
@@ -205,21 +401,15 @@ void    MainWindow::slotMoveEditor()
     if (editor == nullptr)
         return;
     Objects curObjs =   ui.modelTree->selected();
-    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeMoveEditor>()->setNodes({});
+        editor->as<FENodeMoveEditor>()->setObjects({});
     }  
-    else if(node)
-    {
-        editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeMoveEditor>()->setNodes({node});
-    }
     else
     {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeMoveEditor>()->setNodes({});
+        editor->as<FENodeMoveEditor>()->setObjects(curObjs);
     }
 }
 void    MainWindow::slotRotEditor()
@@ -232,21 +422,15 @@ void    MainWindow::slotRotEditor()
     if (editor == nullptr)
         return;
     Objects curObjs =   ui.modelTree->selected();
-    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeRotateEditor>()->setNodes({});
+        editor->as<FENodeRotateEditor>()->setObjects({});
     }  
-    else if(node)
-    {
-        editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeRotateEditor>()->setNodes({node});
-    }
     else
     {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeRotateEditor>()->setNodes({});
+        editor->as<FENodeRotateEditor>()->setObjects(curObjs);
     }
 }
 void    MainWindow::slotScaleEditor()
@@ -260,21 +444,15 @@ void    MainWindow::slotScaleEditor()
     if (editor == nullptr)
         return;
     Objects curObjs =   ui.modelTree->selected();
-    Node    node    =   curObjs.empty() ? nullptr :  curObjs.front()->as<FENode>();
     if (editor->flags().hasFlag(FE::FLAG_VISIBLE))
     {
         editor->flags().removeFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeScaleEditor>()->setNodes({});
+        editor->as<FENodeScaleEditor>()->setObjects({});
     }  
-    else if(node)
-    {
-        editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeScaleEditor>()->setNodes({node});
-    }
     else
     {
         editor->flags().addFlag(FE::FLAG_VISIBLE);
-        editor->as<FENodeScaleEditor>()->setNodes({});
+        editor->as<FENodeScaleEditor>()->setObjects(curObjs);
     }
 }
 
@@ -289,14 +467,11 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
             auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
             ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
             {
-                auto    node    =   object->cast<FENode>();
-                if (node == nullptr)
-                    return;
                 auto pEditor =   (FENodeRotateEditor*)(editor->as<FENodeRotateEditor>());
                 if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
-                    pEditor->setNodes({node});
+                    pEditor->setObjects({object});
                 else
-                    pEditor->setNodes({}); 
+                    pEditor->setObjects({}); 
                 
             }};
         }
@@ -304,33 +479,85 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
             auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
             ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
             {
-                auto    node    =   object->cast<FENode>();
-                if (node == nullptr)
-                    return;
                 auto pEditor =   (FENodeMoveEditor*)(editor->as<FENodeMoveEditor>());
                 if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
-                    pEditor->setNodes({node});
+                    pEditor->setObjects({object});
                 else
-                    pEditor->setNodes({}); 
+                    pEditor->setObjects({}); 
             }};
         }
         {
             auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeRotateEditor));
             ui.modelTree->_selectEvts   +=  {editor.get(),[editor](Object object,bool)
             {
-                auto    node    =   object->cast<FENode>();
-                if (node == nullptr)
-                    return;
                 auto pEditor =   (FENodeRotateEditor*)(editor->as<FENodeRotateEditor>());
                 if (pEditor->flags().hasFlag(FE::FLAG_VISIBLE))
-                    pEditor->setNodes({node});
+                    pEditor->setObjects({object});
                 else
-                    pEditor->setNodes({}); 
+                    pEditor->setObjects({});
             }};
+        }
+        /// 移动编辑器拖拽通知: 用于 undo/redo
+        /// EditStart 时快照旧位置, EditEnd 时构造 MoveNodeCmd push 到 undoStack
+        {
+            auto    editor  =   ui.sceneViewer->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
+            auto    moveEditor  =   editor ? editor->as<FENodeMoveEditor>() : nullptr;
+            if  (moveEditor)
+            {
+                moveEditor->mDelegate() +=  {this,[this](FE::FEEditAxis::EditStatus status
+                    , const real3&, const real3&, FEEditAxisMove&)
+                {
+                    if  (status == FE::FEEditAxis::EditStart)
+                    {
+                        _moveSnapshots.clear();
+                        auto    ed  =   this->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
+                        auto    me  =   ed ? ed->as<FENodeMoveEditor>() : nullptr;
+                        if  (me)
+                        {
+                            for (auto obj : me->objects())
+                            {
+                                if  (!obj)
+                                    continue;
+                                MoveNodeCmd::ObjectMove  snap;
+                                snap.obj    =   obj;
+                                snap.oldPos =   MoveNodeCmd::getPosition(obj);
+                                snap.newPos =   snap.oldPos;
+                                _moveSnapshots.push_back(snap);
+                            }
+                        }
+                    }
+                    else if (status == FE::FEEditAxis::EditEnd)
+                    {
+                        if  (_moveSnapshots.empty())
+                            return;
+                        MoveNodeCmd::ObjectMoves   moves;
+                        for (auto& snap : _moveSnapshots)
+                        {
+                            if  (!snap.obj)
+                                continue;
+                            real3   newPos  =   MoveNodeCmd::getPosition(snap.obj);
+                            if  (newPos != snap.oldPos)
+                            {
+                                MoveNodeCmd::ObjectMove  m;
+                                m.obj    =   snap.obj;
+                                m.oldPos =   snap.oldPos;
+                                m.newPos =   newPos;
+                                moves.push_back(std::move(m));
+                            }
+                        }
+                        if  (!moves.empty() && _undoStack)
+                        {
+                            _undoStack->beginMacro(u8"移动节点");
+                            _undoStack->push(new MoveNodeCmd(std::move(moves)));
+                            _undoStack->endMacro();
+                        }
+                        _moveSnapshots.clear();
+                    }
+                }};
+            }
         }
     }
 }
-
 
 QIcon   MainWindow::objectIcon(ImageIndex type)
 {

@@ -21,10 +21,17 @@ namespace   FE
         virtual~FENodeScaleEditor();
     public:
         /// <summary>
-        /// 设置要编辑的节点
+        /// 设置要编辑的对象
         /// </summary>
-        /// <param name="nodes"></param>
-        void    setNodes(const Nodes& nodes);
+        /// <param name="objects"></param>
+        void    setObjects(const Objects& objects);
+        /// <summary>
+        /// 获取当前正在编辑的对象列表
+        /// </summary>
+        const   Objects&   objects()   const
+        {
+            return  _objects;
+        }
         /// <summary>
         /// 同步更新编辑器到节点的包围盒中心
         /// </summary>
@@ -35,7 +42,7 @@ namespace   FE
                         , const real3& absoluteOffset
                         , FEEditAxisScale& sender);
     protected:
-        Nodes   _nodes;
+        Objects _objects;
     };
 
     using   NodeScaleEditor  =   SharedPtr<FENodeScaleEditor>;

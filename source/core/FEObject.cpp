@@ -98,7 +98,7 @@ namespace   FE
     void    FEObject::deserializeTraits(FEReader& ,const FEChunkInf& ,uint ,FESerializeCtx& )
     {}
 
-    Object  FEObject::queryInterface(const CLSId& )
+    void*   FEObject::queryInterface(const char*)
     {
         return  nullptr;
     }

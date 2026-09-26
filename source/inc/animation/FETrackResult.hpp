@@ -17,6 +17,15 @@
 #include    "FEColorObject.hpp"
 #include    "FEAlphaObject.hpp"
 
+#include    "FEIntsObject.hpp"
+#include    "FEInt2sObject.hpp"
+#include    "FEInt3sObject.hpp"
+#include    "FEInt4sObject.hpp"
+#include    "FEUintsObject.hpp"
+#include    "FEUint2sObject.hpp"
+#include    "FEUint3sObject.hpp"
+#include    "FEUint4sObject.hpp"
+
 
 namespace FE
 {
@@ -26,7 +35,9 @@ namespace FE
     using   ValueObject     =   std::variant<std::monostate,
                                             RealsObject,Real2sObject,Real3sObject,Real4sObject,QuatrsObject,
                                             FloatsObject,Float2sObject,Float3sObject,Float4sObject,QuatfsObject,
-                                            BoolsObject,RgbaObject,AlphaObject>;
+                                            BoolsObject,RgbaObject,AlphaObject,
+                                            IntsObject,Int2sObject,Int3sObject,Int4sObject,
+                                            UintsObject,Uint2sObject,Uint3sObject,Uint4sObject>;
     class   FEKeyFrameTrack;
     class   FETrackResult
     {
