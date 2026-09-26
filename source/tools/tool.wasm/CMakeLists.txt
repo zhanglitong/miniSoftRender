@@ -13,7 +13,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ###    message(FATAL_ERROR "EMSDK environment variable not found. Please install Emscripten and set the EMSDK environment variable.")
 ###endif()
 
-message($ENV{EMSDK})
+if(DEFINED ENV{EMSDK})
+    message(STATUS "EMSDK: $ENV{EMSDK}")
+else()
+    message(WARNING "EMSDK environment variable not set, emscripten headers will not be available for tool.wasm")
+endif()
 
 include_directories(../../external)
 include_directories(../../external/glm)
