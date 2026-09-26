@@ -10,19 +10,19 @@ namespace   FE
     FENode::FENode(FEContext& ctx)
         :FEItem<FENode>(ctx)
     {
-        _transform._scale       =   float3(1,1,1);
-        _transform._position    =   real3(0,0,0);
-        _transform._rotation    =   quatf(1,0,0,0);
+        _local._scale       =   float3(1,1,1);
+        _local._position    =   real3(0,0,0);
+        _local._rotation    =   quatf(1,0,0,0);
         /// 默认情况下颜色会 color x fragment 
         _color      =   Rgba8(255,255,255,255);
-        _gloabal    =   _transform;
+        _gloabal    =   _local;
         _renderBits =   RF_VISIBLE;
     }
 
     FENode::FENode(const FENode& other)
         :FEItem<FENode>(other)
     {
-        _transform  =   other._transform    ;
+        _local  =   other._local    ;
         _renderBits =   other._renderBits   ;
         _aabb       =   other._aabb         ;
 
@@ -101,9 +101,9 @@ namespace   FE
 
         /// 全局变换 = 父全局 * (局部 * 混合组件变换)
         if (parent() != nullptr)
-            _gloabal    =   FETransform::fromMatrix(parent()->_gloabal.toMatrix() * (_transform * blended).toMatrix());
+            _gloabal    =   FETransform::fromMatrix(parent()->_gloabal.toMatrix() * (_local * blended).toMatrix());
         else
-            _gloabal    =   FETransform::fromMatrix((_transform * blended).toMatrix());
+            _gloabal    =   FETransform::fromMatrix((_local * blended).toMatrix());
 
         if (!recursion || children().empty())
             return;
@@ -184,7 +184,7 @@ namespace   FE
     void*   FENode::queryInterface(const char* clsName)
     {
         if (strcmp(clsName,"FETransform") == 0)
-            return  &_transform ;
+            return  &_local ;
         else
             return  nullptr;
     }
@@ -197,35 +197,35 @@ namespace   FE
         switch(prop)
         {
         case PROP_TRANSFORM_X:
-            _transform._position.x    =   std::get<real>(value);
+            _local._position.x    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_Y:
-            _transform._position.y    =   std::get<real>(value);
+            _local._position.y    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_Z:
-            _transform._position.z    =   std::get<real>(value);
+            _local._position.z    =   std::get<real>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_TRANSFORM_XYZ:
-            _transform._position      =   std::get<real3>(value);
+            _local._position      =   std::get<real3>(value);
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_SCALE_X:
-            _transform._scale.x    =   (float)std::get<real>(value);
+            _local._scale.x    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Y:
-            _transform._scale.y    =   (float)std::get<real>(value);
+            _local._scale.y    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Z:
-            _transform._scale.z    =   (float)std::get<real>(value);
+            _local._scale.z    =   (float)std::get<real>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_XYZ:
-            _transform._scale      =   std::get<real3>(value);
+            _local._scale      =   std::get<real3>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         /// 欧拉角实现
@@ -236,7 +236,7 @@ namespace   FE
             return  false;
         case PROP_QUAT:
             flags().addFlag(FLAG_PROP_ROT); 
-            _transform._rotation    =   std::get<quatf>(value);
+            _local._rotation    =   std::get<quatf>(value);
             return  true;
          
         case PROP_COLOR_RGB:
@@ -265,19 +265,19 @@ namespace   FE
     {
         switch(prop)
         {
-        case PROP_TRANSFORM_X:      return  _transform._position.x;
-        case PROP_TRANSFORM_Y:      return  _transform._position.y;
-        case PROP_TRANSFORM_Z:      return  _transform._position.z;
-        case PROP_TRANSFORM_XYZ:    return  _transform._position;
-        case PROP_SCALE_X:          return  _transform._scale.x;
-        case PROP_SCALE_Y:          return  _transform._scale.y;
-        case PROP_SCALE_Z:          return  _transform._scale.z;
-        case PROP_SCALE_XYZ:        return  _transform._scale;
-        case PROP_ROTATE_X:         return  RAD2DEG(quatToEuler(_transform._rotation).x);
-        case PROP_ROTATE_Y:         return  RAD2DEG(quatToEuler(_transform._rotation).y);
-        case PROP_ROTATE_Z:         return  RAD2DEG(quatToEuler(_transform._rotation).z);
-        case PROP_ROTATE_XYZ:       return  quatToEuler(_transform._rotation);
-        case PROP_QUAT:             return  _transform._rotation;
+        case PROP_TRANSFORM_X:      return  _local._position.x;
+        case PROP_TRANSFORM_Y:      return  _local._position.y;
+        case PROP_TRANSFORM_Z:      return  _local._position.z;
+        case PROP_TRANSFORM_XYZ:    return  _local._position;
+        case PROP_SCALE_X:          return  _local._scale.x;
+        case PROP_SCALE_Y:          return  _local._scale.y;
+        case PROP_SCALE_Z:          return  _local._scale.z;
+        case PROP_SCALE_XYZ:        return  _local._scale;
+        case PROP_ROTATE_X:         return  RAD2DEG(quatToEuler(_local._rotation).x);
+        case PROP_ROTATE_Y:         return  RAD2DEG(quatToEuler(_local._rotation).y);
+        case PROP_ROTATE_Z:         return  RAD2DEG(quatToEuler(_local._rotation).z);
+        case PROP_ROTATE_XYZ:       return  quatToEuler(_local._rotation);
+        case PROP_QUAT:             return  _local._rotation;
         case PROP_COLOR_RGB:        return  _color.value();
         case PROP_COLOR_ALPHA:      return  _color.value().a;
         case PROP_G_TRANSFORM_XYZ:  return  globalTranslation();
