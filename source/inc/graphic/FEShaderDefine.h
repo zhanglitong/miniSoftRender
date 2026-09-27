@@ -86,6 +86,17 @@ const   int     LightTypeSpot   =   2;
     }
 #endif
 
+/// <summary>
+/// 通用结构，用来存储绘制的状态信息
+/// </summary>
+struct  EngineState
+{
+    /// <summary>
+    /// 选中模型后的绘制颜色
+    /// </summary>
+    uint    selectColor;
+
+};
 struct  CullParam
 {
     float4      _planes[6];

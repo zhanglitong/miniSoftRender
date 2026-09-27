@@ -13,6 +13,10 @@ namespace   FE
         setAttribute(Qt::WA_AcceptTouchEvents);
         /// 强制创建原生窗口,确保 winId() 返回有效的 HWND
         setAttribute(Qt::WA_NativeWindow);
+        /// 告诉 Qt 不要参与绘制,完全由外部引擎绘制
+        setAttribute(Qt::WA_OpaquePaintEvent);
+        setAttribute(Qt::WA_PaintOnScreen);
+        setAttribute(Qt::WA_NoSystemBackground);
         /// 开启鼠标跟踪,使 mouseMoveEvent 在无按键按下时也能触发
         setMouseTracking(true);
         /// 创建，但没有初始化

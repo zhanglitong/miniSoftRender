@@ -6,7 +6,7 @@ add_compile_options(/W4 /std:c++17)
 
 
 if(MSVC)
-    add_compile_options(/wd4201 /wd4996 /wd4244 /wd4505)
+    add_compile_options(/wd4201 /wd4996 /wd4244 /wd4505 /EHsc)
     
 else()
     add_compile_options(-Wno-deprecated-declarations -Wno-conversion)

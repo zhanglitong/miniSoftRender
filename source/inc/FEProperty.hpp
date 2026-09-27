@@ -81,19 +81,29 @@ namespace   FE
             :FEObject(other)
         {}
 
+        /// C++20 下 std::variant 构造函数更严格,需把 int 显式映射到 int64
+        template<typename T>
+        static  Value       to_value(T&& val)
+        {
+            using   Decayed =   std::decay_t<T>;
+            if constexpr (std::is_same_v<Decayed,int>)
+                return  Value((int64)std::forward<T>(val));
+            else
+                return  Value(std::forward<T>(val));
+        }
         template<typename TValue>
         inline  auto&       setValue(const String& name,const TValue& val)
         {
-            static_assert(is_any_type(TValue,String,Strings,uint8s,reals,Rgba8,FEUuid));
+            static_assert(is_any_type<TValue,int,int64,real,String,Strings,uint8s,reals,Rgba8,FEUuid>);
             ValueObject*    pVal    =   _values.isExist(name);
             if (pVal != nullptr)
             {
-                pVal->setValue(val)
+                pVal->setValue(to_value(val));
                 return  *pVal;
             }
-            auto&       kvMap   =   _values.keyValues();
-            ValueObject vObject =   val;
-            return  kvMap.insert({key,value}).first->second;
+            auto&       kvMap   =   _values.data();
+            ValueObject vObject =   to_value(val);
+            return  kvMap.insert({name,vObject}).first->second;
         }
         template<typename TValue>
         inline  auto&       setValue(String&& name,TValue&& val)
@@ -101,11 +111,11 @@ namespace   FE
             ValueObject*    pVal    =   _values.isExist(name);
             if (pVal != nullptr)
             {
-                pVal->setValue(val);
+                pVal->setValue(to_value(std::forward<TValue>(val)));
                 return  *pVal;
             }
             auto&       kvMap   =   _values.data();
-            ValueObject vObject =   val;
+            ValueObject vObject =   to_value(std::forward<TValue>(val));
             return  kvMap.insert({std::move(name),std::move(vObject)}).first->second;
         }
         const   KeyValues&  values() const

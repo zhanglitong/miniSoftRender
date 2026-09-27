@@ -25,7 +25,7 @@ int     main(int argc,char** argv)
     char            sx[64]  =   {};
     dt.toDateString(sx);
 
-    FEContext       ctx;
+    FEContext&      ctx     =   FEContext::instance();
     FEApp::CreateInfo   info    =   {};
     info._appInst   =   GetModuleHandle(nullptr);
     App     app     =   FEAppHelper::create(ctx, info);

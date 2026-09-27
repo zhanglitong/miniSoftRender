@@ -52,6 +52,8 @@ namespace   FE
         }
     protected:
         virtual void    paintEvent(QPaintEvent *event)              override ;
+        /// 禁用 Qt 的绘制引擎,彻底由外部渲染引擎接管
+        virtual QPaintEngine* paintEngine() const override { return nullptr; }
         virtual void    mousePressEvent(QMouseEvent *event)         override ;
         virtual void    mouseReleaseEvent(QMouseEvent *event)       override ;
         virtual void    mouseDoubleClickEvent(QMouseEvent *event)   override ;

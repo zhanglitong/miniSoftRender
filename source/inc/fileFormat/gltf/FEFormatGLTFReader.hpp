@@ -648,7 +648,8 @@ namespace   FE
                 ///         clip->addTrack(track);
                 ///     }
                 ///     break;
-                default:
+                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     assert(0!=0);
                     return  false;
                 }
@@ -886,10 +887,10 @@ namespace   FE
             pbrMat->data()._value._metallic     =   0.7f;
 
             for (size_t i = 0 ;i <  material.emissiveFactor.size(); ++ i)
-                pbrMat->data()._value._emissive[i]  =   (float)material.emissiveFactor[i];
+                pbrMat->data()._value._emissive[(int)i]  =   (float)material.emissiveFactor[i];
 
             for (size_t i = 0 ;i < material.pbrMetallicRoughness.baseColorFactor.size(); ++ i)
-                pbrMat->data()._value._diffuse[i]   =   (float)material.pbrMetallicRoughness.baseColorFactor[i];
+                pbrMat->data()._value._diffuse[(int)i]   =   (float)material.pbrMetallicRoughness.baseColorFactor[i];
 
             pbrMat->data()._value._metallic     =   (float)material.pbrMetallicRoughness.metallicFactor;
             pbrMat->data()._value._roughness    =   (float)material.pbrMetallicRoughness.roughnessFactor;
