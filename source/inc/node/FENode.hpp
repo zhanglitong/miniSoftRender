@@ -22,7 +22,8 @@ namespace   FE
         {
             /// <summary>
             /// 影响绘制的instance
-            /// 会触发更新 IS_INSTANCE_MAT_C0,IS_INSTANCE_MAT_C1,IS_INSTANCE_MAT_C2,IS_INSTANCE_MAT_C3
+            /// 会触发更新 IS_INSTANCE_ITRANSLATE,IS_INSTANCE_TRANSLATE,
+            /// IS_INSTANCE_SCALE,IS_INSTANCE_ROTATE
             /// 该状态会在节点所在工厂中消费后移除
             /// </summary>
             /// <summary>
@@ -417,6 +418,14 @@ namespace   FE
         inline  mat4r   globalTransform() const
         {
             return  _gloabal.toMatrix();
+        }
+        /// <summary>
+        /// 世界坐标 FETransform(位置+旋转+缩放,已分解)
+        /// </summary>
+        /// <returns></returns>
+        inline  const FETransform&   globalFETransform() const
+        {
+            return  _gloabal;
         }
         /// <summary>
         /// 返回节点自身的transform;不含组件信息

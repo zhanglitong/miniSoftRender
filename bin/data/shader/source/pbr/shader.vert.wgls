@@ -1,5 +1,7 @@
 /// pbr 顶点着色器 WGSL 版本,与 shader.vert 对齐
-/// 原始 GLSL 未使用 push_constant,仅使用 _camera uniform。
+/// 实例参数: intPart(整数平移)/trans(小数平移)/scale/rot(四元数)
+/// 世界位置/法线用 makeTransform(真实坐标),裁剪位置必须使用
+/// makeOffsetLocalMatrix(带偏移)计算,减少大坐标误差。
 
 struct  CameraData
 {
@@ -15,45 +17,66 @@ struct  CameraData
 
 @group(0) @binding(0) var<uniform> _camera : CameraData;
 
+/// 由平移/缩放/旋转(四元数)构造 local 矩阵(真实世界坐标)
+fn  makeTransform(t : vec3f, s : vec3f, q : vec4f) -> mat4x4f
+{
+    return mat4x4f(
+        vec4f(s.x * (1.0 - 2.0 * q.y * q.y - 2.0 * q.z * q.z), s.x * (2.0 * q.x * q.y + 2.0 * q.w * q.z), s.x * (2.0 * q.x * q.z - 2.0 * q.w * q.y), 0.0),
+        vec4f(s.y * (2.0 * q.x * q.y - 2.0 * q.w * q.z), s.y * (1.0 - 2.0 * q.x * q.x - 2.0 * q.z * q.z), s.y * (2.0 * q.y * q.z + 2.0 * q.w * q.x), 0.0),
+        vec4f(s.z * (2.0 * q.x * q.z + 2.0 * q.w * q.y), s.z * (2.0 * q.y * q.z - 2.0 * q.w * q.x), s.z * (1.0 - 2.0 * q.x * q.x - 2.0 * q.y * q.y), 0.0),
+        vec4f(t.x, t.y, t.z, 1.0));
+}
+
+/// 大坐标处理:用 (intPart - cameraOffset) 抵消相机整数偏移,
+/// 平移部分只保留小数量级数值,减少大坐标下的浮点误差
+fn  makeOffsetLocalMatrix(t : vec3f, s : vec3f, q : vec4f, intPart : vec3i, cameraOffset : vec3i) -> mat4x4f
+{
+    let offsetTrans = t + vec3f(intPart - cameraOffset);
+    return mat4x4f(
+        vec4f(s.x * (1.0 - 2.0 * q.y * q.y - 2.0 * q.z * q.z), s.x * (2.0 * q.x * q.y + 2.0 * q.w * q.z), s.x * (2.0 * q.x * q.z - 2.0 * q.w * q.y), 0.0),
+        vec4f(s.y * (2.0 * q.x * q.y - 2.0 * q.w * q.z), s.y * (1.0 - 2.0 * q.x * q.x - 2.0 * q.z * q.z), s.y * (2.0 * q.y * q.z + 2.0 * q.w * q.x), 0.0),
+        vec4f(s.z * (2.0 * q.x * q.z + 2.0 * q.w * q.y), s.z * (2.0 * q.y * q.z - 2.0 * q.w * q.x), s.z * (1.0 - 2.0 * q.x * q.x - 2.0 * q.y * q.y), 0.0),
+        vec4f(offsetTrans.x, offsetTrans.y, offsetTrans.z, 1.0));
+}
+
 struct  VsIn
 {
     @location(0) inPos      : vec3f,
     @location(1) inNor      : vec3f,
-    @location(2) matLocalC0 : vec4f,
-    @location(3) matLocalC1 : vec4f,
-    @location(4) matLocalC2 : vec4f,
-    @location(5) matLocalC3 : vec4f,
-    @location(6) nodeColor   : vec4f,
-    @location(7) flagBits    : u32,
+    @location(2) intPart    : vec3i,
+    @location(3) trans      : vec3f,
+    @location(4) scale      : vec3f,
+    @location(5) rot        : vec4f,
+    @location(6) nodeColor  : vec4f,
+    @location(7) flagBits   : u32,
 }
 
 struct  VsOut
 {
     @location(0) outPos       : vec3f,
     @location(1) outNor       : vec3f,
-    @location(2) outColor    : vec4f,
-    /// flat 插值对应 GLSL 的 `flat out uint`
+    @location(2) outColor     : vec4f,
     @location(3) @interpolate(flat) outFlagBits : u32,
-    @builtin(position) pos   : vec4f,
+    @builtin(position) pos    : vec4f,
 }
 
 @vertex
 fn  main(in : VsIn) -> VsOut
 {
     var out      : VsOut;
-    let matLocal = mat4x4f(in.matLocalC0, in.matLocalC1, in.matLocalC2, in.matLocalC3);
-    let tmp      = matLocal * vec4f(in.inPos.xyz, 1.0);
+    /// 真实世界坐标 local 矩阵:用于世界位置/法线(光照)
+    let matLocal = makeTransform(in.trans, in.scale, in.rot);
+    /// 必须使用 makeOffsetLocalMatrix(带偏移)构造 local 矩阵:用于裁剪位置
+    let localOffset = makeOffsetLocalMatrix(in.trans, in.scale, in.rot, in.intPart, _camera._offset.xyz);
 
+    let tmp      = matLocal * vec4f(in.inPos.xyz, 1.0);
     out.outPos      = tmp.xyz;
     out.outFlagBits = in.flagBits;
     out.outColor    = in.nodeColor;
-    /// 与 GLSL mat3(matLocal) 对齐:取 4x4 矩阵左上 3x3 子矩阵的三个列向量,
-    /// 构造列主序 mat3x3f 后乘法线向量,再做归一化。
-    let mat3Local = mat3x3f(matLocal[0].xyz, matLocal[1].xyz, matLocal[2].xyz);
+    /// 与 GLSL mat3(matLocal) 对齐:取左上 3x3 子矩阵的列向量
+    let mat3Local   = mat3x3f(matLocal[0].xyz, matLocal[1].xyz, matLocal[2].xyz);
     out.outNor      = normalize(mat3Local * in.inNor);
-    out.pos         = _camera._p * _camera._v * tmp;
-
-    /// 原始 GLSL gl_PointSize = 1,WebGPU/WGSL 不支持可编程点大小。
+    out.pos         = _camera._offsetVp * localOffset * vec4f(in.inPos.xyz, 1.0);
 
     return out;
 }

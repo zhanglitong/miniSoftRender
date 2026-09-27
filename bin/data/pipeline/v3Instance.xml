@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <!--是否生成默认管线组-->
 <root using_defult="1">
@@ -24,11 +24,29 @@
     </binding>
     <binding binding="1" inputRate="1">
       <input
-           name      = "matLocal"
+           name      = "intPart"
            location  = "2"
-           slots     = "IS_INSTANCE_MAT_C0,IS_INSTANCE_MAT_C1,IS_INSTANCE_MAT_C2,IS_INSTANCE_MAT_C3"
-           formats   = "R32G32B32A32_FLOAT,R32G32B32A32_FLOAT,R32G32B32A32_FLOAT,R32G32B32A32_FLOAT"
-           offsets   = "0,16,32,48"/>
+           slots     = "IS_INSTANCE_ITRANSLATE"
+           formats   = "R32G32B32_SINT"
+           offsets   = "0"/>
+      <input
+           name      = "trans"
+           location  = "3"
+           slots     = "IS_INSTANCE_TRANSLATE"
+           formats   = "R32G32B32_FLOAT"
+           offsets   = "12"/>
+      <input
+           name      = "scale"
+           location  = "4"
+           slots     = "IS_INSTANCE_SCALE"
+           formats   = "R32G32B32_FLOAT"
+           offsets   = "24"/>
+      <input
+           name      = "rot"
+           location  = "5"
+           slots     = "IS_INSTANCE_ROTATE"
+           formats   = "R32G32B32A32_FLOAT"
+           offsets   = "36"/>
     </binding>
   </bindings>
   <!--支持的特性-->

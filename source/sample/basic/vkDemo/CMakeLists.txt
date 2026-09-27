@@ -103,6 +103,9 @@ endforeach()
 
 add_custom_target(CompileShaders ALL DEPENDS ${SPV_OUTPUTS})
 
+# 确保 common 下的 FEShaderDefine.h 副本在编译 shader 前已更新
+add_dependencies(CompileShaders CopyResources)
+
 add_dependencies(${TARGET_NAME} CompileShaders)
 
 message(STATUS "[Shader Compile] Total shaders to compile: ${SHADER_SOURCES}")

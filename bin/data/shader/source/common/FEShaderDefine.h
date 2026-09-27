@@ -22,6 +22,32 @@
     #define     uint4   uvec4
     #define     quatf   vec4
     #define     matrix4 mat4
+
+    /// <summary>
+    /// 由平移/缩放/旋转(四元数)构造 local 矩阵(真实世界坐标)
+    /// </summary>
+    mat4    makeTransform(in vec3 t, in vec3 s, in vec4 q)
+    {
+        return mat4(
+        s.x * (1 - 2 * q.y * q.y - 2 * q.z * q.z), s.x * (2 * q.x * q.y + 2 * q.w * q.z), s.x * (2 * q.x * q.z - 2 * q.w * q.y), 0,
+        s.y * (2 * q.x * q.y - 2 * q.w * q.z), s.y * (1 - 2 * q.x * q.x - 2 * q.z * q.z), s.y * (2 * q.y * q.z + 2 * q.w * q.x), 0,
+        s.z * (2 * q.x * q.z + 2 * q.w * q.y), s.z * (2 * q.y * q.z - 2 * q.w * q.x), s.z * (1 - 2 * q.x * q.x - 2 * q.y * q.y), 0,
+        t.x, t.y, t.z, 1);
+    }
+
+    /// <summary>
+    /// 大坐标处理:用 (intPart - cameraOffset) 抵消相机整数偏移,
+    /// 平移部分只保留小数量级数值,减少大坐标下的浮点误差(带偏移 local 矩阵)
+    /// </summary>
+    mat4    makeOffsetLocalMatrix(in vec3 t, in vec3 s, in vec4 q, ivec3 intPart, ivec3 cameraOffset)
+    {
+        vec3    offsetTrans =   t + vec3(intPart - cameraOffset);
+        return mat4(
+        s.x * (1 - 2 * q.y * q.y - 2 * q.z * q.z), s.x * (2 * q.x * q.y + 2 * q.w * q.z), s.x * (2 * q.x * q.z - 2 * q.w * q.y), 0,
+        s.y * (2 * q.x * q.y - 2 * q.w * q.z), s.y * (1 - 2 * q.x * q.x - 2 * q.z * q.z), s.y * (2 * q.y * q.z + 2 * q.w * q.x), 0,
+        s.z * (2 * q.x * q.z + 2 * q.w * q.y), s.z * (2 * q.y * q.z - 2 * q.w * q.x), s.z * (1 - 2 * q.x * q.x - 2 * q.y * q.y), 0,
+        offsetTrans.x, offsetTrans.y, offsetTrans.z, 1);
+    }
 #endif
 
 #ifdef __cplusplus
@@ -76,8 +102,9 @@ const   int     LightTypeSpot   =   2;
     const   uint    RF_CAST_SHADOW      =   (1<<2);
     const   uint    RF_RECV_LIGHTING    =   (1<<3);
     const   uint    RF_EFFECT_AO        =   (1<<4);
-    const   uint    RF_EFFECT_BLOOM     =   (1<<5);  
-    const   uint    RF_COLOR            =   (1<<6);
+    const   uint    RF_EFFECT_BLOOM     =   (1<<5);
+    /// 与 C++ RenderFlag::RF_COLOR(=RF_RECV_LIGHTING<<1=16)保持一致
+    const   uint    RF_COLOR            =   (1<<4);
     const   uint    RF_SELECTED         =   (1<<7);
 
     bool    hasNodeColor(uint flag)

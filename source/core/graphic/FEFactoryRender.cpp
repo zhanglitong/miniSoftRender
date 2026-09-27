@@ -12,7 +12,7 @@ namespace   FE
     using   GroupNode   =   FEFactoryRender::GroupNode;
     using   VBinds      =   FEFactoryRender::VBinds;
 
-    constexpr   uint    instMatSlots    =   IS_INSTANCE_MAT_C0 | IS_INSTANCE_MAT_C1 | IS_INSTANCE_MAT_C2 | IS_INSTANCE_MAT_C3;
+    constexpr   uint    instTransSlots  =   IS_INSTANCE_ITRANSLATE | IS_INSTANCE_TRANSLATE | IS_INSTANCE_SCALE | IS_INSTANCE_ROTATE;
     constexpr   uint    instStateSlots  =   IS_INSTANCE_FLAG;
     constexpr   uint    instColorSlots  =   IS_INSTANCE_COLOR;
     constexpr   uint    instLodSlots    =   IS_INSTANCE_LOD_INDEX;
@@ -189,7 +189,7 @@ namespace   FE
             inst._color         =   node->color();
             inst._renderBits    =   node->renderBits().data();
 
-            inst.setTransform(node->globalTransform());
+            inst.setTransform(node->globalFETransform());
             inst.setAabb(node->globalAabb());
             inst.setInstance(instIdx);
             /// 保存要拷贝的目标位置
@@ -216,7 +216,7 @@ namespace   FE
         {   
             inst._color         =   node->color();
             inst._renderBits    =   node->renderBits().data();
-            inst.setTransform(node->globalTransform());
+            inst.setTransform(node->globalFETransform());
             inst.setAabb(node->globalAabb());
             inst.setInstance(startInst ++ );
             for (auto index: indexs)
@@ -573,7 +573,7 @@ namespace   FE
                 if (needUpdateInst)
                 {
                     needUpdateInst  =   true;
-                    slots   |=  instMatSlots;
+                    slots   |=  instTransSlots;
                 } 
                 if (var->flags().hasFlag(FENode::FLAG_PROP_COLOR))
                 {

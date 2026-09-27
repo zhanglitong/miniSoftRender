@@ -92,11 +92,11 @@ namespace   FE
             (WGPUFeatureName)WGPUNativeFeature_Immediates
         };
 
-        /// 请求 immediate data 上限。PointData 当前 8 字节,
-        /// 预留 32 字节以容纳后续扩展。仅显式设置需要的字段,
+        /// 请求 immediate data 上限。PointData 布局为 _mvp(mat4,64)+2*u32,
+        /// sizeof=80,这里预留到 128 以容纳后续扩展。仅显式设置需要的字段,
         /// 其余保持 WGPU_LIMIT_U32_UNDEFINED(由实现回退到默认值)。
         WGPULimits requiredLimits =   WGPU_LIMITS_INIT;
-        requiredLimits.maxImmediateSize   =   32;
+        requiredLimits.maxImmediateSize   =   128;
 
         WGPUDeviceDescriptor deviceDesc = {};
         deviceDesc.nextInChain              =   nullptr;

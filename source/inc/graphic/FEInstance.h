@@ -2,6 +2,7 @@
 
 #include    "../FEMath.hpp"
 #include    "../FEFormat.hpp"
+#include    "../FETransform.hpp"
 #include    "FEGraphicEnums.h"
 
 namespace   FE
@@ -46,10 +47,6 @@ namespace   FE
         float   _scaleX;
         float   _scaleY;
         float   _scaleZ;
-        float4  _mat_0;
-        float4  _mat_1;
-        float4  _mat_2;
-        float4  _mat_3;
         Rgba8   _color;
 #ifdef __cplusplus
         FEInstance()
@@ -189,23 +186,24 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// 使用给定数据填充instance
-        /// 从矩阵中萃取位置，缩放，旋转信息填充计算数据
+        /// 使用给定 FETransform 填充 instance
+        /// 位置拆分为整数部分(_intPart*)与小数部分(_trans*),
+        /// 以减小大坐标下的浮点误差;缩放/旋转直接透传
         /// </summary>
-        /// <param name="mat">矩阵数据</param>
+        /// <param name="t">节点变换(位置+旋转+缩放)</param>
         /// <returns>自己</returns>
-        inline  auto&   setTransform(const mat4r& mat)
+        inline  auto&   setTransform(const FETransform& t)
         {
-            /// 保存矩阵信息
-            _mat_0  =   mat[0];
-            _mat_1  =   mat[1];
-            _mat_2  =   mat[2];
-            _mat_3  =   mat[3];
-            real3   pos;
-            real3   scale;
-            quatr   quat;
-            FE::decompose<real>(mat, pos, scale, quat);
-            return  setTranslate(pos).setScale(scale).setRotation(quat);
+            const real3&    pos =   t.position();
+            /// 整数部分(向零取整,与相机偏移约定一致)
+            _intPartX   =   int(pos.x);
+            _intPartY   =   int(pos.y);
+            _intPartZ   =   int(pos.z);
+            /// 小数部分
+            _transX     =   float(pos.x - _intPartX);
+            _transY     =   float(pos.y - _intPartY);
+            _transZ     =   float(pos.z - _intPartZ);
+            return  setScale(t.scale()).setRotation(t.rotation());
         }
     public:
         
@@ -239,15 +237,11 @@ namespace   FE
             {FMT_R32G32B32_SINT         ,   IS_INSTANCE_ITRANSLATE  ,   FEFormatHelper::sizeOf(FMT_R32G32B32_SINT    )},
             {FMT_R32G32B32_FLOAT        ,   IS_INSTANCE_TRANSLATE   ,   FEFormatHelper::sizeOf(FMT_R32G32B32_FLOAT   )},
             {FMT_R32G32B32_FLOAT        ,   IS_INSTANCE_SCALE       ,   FEFormatHelper::sizeOf(FMT_R32G32B32_FLOAT   )},
-            {FMT_R32G32B32_FLOAT        ,   IS_INSTANCE_ROTATE      ,   FEFormatHelper::sizeOf(FMT_R32G32B32_FLOAT   )},
+            {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_ROTATE      ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT )},
             {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_BOUNDSPHERE ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT)},
             {FMT_R32_SINT               ,   IS_INSTANCE_INSTANCE    ,   FEFormatHelper::sizeOf(FMT_R32_SINT          )},
             {FMT_R32_SINT               ,   IS_INSTANCE_LOD_INDEX   ,   FEFormatHelper::sizeOf(FMT_R32_SINT          )},
             {FMT_R32_UINT               ,   IS_INSTANCE_FLAG        ,   FEFormatHelper::sizeOf(FMT_R32_UINT          )},
-            {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_MAT_C0      ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT)}, 
-            {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_MAT_C1      ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT)}, 
-            {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_MAT_C2      ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT)}, 
-            {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_MAT_C3      ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT)}, 
             {FMT_R8G8B8A8_UNORM         ,   IS_INSTANCE_COLOR       ,   FEFormatHelper::sizeOf(FMT_R8G8B8A8_UNORM)    }, 
             
         };
@@ -261,10 +255,6 @@ namespace   FE
             offsetof(FEInstance,    _instanceId     ),
             offsetof(FEInstance,    _lodIndex       ),
             offsetof(FEInstance,    _renderBits     ),
-            offsetof(FEInstance,    _mat_0          ),
-            offsetof(FEInstance,    _mat_1          ),
-            offsetof(FEInstance,    _mat_2          ),
-            offsetof(FEInstance,    _mat_3          ),
             offsetof(FEInstance,    _color          ),
         };
     };

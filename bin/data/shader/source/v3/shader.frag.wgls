@@ -2,11 +2,12 @@
 /// 使用 WebGPU 原生 Immediates 特性(var<immediate>)对应 Vulkan 的 push_constant:
 ///   layout(push_constant) uniform PushConsts { PointData _point; }
 /// -> var<immediate> _point : PointData
-/// immediate 是 raw 字节流(类 push_constant),无需 uniform 地址空间的 16 字节对齐,
-/// 故 PointData 与 C++ 侧 sizeof(PointData)=8 一致(两个 u32)。
+/// immediate 布局与 C++ sizeof(PointData) 对齐(与 vert 同一布局):
+///   _mvp(mat4,off0) _point(u32,off64) _color(u32,off68), size=80
 
 struct  PointData
 {
+    _mvp    : mat4x4f,
     _point  : u32,
     _color  : u32,
 }
