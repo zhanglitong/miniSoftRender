@@ -20,7 +20,6 @@ namespace   FE
     public:
         using   Component       =   SharedPtr<FEComponent>;
         using   Components      =   std::vector<Component>;
-       
     public:         
         FEComponent(FEContext& ctx)             
             :FEObject(ctx)    

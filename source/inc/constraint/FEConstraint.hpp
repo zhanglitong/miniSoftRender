@@ -30,5 +30,7 @@ namespace FE
         /// </summary>
         FETransform     _offset;            
     };
+
+    using   Constraint    =   SharedPtr<FEConstraint>;
 }
 

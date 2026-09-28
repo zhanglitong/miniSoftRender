@@ -101,9 +101,9 @@ namespace   FE
 
         /// 全局变换 = 父全局 * (局部 * 混合组件变换)
         if (parent() != nullptr)
-            _gloabal    =   FETransform::fromMatrix(parent()->_gloabal.toMatrix() * (_local * blended).toMatrix());
+            _gloabal    =   (parent()->_gloabal * (_local * blended));
         else
-            _gloabal    =   FETransform::fromMatrix((_local * blended).toMatrix());
+            _gloabal    =   (_local * blended);
 
         if (!recursion || children().empty())
             return;
@@ -179,14 +179,6 @@ namespace   FE
         if (mat)    uset.emplace(mat);
 
         return  uset.size() - vSize;
-    }
-
-    void*   FENode::queryInterface(const char* clsName)
-    {
-        if (strcmp(clsName,"FETransform") == 0)
-            return  &_local ;
-        else
-            return  nullptr;
     }
     void    FENode::beginSetProp() 
     {}

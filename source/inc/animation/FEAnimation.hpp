@@ -26,7 +26,11 @@ namespace FE
             /// 标记数据变更
             /// </summary>
             AnimationChanged    =   (FE::FLAG_LAST),
-            OutOfRange          =   (AnimationChanged<<1),
+            /// <summary>
+            /// 标记在update函数中标记，标记当前帧是否有效
+            /// 决定在transform 是否应该被应用到owner上
+            /// </summary>
+            OutOfRangeBit       =   (AnimationChanged<<1),
         };
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)
@@ -127,7 +131,7 @@ namespace FE
         /// <returns></returns>
         inline  bool   outOfRange() const
         {
-            return  flags().hasFlag(OutOfRange);
+            return  flags().hasFlag(OutOfRangeBit);
         }
         inline  auto    clip() const
         {
@@ -232,12 +236,6 @@ namespace FE
         /// <param name="ctx"></param>
         /// <returns></returns>
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
-        /// <summary>
-        /// 根据类型id获取接口信息
-        /// </summary>
-        /// <param name="classId"></param>
-        /// <returns></returns>
-        virtual void*   queryInterface(const char* clsName) override;
     protected:
         /// <summary>
         /// AnimClip 类型的变量，用于保存动画剪辑。

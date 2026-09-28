@@ -489,12 +489,6 @@ namespace   FE
         /// <returns>返回以来的对象个数</returns>
         virtual size_t  queryDepends(ObjectUSet& uset) const override;
         /// <summary>
-        /// 根据类型id获取接口信息
-        /// </summary>
-        /// <param name="classId"></param>
-        /// <returns></returns>
-        virtual void*   queryInterface(const char*) override;
-        /// <summary>
         /// 通用设置对象属性接口，子类实现
         /// </summary>
         virtual void    beginSetProp() override;

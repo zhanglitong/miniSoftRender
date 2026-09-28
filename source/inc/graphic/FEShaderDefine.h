@@ -25,14 +25,22 @@
 
     /// <summary>
     /// 由平移/缩放/旋转(四元数)构造 local 矩阵(真实世界坐标)
+    /// 9 个四元数乘积各只计算一次并打包成 vec3 运算,
+    /// 避免对称位置(m01/m10 等)重复展开
     /// </summary>
     mat4    makeTransform(in vec3 t, in vec3 s, in vec4 q)
     {
+        vec3    pp  =   2.0 * q.xyz * q.yzx;        /// 2xy, 2yz, 2zx
+        vec3    pw  =   2.0 * q.w   * q.zyx;        /// 2wz, 2wy, 2wx
+        vec3    dd  =   q.xyz * q.xyz;              /// xx, yy, zz
+        vec3    sum =   pp + pw.xzy;                /// 2(xy+wz), 2(yz+wx), 2(xz+wy)
+        vec3    dif =   pp - pw.xzy;                /// 2(xy-wz), 2(yz-wx), 2(xz-wy)
+        vec3    dg  =   1.0 - 2.0 * (dd.yzx + dd.zxy);
         return mat4(
-        s.x * (1 - 2 * q.y * q.y - 2 * q.z * q.z), s.x * (2 * q.x * q.y + 2 * q.w * q.z), s.x * (2 * q.x * q.z - 2 * q.w * q.y), 0,
-        s.y * (2 * q.x * q.y - 2 * q.w * q.z), s.y * (1 - 2 * q.x * q.x - 2 * q.z * q.z), s.y * (2 * q.y * q.z + 2 * q.w * q.x), 0,
-        s.z * (2 * q.x * q.z + 2 * q.w * q.y), s.z * (2 * q.y * q.z - 2 * q.w * q.x), s.z * (1 - 2 * q.x * q.x - 2 * q.y * q.y), 0,
-        t.x, t.y, t.z, 1);
+        vec4(vec3(dg.x,  sum.x, dif.z) * s.x, 0),
+        vec4(vec3(dif.x, dg.y,  sum.y) * s.y, 0),
+        vec4(vec3(sum.z, dif.y, dg.z)  * s.z, 0),
+        vec4(t, 1));
     }
 
     /// <summary>
@@ -41,12 +49,7 @@
     /// </summary>
     mat4    makeOffsetLocalMatrix(in vec3 t, in vec3 s, in vec4 q, ivec3 intPart, ivec3 cameraOffset)
     {
-        vec3    offsetTrans =   t + vec3(intPart - cameraOffset);
-        return mat4(
-        s.x * (1 - 2 * q.y * q.y - 2 * q.z * q.z), s.x * (2 * q.x * q.y + 2 * q.w * q.z), s.x * (2 * q.x * q.z - 2 * q.w * q.y), 0,
-        s.y * (2 * q.x * q.y - 2 * q.w * q.z), s.y * (1 - 2 * q.x * q.x - 2 * q.z * q.z), s.y * (2 * q.y * q.z + 2 * q.w * q.x), 0,
-        s.z * (2 * q.x * q.z + 2 * q.w * q.y), s.z * (2 * q.y * q.z - 2 * q.w * q.x), s.z * (1 - 2 * q.x * q.x - 2 * q.y * q.y), 0,
-        offsetTrans.x, offsetTrans.y, offsetTrans.z, 1);
+        return makeTransform(t + vec3(intPart - cameraOffset), s, q);
     }
 #endif
 
@@ -58,6 +61,7 @@
         SB_Clip         =   2,
         SB_Sky          =   3,
         SB_Material     =   4,
+        SB_EngineState  =   5,
     };
 #else
     #define  SB_Camera      0
@@ -65,6 +69,7 @@
     #define  SB_Clip        2
     #define  SB_Sky         3
     #define  SB_Material    4
+    #define  SB_EngineState 5
 #endif
 
 
@@ -111,6 +116,20 @@ const   int     LightTypeSpot   =   2;
     {
         return  (flag & RF_COLOR)  != 0;
     }
+    /// 是否被选中(需要高亮)
+    bool    isSelected(uint flag)
+    {
+        return  (flag & RF_SELECTED)  != 0;
+    }
+    /// 解包 RGBA8 颜色(高字节在 R),与 C++ 端 selectColor/_color 打包一致
+    vec4    unpackColor(uint c)
+    {
+        return vec4(
+        float((c >> 24) & 0xFFu) / 255.0,
+        float((c >> 16) & 0xFFu) / 255.0,
+        float((c >> 8 ) & 0xFFu) / 255.0,
+        float((c >> 0 ) & 0xFFu) / 255.0);
+    }
 #endif
 
 /// <summary>
@@ -119,10 +138,20 @@ const   int     LightTypeSpot   =   2;
 struct  EngineState
 {
     /// <summary>
-    /// 选中模型后的绘制颜色
+    /// 选中模型后的绘制颜色(打包 RGBA8)
     /// </summary>
     uint    selectColor;
-
+#ifdef __cplusplus
+    EngineState()
+    {
+        /// 默认高亮橙色 R=0xFF,G=0x80,B=0x00,A=0xFF
+        selectColor =   0;
+        selectColor |=  (static_cast<uint32_t>((0xFF))  << 24);
+        selectColor |=  (static_cast<uint32_t>((0x80))  << 16);
+        selectColor |=  (static_cast<uint32_t>((0x00))  << 8 );
+        selectColor |=  (static_cast<uint32_t>((0xFF))  << 0 );
+    }
+#endif
 };
 struct  CullParam
 {

@@ -320,21 +320,22 @@ namespace FE
         if (!isValid())
             return  false;
         auto    rng =   range();
-        /// 可能只有一个点
+        /// 只有一个关键帧，update 流程需要正常走
+        /// 典型的操作: 编辑时间线，添加了一个关键帧后，在添加第二个关键帧
         if (rng.x >= 0 && rng.x == rng.y)
         {
         }
         else if (clipTime <= rng.x && _clipTime  == rng.x)
         {
-            flags().addFlag(OutOfRange);
+            flags().addFlag(OutOfRangeBit);
             return  false;
         } 
         else if(clipTime >= rng.y && _clipTime == rng.y)
         {
-            flags().addFlag(OutOfRange);
+            flags().addFlag(OutOfRangeBit);
             return  false;
         }
-        flags().removeFlag(OutOfRange);
+        flags().removeFlag(OutOfRangeBit);
         _clipTime   =   std::clamp(clipTime,rng.x,rng.y);
         _clip->update(_clipTime - _offset,_results);
         /// 画对象应用对象 
@@ -356,7 +357,7 @@ namespace FE
 
     FETransform*    FEAnimation::getTransform()
     {
-        if (!isEnable() || !isValid())
+        if (!isEnable() || !isValid() || outOfRange())
             return  nullptr;
         return  &_transform;
     }
@@ -407,13 +408,5 @@ namespace FE
                 _clip           =   object ? object->cast<FEAnimClip>() : nullptr;
             }
         }
-    }
-
-    void*   FEAnimation::queryInterface(const char* clsName)
-    {
-        if (strcmp(clsName,"FETransform") == 0)
-            return  &_transform ;
-        else
-            return  nullptr;
     }
 }

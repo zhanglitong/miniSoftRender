@@ -104,6 +104,11 @@ namespace   FE
                             auto    object  =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
                             dset->setBinding(bind._binding,{object});
                         }
+                        else if (bind._name == "_engineState")
+                        {
+                            auto    object  =   _ctx.device().queryCache(FEConstUuid::EngineStateUBOId);
+                            dset->setBinding(bind._binding,{object});
+                        }
                     }
                     break;
                 case DT_STORAGE_BUFFER:

@@ -595,6 +595,16 @@ namespace   FE
         skyUBO->create({sizeof(skyUBO),         MemoryUsage::DEVICE_DEFAULT_BIT});
         skyUBO->setObjectId(FEConstUuid::SkyUBOId);
         device.cacheObject(skyUBO.get());
+
+        /// 引擎渲染状态(高亮颜色等),创建时写入默认值
+        auto    engineStateUBO  =   device.createUBO();
+        engineStateUBO->create({sizeof(EngineState), MemoryUsage::DEVICE_DEFAULT_BIT});
+        engineStateUBO->setObjectId(FEConstUuid::EngineStateUBOId);
+        {
+            EngineState state;
+            engineStateUBO->update(&state,sizeof(EngineState),0);
+        }
+        device.cacheObject(engineStateUBO.get());
     }
 
     void    FEScene::initializeQueue()
