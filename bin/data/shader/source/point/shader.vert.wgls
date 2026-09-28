@@ -19,14 +19,20 @@ struct  CameraData
 
 /// 大坐标处理:用 (intPart - cameraOffset) 抵消相机整数偏移,
 /// 平移部分只保留小数量级数值,减少大坐标下的浮点误差
+/// 9 个四元数乘积各只计算一次并打包成 vec3 运算
 fn  makeOffsetLocalMatrix(t : vec3f, s : vec3f, q : vec4f, intPart : vec3i, cameraOffset : vec3i) -> mat4x4f
 {
-    let offsetTrans = t + vec3f(intPart - cameraOffset);
+    let pp  = 2.0 * q.xyz * q.yzx;      // 2xy, 2yz, 2zx
+    let pw  = 2.0 * q.w   * q.zyx;      // 2wz, 2wy, 2wx
+    let dd  = q.xyz * q.xyz;            // xx, yy, zz
+    let sum = pp + pw.xzy;              // 2(xy+wz), 2(yz+wx), 2(xz+wy)
+    let dif = pp - pw.xzy;              // 2(xy-wz), 2(yz-wx), 2(xz-wy)
+    let dg  = vec3f(1.0) - 2.0 * (dd.yzx + dd.zxy);
     return mat4x4f(
-        vec4f(s.x * (1.0 - 2.0 * q.y * q.y - 2.0 * q.z * q.z), s.x * (2.0 * q.x * q.y + 2.0 * q.w * q.z), s.x * (2.0 * q.x * q.z - 2.0 * q.w * q.y), 0.0),
-        vec4f(s.y * (2.0 * q.x * q.y - 2.0 * q.w * q.z), s.y * (1.0 - 2.0 * q.x * q.x - 2.0 * q.z * q.z), s.y * (2.0 * q.y * q.z + 2.0 * q.w * q.x), 0.0),
-        vec4f(s.z * (2.0 * q.x * q.z + 2.0 * q.w * q.y), s.z * (2.0 * q.y * q.z - 2.0 * q.w * q.x), s.z * (1.0 - 2.0 * q.x * q.x - 2.0 * q.y * q.y), 0.0),
-        vec4f(offsetTrans.x, offsetTrans.y, offsetTrans.z, 1.0));
+        vec4f(vec3f(dg.x, sum.x, dif.z) * s.x, 0.0),
+        vec4f(vec3f(dif.x, dg.y, sum.y) * s.y, 0.0),
+        vec4f(vec3f(sum.z, dif.y, dg.z) * s.z, 0.0),
+        vec4f(t + vec3f(intPart - cameraOffset), 1.0));
 }
 
 struct  VsIn

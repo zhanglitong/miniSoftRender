@@ -21,8 +21,13 @@ layout(std140, binding = SB_Light) readonly buffer LightsBlock
     LightData    _lights[];
 };
 
+layout (binding = SB_EngineState) uniform EngineStateBlock
+{
+    EngineState  _engineState;
+};
 
-void main() 
+
+void main()
 {
     fragColor       =   vec4(0,0,0,1);
     vec3    diff    =   hasNodeColor(inFlagBits) ? inNodeColor.rgb : _pbr._diffuse.rgb;
@@ -31,10 +36,16 @@ void main()
     {
         vec3    lDir    =   vec3(_lights[i].x,_lights[i].y,_lights[i].z);
         vec3    lColor  =   vec3(_lights[i].r,_lights[i].g,_lights[i].b);
-        
+
         float   NdotL   =   max(0.1, dot(normalize(inNor), lDir));
         vec3    diffuse =   diff * (NdotL) + _pbr._emissive.rgb ;
 
         fragColor.xyz   +=  diffuse;
+    }
+    /// 选中高亮:与高亮色混合
+    if (isSelected(inFlagBits))
+    {
+        vec4    hl  =   unpackColor(_engineState.selectColor);
+        fragColor.rgb   =   mix(fragColor.rgb, hl.rgb, 0.5);
     }
 }

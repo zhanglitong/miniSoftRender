@@ -76,8 +76,14 @@ namespace   FE
             if (buffer)
             {
                 entry.buffer =   (WGPUBuffer)buffer->native();
-                entry.offset =   0;
-                entry.size =   buffer->cInfo()._length;
+                /// 与 Vulkan 对齐:若绑定时显式给出了 offset/range(如灯光 SSBO 只绑
+                /// 实际使用的 count*stride),则用该子范围绑定。否则 WGSL arrayLength()
+                /// 会返回整个 buffer 的容量(128),对所有空槽各累加一次 emissive,
+                /// 导致颜色过曝变白。layout 的 minBindingSize=0,绑定更小范围合法。
+                entry.offset =   binding._offsets.empty() ? 0 : binding._offsets[0];
+                entry.size   =   binding._ranges.empty()
+                                 ? buffer->cInfo()._length
+                                 : binding._ranges[0];
             }
 
             entries.push_back(entry);

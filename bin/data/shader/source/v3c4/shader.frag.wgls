@@ -1,16 +1,46 @@
 /// v3c4 片段着色器 WGSL 版本,与 shader.frag 对齐
 /// 原始 GLSL 未使用 push_constant,仅传递插值变量输出颜色。
 
+/// RF_SELECTED = (1<<7) = 128
+const RF_SELECTED : u32 = 128u;
+
+fn  isSelected(flag : u32) -> bool
+{
+    return (flag & RF_SELECTED) != 0u;
+}
+/// 解包 RGBA8(高字节在 R),与 C++ selectColor 打包一致
+fn  unpackColor(c : u32) -> vec4f
+{
+    return vec4f(
+        f32((c >> 24u) & 0xFFu) / 255.0,
+        f32((c >> 16u) & 0xFFu) / 255.0,
+        f32((c >> 8u)  & 0xFFu) / 255.0,
+        f32((c >> 0u)  & 0xFFu) / 255.0);
+}
+
+/// 引擎渲染状态(高亮颜色等),与 C++ EngineState 对齐
+struct  EngineState
+{
+    selectColor : u32,
+}
+@group(0) @binding(5) var<uniform> _engineState : EngineState;
+
 struct  FsIn
 {
     @location(0) inColor    : vec4f,
     /// flat 插值对应 GLSL 的 `flat in uint`
-    /// inFlagBits 当前未参与片段着色计算,但保留以对齐顶点着色器输出接口
+    /// inFlagBits 用于选中高亮判定
     @location(1) @interpolate(flat) inFlagBits : u32,
 }
 
 @fragment
 fn  main(in : FsIn) -> @location(0) vec4f
 {
+    /// 选中高亮:与高亮色混合
+    if (isSelected(in.inFlagBits))
+    {
+        let hl = unpackColor(_engineState.selectColor);
+        return vec4f(mix(in.inColor.rgb, hl.rgb, vec3f(0.5)), in.inColor.a);
+    }
     return in.inColor;
 }

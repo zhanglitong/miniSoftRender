@@ -18,6 +18,9 @@ namespace   FE
             ,_pbr(ctx)
         {
             setup("pbr");
+            /// 自动将内置 UBO(camera/binding5 engineState)与 shader 反射绑定关联;
+            /// 缺少此步会使 EngineState(binding 5)_objects 为空,update() 时空 vector front() 崩溃
+            autoAttach();
             _pbr.update();
 
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);

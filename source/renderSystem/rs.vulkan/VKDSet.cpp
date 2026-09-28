@@ -85,10 +85,10 @@ namespace   FE
                     for (size_t i = 0; i < binding._objects.size(); ++i,++nIndex)
                     {
                         _buffers.push_back({});
-                        pBuffer                     =   dynamic_cast<FEGPUBuffer*>(binding._objects[i].get());
-                        _buffers[nIndex].buffer        =   (VkBuffer)pBuffer->native();
-                        _buffers[nIndex].offset        =   binding._offsets.empty() ? 0    : binding._offsets[i];
-                        _buffers[nIndex].range         =   binding._ranges.empty() ? ~0ULL : binding._ranges[i];
+                        pBuffer                 =   dynamic_cast<FEGPUBuffer*>(binding._objects[i].get());
+                        _buffers[nIndex].buffer =   (VkBuffer)pBuffer->native();
+                        _buffers[nIndex].offset =   binding._offsets.empty() ? 0    : binding._offsets[i];
+                        _buffers[nIndex].range  =   binding._ranges.empty() ? ~0ULL : binding._ranges[i];
                     }
 
                     VkWriteDescriptorSet    wds  =   {};

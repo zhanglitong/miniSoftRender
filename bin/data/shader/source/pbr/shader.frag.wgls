@@ -34,11 +34,33 @@ struct  LightData
 
 /// RF_COLOR = (1<<4) = 16
 const RF_COLOR : u32 = 16u;
+/// RF_SELECTED = (1<<7) = 128
+const RF_SELECTED : u32 = 128u;
 
 fn  hasNodeColor(flag : u32) -> bool
 {
     return (flag & RF_COLOR) != 0u;
 }
+fn  isSelected(flag : u32) -> bool
+{
+    return (flag & RF_SELECTED) != 0u;
+}
+/// 解包 RGBA8(高字节在 R),与 C++ selectColor 打包一致
+fn  unpackColor(c : u32) -> vec4f
+{
+    return vec4f(
+        f32((c >> 24u) & 0xFFu) / 255.0,
+        f32((c >> 16u) & 0xFFu) / 255.0,
+        f32((c >> 8u)  & 0xFFu) / 255.0,
+        f32((c >> 0u)  & 0xFFu) / 255.0);
+}
+
+/// 引擎渲染状态(高亮颜色等),与 C++ EngineState 对齐
+struct  EngineState
+{
+    selectColor : u32,
+}
+@group(0) @binding(5) var<uniform> _engineState : EngineState;
 
 struct  FsIn
 {
@@ -53,30 +75,27 @@ fn  main(in : FsIn) -> @location(0) vec4f
 {
     var fragColor    = vec4f(0.0, 0.0, 0.0, 1.0);
     let diff         = select(_pbr._diffuse.rgb, in.inNodeColor.rgb, hasNodeColor(in.inFlagBits));
-    /// WGSL 解析器无法处理 i32(_lights.length()) 形式的嵌套调用(报错 expected `)`, found `(`)。
-    /// arrayLength(&_lights) 返回 u32,无需再转 i32,直接用 u32 作循环计数。
+    /// arrayLength(&_lights) 返回实际绑定子范围的灯光数(与 GLSL _lights.length() 一致);
+    /// C++ 端绑定时只给 count*stride 的 range,WebGPU 后端用该子范围创建 bind group。
     let numLights    = arrayLength(&_lights);
     let norN         = normalize(in.inNor);
 
     for (var i : u32 = 0u; i < numLights; i = i + 1u)
     {
         let lDir    = vec3f(_lights[i].x, _lights[i].y, _lights[i].z);
-        let lColor  = vec3f(_lights[i].r, _lights[i].g, _lights[i].b);
 
         let NdotL   = max(0.1, dot(norN, lDir));
-        let diffuse = diff * (NdotL * lColor) + _pbr._emissive.rgb;
+        /// 与 GLSL 对齐:diffuse = diff * NdotL + emissive(不乘 lColor)
+        let diffuse = diff * NdotL + _pbr._emissive.rgb;
 
         fragColor   = vec4f(fragColor.rgb + diffuse, 1.0);
     }
 
-    /// 调试兜底:确保片段可被看到(即使材质 uniform 读错)。
-    /// 若 diff/emissive/lights 全为 0, fragColor 会是纯黑, 仍可能被背景淹没。
-    /// 叠加一个与法线相关的微弱颜色,防止完全透明/纯黑。
-    let debugBoost = vec4f(
-        0.05 + 0.05 * abs(norN.x),
-        0.05 + 0.05 * abs(norN.y),
-        0.10 + 0.05 * abs(norN.z),
-        1.0);
-    let finalRgb = select(debugBoost.rgb, fragColor.rgb, any(fragColor.rgb > vec3f(0.01)));
-    return vec4f(finalRgb, 1.0);
+    /// 选中高亮:与高亮色混合
+    if (isSelected(in.inFlagBits))
+    {
+        let hl = unpackColor(_engineState.selectColor);
+        return vec4f(mix(fragColor.rgb, hl.rgb, vec3f(0.5)), 1.0);
+    }
+    return fragColor;
 }
