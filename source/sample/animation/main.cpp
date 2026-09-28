@@ -111,6 +111,7 @@ int     main(int argc, char** argv)
 
     /// 5. 分发到渲染工厂与动画系统,然后启动默认 Action 播放(默认 PT_Loop 循环)
     scene->dispatchNodesToSystem({node});
+    scene->animationSystem()->getOrCreate()->setMode(FEAction::PlayMode::PT_Once);
     scene->animationSystem()->getOrCreate()->play();
 
     std::cout << "animation running: box (0,0,0) -> (10,0,0), entering render loop..." << std::endl;
