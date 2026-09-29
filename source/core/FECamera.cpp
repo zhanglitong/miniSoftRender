@@ -53,7 +53,7 @@ namespace FE
         _up             =   normalize(cross(_right, _dir));
         _fov           =   45.0f;
         _isOrtho        =   false;
-        _scaler         =   1.0;
+        _scaler         =   100.0;
         _zNear          =   0.1;
         _zFar           =   1.0;
         sprintf(_name,"camera-%p",this);
@@ -90,13 +90,14 @@ namespace FE
     {
         _eye    += _dir * _speed * fElapsed;
         _target += _dir * _speed * fElapsed;
-        _scaler -= _speed * fElapsed * 0.1;
+        _scaler += _speed * fElapsed * 0.1;
     }
     void    FECamera::moveBack(real fElapsed)
     {
         _eye    -= _dir * _speed * fElapsed;
         _target -= _dir * _speed * fElapsed;
-        _scaler += _speed * fElapsed* 0.1;
+        _scaler -= _speed * fElapsed* 0.1;
+        if (_scaler < real(0.01)) _scaler = real(0.01);
     }
     void    FECamera::moveUp(real fElapsed)
     {
@@ -113,7 +114,8 @@ namespace FE
         _eye    += dir * _speed * fElapsed;
         _target += dir * _speed * fElapsed;
 
-        _scaler += _speed * fElapsed * -dot(dir, _dir)* 0.1;
+        _scaler += _speed * fElapsed * dot(dir, _dir)* 0.1;
+        if (_scaler < real(0.01)) _scaler = real(0.01);
     }
 
     void    FECamera::rotateEyeZ(real angle)

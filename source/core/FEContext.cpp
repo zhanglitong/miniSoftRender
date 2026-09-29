@@ -31,6 +31,7 @@
 #include    "../inc/animation/FEAnimationSys.hpp"
 #include    "../inc/constraint/FEConstraintTrans.hpp"
 #include    "../inc/constraint/FEConstraintLookAt.hpp"
+#include    "../inc/constraint/FEConstraintPath.hpp"
 #include    "../inc/constraint/FEConstraintSys.hpp"
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
@@ -49,6 +50,8 @@ namespace   FE
         CLS_PROPERTY(FEConstraintTrans).add(ComSysId,UUIDOF(FEConstraintSys));
         /// 朝向约束关联约束系统
         CLS_PROPERTY(FEConstraintLookAt).add(ComSysId,UUIDOF(FEConstraintSys));
+        /// 路径约束关联约束系统
+        CLS_PROPERTY(FEConstraintPath).add(ComSysId,UUIDOF(FEConstraintSys));
     }
     void    systemInitializeCreator(FEContext& ctx)
     {
