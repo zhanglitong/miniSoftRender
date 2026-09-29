@@ -54,11 +54,15 @@ namespace   FE
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        FEPriority      operator[](size_t index) const
+        FEPriority  operator[](size_t index) const
         {
             return  _prioritys[index];
         }
-        FEPriority      priority(size_t index) const
+        FEPriority  priority(size_t index) const
+        {
+            return  _prioritys[index%_prioritys.size()];
+        }
+        FEPriority& riority(size_t index)
         {
             return  _prioritys[index%_prioritys.size()];
         }

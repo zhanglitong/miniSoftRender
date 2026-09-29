@@ -396,9 +396,9 @@ namespace   FE
         /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>
         /// <param name="bModify"></param>
-        virtual void        endSetProp(bool bModify)
+        virtual void        endSetProp(const real& tm,bool bModify)
         {
-            UNUSED(bModify);
+            UNUSED(tm,bModify);
         }
 
         class   FETrvsCtx;

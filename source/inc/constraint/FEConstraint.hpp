@@ -8,8 +8,16 @@
 namespace FE
 {
 
-    class   FEConstraint : public FEComponent
+    class   FE_API  FEConstraint : public FEComponent
     {
+    public:
+        FEConstraint(FEContext& ctx)
+            :FEComponent(ctx)
+        {
+            /// 优先级最低，最后执行
+            _priority.setPriority(EPriority::EP_Last);
+            _priority.setOrder(MaxInt16);
+        }
     public:
         /// <summary>
         /// 调用该函数，返回约束结果

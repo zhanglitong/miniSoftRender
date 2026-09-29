@@ -162,8 +162,8 @@ namespace FE
             {
                 if (owner)
                 {
-                    owner->endSetProp(false);
-                    var._anim->endSetProp(false);
+                    owner->endSetProp(clipTime,false);
+                    var._anim->endSetProp(clipTime,false);
                 }
                 owner   =   var._owner;
                 if (owner)
@@ -184,7 +184,7 @@ namespace FE
             modOwners.emplace(var._owner);
         }
         if (owner)
-            owner->endSetProp(false);
+            owner->endSetProp(clipTime,false);
 
         /// 标记变换变更标志,由 updateList 统一触发节点 updateTransform -> getTransform 混合
         for (Object o : transOwners)

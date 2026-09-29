@@ -122,20 +122,20 @@ namespace FE
         /// 均匀缩放（最常见，可精确解析）s.x == s.y == s.z
         /// 设 A = (Pa, Ra, Sa), B = (Pb, Rb, Sb)，且 Sa、Sb 为均匀缩放
         /// 
-        /// 复合 C = B * A （先 A 后 B）：
-        ///     C.position = Pb + Rb * (Sb * Pa)        /// B 变换 A 的原点
-        ///     C.rotation = Rb * Ra                    /// 旋转直接相乘
-        ///     C.scale    = Sb * Sa                    /// 均匀缩放直接相乘
+        /// 复合 C = A * B （先应用 B 再应用 A，标准矩阵乘法顺序）：
+        ///     C.position = Pa + Ra * (Sa * Pb)        /// A 变换 B 的原点
+        ///     C.rotation = Ra * Rb                    /// 旋转直接相乘
+        ///     C.scale    = Sa * Sb                    /// 均匀缩放直接相乘
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
         inline FETransform compose(const FETransform& other) const
         {
-            // this = A, other = B，结果为先 A 后 B
+            // this = A, other = B，返回标准矩阵积 A * B
             FETransform r;
-            r._rotation =   other._rotation * this->_rotation;
-            r._scale    =   other._scale * this->_scale;          // 分量乘（均匀时正确）
-            r._position =   other._position + quatr(other._rotation) * (real3(other._scale) * this->_position);
+            r._rotation =   this->_rotation * other._rotation;
+            r._scale    =   this->_scale * other._scale;          // 分量乘（均匀时正确）
+            r._position =   this->_position + quatr(this->_rotation) * (real3(this->_scale) * other._position);
             return r;
         }
 #else
@@ -184,7 +184,7 @@ namespace FE
         }
 
         /// <summary>
-        /// 复合运算符：a * b 表示先应用 a 再应用 b
+        /// 复合运算符：标准矩阵乘法 a * b（先应用 b 再应用 a）
         /// </summary>
         inline  FETransform   operator*(const FETransform& other) const
         {

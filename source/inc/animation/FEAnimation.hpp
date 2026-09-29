@@ -199,7 +199,7 @@ namespace FE
         /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>
         /// <param name="bModify"></param>
-        virtual void    endSetProp(bool bModify) override;
+        virtual void    endSetProp(const real&,bool bModify) override;
     protected:
         /// <summary>
         /// 判断属性是否属于变换相关属性(位置/旋转/缩放)

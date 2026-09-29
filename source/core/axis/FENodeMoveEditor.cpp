@@ -100,7 +100,7 @@ namespace   FE
             /// 仅在实际有变化时才 setProperty (跳过 EditStart/EditEnd 的 0 偏移)
             if  (nValue != curVal)
                 bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,nValue);
-            object->endSetProp(bModify);
+            object->endSetProp(_ctx.deltaTime(),bModify);
         }
     }
 }

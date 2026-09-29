@@ -114,7 +114,7 @@ namespace   FE
                 bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,newLocalPos);
             if  (newRot != curRot)
                 bModify |=  object->setProperty(PROP_QUAT,newRot);
-            object->endSetProp(bModify);
+            object->endSetProp(_ctx.deltaTime(),bModify);
         }
     }
 }

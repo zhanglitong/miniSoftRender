@@ -3,6 +3,7 @@
 #include    "../inc/graphic/FEScene.h"
 #include    "../inc/FEPropertyIndex.hpp"
 #include    "../inc/FEEulerObject.hpp"
+#include    "../inc/constraint/FEConstraint.hpp"
 
 namespace   FE
 {
@@ -37,11 +38,12 @@ namespace   FE
     {
     }
 
-    void    FENode::update()
+    void    FENode::update(const real& tm)
     {
         if (!flags().hasFlags(ModifyValue))
             return;
-        updateTransform(true);
+        updateTransform(tm,true);
+        
         updateAabb(true);
     }
     void    FENode::fireChanged()
@@ -94,17 +96,17 @@ namespace   FE
         return  _aabb;
     }
     
-    void    FENode::updateTransform(bool recursion)
+    void    FENode::updateTransform(const real& tm,bool recursion)
     {
         FETransform blended;
+        /// 处理动画混合
         blend(blended);
-
         /// 全局变换 = 父全局 * (局部 * 混合组件变换)
         if (parent() != nullptr)
             _gloabal    =   (parent()->_gloabal * (_local * blended));
         else
             _gloabal    =   (_local * blended);
-
+        
         if (!recursion || children().empty())
             return;
         auto&   chs =   children();
@@ -114,6 +116,8 @@ namespace   FE
             node->flags().addFlag(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT);
             node->updateTransform(recursion);
         }
+        /// 处理约束
+        /// solve(tm);
     }
 
     size_t  FENode::intersect(const Ray& ray,Pickups& results) const
@@ -278,10 +282,10 @@ namespace   FE
             return  {};
         }
     }
-    void    FENode::endSetProp(bool bModify)
+    void    FENode::endSetProp(const real& tm,bool bModify)
     {
         UNUSED(bModify);
-        update();
+        update(tm);
         if (bModify)
         {
             fireChanged();
@@ -334,6 +338,21 @@ namespace   FE
             blended.setRotation(FE::normalize(rot));
         }
     }
+
+
+    void    FENode::solve(const real& tm)
+    {
+        for (auto& var : _coms)
+        {
+            auto    constr  =   dynamic_cast<FEConstraint*>(var.get());
+            if (constr == nullptr)
+                continue;
+            FETransform solved  =   constr->solve(_gloabal, tm);
+            setGlobalTranslation(solved.position());
+            setGlobalRotation(quatr(solved.rotation()));
+        }
+    }
+
     size_t  FENode::objectCount() const 
     {
         return  children().size() + _coms.size() + (_mesh ? 1 : 0) + (_material ? 1 : 0);

@@ -29,6 +29,9 @@
 #include    "../inc/FEConst.h"
 #include    "../inc/animation/FEAnimation.hpp"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/constraint/FEConstraintTrans.hpp"
+#include    "../inc/constraint/FEConstraintLookAt.hpp"
+#include    "../inc/constraint/FEConstraintSys.hpp"
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
 #include    "../inc/FEAssetsMgr.h"
@@ -42,6 +45,10 @@ namespace   FE
         /// 关联动画组件系统id,当有动画加入系统时候，会自动关联动画组件系统
         CLS_PROPERTY(FEAnimation).add(ComSysId,UUIDOF(FEAnimationSys));
         CLS_PROPERTY(FEInputCom).add(ComSysId,UUIDOF(FEInputSystem));
+        /// 平移约束关联约束系统
+        CLS_PROPERTY(FEConstraintTrans).add(ComSysId,UUIDOF(FEConstraintSys));
+        /// 朝向约束关联约束系统
+        CLS_PROPERTY(FEConstraintLookAt).add(ComSysId,UUIDOF(FEConstraintSys));
     }
     void    systemInitializeCreator(FEContext& ctx)
     {
