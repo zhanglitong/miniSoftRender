@@ -556,7 +556,7 @@ namespace   FE
             return;
         object->beginSetProp();
         bool    bModify    =   object->setProperty(PROP_TRANSFORM_XYZ,pos);
-        object->endSetProp(bModify);
+        object->endSetProp(0,bModify);
     }
 
     void    MoveNodeCmd::redo()

@@ -250,7 +250,11 @@ namespace FE
         }
         real    len(0);
         real    len1(0);
-        mat4r   mat     =   FE::rotate(mat4r(1), (real)DEG2RAD(angle), real3(0, 0, 1));
+        /// 透视模式:绕世界 Z 轴公转;
+        /// 正交模式:绕相机自身 up 轴公转(在沿 -Z 观察时世界 Z 与视线平行,
+        /// 绕其旋转只会造成画面 roll,无法形成水平轨道)
+        real3   rotAxis =   _isOrtho ? _up : real3(0, 0, 1);
+        mat4r   mat     =   FE::rotate(mat4r(1), (real)DEG2RAD(angle), rotAxis);
         real3   vDir    =   pos - _eye;
 
         len1    =   length(vDir);
@@ -305,6 +309,31 @@ namespace FE
 
     void    FECamera::scaleCameraByPos(const real3 & pos, real persent)
     {
+        if (_isOrtho)
+        {
+            /// 正交模式:缩放 _scaler,并在相机平面内平移 eye/target 以补偿,
+            /// 使锚点在缩放前后的屏幕位置保持不变
+            /// 正交投影下 1 世界单位 = _scaler 像素:
+            ///   screen = right·(P-eye)*_scaler + viewSize/2
+            /// 令 s1 = s0*persent,解 right·(P-eye1)*s1 = right·(P-eye0)*s0
+            ///   => delta = (P-eye0)_平面 * (1 - s0/s1)
+            static  constexpr   real    MIN_SCALER  =   real(0.01);
+            static  constexpr   real    MAX_SCALER  =   real(100000.0);
+            real    s0  =   _scaler;
+            real    s1  =   FE::clamp(s0 * persent, MIN_SCALER, MAX_SCALER);
+            if (s1 == s0)
+                return;
+            real    k   =   real(1.0) - s0 / s1;
+            real3   rel =   pos - _eye;
+            real3   relPlane    =   _right * dot(_right, rel)
+                                 + _up    * dot(_up, rel);
+            real3   delta   =   relPlane * k;
+            _eye    +=  delta;
+            _target +=  delta;
+            _scaler =   s1;
+            update();
+            return;
+        }
         real3   dir     =   normalize(pos - _eye);
         real    dis     =   length(pos - _eye) * persent;
         real3   dirCam  =   normalize(_target - _eye);
