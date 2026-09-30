@@ -12,6 +12,9 @@
 #include    "../inc/graphic/FEPipelineHelper.h"
 #include    "../inc/graphic/FELightMgr.h"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/constraint/FEConstraintSys.hpp"
+#include    "../inc/constraint/FEConstraintTrans.hpp"
+#include    "../inc/constraint/FEConstraintLookAt.hpp"
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/FEFileFormatHelper.hpp"
 #include    "../inc/fileFormat/fepk/FEFormatFepj.hpp"
@@ -136,6 +139,9 @@ namespace   FE
         {
             AnimSys animSys =   new FEAnimationSys(_ctx);
             _comSysMgr.addObject(animSys.get());
+            /// 注册约束系统(更新顺序位于动画之后,求解基于动画结果)
+            ComponentSys    constSys  =   new FEConstraintSys(_ctx);
+            _comSysMgr.addObject(constSys.get());
             /// 注册输入事件系统
             InputSys inputSys = new FEInputSystem(_ctx);
             _comSysMgr.addObject(inputSys.get());
@@ -227,6 +233,7 @@ namespace   FE
     {
         addNodesToFactory(nodeList,result);
         dispatchToSystem<FEAnimation>(_comSysMgr,nodeList);
+        dispatchToSystem<FEConstraint>(_comSysMgr,nodeList);
         dispatchToSystem<FEInput>(_comSysMgr,nodeList);
     }
 

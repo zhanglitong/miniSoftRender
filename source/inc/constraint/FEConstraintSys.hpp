@@ -1,6 +1,8 @@
 #pragma     once
 #include    "../FEComponentSys.hpp"
 #include    "../FEObjectsTemplate.hpp"
+#include    "../node/FENode.hpp"
+#include    "../graphic/FEScene.h"
 #include    "FEConstraint.hpp"
 
 namespace FE
@@ -25,10 +27,12 @@ namespace FE
         IMPLEMENT_CLASS_REFLECT(FEConstraintSys)
     public:       
         FEConstraintSys(FEContext& ctx)
-            :FEComponentSys(ctx)   
-        {}         
-        FEConstraintSys(const FEConstraintSys& other)            
-            :FEComponentSys(other)         
+            :FEComponentSys(ctx)
+            ,_objects(ConstComLessFunc)
+        {}
+        FEConstraintSys(const FEConstraintSys& other)
+            :FEComponentSys(other)
+            ,_objects(ConstComLessFunc)
         {}
         /// <summary>
         /// 根据Id查找
@@ -78,10 +82,35 @@ namespace FE
         {
             _objects.clearObjects();
         }
-        virtual void    update(const real&)
-        {}
+        /// <summary>
+        /// 每帧遍历约束并求解：
+        /// 取 owner 节点当前世界变换 -> solve() -> 将结果世界位置写回节点，
+        /// 并加入 scene 更新列表(引擎随后统一 node->update + fireChanged，
+        /// 刷新实例数据)。禁用约束跳过
+        /// </summary>
+        /// <param name="tmDelta"></param>
+        virtual void    update(const real& tmDelta) override
+        {
+            _time   +=  tmDelta;
+            for (auto& con : _objects.objects())
+            {
+                if (!con->isEnable())
+                    continue;
+                Node    node    =   con->owner() ? con->owner()->cast<FENode>() : nullptr;
+                if (node == nullptr)
+                    continue;
+                FETransform solved = con->solve(node->globalFETransform(), _time);
+                node->setGlobalTranslation(solved.position());
+                node->setGlobalRotation(quatr(solved.rotation()));
+                _ctx.scene()->updateList().addObject(con->owner());
+            }
+        }
     protected:
         ConstComs   _objects;
+        /// <summary>
+        /// 约束求解累计时间(秒)，作为 solve 的时间参数
+        /// </summary>
+        real        _time   =   0;
     };
 }
 

@@ -178,6 +178,12 @@ namespace   FE
     }
     uint8*  GroupNode::copyPartial(const uints& indexs,uint stride,BufferCopys& regions,const uint8*pStart,uint8* pDst)
     {
+        /// 与 updateInstanceLocal/updateInstanceBSphere 的 count 统计保持一致:
+        /// 只有走局部更新路径的组才写入局部暂存区。
+        /// 否则整组更新(_updates.size() >= _objects.size())的组也会被写入,
+        /// 导致暂存区越界(WebGPU 验证层直接 panic: copy overrun)
+        if (!isLocalUpdate())
+            return  pDst;
         FEInstance  inst    =   {};
         uint8*      pSrc    =   (uint8*)&inst;
         for (auto& uData: _updates)

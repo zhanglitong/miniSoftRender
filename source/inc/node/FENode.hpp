@@ -368,7 +368,7 @@ namespace   FE
         ///     update();
         ///     fireChanged();   // 需要外部手动调用以发送变更通知
         /// </summary>
-        virtual void    update();
+        virtual void    update(const real& tm = 0.0);
         /// <summary>
         /// 是否递归通知
         /// </summary>
@@ -384,7 +384,7 @@ namespace   FE
         /// 更新矩阵信息，不检测是否需要，直接计算
         /// </summary>
         /// <param name="recursion"></param>
-        virtual void    updateTransform(bool recursion = true);
+        virtual void    updateTransform(const real& tm,bool recursion = true);
         /// <summary>
         /// 拾取函数
         /// </summary>
@@ -509,9 +509,13 @@ namespace   FE
         /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>
         /// <param name="bModify"></param>
-        virtual void    endSetProp(bool bModify) override;
+        virtual void    endSetProp(const real& tm,bool bModify) override;
     protected:
         void            blend(FETransform& result);
+        /// <summary>
+        /// 约束计算
+        /// </summary>
+        void            solve(const real& tm);
     protected:
         FETransform _local;
         FETransform _gloabal;

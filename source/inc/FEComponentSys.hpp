@@ -16,10 +16,14 @@ namespace   FE
     public:         
         FEComponentSys(FEContext& ctx)
             :FEFactory(ctx)   
-        {}         
+        {
+            priority(FEFactory::PT_Update).setPriority(EPriority::EP_Last);
+            priority(FEFactory::PT_Update).setOrder(MaxInt16);
+        }         
         FEComponentSys(const FEComponentSys& other)            
             :FEFactory(other)         
-        {} 
+        {
+        } 
 
     public:
         virtual size_t  addObject(Component  com)

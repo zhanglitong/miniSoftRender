@@ -235,7 +235,11 @@ namespace   FE
         /// <param name="b">true表示为正交投影模式,否则为透视模式</param>
         inline  void    setOrtho(bool b)
         {
-            _isOrtho = b;
+            if (_isOrtho != b)
+            {
+                _isOrtho = b;
+                update();
+            }
         }
         /// <summary>
         /// 获取正交投影模式标志
@@ -424,6 +428,7 @@ namespace   FE
         /// 更新函数，会计算相机的dir
         /// 相机的up,right，保证正确性
         /// 计算观察矩阵
+        /// 根据 _isOrtho 标志计算透视或正交投影矩阵
         /// </summary>
         inline  void    update()
         {
@@ -431,7 +436,21 @@ namespace   FE
             _up         =   normalize(_up);
             _right      =   normalize(cross(_dir, _up));
             _matView    =   lookAt(_eye, _target, _up);
-            _matProj    =   FE::perspective<real>(_fov,_viewSize.x/_viewSize.y,_zNear,_zFar);
+            if (_isOrtho)
+            {
+                /// 正交投影:可见区域由视口尺寸与缩放系数 _scaler 决定
+                /// _scaler 越大,可见区域越小(放大);反之缩小
+                real    aspect  =   _viewSize.x / _viewSize.y;
+                real    height  =   _viewSize.y / _scaler;
+                real    width   =   height * aspect;
+                _matProj    =   FE::ortho(-width * real(0.5),  width * real(0.5),
+                                          -height * real(0.5), height * real(0.5),
+                                          _zNear, _zFar);
+            }
+            else
+            {
+                _matProj    =   FE::perspective<real>(_fov,_viewSize.x/_viewSize.y,_zNear,_zFar);
+            }
             /// 标记需要更新
             flags().addFlag(FLAG_UPDATE);
         }
@@ -462,28 +481,17 @@ namespace   FE
         /// </summary>
         inline  void    updatePerspective()
         {
-            _matProj    =   FE::perspective<real>(_fov,_viewSize.x/_viewSize.y,_zNear,_zFar);
-            flags().addFlag(FLAG_UPDATE);
+            _isOrtho    =   false;
+            update();
         }
         /// <summary>
         /// 更新 project 矩阵为正交投影矩阵
+        /// 可见区域由视口尺寸与缩放系数 _scaler 决定
         /// </summary>
-        /// <param name="sceneHalfSize">sceneHalfSize 场景包围盒 half size</param>
-        /// <param name="orthoDistance"></param>
         inline  void    updateOrtho()
         {
-            real    dx      =   (_rRight - _rLeft)  / (2.0 * _scaler);
-            real    dy      =   (_rTop   - _rBottom)/ (2.0 * _scaler);
-            real    cx      =   (_rRight + _rLeft)  / 2.0;
-            real    cy      =   (_rTop   + _rBottom)/ 2.0;
-
-            real    left    =   cx - dx;
-            real    right   =   cx + dx;
-            real    top     =   cy + dy;
-            real    bottom  =   cy - dy;
-
-            _matProj        =   FE::ortho(left,right,bottom,top,_zNear,_zFar);
-            flags().addFlag(FLAG_UPDATE);
+            _isOrtho    =   true;
+            update();
         }
         /// <summary>
         /// 根据参数生成正交投影矩阵

@@ -348,6 +348,22 @@ namespace   FE
         auto* dstWg = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(dstBuf.get()));
         if (srcWg && dstWg)
         {
+            /// 越界防护:wgpu 验证层遇到非法拷贝会直接 panic 并 abort 整个进程,
+            /// 这里提前拦截非法 range,跳过并记录错误,避免崩溃
+            uint64  srcLen  =   srcWg->cInfo()._length;
+            uint64  dstLen  =   dstWg->cInfo()._length;
+            if (srcOff + length > srcLen || dstOff + length > dstLen)
+            {
+                LOG_ERR(    "WGCmdBuffer.copyBuffer: out-of-bounds copy skipped"
+                            " (src %llu + %llu / %llu, dst %llu + %llu / %llu)"
+                        ,   (unsigned long long)srcOff
+                        ,   (unsigned long long)length
+                        ,   (unsigned long long)srcLen
+                        ,   (unsigned long long)dstOff
+                        ,   (unsigned long long)length
+                        ,   (unsigned long long)dstLen);
+                return  FEResult::ER_FAILED;
+            }
             wgpuCommandEncoderCopyBufferToBuffer(_native,
                 (WGPUBuffer)srcWg->native(),srcOff,
                 (WGPUBuffer)dstWg->native(),dstOff,

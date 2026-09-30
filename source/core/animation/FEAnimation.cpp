@@ -13,6 +13,8 @@ namespace FE
     {
         _name       =   "FEAnimation";
         setEnable(true);
+        _priority.setPriority(EPriority::EP_Fist);
+        _priority.setOrder(0);
     }
     FEAnimation::FEAnimation(const FEAnimation& other)
         :FEComponent(other)
@@ -274,12 +276,12 @@ namespace FE
         }
     }
 
-    void    FEAnimation::endSetProp(bool bModify) 
+    void    FEAnimation::endSetProp(const real& tm,bool bModify) 
     {
         if (_owner)
         {
             _owner->flags().addFlag(FENode::FLAG_PROP_TRANS| FENode::FLAG_PROP_SCALE| FENode::FLAG_PROP_ROT);
-            _owner->endSetProp(false);
+            _owner->endSetProp(tm,false);
         }
         /// 把需要更新的对象加入到更新列表,引擎在所有组件更新完成后统一执行 update + fireChanged
         /// 不在 endSetProp 中立即触发,避免与更新列表重复执行 update/fireChanged
@@ -351,7 +353,7 @@ namespace FE
             if (this->setProperty(var._prop,var._value))
                 bModify     =   true;
         }
-        this->endSetProp(bModify);
+        this->endSetProp(clipTime,bModify);
         return  bModify;
     }
 

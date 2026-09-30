@@ -114,7 +114,7 @@ namespace   FE
                 bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,newLocalPos);
             if  (newScale != curScale)
                 bModify |=  object->setProperty(PROP_SCALE_XYZ,newScale);
-            object->endSetProp(bModify);
+            object->endSetProp(_ctx.deltaTime(),bModify);
         }
     }
 }

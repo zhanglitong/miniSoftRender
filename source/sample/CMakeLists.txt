@@ -1,2 +1,7 @@
 add_subdirectory ("basic")
 add_subdirectory ("animation")
+add_subdirectory ("constraint")
+add_subdirectory ("cylinder")
+add_subdirectory ("lookat")
+add_subdirectory ("ortho")
+add_subdirectory ("path")
