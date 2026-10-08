@@ -4,6 +4,7 @@
 #include    "../node/FENode.hpp"
 #include    "../graphic/FEScene.h"
 #include    "FEConstraint.hpp"
+#include    <map>
 
 namespace FE
 {
@@ -87,11 +88,15 @@ namespace FE
         /// 取 owner 节点当前世界变换 -> solve() -> 将结果世界位置写回节点，
         /// 并加入 scene 更新列表(引擎随后统一 node->update + fireChanged，
         /// 刷新实例数据)。禁用约束跳过
+        /// 同一节点挂多个约束时,按优先级链式传递:
+        ///   后一个约束的 currentWorld 使用前一个约束的 solved 结果,
+        ///   使 Follow(EP_Second) 写入的旋转能被 Path(EP_Last) 保留
         /// </summary>
         /// <param name="tmDelta"></param>
         virtual void    update(const real& tmDelta) override
         {
             _time   +=  tmDelta;
+            std::map<FENode*, FETransform>  lastSolved;
             for (auto& con : _objects.objects())
             {
                 if (!con->isEnable())
@@ -99,9 +104,12 @@ namespace FE
                 Node    node    =   con->owner() ? con->owner()->cast<FENode>() : nullptr;
                 if (node == nullptr)
                     continue;
-                FETransform solved = con->solve(node->globalFETransform(), _time);
+                auto    it      =   lastSolved.find(node.get());
+                FETransform current   =   (it != lastSolved.end()) ? it->second : node->globalFETransform();
+                FETransform solved    =   con->solve(current, _time);
                 node->setGlobalTranslation(solved.position());
                 node->setGlobalRotation(quatr(solved.rotation()));
+                lastSolved[node.get()]  =   solved;
                 _ctx.scene()->updateList().addObject(con->owner());
             }
         }
