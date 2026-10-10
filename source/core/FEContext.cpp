@@ -32,6 +32,7 @@
 #include    "../inc/constraint/FEConstraintTrans.hpp"
 #include    "../inc/constraint/FEConstraintLookAt.hpp"
 #include    "../inc/constraint/FEConstraintPath.hpp"
+#include    "../inc/constraint/FEConstraintFollow.hpp"
 #include    "../inc/constraint/FEConstraintSys.hpp"
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
@@ -52,6 +53,8 @@ namespace   FE
         CLS_PROPERTY(FEConstraintLookAt).add(ComSysId,UUIDOF(FEConstraintSys));
         /// 路径约束关联约束系统
         CLS_PROPERTY(FEConstraintPath).add(ComSysId,UUIDOF(FEConstraintSys));
+        /// 跟随约束关联约束系统
+        CLS_PROPERTY(FEConstraintFollow).add(ComSysId,UUIDOF(FEConstraintSys));
     }
     void    systemInitializeCreator(FEContext& ctx)
     {

@@ -62,10 +62,75 @@ namespace   FE
         flags().addFlag(FENode::FLAG_ADD_CHILD);
         _ctx.scene()->nodeTree().eventsAddNode().fireNotify(node);
     }
-    void    FENode::onRemoveChild(Node node) 
+    void    FENode::onRemoveChild(Node node)
     {
         flags().addFlag(FLAG_REMOVE_CHILD);
         _ctx.scene()->nodeTree().eventsRemoveNode().fireNotify(node);
+    }
+
+    void    FENode::reparent(FENode* node)
+    {
+        FENode* newParent    =   node;
+        FENode* oldParent    =   _parent.get();
+        /// 1. 父节点未变化,无需处理
+        if (newParent == oldParent)
+            return;
+        /// 2. 防止形成环: 新父节点不能是 this 自身,也不能是 this 的子孙节点
+        if (newParent != nullptr)
+        {
+            for (FENode* p = newParent; p != nullptr; p = p->_parent.get())
+            {
+                if (p == this)
+                    return;
+            }
+        }
+        /// 3. 保存当前世界变换,稍后据此反推新本地变换
+        mat4r   global      =   globalTransform();
+        Node    selfNode(this);
+
+        /// 4. 从旧父节点摘除: 维护 children 结构并触发移除通知
+        if (oldParent != nullptr)
+        {
+            auto    itr     =   std::find(oldParent->_childs.begin(),
+                                         oldParent->_childs.end(), selfNode);
+            if (itr != oldParent->_childs.end())
+            {
+                oldParent->_childs.erase(itr);
+                _parent     =   nullptr;
+                oldParent->onRemoveChild(selfNode);
+            }
+        }
+
+        /// 5. 挂到新父节点(addChild 内部完成 setParent + onAddChild)
+        if (newParent != nullptr)
+            newParent->addChild(selfNode);
+
+        /// 6. 反推新本地变换,使 parentGlobal_new * local_new = global
+        ///    新父节点为空(顶层)时 parentGlobal 取单位矩阵
+        mat4r   parentGlobal    =   newParent ? newParent->globalTransform()
+                                             : mat4r(real(1.0));
+        mat4r   localMat        =   FE::inverse(parentGlobal) * global;
+        real3   pos;
+        real3   scl;
+        quatr   rot;
+        FE::decompose<real>(localMat, pos, scl, rot);
+        _local._position    =   pos;
+        _local._scale       =   float3(scl);
+        _local._rotation    =   quatf(rot);
+        flags().addFlag(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT);
+        /// _gloabal 保持为保存的 global 不变,globalTransform() 立即可读;
+        /// 下一帧 update() 按 parentGlobal * local 重算,结果仍为 global
+
+        /// 7. 将受影响节点加入场景更新列表,统一刷新实例数据与包围盒
+        FEScene*    scene   =   _ctx.scene();
+        if (scene != nullptr)
+        {
+            scene->updateList().addObject(Object(selfNode.get()));
+            if (newParent != nullptr)
+                scene->updateList().addObject(Object(newParent));
+            if (oldParent != nullptr)
+                scene->updateList().addObject(Object(oldParent));
+        }
     }
 
     aabb3dr FENode::updateAabb(bool recursion)
