@@ -7,6 +7,19 @@
 #include    "../inc/geometry/FEGeometry.hpp"
 #include    "../inc/geometry/FEGeometryParam.hpp"
 #include    "../inc/geometry/FEGeometryBox.hpp"
+#include    "../inc/geometry/FEGeometrySphere.hpp"
+#include    "../inc/geometry/FEGeometryCircle.hpp"
+#include    "../inc/geometry/FEGeometryRing.hpp"
+#include    "../inc/geometry/FEGeometryTorus.hpp"
+#include    "../inc/geometry/FEGeometryTorusKnot.hpp"
+#include    "../inc/geometry/FEGeometryAabb.hpp"
+#include    "../inc/geometry/FEGeometryEllipsoidEGM.hpp"
+#include    "../inc/geometry/FEGeometryPRRT.hpp"
+#include    "../inc/geometry/FEGeometryPRCN.hpp"
+#include    "../inc/geometry/FEGeometryPRCP.hpp"
+#include    "../inc/geometry/FEGeometryPRPY.hpp"
+#include    "../inc/geometry/FEGeometryPRDH.hpp"
+#include    "../inc/geometry/FEGeometryTube.hpp"
 #include    "../inc/FEStreamReader.hpp"
 
 #include    "../inc/mesh/FEAttribute.hpp"
@@ -32,6 +45,7 @@
 #include    "../inc/constraint/FEConstraintTrans.hpp"
 #include    "../inc/constraint/FEConstraintLookAt.hpp"
 #include    "../inc/constraint/FEConstraintPath.hpp"
+#include    "../inc/constraint/FEConstraintFollow.hpp"
 #include    "../inc/constraint/FEConstraintSys.hpp"
 #include    "../inc/FEInputSystem.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
@@ -52,6 +66,8 @@ namespace   FE
         CLS_PROPERTY(FEConstraintLookAt).add(ComSysId,UUIDOF(FEConstraintSys));
         /// 路径约束关联约束系统
         CLS_PROPERTY(FEConstraintPath).add(ComSysId,UUIDOF(FEConstraintSys));
+        /// 跟随约束关联约束系统
+        CLS_PROPERTY(FEConstraintFollow).add(ComSysId,UUIDOF(FEConstraintSys));
     }
     void    systemInitializeCreator(FEContext& ctx)
     {
@@ -66,6 +82,19 @@ namespace   FE
 
         DEFINE_CLASS_CREATOR(FEGeometry);
         DEFINE_CLASS_CREATOR(FEGeometryBox);
+        DEFINE_CLASS_CREATOR(FEGeometrySphere);
+        DEFINE_CLASS_CREATOR(FEGeometryCircle);
+        DEFINE_CLASS_CREATOR(FEGeometryRing);
+        DEFINE_CLASS_CREATOR(FEGeometryTorus);
+        DEFINE_CLASS_CREATOR(FEGeometryTorusKnot);
+        DEFINE_CLASS_CREATOR(FEGeometryAabb);
+        DEFINE_CLASS_CREATOR(FEGeometryEllipsoidEGM);
+        DEFINE_CLASS_CREATOR(FEGeometryPRRT);
+        DEFINE_CLASS_CREATOR(FEGeometryPRCN);
+        DEFINE_CLASS_CREATOR(FEGeometryPRCP);
+        DEFINE_CLASS_CREATOR(FEGeometryPRPY);
+        DEFINE_CLASS_CREATOR(FEGeometryPRDH);
+        DEFINE_CLASS_CREATOR(FEGeometryTube);
 
         DEFINE_CLASS_CREATOR(FEImage);
         DEFINE_CLASS_CREATOR(FEBuffer);

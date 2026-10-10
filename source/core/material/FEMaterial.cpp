@@ -42,6 +42,11 @@ namespace   FE
     void    FEMaterial::appDynamicState(CMDPtr cmd,EPrimitive pri)
     {
         cmd->setPrimitiveTopology(pri);
+        /// 设置动态光栅化状态 (验证层要求: bindPipeline 后必须设置所有启用的动态状态)
+        cmd->setCullMode(pri == PRI_LINES || pri == PRI_LINE_STRIP ? CullMode::CM_NULL : CullMode::CM_BACK);
+        cmd->setDepthTest(true);
+        if (pri == PRI_LINES || pri == PRI_LINE_STRIP)
+            cmd->setLineWidth(1.0f);
         auto    pl  =   _pipelines[uint(pri)];
         if (pushConstantSize() && pushConstantData() != nullptr && pl)
         {

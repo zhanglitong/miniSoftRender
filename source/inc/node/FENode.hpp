@@ -249,6 +249,15 @@ namespace   FE
             } 
             return  *this;
         }
+        /// <summary>
+        /// 修改父节点(传 nullptr 表示提升为顶层节点)
+        /// 修改后保持场景世界变换不变,即 globalTransform 不变:
+        ///     global = parentGlobal_old * local_old = parentGlobal_new * local_new
+        ///     => local_new = inverse(parentGlobal_new) * global
+        /// </summary>
+        /// <param name="node">新父节点,nullptr 表示脱离父节点成为顶层节点</param>
+        void    reparent(FENode* node);
+
         inline  void    setName(const String& name)
         {
             _name   =   name;

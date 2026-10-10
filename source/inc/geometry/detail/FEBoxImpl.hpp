@@ -3,70 +3,36 @@
 
 namespace   FE
 {
-    class   FEBoxImpl :public FEObject
+    struct  FEParamBox
+    {
+        /// <summary>
+        /// 立方体的大小
+        /// </summary>
+        float3  _size   =   float3(1,1,1);
+        /// <summary>
+        /// 分段数量
+        /// </summary>
+        uint3   _segs   =   uint3(1,1,1);
+    };
+
+    class   FEBoxImpl
     {
     public:
-        FEBoxImpl(FEContext& ctx)
-            :FEObject(ctx)
-        {}
         uints       indices;
         floats      vertices;
         floats      normals;
         floats      uvs;
         uint32_t    numberOfVertices    =   0;
-    };
-
-    using   FEBoxImplPtr    =   SharedPtr<FEBoxImpl>;
-    /// <summary>
-    /// 妯℃澘鐨勭洰鐨勶紝闈欐€佺紪璇戯紝閬垮厤寰腑鍒ゆ柇
-    /// </summary>
-    /// <typeparam name="bNormal"></typeparam>
-    /// <typeparam name="bUV"></typeparam>
-    template<bool bNormal = true,bool bUV = true>
-    struct  TBoxHelper :public FEBoxImpl
-    {
     public:
-        float3      size;
-        uint3       segs;
-        explicit TBoxHelper(FEContext& ctx,const float3& vSize,const uint3& vSegs,bool bSphere = false)
-            :FEBoxImpl(ctx)
+        template<bool bNormal,bool bUV>
+        static  void    build(const FEParamBox& params,FEBoxImpl& result)
         {
-            this->size   =   vSize;
-            this->segs   =   vSegs;
-            build();
-            if (bSphere)    toSphere();
-        }
-    protected:
-        void    toSphere()
-        {
-            uint    len =   (uint)(vertices.size() / 3);
-            for (uint i = 0; i < len; ++i)
-            {
-                const auto  idx =   i * 3;
-                const auto  x   =   vertices[idx + 0];
-                const auto  y   =   vertices[idx + 1];
-                const auto  z   =   vertices[idx + 2];
-
-                vertices[idx + 0]     =   x * std::sqrt(1.0f - (y * y / 2.f) - (z * z / 2.f) + (y * y * z * z / 3.f));
-                vertices[idx + 1]     =   y * std::sqrt(1.0f - (z * z / 2.f) - (x * x / 2.f) + (z * z * x * x / 3.f));
-                vertices[idx + 2]     =   z * std::sqrt(1.0f - (x * x / 2.f) - (y * y / 2.f) + (x * x * y * y / 3.f));
-
-                float3  vNor(vertices[idx + 0],vertices[idx + 1],vertices[idx + 2]);
-                vNor    =   FE::normalize(vNor);
-                normals[idx + 0]     =      vNor.x;
-                normals[idx + 1]     =      vNor.y;
-                normals[idx + 2]     =      vNor.z;
-            }
-        }
-        void    build()
-        {
-            const auto  width   =   size.x;
-            const auto  height  =   size.y;
-            const auto  depth   =   size.z;
-            const auto  wSegs   =   segs.x;
-            const auto  hSegs   =   segs.y;
-            const auto  dSegs   =   segs.z;
-
+            const auto  width   =   params._size.x;
+            const auto  height  =   params._size.y;
+            const auto  depth   =   params._size.z;
+            const auto  wSegs   =   params._segs.x;
+            const auto  hSegs   =   params._segs.y;
+            const auto  dSegs   =   params._segs.z;
 
             const auto  wSeg    =   wSegs + 1;
             const auto  hSeg    =   hSegs + 1;
@@ -84,22 +50,24 @@ namespace   FE
                 +   (wSegs * dSegs)
                 +   (wSegs * hSegs)
                 +   (hSegs * hSegs);
-            vertices.reserve(nSize * 3);
-            if (bNormal)
-                normals.reserve(nSize * 3);
-            if (bUV)
-                uvs.reserve(nSize * 2);
+            result.vertices.reserve(nSize * 3);
+            if constexpr (bNormal)
+                result.normals.reserve(nSize * 3);
+            if constexpr (bUV)
+                result.uvs.reserve(nSize * 2);
 
-            indices.reserve(nIndex * 6);
+            result.indices.reserve(nIndex * 6);
 
-            buildPlane(2, 1, 0, -1, -1, depth, height, +width, dSegs, hSegs); // px
-            buildPlane(2, 1, 0, +1, -1, depth, height, -width, dSegs, hSegs); // nx
-            buildPlane(0, 2, 1, +1, +1, width, depth,  +height,wSegs, dSegs); // py
-            buildPlane(0, 2, 1, +1, -1, width, depth,  -height,wSegs, dSegs); // ny
-            buildPlane(0, 1, 2, +1, -1, width, height, +depth, wSegs, hSegs); // pz
-            buildPlane(0, 1, 2, -1, -1, width, height, -depth, wSegs, hSegs); // nz
+            buildPlane<bNormal,    bUV>(2, 1, 0, -1, -1, depth, height, +width, dSegs, hSegs, result); // px
+            buildPlane<bNormal,    bUV>(2, 1, 0, +1, -1, depth, height, -width, dSegs, hSegs, result); // nx
+            buildPlane<bNormal,    bUV>(0, 2, 1, +1, +1, width, depth,  +height,wSegs, dSegs, result); // py
+            buildPlane<bNormal,    bUV>(0, 2, 1, +1, -1, width, depth,  -height,wSegs, dSegs, result); // ny
+            buildPlane<bNormal,    bUV>(0, 1, 2, +1, -1, width, height, +depth, wSegs, hSegs, result); // pz
+            buildPlane<bNormal,    bUV>(0, 1, 2, -1, -1, width, height, -depth, wSegs, hSegs, result); // nz
         }
-        void    buildPlane(int u, int v, int w, float udir, float vdir, float width, float height, float depth, uint gridX, uint gridY)
+    protected:
+        template<bool bNormal,bool bUV>
+        static  void    buildPlane(int u, int v, int w, float udir, float vdir, float width, float height, float depth, uint gridX, uint gridY, FEBoxImpl& result)
         {
             const auto  segmentWidth     =   width / static_cast<float>(gridX);
             const auto  segmentHeight    =   height / static_cast<float>(gridY);
@@ -112,7 +80,7 @@ namespace   FE
             const auto  gridY1          =   gridY + 1;
 
             int         vertexCounter   =   0;
-           
+
             float3      vector;
             // generate vertices, normals and uvs
             for (unsigned iy = 0; iy < gridY1; iy++)
@@ -127,21 +95,21 @@ namespace   FE
                     vector[w] = depthHalf;
 
                     // now apply vector to vertex buffer
-                    vertices.insert(vertices.end(), {vector.x, vector.y, vector.z});
-                    // set values to correct vector component
+                    result.vertices.insert(result.vertices.end(), {vector.x, vector.y, vector.z});
+                    // set values to correct normal component
                     vector[u] = 0;
                     vector[v] = 0;
                     vector[w] = depth > 0 ? 1.f : -1.f;
                     // now apply vector to normal buffer
                     if constexpr (bNormal)
                     {
-                        normals.insert(normals.end(), {vector.x, vector.y, vector.z});
+                        result.normals.insert(result.normals.end(), {vector.x, vector.y, vector.z});
                     }
                     // uvs
                     if constexpr (bUV)
                     {
-                        uvs.emplace_back(static_cast<float>(ix) / static_cast<float>(gridX));
-                        uvs.emplace_back(1.0f - (static_cast<float>(iy) / static_cast<float>(gridY)));
+                        result.uvs.emplace_back(static_cast<float>(ix) / static_cast<float>(gridX));
+                        result.uvs.emplace_back(1.0f - (static_cast<float>(iy) / static_cast<float>(gridY)));
                     }
                     // counters
                     ++vertexCounter;
@@ -155,17 +123,17 @@ namespace   FE
             {
                 for (unsigned ix = 0; ix < gridX; ix++)
                 {
-                    const auto a = numberOfVertices + ix + gridX1 * iy;
-                    const auto b = numberOfVertices + ix + gridX1 * (iy + 1);
-                    const auto c = numberOfVertices + (ix + 1) + gridX1 * (iy + 1);
-                    const auto d = numberOfVertices + (ix + 1) + gridX1 * iy;
+                    const auto a = result.numberOfVertices + ix + gridX1 * iy;
+                    const auto b = result.numberOfVertices + ix + gridX1 * (iy + 1);
+                    const auto c = result.numberOfVertices + (ix + 1) + gridX1 * (iy + 1);
+                    const auto d = result.numberOfVertices + (ix + 1) + gridX1 * iy;
                     // faces
-                    indices.insert(indices.end(), {a, b, d});
-                    indices.insert(indices.end(), {b, c, d});
+                    result.indices.insert(result.indices.end(), {a, b, d});
+                    result.indices.insert(result.indices.end(), {b, c, d});
                 }
             }
             // update total number of vertices
-            numberOfVertices += vertexCounter;
+            result.numberOfVertices += vertexCounter;
         }
     };
 }

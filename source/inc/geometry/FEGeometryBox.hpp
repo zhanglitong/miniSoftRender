@@ -8,28 +8,16 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FEGeometryBox,"{B4917A28-437D-4396-A534-3F300CF2DCE1}");
 
-    struct  FE_API  FEParamBox
-    {
-        /// <summary>
-        /// 立方体的大小
-        /// </summary>
-        float3  _size   =   float3(1,1,1);
-        /// <summary>
-        /// 分段数量
-        /// </summary>
-        uint3   _segs   =   uint3(1,1,1);
-    };
-
     class   FE_API  FEGeometryBox :public TFEGeometryParam<FEParamBox>
     {
         IMPLEMENT_CLASS_REFLECT(FEGeometryBox)
     public:
         FEGeometryBox(FEContext& ctx)
-            :TFEGeometryParam<FEParamBox>(ctx)
+            : TFEGeometryParam<FEParamBox>(ctx)
         {}
 
         FEGeometryBox(const FEGeometryBox& other)
-            :TFEGeometryParam<FEParamBox>(other)
+            : TFEGeometryParam<FEParamBox>(other)
         {}
         virtual ~FEGeometryBox()
         {}
@@ -40,27 +28,27 @@ namespace   FE
         /// <returns></returns>
         virtual Mesh    triangular(const Attrs& inputs) override
         {
-            FEBoxImplPtr    ptr     =   nullptr;
-            bool            attrPos =   false;
-            bool            attrNor =   false;
-            bool            attrUV  =   false;
+            FEBoxImpl   data;
+            bool        attrPos =   false;
+            bool        attrNor =   false;
+            bool        attrUV  =   false;
             /// 获取槽对应的实际属性对象
             for (auto& var : inputs)
             {
-                if (var.slot() & (IS_VERTEX_POS) )         attrPos =    true; 
+                if (var.slot() & (IS_VERTEX_POS))          attrPos =    true;
                 if (var.slot() & (IS_VERTEX_NOR))          attrNor  =   true;
-                if (var.slot() & (IS_VERTEX_TEXCOORD0))    attrUV   =   true;
+                if (var.slot() & (IS_VERTEX_TEXCOORD0))     attrUV   =   true;
             }
             if (attrNor && attrUV)
-                ptr =   new TBoxHelper<true,    true>(_ctx,_param._size,_param._segs);
+                FEBoxImpl::build<true,    true>(_param,data);
             else if(attrNor)
-                ptr =   new TBoxHelper<true,    false>(_ctx,_param._size,_param._segs);
+                FEBoxImpl::build<true,    false>(_param,data);
             else if(attrUV)
-                ptr =   new TBoxHelper<false,   true>(_ctx,_param._size,_param._segs);
+                FEBoxImpl::build<false,   true>(_param,data);
             else
-                ptr =   new TBoxHelper<false,   false>(_ctx,_param._size,_param._segs);
+                FEBoxImpl::build<false,   false>(_param,data);
 
-            return  FEMeshBuilder::makeMesh(_ctx,inputs,ptr->vertices,ptr->normals,{},ptr->uvs,ptr->indices);
+            return  FEMeshBuilder::makeMesh(_ctx,inputs,data.vertices,data.normals,{},data.uvs,data.indices);
         }
     };
 }
