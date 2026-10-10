@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='gb2312' ?>
+<root dataPath="D:/miniSoftRender/bin/data" outPath="" singleOut="1">
+	<folder path="pipeline">
+		<file name="pipeline/computeCull.xml" input="computeCull.xml"/>
+		<file name="pipeline/pbr.xml" input="pbr.xml"/>
+		<file name="pipeline/point.xml" input="point.xml"/>
+		<file name="pipeline/v3.xml" input="v3.xml"/>
+		<file name="pipeline/v3c4.xml" input="v3c4.xml"/>
+		<file name="pipeline/v3Instance.xml" input="v3Instance.xml"/>
+	</folder>
+</root>
+

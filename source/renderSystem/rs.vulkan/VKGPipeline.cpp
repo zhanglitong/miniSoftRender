@@ -152,6 +152,17 @@ namespace   FE
             auto    state   =   system2Native(var);
             dynamicStateEnables.push_back(state);
         }
+        /// 确保光栅化动态状态始终启用 (appDynamicState 会设置这些状态)
+        auto    fnHas   =   [&](VkDynamicState s)
+        {
+            return  std::find(dynamicStateEnables.begin(), dynamicStateEnables.end(), s) != dynamicStateEnables.end();
+        };
+        if (!fnHas(VK_DYNAMIC_STATE_CULL_MODE))
+            dynamicStateEnables.push_back(VK_DYNAMIC_STATE_CULL_MODE);
+        if (!fnHas(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE))
+            dynamicStateEnables.push_back(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE);
+        if (!fnHas(VK_DYNAMIC_STATE_LINE_WIDTH))
+            dynamicStateEnables.push_back(VK_DYNAMIC_STATE_LINE_WIDTH);
 
         VkPipelineDynamicStateCreateInfo dynamicStateCI{};
         dynamicStateCI.sType                            =   VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;

@@ -7,6 +7,17 @@
 #include    "../inc/geometry/FEGeometry.hpp"
 #include    "../inc/geometry/FEGeometryParam.hpp"
 #include    "../inc/geometry/FEGeometryBox.hpp"
+#include    "../inc/geometry/FEGeometrySphere.hpp"
+#include    "../inc/geometry/FEGeometryCircle.hpp"
+#include    "../inc/geometry/FEGeometryRing.hpp"
+#include    "../inc/geometry/FEGeometryTorus.hpp"
+#include    "../inc/geometry/FEGeometryTorusKnot.hpp"
+#include    "../inc/geometry/FEGeometryAabb.hpp"
+#include    "../inc/geometry/FEGeometryEllipsoidEGM.hpp"
+#include    "../inc/geometry/FEGeometryPRRT.hpp"
+#include    "../inc/geometry/FEGeometryPRCN.hpp"
+#include    "../inc/geometry/FEGeometryPRCP.hpp"
+#include    "../inc/geometry/FEGeometryPRPY.hpp"
 #include    "../inc/FEStreamReader.hpp"
 
 #include    "../inc/mesh/FEAttribute.hpp"
@@ -69,6 +80,17 @@ namespace   FE
 
         DEFINE_CLASS_CREATOR(FEGeometry);
         DEFINE_CLASS_CREATOR(FEGeometryBox);
+        DEFINE_CLASS_CREATOR(FEGeometrySphere);
+        DEFINE_CLASS_CREATOR(FEGeometryCircle);
+        DEFINE_CLASS_CREATOR(FEGeometryRing);
+        DEFINE_CLASS_CREATOR(FEGeometryTorus);
+        DEFINE_CLASS_CREATOR(FEGeometryTorusKnot);
+        DEFINE_CLASS_CREATOR(FEGeometryAabb);
+        DEFINE_CLASS_CREATOR(FEGeometryEllipsoidEGM);
+        DEFINE_CLASS_CREATOR(FEGeometryPRRT);
+        DEFINE_CLASS_CREATOR(FEGeometryPRCN);
+        DEFINE_CLASS_CREATOR(FEGeometryPRCP);
+        DEFINE_CLASS_CREATOR(FEGeometryPRPY);
 
         DEFINE_CLASS_CREATOR(FEImage);
         DEFINE_CLASS_CREATOR(FEBuffer);
