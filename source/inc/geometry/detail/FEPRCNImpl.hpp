@@ -65,7 +65,11 @@ namespace   FE
             auto    topRot  =   fnRotTilt(params.topTiltX, params.topTiltY);
 
             uint    index   =   0;
-            std::vector<uint> botIdx(segs + 1), topIdx(segs + 1);
+            std::vector<uint> sideBotIdx(segs + 1), sideTopIdx(segs + 1);
+            std::vector<uint> capBotIdx(segs + 1), capTopIdx(segs + 1);
+
+            /// 侧面法线斜率: (bottomRadius - topRadius) / height
+            float   sideY   =   (params.bottomRadius - params.topRadius) / params.height;
 
             for (uint i = 0; i <= segs; ++i)
             {
@@ -74,32 +78,50 @@ namespace   FE
                 float   ct      =   std::cos(theta);
                 float   st      =   std::sin(theta);
 
-                /// 底面顶点 (中心在原点, y=-halfH)
+                /// 底面位置
                 float3  bp(ct * params.bottomRadius, -halfH, st * params.bottomRadius);
                 bp      =   botRot * bp;
+                /// 顶面位置
+                float3  tp(ct * params.topRadius + params.xOffset, halfH, st * params.topRadius + params.yOffset);
+                tp      =   topRot * tp + float3(params.xOffset, 0, params.yOffset) - topRot * float3(params.xOffset, 0, params.yOffset);
+
+                /// 侧面法线 (径向 + 斜率)
+                float3  sideNor =   FE::normalize(float3(ct, sideY, st));
+
+                /// 侧面底顶点 (径向法线)
+                vs.insert(vs.end(),{bp.x, bp.y, bp.z});
+                if constexpr (bNormal) ns.insert(ns.end(),{sideNor.x, sideNor.y, sideNor.z});
+                if constexpr (bUV)     us.insert(us.end(),{t, 0});
+                sideBotIdx[i]   =   index++;
+
+                /// 侧面顶顶点 (径向法线)
+                vs.insert(vs.end(),{tp.x, tp.y, tp.z});
+                if constexpr (bNormal) ns.insert(ns.end(),{sideNor.x, sideNor.y, sideNor.z});
+                if constexpr (bUV)     us.insert(us.end(),{t, 1});
+                sideTopIdx[i]   =   index++;
+
+                /// 封口底顶点 (法线朝下)
                 float3  bn  =   botRot * float3(0, -1, 0);
                 vs.insert(vs.end(),{bp.x, bp.y, bp.z});
                 if constexpr (bNormal) ns.insert(ns.end(),{bn.x, bn.y, bn.z});
                 if constexpr (bUV)     us.insert(us.end(),{t, 0});
-                botIdx[i]   =   index++;
+                capBotIdx[i]   =   index++;
 
-                /// 顶面顶点 (中心偏移, y=+halfH)
-                float3  tp(ct * params.topRadius + params.xOffset, halfH, st * params.topRadius + params.yOffset);
-                tp      =   topRot * tp + float3(params.xOffset, 0, params.yOffset) - topRot * float3(params.xOffset, 0, params.yOffset);
+                /// 封口顶顶点 (法线朝上)
                 float3  tn  =   topRot * float3(0, 1, 0);
                 vs.insert(vs.end(),{tp.x, tp.y, tp.z});
                 if constexpr (bNormal) ns.insert(ns.end(),{tn.x, tn.y, tn.z});
                 if constexpr (bUV)     us.insert(us.end(),{t, 1});
-                topIdx[i]   =   index++;
+                capTopIdx[i]   =   index++;
             }
 
             /// 侧面
             for (uint i = 0; i < segs; ++i)
             {
-                uint    b0 = botIdx[i], b1 = botIdx[i+1];
-                uint    t0 = topIdx[i], t1 = topIdx[i+1];
-                ids.insert(ids.end(),{b0, b1, t0});
-                ids.insert(ids.end(),{b1, t1, t0});
+                uint    b0 = sideBotIdx[i], b1 = sideBotIdx[i+1];
+                uint    t0 = sideTopIdx[i], t1 = sideTopIdx[i+1];
+                ids.insert(ids.end(),{b0, t0, b1});
+                ids.insert(ids.end(),{b1, t0, t1});
             }
 
             /// 底面封口
@@ -110,7 +132,7 @@ namespace   FE
             index++;
             for (uint i = 0; i < segs; ++i)
             {
-                ids.insert(ids.end(),{botCenter, botIdx[i+1], botIdx[i]});
+                ids.insert(ids.end(),{botCenter, capBotIdx[i], capBotIdx[i+1]});
             }
 
             /// 顶面封口
@@ -121,7 +143,7 @@ namespace   FE
             index++;
             for (uint i = 0; i < segs; ++i)
             {
-                ids.insert(ids.end(),{topCenter, topIdx[i], topIdx[i+1]});
+                ids.insert(ids.end(),{topCenter, capTopIdx[i+1], capTopIdx[i]});
             }
         }
     };

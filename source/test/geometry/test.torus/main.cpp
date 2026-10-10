@@ -103,7 +103,7 @@ int     main(int argc, char** argv)
             pMat->data()._value._emissive =   float4(0.45f, 0.15f, 0.55f, 1.0f);
             pMat->data().update();
             node->setMaterial(pMat);
-            node->setLocalRotation(quatr(glm::radians(real3(30.0, 0.0, 0.0))));
+            //node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
             node->makeDirty();
             node->update();
             scene->dispatchNodesToSystem({node});

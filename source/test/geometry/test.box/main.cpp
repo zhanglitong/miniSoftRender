@@ -117,7 +117,7 @@ int     main(int argc, char** argv)
             pMat->data().update();
             node->setMaterial(pMat);
             /// 稍微旋转以呈现多个面,更具立体感
-            node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
+            //node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
             node->makeDirty();
             node->update();
             /// 分发到渲染工厂并显示

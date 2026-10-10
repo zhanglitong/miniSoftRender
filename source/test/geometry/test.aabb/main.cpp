@@ -1,4 +1,4 @@
-/// test.aabb
+﻿/// test.aabb
 /// 包围盒(FEGeometryAabb)线框绘制测试:
 ///   1. 创建引擎 + 渲染窗口
 ///   2. 用 FEGeometryAabb 按 pos+color 生成包围盒 mesh,校验几何非空
@@ -93,7 +93,7 @@ int     main(int argc, char** argv)
             FEMaterialV3C4* pMat  =   new FEMaterialV3C4(ctx);
             node->setMaterial(pMat);
 
-            node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
+            //node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
             node->makeDirty();
             node->update();
             scene->dispatchNodesToSystem({node});

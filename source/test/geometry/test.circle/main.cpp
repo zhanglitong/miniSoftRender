@@ -102,7 +102,7 @@ int     main(int argc, char** argv)
             pMat->data().update();
             node->setMaterial(pMat);
             /// 圆形在 XY 平面,旋转使其面向相机
-            node->setLocalRotation(quatr(glm::radians(real3(90.0, 0.0, 0.0))));
+            //node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
             node->makeDirty();
             node->update();
             scene->dispatchNodesToSystem({node});

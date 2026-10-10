@@ -18,6 +18,7 @@
 #include    "../inc/geometry/FEGeometryPRCN.hpp"
 #include    "../inc/geometry/FEGeometryPRCP.hpp"
 #include    "../inc/geometry/FEGeometryPRPY.hpp"
+#include    "../inc/geometry/FEGeometryPRDH.hpp"
 #include    "../inc/FEStreamReader.hpp"
 
 #include    "../inc/mesh/FEAttribute.hpp"
@@ -91,6 +92,7 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEGeometryPRCN);
         DEFINE_CLASS_CREATOR(FEGeometryPRCP);
         DEFINE_CLASS_CREATOR(FEGeometryPRPY);
+        DEFINE_CLASS_CREATOR(FEGeometryPRDH);
 
         DEFINE_CLASS_CREATOR(FEImage);
         DEFINE_CLASS_CREATOR(FEBuffer);

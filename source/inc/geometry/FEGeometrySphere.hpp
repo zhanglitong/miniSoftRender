@@ -35,9 +35,9 @@ namespace   FE
             /// 获取槽对应的实际属性对象
             for (auto& var : inputs)
             {
-                if (var.slot() & (IS_VERTEX_POS))          attrPos =    true;
+                if (var.slot() & (IS_VERTEX_POS))          attrPos  =   true;
                 if (var.slot() & (IS_VERTEX_NOR))          attrNor  =   true;
-                if (var.slot() & (IS_VERTEX_TEXCOORD0))     attrUV   =   true;
+                if (var.slot() & (IS_VERTEX_TEXCOORD0))    attrUV   =   true;
             }
             if (attrNor && attrUV)
                 FESphereImpl::build<true,    true>(_param,data);

@@ -96,8 +96,8 @@ namespace   FE
                     uint    b   =   grid[y][x+1];
                     uint    c   =   grid[y+1][x];
                     uint    d   =   grid[y+1][x+1];
-                    ids.insert(ids.end(),{a, c, b});
-                    ids.insert(ids.end(),{b, c, d});
+                    ids.insert(ids.end(),{a, b, c});
+                    ids.insert(ids.end(),{b, d, c});
                 }
             }
 
@@ -112,7 +112,7 @@ namespace   FE
 
             for (uint x = 0; x < rSegs; ++x)
             {
-                ids.insert(ids.end(),{baseCenter, grid[hSegs][x+1], grid[hSegs][x]});
+                ids.insert(ids.end(),{baseCenter, grid[hSegs][x], grid[hSegs][x+1]});
             }
         }
     };

@@ -1,4 +1,4 @@
-/// test.prcp
+﻿/// test.prcp
 /// 球冠体(FEGeometryPRCP)绘制测试:
 ///   1. 创建引擎 + 渲染窗口
 ///   2. 用 FEGeometryPRCP 按 pos/nor/uv 生成球冠体 mesh,校验几何非空
@@ -103,7 +103,7 @@ int     main(int argc, char** argv)
             pMat->data().update();
             node->setMaterial(pMat);
 
-            node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
+            //node->setLocalRotation(quatr(glm::radians(real3(22.0, 38.0, 0.0))));
             node->makeDirty();
             node->update();
             scene->dispatchNodesToSystem({node});
