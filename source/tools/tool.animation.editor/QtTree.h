@@ -49,6 +49,14 @@ namespace   FE
             item.flags().addFlag(FE::FLAG_SELECTED);
         else
             item.flags().removeFlag(FE::FLAG_SELECTED);
+        /// 对 FENode: FLAG_SELECTED 改变会影响 renderBits(), 需要打 FLAG_PROP_STATE
+        /// 让 FEFactoryRender 更新 instance buffer 到 GPU, shader 才能看到 RF_SELECTED
+        auto*   node    =   item.cast<FENode>();
+        if (node)
+        {
+            node->flags().addFlag(FENode::FLAG_PROP_STATE);
+            node->fireChanged();
+        }
     }
 
     static  bool    isVisible(FEObject& item)

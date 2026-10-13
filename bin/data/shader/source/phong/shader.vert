@@ -11,6 +11,9 @@ layout  (location = 3)  in  vec3    trans;
 layout  (location = 4)  in  vec3    scale;
 /// 旋转四元数
 layout  (location = 5)  in  vec4    rot;
+/// instance node color + flag bits (用于选中高亮)
+layout  (location = 6)  in  vec4    nodeColor;
+layout  (location = 7)  in  uint    flagBits;
 
 
 layout (binding = SB_Camera) uniform CameraBlock
@@ -20,6 +23,8 @@ layout (binding = SB_Camera) uniform CameraBlock
 
 layout (location = 0) out vec3 outWorld;
 layout (location = 1) out vec3 outNormal;
+layout (location = 2) out vec4 outNodeColor;
+layout (location = 3) flat out uint outFlagBits;
 
 void main()
 {
@@ -31,6 +36,8 @@ void main()
     vec4    world       =   aModel * vec4(aPos, 1.0);
     outNormal           =   normalize(mat3(aModel) * aNormal);
     outWorld            =   world.xyz;
+    outNodeColor        =   nodeColor;
+    outFlagBits         =   flagBits;
     gl_Position         =   _camera._offsetVp * localOffset * vec4(aPos, 1.0);
     ///
     gl_PointSize        =   1.0;

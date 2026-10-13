@@ -1085,13 +1085,28 @@ namespace   FE
             if (_refreshCb) _refreshCb(*this, true);
             return;
         }
-        /// 清子树 FLAG_SELECTED(避免假选中)
+        /// 清子树 FLAG_SELECTED(避免假选中) + 打 FLAG_PROP_STATE 触发 GPU instance 更新
         _node->flags().removeFlag(FE::FLAG_SELECTED);
         _node->traverseObject([](const FEObject& obj, const FEObject&, const FEObject::FETrvsCtx&, uint)->bool
         {
-            const_cast<FEObject&>(obj).flags().removeFlag(FE::FLAG_SELECTED);
+            auto& mutableObj = const_cast<FEObject&>(obj);
+            mutableObj.flags().removeFlag(FE::FLAG_SELECTED);
+            auto* n = mutableObj.cast<FENode>();
+            if (n)
+            {
+                n->flags().addFlag(FENode::FLAG_PROP_STATE);
+                n->fireChanged();
+            }
             return  true;
         });
+        {
+            auto* n = _node->cast<FENode>();
+            if (n)
+            {
+                n->flags().addFlag(FENode::FLAG_PROP_STATE);
+                n->fireChanged();
+            }
+        }
         auto    scene   =   _node->ctx().scene();
         if (scene)
         {

@@ -131,8 +131,12 @@ namespace   FE
         /// 获取渲染状态
         /// </summary>
         /// <returns></returns>
+        /// <summary>
+        /// 从 NodeFlag 计算 RenderFlag, 每次先重置再重算, 避免 addFlag 累积
+        /// </summary>
         inline  auto    renderBits()
         {
+            _renderBits = RenderFlags();
             if (flags().hasFlag(FLAG_VISIBLE))          _renderBits.addFlag(RF_VISIBLE);
             if (flags().hasFlag(FLAG_PROP_COLOR))       _renderBits.addFlag(RF_COLOR);
             if (flags().hasFlag(FLAG_SELECTED))         _renderBits.addFlag(RF_SELECTED);

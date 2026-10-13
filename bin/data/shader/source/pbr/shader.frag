@@ -31,7 +31,7 @@ void main()
 {
     fragColor       =   vec4(0,0,0,1);
     vec3    diff    =   hasNodeColor(inFlagBits) ? inNodeColor.rgb : _pbr._diffuse.rgb;
-    int numLights = _lights.length();
+    int numLights   =   _lights.length();
     for(int i = 0; i < numLights; ++i)
     {
         vec3    lDir    =   vec3(_lights[i].x,_lights[i].y,_lights[i].z);
