@@ -5,25 +5,34 @@
 namespace   FE
 {
     /// <summary>
-    /// 3D 二次贝塞尔曲线, 移植自 three.js r160 extras/curves/QuadraticBezierCurve3.js
+    /// 3D 二次贝塞尔曲线模板, 移植自 three.js r160 extras/curves/QuadraticBezierCurve3.js
     /// B(t) = (1-t)^2 v0 + 2(1-t)t v1 + t^2 v2
+    /// 模板参数 T: 浮点类型(float/double)
     /// </summary>
-    class   FEQuadraticBezierCurve3 : public FECurve
+    template<typename T>
+    class   FEQuadraticBezierCurve3T : public FECurveT<T>
     {
     public:
-        float3  v0  =   float3(0, 0, 0);
-        float3  v1  =   float3(0, 0, 0);
-        float3  v2  =   float3(0, 0, 0);
+        using   Point   =   tvec3<T>;
 
-        FEQuadraticBezierCurve3() =   default;
-        FEQuadraticBezierCurve3(const float3& p0, const float3& p1, const float3& p2)
+        Point   v0  =   Point(T(0), T(0), T(0));
+        Point   v1  =   Point(T(0), T(0), T(0));
+        Point   v2  =   Point(T(0), T(0), T(0));
+
+        FEQuadraticBezierCurve3T() =   default;
+        FEQuadraticBezierCurve3T(const Point& p0, const Point& p1, const Point& p2)
             : v0(p0), v1(p1), v2(p2)
         {}
 
-        virtual float3  getPoint(float t) const override
+        virtual Point   getPoint(T t) const override
         {
-            float   it  =   1.0f - t;
-            return  it * it * v0 + 2.0f * it * t * v1 + t * t * v2;
+            T   it  =   T(1) - t;
+            return  it * it * v0 + T(2) * it * t * v1 + t * t * v2;
         }
     };
+
+    /// 单精度别名 (向后兼容)
+    using   FEQuadraticBezierCurve3   =   FEQuadraticBezierCurve3T<float>;
+    /// 双精度别名
+    using   FEQuadraticBezierCurve3D  =   FEQuadraticBezierCurve3T<double>;
 }

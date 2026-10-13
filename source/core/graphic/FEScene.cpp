@@ -121,7 +121,8 @@ namespace   FE
         {
             _cmdPool    =   _device->graphicCmdPool();
         }
-        _camera     =   new FECamera(_ctx,real3(0,0,0),real3(0,0,-2.5),real3(1,0,0));
+        /// 默认相机: 位于 +Z 侧, 看向原点(-Z 方向), up=+Y, 保证右手坐标系 Z 向上
+        _camera     =   new FECamera(_ctx,real3(0,0,0),real3(0,0,2.5),real3(1,0,0));
         _camera->setUp(real3(0,1,0));
         _camera->perspective(DEG2RAD(45), float(app->cInfo()._width) / float(app->cInfo()._height), 0.05f, 256.0f);
         _camera->update();

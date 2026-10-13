@@ -44,6 +44,15 @@ public:
     void    setCurFrame(const int& frame, bool applyToAnim = true);
     /// 获取当前时间线时间(秒)
     double  curTime() const  { return _curFrame / double(_fps); }
+
+    /// <summary>
+    /// 外部增删关键帧后刷新时间线:通知场景并重绘当前帧
+    /// </summary>
+    void    refreshKeyframes()
+    {
+        emit    sigKeyframesChanged();
+        setCurFrame(_curFrame);
+    }
    
     void    toPreKeyframe();
     void    toFirstKeyframe();

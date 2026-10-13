@@ -5,30 +5,39 @@
 namespace   FE
 {
     /// <summary>
-    /// 3D 直线段, 移植自 three.js r160 extras/curves/LineCurve3.js
+    /// 3D 直线段模板, 移植自 three.js r160 extras/curves/LineCurve3.js
+    /// 模板参数 T: 浮点类型(float/double)
     /// </summary>
-    class   FELineCurve3 : public FECurve
+    template<typename T>
+    class   FELineCurve3T : public FECurveT<T>
     {
     public:
-        float3  v1  =   float3(0, 0, 0);
-        float3  v2  =   float3(0, 0, 0);
+        using   Point   =   tvec3<T>;
 
-        FELineCurve3()  =   default;
-        FELineCurve3(const float3& p1, const float3& p2)
+        Point   v1  =   Point(T(0), T(0), T(0));
+        Point   v2  =   Point(T(0), T(0), T(0));
+
+        FELineCurve3T()  =   default;
+        FELineCurve3T(const Point& p1, const Point& p2)
             : v1(p1), v2(p2)
         {}
 
-        virtual float3  getPoint(float t) const override
+        virtual Point   getPoint(T t) const override
         {
-            if (t == 1.0f)
+            if (t == T(1))
                 return  v2;
             return  v1 + (v2 - v1) * t;
         }
 
         /// 直线的弧长参数与 t 一致
-        virtual float3  getTangent(float /*t*/) const override
+        virtual Point   getTangent(T /*t*/) const override
         {
             return  FE::normalize(v2 - v1);
         }
     };
+
+    /// 单精度别名 (向后兼容)
+    using   FELineCurve3   =   FELineCurve3T<float>;
+    /// 双精度别名
+    using   FELineCurve3D  =   FELineCurve3T<double>;
 }

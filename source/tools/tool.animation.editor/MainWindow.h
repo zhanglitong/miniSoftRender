@@ -11,6 +11,7 @@
 #include    "UndoCommand.h"
 
 class   MainWindow;
+class   UiProperties;
 extern  MainWindow* _mainApp;
 
 enum    ImageIndex
@@ -104,6 +105,20 @@ public:
     {
         return _undoStack;
     }
+    /// 时间线当前时间(秒),供属性面板取关键帧时间
+    double  curTime() const;
+    /// AUTO 自动插帧开关
+    bool    autoKeyframe() const;
+    /// 刷新属性面板(选中变化/undo redo/关键帧增删后)
+    void    noticeUpdatePropsUi();
+    /// undo/redo 回调期间屏蔽属性控件实时写关键帧
+    void    blockRealtimeUpdate(bool block);
+    /// 刷新动画树
+    void    refreshAnimTree();
+    /// 刷新时间线与场景关键帧状态
+    void    refreshTimeline();
+    /// 刷新模型树(节点增删/重挂/排序后)
+    void    refreshModelTree();
 public slots:
     void    slotImportModel();
     void    slotOpenProject();
@@ -116,11 +131,25 @@ public slots:
     void    slotMoveEditor();
     void    slotRotEditor();
     void    slotScaleEditor();
+    /// 时间线游标移动:刷新属性面板轨道勾选态
+    void    slotPropsCurTimeChanged(double curTime);
+    /// 重置 Dock 布局
+    void    slotResetLayout();
 private:
     /// <summary>
     /// 禁用动画系统中所有动画(标记为不可播放/不可编辑)
     /// </summary>
     void    disableAllAnimations();
+    /// 重挂父节点(模型树拖拽嵌入/顶层/跨父前/后),newParent 为空表示提升到顶层
+    bool    ctxReparentNode(FE::FENode* node, FE::FENode* newParent);
+    /// 同父兄弟排序(模型树拖拽前/后插入)
+    void    ctxReorderNode(FE::FENode* node, FE::FENode* target, bool after);
+    /// 复制节点到剪贴板(存源引用,setCutNode 清状态)
+    void    ctxCopyNode(FE::FENode* node);
+    /// 剪切节点到剪贴板(存源引用,setCutNode 半透明绘制)
+    void    ctxCutNode(FE::FENode* node);
+    /// 粘贴: 剪切=重挂当前选中下(移动),复制=克隆为源父兄弟(PasteNodeCmd)
+    void    ctxPasteNode(FE::FENode* node);
 protected:
     /// <summary>
     /// 引擎启动后通知，函数内可以对依赖引擎的组件模块进行初始化
@@ -137,4 +166,10 @@ protected:
     Ui::MainWindow  ui;
     /// 移动编辑器拖拽期间暂存的旧位置 (EditStart 快照,EditEnd 时消费)
     std::vector<FE::MoveNodeCmd::ObjectMove>  _moveSnapshots;
+    /// 属性面板(嵌入 widget_properties 占位容器)
+    UiProperties*   _propsUi    =   nullptr;
+    /// 剪贴板: 复制/剪切保存的源节点引用(保活),粘贴时据此克隆或移动
+    FE::Node        _clipNode;
+    /// 剪贴板模式: true=剪切(粘贴后清空),false=复制(可多次粘贴)
+    bool            _clipCut    =   false;
 };

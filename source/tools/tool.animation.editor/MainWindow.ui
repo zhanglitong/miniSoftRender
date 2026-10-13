@@ -262,6 +262,51 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QComboBox" name="axisPosType">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="toolTip">
+          <string>坐标轴位置(待支持)</string>
+         </property>
+         <item>
+          <property name="text">
+           <string>左上</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="axisTransformType">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="toolTip">
+          <string>轴向变换方式(待支持)</string>
+         </property>
+         <item>
+          <property name="text">
+           <string>局部</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="tansformCenterType">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="toolTip">
+          <string>变换中心(待支持)</string>
+         </property>
+         <item>
+          <property name="text">
+           <string>轴心</string>
+          </property>
+         </item>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -297,6 +342,7 @@
     <property name="title">
      <string>设置</string>
     </property>
+    <addaction name="action_resetLayout"/>
    </widget>
    <widget class="QMenu" name="menu_4">
     <property name="title">
@@ -335,6 +381,7 @@
    <addaction name="action_move"/>
    <addaction name="action_rotation"/>
    <addaction name="action_scale"/>
+   <addaction name="action_pick"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_modelTree">
    <property name="minimumSize">
@@ -971,7 +1018,7 @@
              <number>2</number>
             </property>
             <item>
-             <widget class="QSpinBox" name="spinBox_currentTime">
+             <widget class="IntEditingSpinBox" name="spinBox_currentTime">
               <property name="prefix">
                <string>当前：</string>
               </property>
@@ -981,7 +1028,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_minTime">
+             <widget class="IntEditingSpinBox" name="spinBox_minTime">
               <property name="prefix">
                <string>起始：</string>
               </property>
@@ -991,7 +1038,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_maxTime">
+             <widget class="IntEditingSpinBox" name="spinBox_maxTime">
               <property name="prefix">
                <string>结束：</string>
               </property>
@@ -1253,6 +1300,28 @@
     <string>模型缩放</string>
    </property>
   </action>
+  <action name="action_pick">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>拾取</string>
+   </property>
+   <property name="toolTip">
+    <string>点选拾取(待支持)</string>
+   </property>
+  </action>
+  <action name="action_resetLayout">
+   <property name="text">
+    <string>重置布局</string>
+   </property>
+   <property name="toolTip">
+    <string>恢复默认 Dock 布局</string>
+   </property>
+  </action>
   <action name="action_undo">
    <property name="icon">
     <iconset resource="main.qrc">
@@ -1344,6 +1413,11 @@
    <class>AnimationTree</class>
    <extends>QTreeView</extends>
    <header>AnimationTree.h</header>
+  </customwidget>
+  <customwidget>
+   <class>IntEditingSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>PropsUi.h</header>
   </customwidget>
  </customwidgets>
  <resources>

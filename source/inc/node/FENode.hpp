@@ -1,5 +1,6 @@
 #pragma     once
 
+#include    <cstddef>   // size_t, SIZE_MAX
 #include    "../FEItem.hpp"
 #include    "../FEObjectHelper.hpp"
 #include    "../FEString.hpp"
@@ -235,7 +236,8 @@ namespace   FE
         ///     => local_new = inverse(parentGlobal_new) * global
         /// </summary>
         /// <param name="node">新父节点,nullptr 表示脱离父节点成为顶层节点</param>
-        void    reparent(FENode* node);
+        /// <param name="index">插入到新父子节点列表的位置(SIZE_MAX=追加末尾,与 V3 CELLNode::reparent 签名一致)</param>
+        void    reparent(FENode* node, size_t index = SIZE_MAX);
 
         inline  void    setName(const String& name)
         {

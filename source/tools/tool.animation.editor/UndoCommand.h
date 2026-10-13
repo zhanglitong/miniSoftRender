@@ -4,6 +4,7 @@
 #include    <vector>
 
 #include    "node/FENode.hpp"
+#include    "FEPropertyIndex.hpp"
 #include    "animation/FEKeyFrameTrack.hpp"
 #include    "animation/FEAnimClip.hpp"
 #include    "animation/FEAnimation.hpp"
@@ -302,5 +303,159 @@ namespace   FE
         static  void    setPosition(Object obj, const real3& pos);
     private:
         ObjectMoves _moves;
+    };
+
+    /// <summary>
+    /// 节点标量属性编辑命令(属性面板:位置/旋转欧拉角/缩放/显隐)
+    /// 旋转属性引擎 setProperty(PROP_ROTATE_X/Y/Z) 暂未实现,
+    /// 命令内部按欧拉角(度)重建四元数后写回 localRotation
+    /// redo: 写入新值; undo: 恢复旧值
+    /// </summary>
+    class NodePropsCmd : public QUndoCommand
+    {
+    public:
+        struct PropChange
+        {
+            PropIndex   prop    =   0;
+            real        oldVal  =   0;
+            real        newVal  =   0;
+        };
+        using PropChanges = std::vector<PropChange>;
+    public:
+        NodePropsCmd(Node node, PropChanges&& changes, std::function<void()> refreshCb, QUndoCommand* parent = nullptr);
+    public:
+        virtual void    redo() override;
+        virtual void    undo() override;
+        /// 读取节点标量属性(位置/缩放/旋转欧拉角度/显隐 0/1)
+        static  real    readProp(Node node, PropIndex prop);
+        /// 写入节点标量属性(旋转走四元数重建,显隐走 FLAG_VISIBLE)
+        static  void    writeProp(Node node, PropIndex prop, real val);
+    private:
+        Node                    _node;
+        PropChanges             _changes;
+        std::function<void()>   _refreshCb;
+    };
+
+    /// <summary>
+    /// 单个属性轨道关键帧增删命令(属性面板行尾轨道勾选框)
+    /// add=true:  redo 勾选加帧 / undo 删帧
+    /// add=false: redo 取消勾选删帧(带快照) / undo 恢复
+    /// 目标轨道优先精确轴轨道(如 PROP_TRANSFORM_X),不存在时回退 XYZ 组合轨道
+    /// 目标轨道整体缺失时按属性组补建轨道(空 clip 同样补建)
+    /// </summary>
+    class PropertyKeyCmd : public QUndoCommand
+    {
+    public:
+        PropertyKeyCmd(Node node, Animation anim, PropIndex prop, real time, bool add
+            , std::function<void()> refreshCb, QUndoCommand* parent = nullptr);
+    public:
+        virtual void    redo() override;
+        virtual void    undo() override;
+        /// 查找属性对应的目标轨道(精确轴轨道 -> XYZ 组合轨道)
+        static  KeyFrameTracks  targetTracks(Animation anim, PropIndex prop);
+        /// 时间线时间 time 处目标轨道是否已有关键帧
+        static  bool            hasKeyAt(Animation anim, PropIndex prop, real time);
+        /// addNodeKeyFrame 使用的位标记:存在精确轨道用轴位,否则用 XYZ 组位
+        static  uint32          helperBit(Animation anim, PropIndex prop);
+        /// 属性所属轨道组的位标记(用于补建轨道)
+        static  NodeProperyBit  groupBit(PropIndex prop);
+    private:
+        void    doAdd();
+        void    doRemoveAdded();
+        void    doCaptureRemove();
+        void    doRestore();
+        struct Snapshot
+        {
+            KeyFrameTrack   track;
+            real            time    =   0;
+            KFValue         val;
+        };
+    private:
+        Node                    _node;
+        Animation               _anim;
+        PropIndex               _prop;
+        real                    _time;
+        bool                    _add;
+        /// 本次勾选是否补建了轨道(undo 时需清理空轨道)
+        bool                    _createdTracks      =   false;
+        /// 补建的轨道指针,用于精确清理
+        KeyFrameTracks          _createdTrackPtrs;
+        std::vector<Snapshot>   _snapshots;
+        std::function<void()>   _refreshCb;
+    };
+
+    /// <summary>
+    /// 重挂父节点命令(模型树拖拽调整层级),支持 undo/redo
+    /// FE::FENode::reparent 单参且不处理顶层节点表:
+    ///   - reparent(nullptr) 仅从旧父摘除,不会加入 topLevelNodes,故"提升到顶层"需 reparent+addToplevelNode;
+    ///   - reparent(newParent) 当旧为顶层时不会从 topLevelNodes 摘除,故跨父(顶层->子)需先 removeToplevelNode。
+    /// 命令按 _oldTopLevel 分支处理上述两种边界。reparent 内部保持世界变换。
+    /// 顶层节点索引在 undo 时无法精确恢复(FENodeTree 无 insertAt 接口),追加到末尾。
+    /// </summary>
+    class ReparentNodeCmd : public QUndoCommand
+    {
+    public:
+        ReparentNodeCmd(Node node, FENode* newParent, std::function<void()> cb, QUndoCommand* parent = nullptr);
+    public:
+        virtual void    redo() override;
+        virtual void    undo() override;
+    private:
+        Node                    _node;
+        FENode*                 _newParent;
+        /// 原父节点(保活,空=原顶层)
+        Node                    _oldParent;
+        /// 原是否顶层节点
+        bool                    _oldTopLevel   =   false;
+        /// 原在父/顶层列表中的索引(undo 尽力恢复位置,顶层仅记录)
+        size_t                  _oldIndex      =   0;
+        /// 旧世界变换(reparent 已保持世界变换,此处冗余备份以应对 redo/undo 间节点被移动)
+        real3                   _oldTrans;
+        quatr                   _oldRot;
+        real3                   _oldScale;
+        std::function<void()>   _refreshCb;
+    };
+
+    /// <summary>
+    /// 同层级排序命令(模型树拖拽调整兄弟顺序),支持 undo/redo
+    /// FE 无 nodeIndex/insertChild,同父排序靠手动操作 parent->children() 向量:
+    ///   erase 拖拽节点,insert 到目标位置;不调 onAddChild/onRemoveChild,刷新靠 refreshCb 调 modelTree->update()
+    /// </summary>
+    class ReorderNodeCmd : public QUndoCommand
+    {
+    public:
+        ReorderNodeCmd(Node node, FENode* targetSibling, bool after, std::function<void()> cb, QUndoCommand* parent = nullptr);
+    public:
+        virtual void    redo() override;
+        virtual void    undo() override;
+    private:
+        Node                    _node;
+        Node                    _parent;
+        size_t                  _oldIndex   =   0;
+        size_t                  _newIndex   =   0;
+        std::function<void()>   _refreshCb;
+    };
+
+    /// <summary>
+    /// 粘贴节点命令(Ctrl+C 后 Ctrl+V 复制粘贴),支持 undo/redo
+    /// redo: 从剪贴板源深拷贝克隆(clone 完整子树+组件,mesh/material 共享),
+    ///       清子树 FLAG_SELECTED,挂接到目标父(空=顶层),dispatchNodesToSystem 注册渲染;
+    /// undo: nodeTree->removeNode 摘除 + 遍历 factoryMgr 各工厂 removeNode 清渲染(FEScene 未订阅 eventsRemoveNode),
+    ///       释放克隆。剪贴板源节点由 MainWindow 持有保活。
+    /// </summary>
+    class PasteNodeCmd : public QUndoCommand
+    {
+    public:
+        PasteNodeCmd(Node clipSource, FENode* parent, std::function<void(PasteNodeCmd&,bool)> cb, QUndoCommand* parentCmd = nullptr);
+    public:
+        virtual void    redo() override;
+        virtual void    undo() override;
+        /// 获取最近一次 redo 克隆出的新节点(undo 后为空;push 同步执行 redo,可用于粘贴后选中)
+        Node            node() const { return _node; }
+        FENode*         parent() const { return _parent; }
+    private:
+        Node                    _clipSource;
+        FENode*                 _parent;
+        Node                    _node;
+        std::function<void(PasteNodeCmd&,bool)> _refreshCb;
     };
 }
