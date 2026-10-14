@@ -1,7 +1,7 @@
 /// tool.resource.cc Compiler V1.0.0.0
 /// tool.resource.cc Copyright 2018-2024 PR Inc All rights reserved !
 /// Warning! All changes made in this file will be lost!
-/// Build Time 2026-09-29 08:55:53.524
+/// Build Time 2026-10-10 21:35:47.536
 
 #include "../inc/FEAssetsMgr.h"
 #pragma warning(push)
@@ -10,11 +10,11 @@
 
 
 
-/// D:/miniSoftRender/bin/data/buildIn/readme.txt
+/// E:/miniSoftRender/bin/data/buildIn/readme.txt
 namespace  FE
 {
-   unsigned int    _D6vminiSoftRendervbinvdatavbuildInvreadmeutxt_len      =   0;
-   unsigned char   _D6vminiSoftRendervbinvdatavbuildInvreadmeutxt[]    =   
+   unsigned int    _E6vminiSoftRendervbinvdatavbuildInvreadmeutxt_len      =   0;
+   unsigned char   _E6vminiSoftRendervbinvdatavbuildInvreadmeutxt[]    =   
    { 
        0x00,
    };
@@ -30,7 +30,7 @@ namespace FE
    public:
        CLASS_coreufers()
        {
-            FE::FEAssetsMgr::instance().addBuffer("buildIn/readme.txt",_D6vminiSoftRendervbinvdatavbuildInvreadmeutxt,_D6vminiSoftRendervbinvdatavbuildInvreadmeutxt_len,false);
+            FE::FEAssetsMgr::instance().addBuffer("buildIn/readme.txt",_E6vminiSoftRendervbinvdatavbuildInvreadmeutxt,_E6vminiSoftRendervbinvdatavbuildInvreadmeutxt_len,false);
 
        }
    };

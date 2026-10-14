@@ -30,7 +30,7 @@ namespace   FE
             /// <summary>
             /// 添加对象
             /// </summary>
-            FLAG_ADD_CHILD      =   ((FE::FLAG_LAST)    <<1),
+            FLAG_ADD_CHILD      =   ((FE::FLAG_LAST)    <<0),
             /// <summary>
             /// 移除对象
             /// </summary>
@@ -76,6 +76,7 @@ namespace   FE
             FLAG_RECV_LIGHTING  =   (FLAG_RECV_SHADOW   << 1),
             FLAG_EFFECT_AO      =   (FLAG_RECV_LIGHTING << 1),
             FLAG_EFFECT_BLOOM   =   (FLAG_EFFECT_AO     << 1),
+            
         };
         enum    EModify
         {
@@ -235,18 +236,16 @@ namespace   FE
 
         /// <summary>
         /// 设置 从世界到节点的缩放变换
-        /// 本地缩放 = 目标世界缩放 / 父链累计缩放(逐轴换算)
+        /// 本地缩放 = 目标世界缩放 / 父链世界缩放(逐轴换算)
         /// </summary>
         /// <param name="vec">从世界到节点的缩放变换</param>
         inline  auto&   setGlobalScaling(const real3& vec)
         {
             if (_parent != nullptr)
             {
-                /// 父链累计缩放(逐轴累乘,与 localScaling 同口径)
-                real3   ps(1.0);
-                for (auto p = _parent; p != nullptr; p = p->_parent)
-                    ps  =   ps * real3(p->_local._scale);
-                _local._scale  =   real3(vec.x / ps.x, vec.y / ps.y, vec.z / ps.z);
+                /// 父链的全局缩放
+                real3   ps      =   _parent->_gloabal.scale();
+                _local._scale   =   real3(vec.x / ps.x, vec.y / ps.y, vec.z / ps.z);
             }
             else
             {
