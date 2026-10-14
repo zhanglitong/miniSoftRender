@@ -66,6 +66,18 @@ namespace   FE
 
         virtual FEResult    updateBuffer(GPUBuffer,const void* src,uint64 length,uint64 dstOff) override;
 
+        virtual FEResult    fillBuffer(GPUBuffer buf, uint64 dstOff, uint64 size, uint32 value) override
+        {
+            (void)buf; (void)dstOff; (void)size; (void)value;
+            return FEResult::ER_FAILED;  // WebGPU OIT 暂未实现
+        }
+        virtual FEResult    pipelineBarrier(uint32 srcStageMask, uint32 dstStageMask,
+                                             uint32 srcAccessMask, uint32 dstAccessMask) override
+        {
+            (void)srcStageMask; (void)dstStageMask; (void)srcAccessMask; (void)dstAccessMask;
+            return FEResult::ER_FAILED;  // WebGPU OIT 暂未实现
+        }
+
         virtual FEResult    draw(uint32_t firstVertex,uint32_t vertexCount,uint32_t firstInstance,uint32_t instanceCount) override;
 
         virtual FEResult    drawIndex(uint32_t firstIndex,uint32_t indexCount,int32_t vertexOffset,uint32_t firstInstance,uint32_t instanceCount) override;

@@ -5,6 +5,8 @@
 #include    <QWidget>
 #include    <QScrollBar>
 #include    <QMenu>
+#include    <QTimer>
+#include    <QLineEdit>
 
 #include    "FEObject.h"
 #include    "node/FENode.hpp"
@@ -47,6 +49,14 @@ namespace   FE
             item.flags().addFlag(FE::FLAG_SELECTED);
         else
             item.flags().removeFlag(FE::FLAG_SELECTED);
+        /// 对 FENode: FLAG_SELECTED 改变会影响 renderBits(), 需要打 FLAG_PROP_STATE
+        /// 让 FEFactoryRender 更新 instance buffer 到 GPU, shader 才能看到 RF_SELECTED
+        auto*   node    =   item.cast<FENode>();
+        if (node)
+        {
+            node->flags().addFlag(FENode::FLAG_PROP_STATE);
+            node->fireChanged();
+        }
     }
 
     static  bool    isVisible(FEObject& item)
@@ -141,7 +151,22 @@ namespace   FE
     /// 参数选择的item集合，可以多选,第二个参数通知是否是多选状态
     /// </summary>
     using   EventSelects            =   FETMultiDelegate<void(Object,bool)>;
-    using   EventLButtonDbClickeds  =   FETMultiDelegate<void(const int2&,Object)>;  
+    using   EventLButtonDbClickeds  =   FETMultiDelegate<void(const int2&,Object)>;
+
+    /// 拖拽投放模式
+    enum    DropMode
+    {
+        DM_None,
+        /// 嵌入目标: 成为目标节点子节点
+        DM_Into,
+        /// 同级排序: 插到目标之前
+        DM_Before,
+        /// 同级排序: 插到目标之后
+        DM_After,
+        /// 空白区域: 移到顶层
+        DM_Top,
+    };
+
     /// <summary>
     /// 关于快速索引算法,之前采用记录已经展开的节点的方式
     /// </summary>
@@ -173,6 +198,28 @@ namespace   FE
         int2            _upPos;
         QPixmap         _icon;
         QScrollBar*     _vScrollBar  =   nullptr;
+        /// 剪切待粘贴的节点(整行内容半透明绘制区分,粘贴/状态清除后置空)
+        Object          _cutItem        =   nullptr;
+        /// 左键按下的潜在拖拽节点(仅 FENode 可拖)
+        Object          _dragItem       =   nullptr;
+        /// 拖拽是否已激活(超过系统拖拽距离阈值)
+        bool            _dragging       =   false;
+        /// 拖拽当前光标位置
+        QPoint          _dragPos;
+        /// 当前投放目标(空表示移动到顶层)
+        Object          _dropTarget     =   nullptr;
+        /// 当前投放是否合法(非法目标/控件外为 false)
+        bool            _dropValid      =   false;
+        /// 当前投放模式(三区判定结果: 指示线绘制/投放信号语义)
+        DropMode        _dropMode       =   DM_None;
+        /// 拖拽自动滚动定时器(光标贴近视口上/下边缘时周期滚动)
+        QTimer*         _autoScrollTimer    =   nullptr;
+        /// 每次自动滚动步长(像素,负值向上,越靠边越快)
+        int             _autoScrollStep     =   0;
+        /// 内联重命名编辑器(F2 激活,覆盖当前选中行的文本区域)
+        QLineEdit*      _renameEditor       =   nullptr;
+        /// 正在重命名的节点(仅 FENode)
+        Object          _renameItem         =   nullptr;
     public:
         QtTree(QWidget* parent = nullptr);
         
@@ -200,6 +247,8 @@ namespace   FE
             else
                 return  {};
         }
+        /// 当前选中项(可为 null)
+        Object  currentItem() const { return _curItem; }
         /// <summary>
         /// 根节点
         /// </summary>
@@ -235,6 +284,20 @@ namespace   FE
         {
             return  _contextItem;
         }
+        /// 设置剪切待粘贴节点(模型树中该行内容半透明绘制区分);传空清除剪切状态
+        void    setCutNode(Object node)
+        {
+            _cutItem    =   node;
+            update();
+        }
+        /// 编程式选中节点(粘贴/重挂后调用): 与鼠标点选等效,同步 _curItem 并广播事件
+        void    selectNode(Object item)
+        {
+            if (item)
+                selectItem(*item);
+        }
+        /// 按控件坐标反查行节点(未命中返回空)
+        Object  itemAt(const QPoint& pt) const;
         /// <summary>
         /// 重写计算窗口滚动信息
         /// </summary>
@@ -317,11 +380,30 @@ namespace   FE
         /// 隐藏模型
         /// </summary>
         void    hideModel(FEObject& item);
+        /// 拖拽投放合法性(按投放模式): 空目标=顶层;同父嵌入=修改父节点(恒合法),
+        /// 同父前/后=兄弟排序(顺序无变化则非法);跨父嵌入/前/后恒合法;禁止自身/后代(防成环)
+        bool    canDropOn(Object target, DropMode mode) const;
+        /// 拖拽自动滚动: 光标进入视口上/下边缘区域后周期滚动,越靠边速度越快
+        void    updateAutoScroll();
+        /// 根据当前光标位置重新计算投放目标/模式/合法性
+        void    updateDropState();
+        /// 自动滚动定时器触发: 执行滚动并刷新投放判定
+        void    onAutoScrollTimeout();
+        /// 绘制拖拽视觉: 跟随光标的拖拽图像(图标+名称)、目标行高亮/插入线/顶层指示线
+        void    drawDragVisual(QPainter& hDC);
+        /// 开始内联重命名(F2 激活,覆盖当前选中行文本区域)
+        void    startRename();
+        /// 提交重命名: 名称变化时发信号通知主窗口(undo 命令)
+        void    commitRename();
+        /// 取消重命名: 销毁编辑器并清空状态
+        void    cancelRename();
     protected:
+        /// 键盘快捷键: Ctrl+C 复制 / Ctrl+X 剪切 / Ctrl+V 粘贴 / Esc 取消 / F2 重命名
+        void    keyPressEvent(QKeyEvent *event) override;
         int     getVScroll();
         int     getHScroll();
         void    drawItem(QPainter& hDC, ItemData& item, int x, int y);
-        void    paintItem(QPainter& hDC,FEObject& item,int& x,int& y,int parentIndex,int& rowIndex);
+        void    paintItem(QPainter& hDC,FEObject& item,int& x,int& y,int parentIndex,int& rowIndex,bool parMatch=false);
     protected:
         void    paintEvent(QPaintEvent *event)              override ;
         void    mousePressEvent(QMouseEvent *event)         override ;
@@ -338,6 +420,20 @@ namespace   FE
         void    repaintItem();
         void    signalLButtonDbClicked(const QPoint& pt,Object node);
         void    signalContextMenu(const QPoint& pt,Object node);
+        /// 拖拽投放完成: node 按投放模式挂接(嵌入/前后插入/顶层),仅本控件内部拖拽
+        void    signalNodeDropped(Object node, Object target, DropMode mode);
+        /// 复制节点到剪贴板(Ctrl+C,仅 FENode)
+        void    signalCopyNode(Object node);
+        /// 剪切节点到剪贴板(Ctrl+X,仅 FENode)
+        void    signalCutNode(Object node);
+        /// 请求粘贴(Ctrl+V): 源节点与粘贴位置由主窗口剪贴板状态决定
+        void    signalPasteNode();
+        /// Esc 取消剪切: 主窗口清空剪贴板,树恢复节点正常绘制
+        void    signalCancelCut();
+        /// F2 重命名请求: 参数为节点与新名称,主窗口创建 RenameNodeCmd
+        void    signalRenameRequested(Object node, const QString& newName);
+        /// 树节点选择变化通知
+        void    signalSelect(Object node);
     };
 }
 

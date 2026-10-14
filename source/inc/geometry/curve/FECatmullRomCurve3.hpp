@@ -7,89 +7,96 @@ namespace   FE
     namespace   detail
     {
         /// <summary>
-        /// 三次多项式 p(s) = c0 + c1 s + c2 s^2 + c3 s^3
+        /// 三次多项式模板 p(s) = c0 + c1 s + c2 s^2 + c3 s^3
         /// 移植自 three.js r160 CatmullRomCurve3.js 内部 CubicPoly
+        /// 模板参数 T: 浮点类型(float/double)
         /// </summary>
-        struct  FECubicPoly
+        template<typename T>
+        struct  FECubicPolyT
         {
-            float   c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+            T   c0 = T(0), c1 = T(0), c2 = T(0), c3 = T(0);
 
             /// p(0)=x0, p(1)=x1, p'(0)=t0, p'(1)=t1
-            void    init(float x0, float x1, float t0, float t1)
+            void    init(T x0, T x1, T t0, T t1)
             {
                 c0  =   x0;
                 c1  =   t0;
-                c2  =   -3.0f * x0 + 3.0f * x1 - 2.0f * t0 - t1;
-                c3  =   2.0f * x0 - 2.0f * x1 + t0 + t1;
+                c2  =   T(-3) * x0 + T(3) * x1 - T(2) * t0 - t1;
+                c3  =   T(2) * x0 - T(2) * x1 + t0 + t1;
             }
 
-            void    initCatmullRom(float x0, float x1, float x2, float x3, float tension)
+            void    initCatmullRom(T x0, T x1, T x2, T x3, T tension)
             {
                 init(x1, x2, tension * (x2 - x0), tension * (x3 - x1));
             }
 
-            void    initNonuniformCatmullRom(float x0, float x1, float x2, float x3,
-                                             float dt0, float dt1, float dt2)
+            void    initNonuniformCatmullRom(T x0, T x1, T x2, T x3,
+                                             T dt0, T dt1, T dt2)
             {
                 /// [t1,t2] 参数化下的端点切线
-                float   t1  =   (x1 - x0) / dt0 - (x2 - x0) / (dt0 + dt1) + (x2 - x1) / dt1;
-                float   t2  =   (x2 - x1) / dt1 - (x3 - x1) / (dt1 + dt2) + (x3 - x2) / dt2;
+                T   t1  =   (x1 - x0) / dt0 - (x2 - x0) / (dt0 + dt1) + (x2 - x1) / dt1;
+                T   t2  =   (x2 - x1) / dt1 - (x3 - x1) / (dt1 + dt2) + (x3 - x2) / dt2;
                 /// 缩放回 [0,1] 参数域
                 t1  *=  dt1;
                 t2  *=  dt1;
                 init(x1, x2, t1, t2);
             }
 
-            float   calc(float t) const
+            T   calc(T t) const
             {
-                float   t2  =   t * t;
-                float   t3  =   t2 * t;
+                T   t2  =   t * t;
+                T   t3  =   t2 * t;
                 return  c0 + c1 * t + c2 * t2 + c3 * t3;
             }
         };
     }
 
     /// <summary>
-    /// 3D Catmull-Rom 样条, 移植自 three.js r160 extras/curves/CatmullRomCurve3.js
+    /// 3D Catmull-Rom 样条模板, 移植自 three.js r160 extras/curves/CatmullRomCurve3.js
     /// 支持向心(centripetal)/弦长(chordal)/均匀(uniform)参数化
+    /// 模板参数 T: 浮点类型(float/double)
     /// </summary>
-    class   FECatmullRomCurve3 : public FECurve
+    template<typename T>
+    class   FECatmullRomCurve3T : public FECurveT<T>
     {
     public:
-        float3s             points;
+        using   Point   =   tvec3<T>;
+        using   Points  =   std::vector<Point>;
+
+        Points              points;
         bool                closed      =   false;
         FECatmullRomType    curveType   =   FECatmullRomType::Centripetal;
-        float               tension     =   0.5f;
+        T                   tension     =   T(0.5);
 
-        FECatmullRomCurve3() =   default;
-        FECatmullRomCurve3(const float3s& controlPoints,
+        FECatmullRomCurve3T() =   default;
+        FECatmullRomCurve3T(const Points& controlPoints,
                            bool closeCurve = false,
                            FECatmullRomType type = FECatmullRomType::Centripetal,
-                           float ten = 0.5f)
+                           T ten = T(0.5))
             : points(controlPoints), closed(closeCurve), curveType(type), tension(ten)
         {}
 
-        virtual float3  getPoint(float t) const override
+        virtual Point   getPoint(T t) const override
         {
-            const float3s&  pts =   points;
+            const Points&   pts =   points;
             const size_t    l   =   pts.size();
 
-            float   p           =   (float)(l - (closed ? 0 : 1)) * t;
-            int     intPoint    =   (int)std::floor(p);
-            float   weight      =   p - (float)intPoint;
+            T   p           =   static_cast<T>(l - (closed ? 0 : 1)) * t;
+            int intPoint    =   static_cast<int>(std::floor(p));
+            T   weight      =   p - static_cast<T>(intPoint);
 
             if (closed)
             {
                 if (intPoint < 0)
-                    intPoint   +=   (int)(((size_t)std::floor(std::abs((float)intPoint) / (float)l) + 1) * l);
+                    intPoint   +=   static_cast<int>(((size_t)std::floor(std::abs(static_cast<T>(intPoint)) / static_cast<T>(l)) + 1) * l);
             }
-            else if (weight == 0.0f && intPoint == (int)l - 1)
+            else if (weight == T(0) && intPoint == static_cast<int>(l) - 1)
             {
-                intPoint    =   (int)l - 2;
-                weight      =   1.0f;
+                intPoint    =   static_cast<int>(l) - 2;
+                weight      =   T(1);
             }
 
-            float3  p0, p3;
+            Point   p0, p3;
             if (closed || intPoint > 0)
             {
                 p0  =   pts[((size_t)intPoint - 1) % l];
@@ -100,8 +107,8 @@ namespace   FE
                 p0  =   pts[0] + (pts[0] - pts[1]);
             }
 
-            float3  p1  =   pts[(size_t)intPoint % l];
-            float3  p2  =   pts[((size_t)intPoint + 1) % l];
+            Point   p1  =   pts[(size_t)intPoint % l];
+            Point   p2  =   pts[((size_t)intPoint + 1) % l];
 
             if (closed || (size_t)intPoint + 2 < l)
             {
@@ -113,20 +120,20 @@ namespace   FE
                 p3  =   pts[l - 1] + (pts[l - 1] - pts[l - 2]);
             }
 
-            detail::FECubicPoly px, py, pz;
+            detail::FECubicPolyT<T> px, py, pz;
 
             if (curveType == FECatmullRomType::Centripetal || curveType == FECatmullRomType::Chordal)
             {
-                float   powv    =   (curveType == FECatmullRomType::Chordal) ? 0.5f : 0.25f;
+                T   powv    =   (curveType == FECatmullRomType::Chordal) ? T(0.5) : T(0.25);
 
-                float   dt0 =   std::pow(FE::distance2(p0, p1), powv);
-                float   dt1 =   std::pow(FE::distance2(p1, p2), powv);
-                float   dt2 =   std::pow(FE::distance2(p2, p3), powv);
+                T   dt0 =   std::pow(FE::distance2(p0, p1), powv);
+                T   dt1 =   std::pow(FE::distance2(p1, p2), powv);
+                T   dt2 =   std::pow(FE::distance2(p2, p3), powv);
 
                 /// 重复点保护
-                if (dt1 < 1e-4f) dt1 =   1.0f;
-                if (dt0 < 1e-4f) dt0 =   dt1;
-                if (dt2 < 1e-4f) dt2 =   dt1;
+                if (dt1 < T(1e-4)) dt1 =   T(1);
+                if (dt0 < T(1e-4)) dt0 =   dt1;
+                if (dt2 < T(1e-4)) dt2 =   dt1;
 
                 px.initNonuniformCatmullRom(p0.x, p1.x, p2.x, p3.x, dt0, dt1, dt2);
                 py.initNonuniformCatmullRom(p0.y, p1.y, p2.y, p3.y, dt0, dt1, dt2);
@@ -139,7 +146,12 @@ namespace   FE
                 pz.initCatmullRom(p0.z, p1.z, p2.z, p3.z, tension);
             }
 
-            return  float3(px.calc(weight), py.calc(weight), pz.calc(weight));
+            return  Point(px.calc(weight), py.calc(weight), pz.calc(weight));
         }
     };
+
+    /// 单精度别名 (向后兼容)
+    using   FECatmullRomCurve3   =   FECatmullRomCurve3T<float>;
+    /// 双精度别名
+    using   FECatmullRomCurve3D  =   FECatmullRomCurve3T<double>;
 }

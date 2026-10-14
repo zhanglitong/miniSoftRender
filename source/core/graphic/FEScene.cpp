@@ -121,7 +121,8 @@ namespace   FE
         {
             _cmdPool    =   _device->graphicCmdPool();
         }
-        _camera     =   new FECamera(_ctx,real3(0,0,0),real3(0,0,-2.5),real3(1,0,0));
+        /// 默认相机: 位于 +Z 侧, 看向原点(-Z 方向), up=+Y, 保证右手坐标系 Z 向上
+        _camera     =   new FECamera(_ctx,real3(0,0,0),real3(0,0,2.5),real3(1,0,0));
         _camera->setUp(real3(0,1,0));
         _camera->perspective(DEG2RAD(45), float(app->cInfo()._width) / float(app->cInfo()._height), 0.05f, 256.0f);
         _camera->update();
@@ -342,14 +343,77 @@ namespace   FE
         rsInfo._clearColor  =   float4(0,0,0,1);
         rsInfo._rect.set(0,0,width,height);
 
-        _frame->_cmd->beginRender(rsInfo);
+        auto    cmd = _frame->_cmd;
 
-        for (auto viewer : _viewerMgr.objects())
+        if (_oitManager)
         {
-            FEFramInfo  info    =  {0,_frame->_cmd};
-            viewer->onMessage(MsgRender(info));
+            // ===== OIT: 三趟渲染 =====
+
+            // 1. 每帧清零 OIT SSBO
+            _oitManager->resetFrame(cmd);
+            _oitManager->barrierToGeometry(cmd);
+
+            // 2. 主趟：不透明物体（清 color + depth，写入不透明深度供几何趟遮挡测试）
+            FEOITManager::setPass(FEOITManager::OITPass::MAIN);
+            cmd->beginRender(rsInfo);
+            for (auto viewer : _viewerMgr.objects())
+            {
+                FEFramInfo  info = {0, cmd};
+                viewer->onMessage(MsgRender(info));
+            }
+            cmd->endRender(rsInfo);
+
+            // 3. 几何趟：透明物体收集进链表（无 color 输出，depth LOAD 保留不透明深度）
+            FEOITManager::setPass(FEOITManager::OITPass::LIST);
+            FECmdBuffer::RenderInfo geoInfo = rsInfo;
+            geoInfo._skipColor  =   true;
+            geoInfo._loadDepth  =   true;   // depthTest ON / depthWrite OFF，测不透明深度
+            cmd->beginRender(geoInfo);
+            for (auto viewer : _viewerMgr.objects())
+            {
+                FEFramInfo  info = {0, cmd};
+                viewer->onMessage(MsgRender(info));
+            }
+            cmd->endRender(geoInfo);
+            FEOITManager::setPass(FEOITManager::OITPass::NONE);
+
+            // 4. Barrier：Geometry Pass 写完 SSBO → Color Pass 读取
+            _oitManager->barrierToColor(cmd);
+
+            // 5. 合成趟：color LOAD（保留主趟画面），画全屏三角形从链表合成透明层
+            FECmdBuffer::RenderInfo compInfo    =   rsInfo;
+            compInfo._loadColor =   true;
+            compInfo._skipDepth =   true;   // 合成不做深度测试
+            cmd->beginRender(compInfo);
+
+            auto colorPipeline = _oitManager->colorPipeline();
+            auto colorDSets    = _oitManager->colorDSets();
+            if (colorPipeline && !colorDSets.empty())
+            {
+                cmd->bindPipeline(colorPipeline);
+                FECmdBuffer::DSetBind dBind;
+                dBind.plBindPoint   = PL_GRAPIC;
+                dBind.plLayout      = colorPipeline->nativeLayout();
+                dBind.firstSet      = 0;
+                dBind.dSets         = colorDSets;
+                cmd->bindDescriptors(dBind);
+                cmd->draw(0, 3, 0, 1);   // 全屏三角形（顶点在 VS 里展开）
+            }
+
+            cmd->endRender(compInfo);
         }
-        _frame->_cmd->endRender(rsInfo);
+        else
+        {
+            // ===== 默认单趟渲染 =====
+            cmd->beginRender(rsInfo);
+
+            for (auto viewer : _viewerMgr.objects())
+            {
+                FEFramInfo  info    =  {0, cmd};
+                viewer->onMessage(MsgRender(info));
+            }
+            cmd->endRender(rsInfo);
+        }
         
     }
     void    FEScene::onFrameEnd()

@@ -507,104 +507,112 @@ namespace   FE
     };
     template<FEFormat fmt>
     struct  TypeOfFormat
-    {};
+    {
+        /// 标记自身格式,供switch调用点把FMT透传给转换内核
+        static  constexpr   FEFormat    value   =   fmt;
+    };
 
-    template<>  struct TypeOfFormat<FMT_R8_UNORM            >   { using type    =   uint8_t;    };
-    template<>  struct TypeOfFormat<FMT_R8_SNORM            >   { using type    =   int8_t;     };
-    template<>  struct TypeOfFormat<FMT_R8_USCALED          >   { using type    =   uint8_t;    };
-    template<>  struct TypeOfFormat<FMT_R8_SSCALED          >   { using type    =   int8_t;     };
-    template<>  struct TypeOfFormat<FMT_R8_UINT             >   { using type    =   uint8_t;    };
-    template<>  struct TypeOfFormat<FMT_R8_SINT             >   { using type    =   int8_t;     };
-    template<>  struct TypeOfFormat<FMT_R4G4_UNORM          >   { using type    =   uint8_t;    };
+    /// 特化宏: 每个特化携带存储类型type与自身格式value
+    #define FE_TYPE_OF_FORMAT(FMT,T)  template<>  struct TypeOfFormat<FMT>  { using type    =   T;  static  constexpr   FEFormat    value   =   FMT;  };
 
-    template<>  struct TypeOfFormat<FMT_R8G8_UNORM          >   { using type    =   uint8x2;    };
-    template<>  struct TypeOfFormat<FMT_R8G8_SNORM          >   { using type    =   int8x2;     };
-    template<>  struct TypeOfFormat<FMT_R8G8_USCALED        >   { using type    =   uint8x2;    };
-    template<>  struct TypeOfFormat<FMT_R8G8_SSCALED        >   { using type    =   int8x2;     };
-    template<>  struct TypeOfFormat<FMT_R8G8_UINT           >   { using type    =   uint8x2;    };
-    template<>  struct TypeOfFormat<FMT_R8G8_SINT           >   { using type    =   int8x2;     };
+    FE_TYPE_OF_FORMAT(FMT_R8_UNORM            ,uint8_t)
+    FE_TYPE_OF_FORMAT(FMT_R8_SNORM            ,int8_t )
+    FE_TYPE_OF_FORMAT(FMT_R8_USCALED          ,uint8_t)
+    FE_TYPE_OF_FORMAT(FMT_R8_SSCALED          ,int8_t )
+    FE_TYPE_OF_FORMAT(FMT_R8_UINT             ,uint8_t)
+    FE_TYPE_OF_FORMAT(FMT_R8_SINT             ,int8_t )
+    FE_TYPE_OF_FORMAT(FMT_R4G4_UNORM          ,uint8_t)
 
-    template<>  struct TypeOfFormat<FMT_R4G4B4A4_UNORM      >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_B4G4R4A4_UNORM      >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_R5G6B5_UNORM        >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_B5G6R5_UNORM        >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_R5G5B5A1_UNORM      >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_B5G5R5A1_UNORM      >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_A1R5G5B5_UNORM      >   { using type    =   uint16_t;   };
+    FE_TYPE_OF_FORMAT(FMT_R8G8_UNORM          ,uint8x2)
+    FE_TYPE_OF_FORMAT(FMT_R8G8_SNORM          ,int8x2 )
+    FE_TYPE_OF_FORMAT(FMT_R8G8_USCALED        ,uint8x2)
+    FE_TYPE_OF_FORMAT(FMT_R8G8_SSCALED        ,int8x2 )
+    FE_TYPE_OF_FORMAT(FMT_R8G8_UINT           ,uint8x2)
+    FE_TYPE_OF_FORMAT(FMT_R8G8_SINT           ,int8x2 )
 
-    template<>  struct TypeOfFormat<FMT_R8G8B8_UNORM        >   { using type    =   uint8x3;    };
-    template<>  struct TypeOfFormat<FMT_R8G8B8_SNORM        >   { using type    =   int8x3;     };
-    template<>  struct TypeOfFormat<FMT_R8G8B8_USCALED      >   { using type    =   uint8x3;    };
-    template<>  struct TypeOfFormat<FMT_R8G8B8_SSCALED      >   { using type    =   int8x3;     };
-    template<>  struct TypeOfFormat<FMT_R8G8B8_UINT         >   { using type    =   uint8x3;    };
-    template<>  struct TypeOfFormat<FMT_R8G8B8_SINT         >   { using type    =   int8x3;     };
+    FE_TYPE_OF_FORMAT(FMT_R4G4B4A4_UNORM      ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_B4G4R4A4_UNORM      ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_R5G6B5_UNORM        ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_B5G6R5_UNORM        ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_R5G5B5A1_UNORM      ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_B5G5R5A1_UNORM      ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_A1R5G5B5_UNORM      ,uint16_t)
 
-    template<>  struct TypeOfFormat<FMT_R8G8B8A8_UNORM      >   { using type    =   uint8x4;    };
-    template<>  struct TypeOfFormat<FMT_R8G8B8A8_SNORM      >   { using type    =   int8x4;     };
-    template<>  struct TypeOfFormat<FMT_R8G8B8A8_USCALED    >   { using type    =   uint8x4;    };
-    template<>  struct TypeOfFormat<FMT_R8G8B8A8_SSCALED    >   { using type    =   int8x4;     };
-    template<>  struct TypeOfFormat<FMT_R8G8B8A8_UINT       >   { using type    =   uint8x4;    };
-    template<>  struct TypeOfFormat<FMT_R8G8B8A8_SINT       >   { using type    =   int8x4;     };
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8_UNORM        ,uint8x3)
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8_SNORM        ,int8x3 )
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8_USCALED      ,uint8x3)
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8_SSCALED      ,int8x3 )
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8_UINT         ,uint8x3)
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8_SINT         ,int8x3 )
 
-    template<>  struct TypeOfFormat<FMT_A2B10G10R10_UNORM   >   { using type    =   uint32_t;   };
-    template<>  struct TypeOfFormat<FMT_A2B10G10R10_SNORM   >   { using type    =   uint32_t;   };
-    template<>  struct TypeOfFormat<FMT_A2B10G10R10_USCALED >   { using type    =   uint32_t;   };
-    template<>  struct TypeOfFormat<FMT_A2B10G10R10_SSCALED >   { using type    =   uint32_t;   };
-    template<>  struct TypeOfFormat<FMT_A2B10G10R10_UINT    >   { using type    =   uint32_t;   };
-    template<>  struct TypeOfFormat<FMT_A2B10G10R10_SINT    >   { using type    =   uint32_t;   };
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8A8_UNORM      ,uint8x4)
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8A8_SNORM      ,int8x4 )
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8A8_USCALED    ,uint8x4)
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8A8_SSCALED    ,int8x4 )
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8A8_UINT       ,uint8x4)
+    FE_TYPE_OF_FORMAT(FMT_R8G8B8A8_SINT       ,int8x4 )
 
-    template<>  struct TypeOfFormat<FMT_R16_UNORM           >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_R16_SNORM           >   { using type    =   int16_t ;   };
-    template<>  struct TypeOfFormat<FMT_R16_USCALED         >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_R16_SSCALED         >   { using type    =   int16_t ;   };
-    template<>  struct TypeOfFormat<FMT_R16_UINT            >   { using type    =   uint16_t;   };
-    template<>  struct TypeOfFormat<FMT_R16_SINT            >   { using type    =   int16_t ;   };
+    FE_TYPE_OF_FORMAT(FMT_A2B10G10R10_UNORM   ,uint32_t)
+    FE_TYPE_OF_FORMAT(FMT_A2B10G10R10_SNORM   ,uint32_t)
+    FE_TYPE_OF_FORMAT(FMT_A2B10G10R10_USCALED ,uint32_t)
+    FE_TYPE_OF_FORMAT(FMT_A2B10G10R10_SSCALED ,uint32_t)
+    FE_TYPE_OF_FORMAT(FMT_A2B10G10R10_UINT    ,uint32_t)
+    FE_TYPE_OF_FORMAT(FMT_A2B10G10R10_SINT    ,uint32_t)
 
-    template<>  struct TypeOfFormat<FMT_R16G16_UNORM        >   { using type    =   uint16x2;   };
-    template<>  struct TypeOfFormat<FMT_R16G16_SNORM        >   { using type    =   int16x2 ;   };
-    template<>  struct TypeOfFormat<FMT_R16G16_USCALED      >   { using type    =   uint16x2;   };
-    template<>  struct TypeOfFormat<FMT_R16G16_SSCALED      >   { using type    =   int16x2 ;   };
-    template<>  struct TypeOfFormat<FMT_R16G16_UINT         >   { using type    =   uint16x2;   };
-    template<>  struct TypeOfFormat<FMT_R16G16_SINT         >   { using type    =   int16x2 ;   };
+    FE_TYPE_OF_FORMAT(FMT_R16_UNORM           ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_R16_SNORM           ,int16_t )
+    FE_TYPE_OF_FORMAT(FMT_R16_USCALED         ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_R16_SSCALED         ,int16_t )
+    FE_TYPE_OF_FORMAT(FMT_R16_UINT            ,uint16_t)
+    FE_TYPE_OF_FORMAT(FMT_R16_SINT            ,int16_t )
 
-    template<>  struct TypeOfFormat<FMT_R16G16B16_UNORM     >   { using type    =   uint16x3;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16_SNORM     >   { using type    =   int16x3 ;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16_USCALED   >   { using type    =   uint16x3;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16_SSCALED   >   { using type    =   int16x3 ;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16_UINT      >   { using type    =   uint16x3;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16_SINT      >   { using type    =   int16x3 ;   };
+    FE_TYPE_OF_FORMAT(FMT_R16G16_UNORM        ,uint16x2)
+    FE_TYPE_OF_FORMAT(FMT_R16G16_SNORM        ,int16x2 )
+    FE_TYPE_OF_FORMAT(FMT_R16G16_USCALED      ,uint16x2)
+    FE_TYPE_OF_FORMAT(FMT_R16G16_SSCALED      ,int16x2 )
+    FE_TYPE_OF_FORMAT(FMT_R16G16_UINT         ,uint16x2)
+    FE_TYPE_OF_FORMAT(FMT_R16G16_SINT         ,int16x2 )
 
-    template<>  struct TypeOfFormat<FMT_R16G16B16A16_UNORM  >   { using type    =   uint16x4;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16A16_SNORM  >   { using type    =   int16x4 ;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16A16_USCALED>   { using type    =   uint16x4;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16A16_SSCALED>   { using type    =   int16x4 ;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16A16_UINT   >   { using type    =   uint16x4;   };
-    template<>  struct TypeOfFormat<FMT_R16G16B16A16_SINT   >   { using type    =   int16x4 ;   };
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16_UNORM     ,uint16x3)
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16_SNORM     ,int16x3 )
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16_USCALED   ,uint16x3)
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16_SSCALED   ,int16x3 )
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16_UINT      ,uint16x3)
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16_SINT      ,int16x3 )
 
-    template<>  struct TypeOfFormat<FMT_R32_UINT            >   { using type    =   uint32_t;   };
-    template<>  struct TypeOfFormat<FMT_R32_SINT            >   { using type    =   int32_t;    };
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16A16_UNORM  ,uint16x4)
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16A16_SNORM  ,int16x4 )
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16A16_USCALED,uint16x4)
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16A16_SSCALED,int16x4 )
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16A16_UINT   ,uint16x4)
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16A16_SINT   ,int16x4 )
 
-    template<>  struct TypeOfFormat<FMT_R32G32_UINT         >   { using type    =   uint32x2;   };
-    template<>  struct TypeOfFormat<FMT_R32G32_SINT         >   { using type    =   int32x2 ;   };
+    FE_TYPE_OF_FORMAT(FMT_R32_UINT            ,uint32_t)
+    FE_TYPE_OF_FORMAT(FMT_R32_SINT            ,int32_t )
 
-    template<>  struct TypeOfFormat<FMT_R32G32B32_UINT      >   { using type    =   uint32x3;   };
-    template<>  struct TypeOfFormat<FMT_R32G32B32_SINT      >   { using type    =   int32x3 ;   };
+    FE_TYPE_OF_FORMAT(FMT_R32G32_UINT         ,uint32x2)
+    FE_TYPE_OF_FORMAT(FMT_R32G32_SINT         ,int32x2 )
 
-    template<>  struct TypeOfFormat<FMT_R32G32B32A32_UINT   >   { using type    =   uint32x4;   };
-    template<>  struct TypeOfFormat<FMT_R32G32B32A32_SINT   >   { using type    =   int32x4 ;   };
+    FE_TYPE_OF_FORMAT(FMT_R32G32B32_UINT      ,uint32x3)
+    FE_TYPE_OF_FORMAT(FMT_R32G32B32_SINT      ,int32x3 )
 
-    template<>  struct TypeOfFormat<FMT_R16_FLOAT           >   { using type    =   half;       };
-    template<>  struct TypeOfFormat<FMT_R16G16_FLOAT        >   { using type    =   half2;      };
-    template<>  struct TypeOfFormat<FMT_R16G16B16_FLOAT     >   { using type    =   half3;      };
-    template<>  struct TypeOfFormat<FMT_R16G16B16A16_FLOAT  >   { using type    =   half4;      };
+    FE_TYPE_OF_FORMAT(FMT_R32G32B32A32_UINT   ,uint32x4)
+    FE_TYPE_OF_FORMAT(FMT_R32G32B32A32_SINT   ,int32x4 )
 
-    template<>  struct TypeOfFormat<FMT_R32_FLOAT           >   { using type    =   float;      };
-    template<>  struct TypeOfFormat<FMT_R32G32_FLOAT        >   { using type    =   float2;     };
-    template<>  struct TypeOfFormat<FMT_R32G32B32_FLOAT     >   { using type    =   float3;     };
-    template<>  struct TypeOfFormat<FMT_R32G32B32A32_FLOAT  >   { using type    =   float4;     }; 
+    FE_TYPE_OF_FORMAT(FMT_R16_FLOAT           ,half    )
+    FE_TYPE_OF_FORMAT(FMT_R16G16_FLOAT        ,half2   )
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16_FLOAT     ,half3   )
+    FE_TYPE_OF_FORMAT(FMT_R16G16B16A16_FLOAT  ,half4   )
 
-    template<>  struct TypeOfFormat<FMT_D16_UNORM           >   { using type    =   float16;    };
-    template<>  struct TypeOfFormat<FMT_D32_UNORM           >   { using type    =   float;      };
-    template<>  struct TypeOfFormat<FMT_D32_S8_UNORM        >   { using type    =   float2;     };
+    FE_TYPE_OF_FORMAT(FMT_R32_FLOAT           ,float   )
+    FE_TYPE_OF_FORMAT(FMT_R32G32_FLOAT        ,float2  )
+    FE_TYPE_OF_FORMAT(FMT_R32G32B32_FLOAT     ,float3  )
+    FE_TYPE_OF_FORMAT(FMT_R32G32B32A32_FLOAT  ,float4  )
+
+    FE_TYPE_OF_FORMAT(FMT_D16_UNORM           ,float16 )
+    FE_TYPE_OF_FORMAT(FMT_D32_UNORM           ,float   )
+    FE_TYPE_OF_FORMAT(FMT_D32_S8_UNORM        ,float2  )
+
+    #undef  FE_TYPE_OF_FORMAT
 
 }

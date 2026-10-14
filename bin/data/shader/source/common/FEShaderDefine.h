@@ -89,17 +89,21 @@ const   int     LightTypeSpot   =   2;
 
 #define CULL_GROUP_X    256
 
+/// <summary>
+/// RenderFlag 必须保证 C++ enum 和 GLSL const 的 bit 完全一致,
+/// 每个 flag 独占 1 bit, 从 1<<0 依次排下去, 避免链式 <<1 导致的位碰撞
+/// </summary>
 #ifdef __cplusplus
     enum    RenderFlag
     {
-        RF_VISIBLE          =   1,
-        RF_RECV_SHADOW      =   (RF_VISIBLE)        <<1,
-        RF_CAST_SHADOW      =   (RF_RECV_SHADOW)    <<1,
-        RF_RECV_LIGHTING    =   (RF_CAST_SHADOW)    <<1,
-        RF_EFFECT_AO        =   (RF_RECV_LIGHTING)  <<1,
-        RF_EFFECT_BLOOM     =   (RF_EFFECT_AO)      <<1,
-        RF_COLOR            =   (RF_RECV_LIGHTING)  <<1,
-        RF_SELECTED         =   (RF_COLOR)          <<1,
+        RF_VISIBLE          =   (1<<0),
+        RF_RECV_SHADOW      =   (1<<1),
+        RF_CAST_SHADOW      =   (1<<2),
+        RF_RECV_LIGHTING    =   (1<<3),
+        RF_EFFECT_AO        =   (1<<4),
+        RF_EFFECT_BLOOM     =   (1<<5),
+        RF_COLOR            =   (1<<6),
+        RF_SELECTED         =   (1<<7),
     };
 #else
     const   uint    RF_VISIBLE          =   (1<<0);
@@ -108,8 +112,7 @@ const   int     LightTypeSpot   =   2;
     const   uint    RF_RECV_LIGHTING    =   (1<<3);
     const   uint    RF_EFFECT_AO        =   (1<<4);
     const   uint    RF_EFFECT_BLOOM     =   (1<<5);
-    /// 与 C++ RenderFlag::RF_COLOR(=RF_RECV_LIGHTING<<1=16)保持一致
-    const   uint    RF_COLOR            =   (1<<4);
+    const   uint    RF_COLOR            =   (1<<6);
     const   uint    RF_SELECTED         =   (1<<7);
 
     bool    hasNodeColor(uint flag)

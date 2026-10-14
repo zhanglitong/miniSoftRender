@@ -126,7 +126,21 @@ namespace   FE
         VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
         rasterizationStateCI.sType                      =   VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizationStateCI.polygonMode                =   VK_POLYGON_MODE_FILL;
-        rasterizationStateCI.cullMode                   =   VK_CULL_MODE_BACK_BIT;
+        // cullMode 覆盖：-1=默认BACK, 0=NONE, 1=FRONT, 2=BACK, 3=FRONT_AND_BACK
+        {
+            VkCullModeFlagBits defaultCull = VK_CULL_MODE_BACK_BIT;
+            if (info._cullModeOverride >= 0 && info._cullModeOverride <= 3)
+            {
+                switch (info._cullModeOverride)
+                {
+                case 0: defaultCull = VK_CULL_MODE_NONE; break;
+                case 1: defaultCull = VK_CULL_MODE_FRONT_BIT; break;
+                case 2: defaultCull = VK_CULL_MODE_BACK_BIT; break;
+                case 3: defaultCull = VK_CULL_MODE_FRONT_AND_BACK; break;
+                }
+            }
+            rasterizationStateCI.cullMode               =   defaultCull;
+        }
         rasterizationStateCI.frontFace                  =   VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizationStateCI.depthClampEnable           =   VK_FALSE;
         rasterizationStateCI.rasterizerDiscardEnable    =   VK_FALSE;
@@ -135,11 +149,21 @@ namespace   FE
 
         VkPipelineColorBlendAttachmentState blendAttachmentState{};
         blendAttachmentState.colorWriteMask             =   0xf;
-        blendAttachmentState.blendEnable                =   VK_FALSE;
+        blendAttachmentState.blendEnable                =   info._enableColorBlend ? VK_TRUE : VK_FALSE;
+        if (info._enableColorBlend)
+        {
+            // 标准 alpha blending: src * srcAlpha + dst * (1 - srcAlpha)
+            blendAttachmentState.srcColorBlendFactor    =   VK_BLEND_FACTOR_SRC_ALPHA;
+            blendAttachmentState.dstColorBlendFactor    =   VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            blendAttachmentState.colorBlendOp           =   VK_BLEND_OP_ADD;
+            blendAttachmentState.srcAlphaBlendFactor    =   VK_BLEND_FACTOR_ONE;
+            blendAttachmentState.dstAlphaBlendFactor    =   VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            blendAttachmentState.alphaBlendOp           =   VK_BLEND_OP_ADD;
+        }
         VkPipelineColorBlendStateCreateInfo colorBlendStateCI{};
         colorBlendStateCI.sType                         =   VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlendStateCI.attachmentCount               =   1;
-        colorBlendStateCI.pAttachments                  =   &blendAttachmentState;
+        colorBlendStateCI.attachmentCount               =   info._colorAttachmentCount;
+        colorBlendStateCI.pAttachments                  =   (info._colorAttachmentCount > 0) ? &blendAttachmentState : nullptr;
 
         VkPipelineViewportStateCreateInfo viewportStateCI{};
         viewportStateCI.sType                           =   VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -171,8 +195,8 @@ namespace   FE
 
         VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{};
         depthStencilStateCI.sType                       =   VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencilStateCI.depthTestEnable             =   VK_TRUE;
-        depthStencilStateCI.depthWriteEnable            =   VK_TRUE;
+        depthStencilStateCI.depthTestEnable             =   info._enableDepthTest ? VK_TRUE : VK_FALSE;
+        depthStencilStateCI.depthWriteEnable            =   info._enableDepthWrite ? VK_TRUE : VK_FALSE;
         depthStencilStateCI.depthCompareOp              =   VK_COMPARE_OP_LESS_OR_EQUAL;
         depthStencilStateCI.depthBoundsTestEnable       =   VK_FALSE;
         depthStencilStateCI.back.failOp                 =   VK_STENCIL_OP_KEEP;
@@ -185,7 +209,8 @@ namespace   FE
         multisampleStateCI.sType                        =   VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampleStateCI.rasterizationSamples         =   VK_SAMPLE_COUNT_1_BIT;
         multisampleStateCI.pSampleMask                  =   nullptr;
-        multisampleStateCI.alphaToCoverageEnable        =   VK_TRUE;
+        // 无 color attachment 的管线（如 OIT geometry pass）alpha-to-coverage 无意义且会触发 VUID-08891
+        multisampleStateCI.alphaToCoverageEnable        =   (info._colorAttachmentCount > 0) ? VK_TRUE : VK_FALSE;
 
         std::vector<VkVertexInputBindingDescription>    vertexInputBindings; 
         std::vector<VkVertexInputAttributeDescription>  vertexInputAttributs;
@@ -246,8 +271,8 @@ namespace   FE
         VkPipelineRenderingCreateInfoKHR    pRenderingCreateInfo    =   {};
         VkFormat    colorAttrFormats[]                  =   {VK_FORMAT_R8G8B8A8_UNORM};
         pRenderingCreateInfo.sType                      =   VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-        pRenderingCreateInfo.colorAttachmentCount       =   1;
-        pRenderingCreateInfo.pColorAttachmentFormats    =   colorAttrFormats;
+        pRenderingCreateInfo.colorAttachmentCount       =   info._colorAttachmentCount;
+        pRenderingCreateInfo.pColorAttachmentFormats    =   (info._colorAttachmentCount > 0) ? colorAttrFormats : nullptr;
         pRenderingCreateInfo.depthAttachmentFormat      =   VK_FORMAT_D32_SFLOAT_S8_UINT;
         pRenderingCreateInfo.stencilAttachmentFormat    =   VK_FORMAT_D32_SFLOAT_S8_UINT;
 

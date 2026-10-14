@@ -68,14 +68,12 @@ namespace   FE
         _ctx.scene()->nodeTree().eventsRemoveNode().fireNotify(node);
     }
 
-    void    FENode::reparent(FENode* node)
+    void    FENode::reparent(FENode* node, size_t index)
     {
         FENode* newParent    =   node;
         FENode* oldParent    =   _parent.get();
-        /// 1. 父节点未变化,无需处理
-        if (newParent == oldParent)
-            return;
-        /// 2. 防止形成环: 新父节点不能是 this 自身,也不能是 this 的子孙节点
+        /// 防环: 新父节点不能是 this 自身,也不能是 this 的子孙节点
+        /// 同父场景(排序)不拦截: newParent==oldParent 表示同父重排(同父时后面流程会先摘再挂)
         if (newParent != nullptr)
         {
             for (FENode* p = newParent; p != nullptr; p = p->_parent.get())
@@ -89,6 +87,7 @@ namespace   FE
         Node    selfNode(this);
 
         /// 4. 从旧父节点摘除: 维护 children 结构并触发移除通知
+        ///    同父场景也走这一步(先摘再挂到新位置)
         if (oldParent != nullptr)
         {
             auto    itr     =   std::find(oldParent->_childs.begin(),
@@ -101,9 +100,18 @@ namespace   FE
             }
         }
 
-        /// 5. 挂到新父节点(addChild 内部完成 setParent + onAddChild)
+        /// 5. 挂到新父节点: 按 index 插入(与 V3 CELLNode::reparent(parent,index) 一致)
+        ///    index=SIZE_MAX 或越界时追加到末尾; 手动 setParent+onAddChild 等效于 addChild
         if (newParent != nullptr)
-            newParent->addChild(selfNode);
+        {
+            auto&   chs =   newParent->_childs;
+            if (index == SIZE_MAX || index >= chs.size())
+                chs.emplace_back(selfNode);
+            else
+                chs.insert(chs.begin() + index, selfNode);
+            _parent     =   newParent;
+            newParent->onAddChild(selfNode);
+        }
 
         /// 6. 反推新本地变换,使 parentGlobal_new * local_new = global
         ///    新父节点为空(顶层)时 parentGlobal 取单位矩阵

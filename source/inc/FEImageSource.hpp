@@ -159,102 +159,102 @@ namespace   FE
         {
             switch(_format)
             {
-            case FMT_R8_UNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_UNORM             >::type>(rect,color);
-            case FMT_R8_SNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_SNORM             >::type>(rect,color);
-            case FMT_R8_USCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_USCALED           >::type>(rect,color);
-            case FMT_R8_SSCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_SSCALED           >::type>(rect,color);
-            case FMT_R8_UINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_UINT              >::type>(rect,color);
-            case FMT_R8_SINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_SINT              >::type>(rect,color);
-            case FMT_R4G4_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R4G4_UNORM           >::type>(rect,color);
+            case FMT_R8_UNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_UNORM             >>(rect,color);
+            case FMT_R8_SNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_SNORM             >>(rect,color);
+            case FMT_R8_USCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_USCALED           >>(rect,color);
+            case FMT_R8_SSCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_SSCALED           >>(rect,color);
+            case FMT_R8_UINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_UINT              >>(rect,color);
+            case FMT_R8_SINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_SINT              >>(rect,color);
+            case FMT_R4G4_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R4G4_UNORM           >>(rect,color);
 
-            case FMT_R8G8_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UNORM            >::type>(rect,color);
-            case FMT_R8G8_SNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SNORM            >::type>(rect,color);
-            case FMT_R8G8_USCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_USCALED          >::type>(rect,color);
-            case FMT_R8G8_SSCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SSCALED          >::type>(rect,color);
-            case FMT_R8G8_UINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UINT             >::type>(rect,color);
-            case FMT_R8G8_SINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SINT             >::type>(rect,color);
+            case FMT_R8G8_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UNORM            >>(rect,color);
+            case FMT_R8G8_SNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SNORM            >>(rect,color);
+            case FMT_R8G8_USCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_USCALED          >>(rect,color);
+            case FMT_R8G8_SSCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SSCALED          >>(rect,color);
+            case FMT_R8G8_UINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UINT             >>(rect,color);
+            case FMT_R8G8_SINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SINT             >>(rect,color);
 
-            case FMT_R4G4B4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R4G4B4A4_UNORM       >::type>(rect,color);
-            case FMT_B4G4R4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B4G4R4A4_UNORM       >::type>(rect,color);
-            case FMT_R5G6B5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R5G6B5_UNORM         >::type>(rect,color);
-            case FMT_B5G6R5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_B5G6R5_UNORM         >::type>(rect,color);
-            case FMT_R5G5B5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R5G5B5A1_UNORM       >::type>(rect,color);
-            case FMT_B5G5R5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B5G5R5A1_UNORM       >::type>(rect,color);
-            case FMT_A1R5G5B5_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_A1R5G5B5_UNORM       >::type>(rect,color);
+            case FMT_R4G4B4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R4G4B4A4_UNORM       >>(rect,color);
+            case FMT_B4G4R4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B4G4R4A4_UNORM       >>(rect,color);
+            case FMT_R5G6B5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R5G6B5_UNORM         >>(rect,color);
+            case FMT_B5G6R5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_B5G6R5_UNORM         >>(rect,color);
+            case FMT_R5G5B5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R5G5B5A1_UNORM       >>(rect,color);
+            case FMT_B5G5R5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B5G5R5A1_UNORM       >>(rect,color);
+            case FMT_A1R5G5B5_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_A1R5G5B5_UNORM       >>(rect,color);
 
-            case FMT_R8G8B8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UNORM          >::type>(rect,color);
-            case FMT_R8G8B8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SNORM          >::type>(rect,color);
-            case FMT_R8G8B8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_USCALED        >::type>(rect,color);
-            case FMT_R8G8B8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SSCALED        >::type>(rect,color);
-            case FMT_R8G8B8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UINT           >::type>(rect,color);
-            case FMT_R8G8B8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SINT           >::type>(rect,color);
+            case FMT_R8G8B8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UNORM          >>(rect,color);
+            case FMT_R8G8B8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SNORM          >>(rect,color);
+            case FMT_R8G8B8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_USCALED        >>(rect,color);
+            case FMT_R8G8B8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SSCALED        >>(rect,color);
+            case FMT_R8G8B8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UINT           >>(rect,color);
+            case FMT_R8G8B8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SINT           >>(rect,color);
 
-            case FMT_R8G8B8A8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UNORM        >::type>(rect,color);
-            case FMT_R8G8B8A8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SNORM        >::type>(rect,color);
-            case FMT_R8G8B8A8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_USCALED      >::type>(rect,color);
-            case FMT_R8G8B8A8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SSCALED      >::type>(rect,color);
-            case FMT_R8G8B8A8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UINT         >::type>(rect,color);
-            case FMT_R8G8B8A8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SINT         >::type>(rect,color);
+            case FMT_R8G8B8A8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UNORM        >>(rect,color);
+            case FMT_R8G8B8A8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SNORM        >>(rect,color);
+            case FMT_R8G8B8A8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_USCALED      >>(rect,color);
+            case FMT_R8G8B8A8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SSCALED      >>(rect,color);
+            case FMT_R8G8B8A8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UINT         >>(rect,color);
+            case FMT_R8G8B8A8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SINT         >>(rect,color);
 
-            case FMT_A2B10G10R10_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UNORM    >::type>(rect,color);
-            case FMT_A2B10G10R10_SNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SNORM    >::type>(rect,color);
-            case FMT_A2B10G10R10_USCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_USCALED  >::type>(rect,color);
-            case FMT_A2B10G10R10_SSCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SSCALED  >::type>(rect,color);
-            case FMT_A2B10G10R10_UINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UINT     >::type>(rect,color);
-            case FMT_A2B10G10R10_SINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SINT     >::type>(rect,color);
+            case FMT_A2B10G10R10_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UNORM    >>(rect,color);
+            case FMT_A2B10G10R10_SNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SNORM    >>(rect,color);
+            case FMT_A2B10G10R10_USCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_USCALED  >>(rect,color);
+            case FMT_A2B10G10R10_SSCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SSCALED  >>(rect,color);
+            case FMT_A2B10G10R10_UINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UINT     >>(rect,color);
+            case FMT_A2B10G10R10_SINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SINT     >>(rect,color);
 
-            case FMT_R16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_UNORM            >::type>(rect,color);
-            case FMT_R16_SNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_SNORM            >::type>(rect,color);
-            case FMT_R16_USCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_USCALED          >::type>(rect,color);
-            case FMT_R16_SSCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_SSCALED          >::type>(rect,color);
-            case FMT_R16_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_UINT             >::type>(rect,color);
-            case FMT_R16_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_SINT             >::type>(rect,color);
+            case FMT_R16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_UNORM            >>(rect,color);
+            case FMT_R16_SNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_SNORM            >>(rect,color);
+            case FMT_R16_USCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_USCALED          >>(rect,color);
+            case FMT_R16_SSCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_SSCALED          >>(rect,color);
+            case FMT_R16_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_UINT             >>(rect,color);
+            case FMT_R16_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_SINT             >>(rect,color);
 
-            case FMT_R16G16_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UNORM          >::type>(rect,color);
-            case FMT_R16G16_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SNORM          >::type>(rect,color);
-            case FMT_R16G16_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_USCALED        >::type>(rect,color);
-            case FMT_R16G16_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SSCALED        >::type>(rect,color);
-            case FMT_R16G16_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UINT           >::type>(rect,color);
-            case FMT_R16G16_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SINT           >::type>(rect,color);
+            case FMT_R16G16_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UNORM          >>(rect,color);
+            case FMT_R16G16_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SNORM          >>(rect,color);
+            case FMT_R16G16_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_USCALED        >>(rect,color);
+            case FMT_R16G16_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SSCALED        >>(rect,color);
+            case FMT_R16G16_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UINT           >>(rect,color);
+            case FMT_R16G16_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SINT           >>(rect,color);
 
-            case FMT_R16G16B16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UNORM       >::type>(rect,color);
-            case FMT_R16G16B16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SNORM       >::type>(rect,color);
-            case FMT_R16G16B16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_USCALED     >::type>(rect,color);
-            case FMT_R16G16B16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SSCALED     >::type>(rect,color);
-            case FMT_R16G16B16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UINT        >::type>(rect,color);
-            case FMT_R16G16B16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SINT        >::type>(rect,color);
+            case FMT_R16G16B16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UNORM       >>(rect,color);
+            case FMT_R16G16B16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SNORM       >>(rect,color);
+            case FMT_R16G16B16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_USCALED     >>(rect,color);
+            case FMT_R16G16B16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SSCALED     >>(rect,color);
+            case FMT_R16G16B16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UINT        >>(rect,color);
+            case FMT_R16G16B16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SINT        >>(rect,color);
 
-            case FMT_R16G16B16A16_UNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UNORM    >::type>(rect,color);
-            case FMT_R16G16B16A16_SNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SNORM    >::type>(rect,color);
-            case FMT_R16G16B16A16_USCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_USCALED  >::type>(rect,color);
-            case FMT_R16G16B16A16_SSCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SSCALED  >::type>(rect,color);
-            case FMT_R16G16B16A16_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UINT     >::type>(rect,color);
-            case FMT_R16G16B16A16_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SINT     >::type>(rect,color);
+            case FMT_R16G16B16A16_UNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UNORM    >>(rect,color);
+            case FMT_R16G16B16A16_SNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SNORM    >>(rect,color);
+            case FMT_R16G16B16A16_USCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_USCALED  >>(rect,color);
+            case FMT_R16G16B16A16_SSCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SSCALED  >>(rect,color);
+            case FMT_R16G16B16A16_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UINT     >>(rect,color);
+            case FMT_R16G16B16A16_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SINT     >>(rect,color);
 
-            case FMT_R32_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_UINT              >::type>(rect,color);
-            case FMT_R32_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_SINT              >::type>(rect,color);
+            case FMT_R32_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_UINT              >>(rect,color);
+            case FMT_R32_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_SINT              >>(rect,color);
 
-            case FMT_R32G32_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_UINT           >::type>(rect,color);
-            case FMT_R32G32_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_SINT           >::type>(rect,color);
+            case FMT_R32G32_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_UINT           >>(rect,color);
+            case FMT_R32G32_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_SINT           >>(rect,color);
 
-            case FMT_R32G32B32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_UINT        >::type>(rect,color);
-            case FMT_R32G32B32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_SINT        >::type>(rect,color);
+            case FMT_R32G32B32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_UINT        >>(rect,color);
+            case FMT_R32G32B32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_SINT        >>(rect,color);
 
-            case FMT_R32G32B32A32_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_UINT     >::type>(rect,color);
-            case FMT_R32G32B32A32_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_SINT     >::type>(rect,color);
+            case FMT_R32G32B32A32_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_UINT     >>(rect,color);
+            case FMT_R32G32B32A32_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_SINT     >>(rect,color);
 
-            case FMT_R16_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R16_FLOAT             >::type>(rect,color);
-            case FMT_R16G16_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_FLOAT          >::type>(rect,color);
-            case FMT_R16G16B16_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_FLOAT       >::type>(rect,color);
-            case FMT_R16G16B16A16_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_FLOAT    >::type>(rect,color);
+            case FMT_R16_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R16_FLOAT             >>(rect,color);
+            case FMT_R16G16_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_FLOAT          >>(rect,color);
+            case FMT_R16G16B16_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_FLOAT       >>(rect,color);
+            case FMT_R16G16B16A16_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_FLOAT    >>(rect,color);
 
-            case FMT_R32_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R32_FLOAT             >::type>(rect,color);
-            case FMT_R32G32_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_FLOAT          >::type>(rect,color);
-            case FMT_R32G32B32_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_FLOAT       >::type>(rect,color);
-            case FMT_R32G32B32A32_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_FLOAT    >::type>(rect,color);
+            case FMT_R32_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R32_FLOAT             >>(rect,color);
+            case FMT_R32G32_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_FLOAT          >>(rect,color);
+            case FMT_R32G32B32_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_FLOAT       >>(rect,color);
+            case FMT_R32G32B32A32_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_FLOAT    >>(rect,color);
 
-            case FMT_D16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D16_UNORM             >::type>(rect,color);
-            case FMT_D32_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D32_UNORM             >::type>(rect,color);
+            case FMT_D16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D16_UNORM             >>(rect,color);
+            case FMT_D32_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D32_UNORM             >>(rect,color);
             }
             return  *this;
         }
@@ -270,102 +270,102 @@ namespace   FE
         {
             switch(_format)
             {
-            case FMT_R8_UNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_UNORM              >::type>(rect,color);
-            case FMT_R8_SNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_SNORM              >::type>(rect,color);
-            case FMT_R8_USCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_USCALED            >::type>(rect,color);
-            case FMT_R8_SSCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_SSCALED            >::type>(rect,color);
-            case FMT_R8_UINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_UINT               >::type>(rect,color);
-            case FMT_R8_SINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_SINT               >::type>(rect,color);
-            case FMT_R4G4_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R4G4_UNORM            >::type>(rect,color);
+            case FMT_R8_UNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_UNORM              >>(rect,color);
+            case FMT_R8_SNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_SNORM              >>(rect,color);
+            case FMT_R8_USCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_USCALED            >>(rect,color);
+            case FMT_R8_SSCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_SSCALED            >>(rect,color);
+            case FMT_R8_UINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_UINT               >>(rect,color);
+            case FMT_R8_SINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_SINT               >>(rect,color);
+            case FMT_R4G4_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R4G4_UNORM            >>(rect,color);
 
-            case FMT_R8G8_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UNORM            >::type>(rect,color);
-            case FMT_R8G8_SNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SNORM            >::type>(rect,color);
-            case FMT_R8G8_USCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_USCALED          >::type>(rect,color);
-            case FMT_R8G8_SSCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SSCALED          >::type>(rect,color);
-            case FMT_R8G8_UINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UINT             >::type>(rect,color);
-            case FMT_R8G8_SINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SINT             >::type>(rect,color);
+            case FMT_R8G8_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UNORM            >>(rect,color);
+            case FMT_R8G8_SNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SNORM            >>(rect,color);
+            case FMT_R8G8_USCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_USCALED          >>(rect,color);
+            case FMT_R8G8_SSCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SSCALED          >>(rect,color);
+            case FMT_R8G8_UINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UINT             >>(rect,color);
+            case FMT_R8G8_SINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SINT             >>(rect,color);
 
-            case FMT_R4G4B4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R4G4B4A4_UNORM        >::type>(rect,color);
-            case FMT_B4G4R4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B4G4R4A4_UNORM        >::type>(rect,color);
-            case FMT_R5G6B5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R5G6B5_UNORM          >::type>(rect,color);
-            case FMT_B5G6R5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_B5G6R5_UNORM          >::type>(rect,color);
-            case FMT_R5G5B5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R5G5B5A1_UNORM        >::type>(rect,color);
-            case FMT_B5G5R5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B5G5R5A1_UNORM        >::type>(rect,color);
-            case FMT_A1R5G5B5_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_A1R5G5B5_UNORM        >::type>(rect,color);
+            case FMT_R4G4B4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R4G4B4A4_UNORM        >>(rect,color);
+            case FMT_B4G4R4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B4G4R4A4_UNORM        >>(rect,color);
+            case FMT_R5G6B5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R5G6B5_UNORM          >>(rect,color);
+            case FMT_B5G6R5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_B5G6R5_UNORM          >>(rect,color);
+            case FMT_R5G5B5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R5G5B5A1_UNORM        >>(rect,color);
+            case FMT_B5G5R5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B5G5R5A1_UNORM        >>(rect,color);
+            case FMT_A1R5G5B5_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_A1R5G5B5_UNORM        >>(rect,color);
 
-            case FMT_R8G8B8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UNORM          >::type>(rect,color);
-            case FMT_R8G8B8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SNORM          >::type>(rect,color);
-            case FMT_R8G8B8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_USCALED        >::type>(rect,color);
-            case FMT_R8G8B8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SSCALED        >::type>(rect,color);
-            case FMT_R8G8B8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UINT           >::type>(rect,color);
-            case FMT_R8G8B8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SINT           >::type>(rect,color);
+            case FMT_R8G8B8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UNORM          >>(rect,color);
+            case FMT_R8G8B8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SNORM          >>(rect,color);
+            case FMT_R8G8B8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_USCALED        >>(rect,color);
+            case FMT_R8G8B8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SSCALED        >>(rect,color);
+            case FMT_R8G8B8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UINT           >>(rect,color);
+            case FMT_R8G8B8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SINT           >>(rect,color);
 
-            case FMT_R8G8B8A8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UNORM        >::type>(rect,color);
-            case FMT_R8G8B8A8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SNORM        >::type>(rect,color);
-            case FMT_R8G8B8A8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_USCALED      >::type>(rect,color);
-            case FMT_R8G8B8A8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SSCALED      >::type>(rect,color);
-            case FMT_R8G8B8A8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UINT         >::type>(rect,color);
-            case FMT_R8G8B8A8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SINT         >::type>(rect,color);
+            case FMT_R8G8B8A8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UNORM        >>(rect,color);
+            case FMT_R8G8B8A8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SNORM        >>(rect,color);
+            case FMT_R8G8B8A8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_USCALED      >>(rect,color);
+            case FMT_R8G8B8A8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SSCALED      >>(rect,color);
+            case FMT_R8G8B8A8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UINT         >>(rect,color);
+            case FMT_R8G8B8A8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SINT         >>(rect,color);
 
-            case FMT_A2B10G10R10_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UNORM     >::type>(rect,color);
-            case FMT_A2B10G10R10_SNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SNORM     >::type>(rect,color);
-            case FMT_A2B10G10R10_USCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_USCALED   >::type>(rect,color);
-            case FMT_A2B10G10R10_SSCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SSCALED   >::type>(rect,color);
-            case FMT_A2B10G10R10_UINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UINT      >::type>(rect,color);
-            case FMT_A2B10G10R10_SINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SINT      >::type>(rect,color);
+            case FMT_A2B10G10R10_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UNORM     >>(rect,color);
+            case FMT_A2B10G10R10_SNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SNORM     >>(rect,color);
+            case FMT_A2B10G10R10_USCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_USCALED   >>(rect,color);
+            case FMT_A2B10G10R10_SSCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SSCALED   >>(rect,color);
+            case FMT_A2B10G10R10_UINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UINT      >>(rect,color);
+            case FMT_A2B10G10R10_SINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SINT      >>(rect,color);
 
-            case FMT_R16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_UNORM             >::type>(rect,color);
-            case FMT_R16_SNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_SNORM             >::type>(rect,color);
-            case FMT_R16_USCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_USCALED           >::type>(rect,color);
-            case FMT_R16_SSCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_SSCALED           >::type>(rect,color);
-            case FMT_R16_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_UINT              >::type>(rect,color);
-            case FMT_R16_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_SINT              >::type>(rect,color);
+            case FMT_R16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_UNORM             >>(rect,color);
+            case FMT_R16_SNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_SNORM             >>(rect,color);
+            case FMT_R16_USCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_USCALED           >>(rect,color);
+            case FMT_R16_SSCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_SSCALED           >>(rect,color);
+            case FMT_R16_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_UINT              >>(rect,color);
+            case FMT_R16_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_SINT              >>(rect,color);
 
-            case FMT_R16G16_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UNORM          >::type>(rect,color);
-            case FMT_R16G16_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SNORM          >::type>(rect,color);
-            case FMT_R16G16_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_USCALED        >::type>(rect,color);
-            case FMT_R16G16_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SSCALED        >::type>(rect,color);
-            case FMT_R16G16_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UINT           >::type>(rect,color);
-            case FMT_R16G16_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SINT           >::type>(rect,color);
+            case FMT_R16G16_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UNORM          >>(rect,color);
+            case FMT_R16G16_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SNORM          >>(rect,color);
+            case FMT_R16G16_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_USCALED        >>(rect,color);
+            case FMT_R16G16_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SSCALED        >>(rect,color);
+            case FMT_R16G16_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UINT           >>(rect,color);
+            case FMT_R16G16_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SINT           >>(rect,color);
 
-            case FMT_R16G16B16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UNORM       >::type>(rect,color);
-            case FMT_R16G16B16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SNORM       >::type>(rect,color);
-            case FMT_R16G16B16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_USCALED     >::type>(rect,color);
-            case FMT_R16G16B16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SSCALED     >::type>(rect,color);
-            case FMT_R16G16B16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UINT        >::type>(rect,color);
-            case FMT_R16G16B16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SINT        >::type>(rect,color);
+            case FMT_R16G16B16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UNORM       >>(rect,color);
+            case FMT_R16G16B16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SNORM       >>(rect,color);
+            case FMT_R16G16B16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_USCALED     >>(rect,color);
+            case FMT_R16G16B16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SSCALED     >>(rect,color);
+            case FMT_R16G16B16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UINT        >>(rect,color);
+            case FMT_R16G16B16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SINT        >>(rect,color);
 
-            case FMT_R16G16B16A16_UNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UNORM    >::type>(rect,color);
-            case FMT_R16G16B16A16_SNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SNORM    >::type>(rect,color);
-            case FMT_R16G16B16A16_USCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_USCALED  >::type>(rect,color);
-            case FMT_R16G16B16A16_SSCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SSCALED  >::type>(rect,color);
-            case FMT_R16G16B16A16_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UINT     >::type>(rect,color);
-            case FMT_R16G16B16A16_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SINT     >::type>(rect,color);
+            case FMT_R16G16B16A16_UNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UNORM    >>(rect,color);
+            case FMT_R16G16B16A16_SNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SNORM    >>(rect,color);
+            case FMT_R16G16B16A16_USCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_USCALED  >>(rect,color);
+            case FMT_R16G16B16A16_SSCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SSCALED  >>(rect,color);
+            case FMT_R16G16B16A16_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UINT     >>(rect,color);
+            case FMT_R16G16B16A16_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SINT     >>(rect,color);
 
-            case FMT_R32_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_UINT              >::type>(rect,color);
-            case FMT_R32_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_SINT              >::type>(rect,color);
+            case FMT_R32_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_UINT              >>(rect,color);
+            case FMT_R32_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_SINT              >>(rect,color);
 
-            case FMT_R32G32_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_UINT           >::type>(rect,color);
-            case FMT_R32G32_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_SINT           >::type>(rect,color);
+            case FMT_R32G32_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_UINT           >>(rect,color);
+            case FMT_R32G32_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_SINT           >>(rect,color);
 
-            case FMT_R32G32B32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_UINT        >::type>(rect,color);
-            case FMT_R32G32B32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_SINT        >::type>(rect,color);
+            case FMT_R32G32B32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_UINT        >>(rect,color);
+            case FMT_R32G32B32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_SINT        >>(rect,color);
 
-            case FMT_R32G32B32A32_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_UINT     >::type>(rect,color);
-            case FMT_R32G32B32A32_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_SINT     >::type>(rect,color);
+            case FMT_R32G32B32A32_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_UINT     >>(rect,color);
+            case FMT_R32G32B32A32_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_SINT     >>(rect,color);
 
-            case FMT_R16_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R16_FLOAT             >::type>(rect,color);
-            case FMT_R16G16_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_FLOAT          >::type>(rect,color);
-            case FMT_R16G16B16_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_FLOAT       >::type>(rect,color);
-            case FMT_R16G16B16A16_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_FLOAT    >::type>(rect,color);
+            case FMT_R16_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R16_FLOAT             >>(rect,color);
+            case FMT_R16G16_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_FLOAT          >>(rect,color);
+            case FMT_R16G16B16_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_FLOAT       >>(rect,color);
+            case FMT_R16G16B16A16_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_FLOAT    >>(rect,color);
 
-            case FMT_R32_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R32_FLOAT             >::type>(rect,color);
-            case FMT_R32G32_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_FLOAT          >::type>(rect,color);
-            case FMT_R32G32B32_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_FLOAT       >::type>(rect,color);
-            case FMT_R32G32B32A32_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_FLOAT    >::type>(rect,color);
+            case FMT_R32_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R32_FLOAT             >>(rect,color);
+            case FMT_R32G32_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_FLOAT          >>(rect,color);
+            case FMT_R32G32B32_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_FLOAT       >>(rect,color);
+            case FMT_R32G32B32A32_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_FLOAT    >>(rect,color);
 
-            case FMT_D16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D16_UNORM             >::type>(rect,color);
-            case FMT_D32_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D32_UNORM             >::type>(rect,color);
+            case FMT_D16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D16_UNORM             >>(rect,color);
+            case FMT_D32_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D32_UNORM             >>(rect,color);
             }
             return  *this;
         }
@@ -385,102 +385,102 @@ namespace   FE
         {
             switch(_format)
             {
-            case FMT_R8_UNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_UNORM              >::type>(rtDst,src,rtSrc);
-            case FMT_R8_SNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_SNORM              >::type>(rtDst,src,rtSrc);
-            case FMT_R8_USCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_USCALED            >::type>(rtDst,src,rtSrc);
-            case FMT_R8_SSCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_SSCALED            >::type>(rtDst,src,rtSrc);
-            case FMT_R8_UINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_UINT               >::type>(rtDst,src,rtSrc);
-            case FMT_R8_SINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_SINT               >::type>(rtDst,src,rtSrc);
-            case FMT_R4G4_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R4G4_UNORM            >::type>(rtDst,src,rtSrc);
+            case FMT_R8_UNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_UNORM              >>(rtDst,src,rtSrc);
+            case FMT_R8_SNORM               :  return  convert<TFrom,TypeOfFormat<FMT_R8_SNORM              >>(rtDst,src,rtSrc);
+            case FMT_R8_USCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_USCALED            >>(rtDst,src,rtSrc);
+            case FMT_R8_SSCALED             :  return  convert<TFrom,TypeOfFormat<FMT_R8_SSCALED            >>(rtDst,src,rtSrc);
+            case FMT_R8_UINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_UINT               >>(rtDst,src,rtSrc);
+            case FMT_R8_SINT                :  return  convert<TFrom,TypeOfFormat<FMT_R8_SINT               >>(rtDst,src,rtSrc);
+            case FMT_R4G4_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R4G4_UNORM            >>(rtDst,src,rtSrc);
 
-            case FMT_R8G8_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UNORM            >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8_SNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SNORM            >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8_USCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_USCALED          >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8_SSCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SSCALED          >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8_UINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UINT             >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8_SINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SINT             >::type>(rtDst,src,rtSrc);
+            case FMT_R8G8_UNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UNORM            >>(rtDst,src,rtSrc);
+            case FMT_R8G8_SNORM             :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SNORM            >>(rtDst,src,rtSrc);
+            case FMT_R8G8_USCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_USCALED          >>(rtDst,src,rtSrc);
+            case FMT_R8G8_SSCALED           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SSCALED          >>(rtDst,src,rtSrc);
+            case FMT_R8G8_UINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_UINT             >>(rtDst,src,rtSrc);
+            case FMT_R8G8_SINT              :  return  convert<TFrom,TypeOfFormat<FMT_R8G8_SINT             >>(rtDst,src,rtSrc);
 
-            case FMT_R4G4B4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R4G4B4A4_UNORM        >::type>(rtDst,src,rtSrc);
-            case FMT_B4G4R4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B4G4R4A4_UNORM        >::type>(rtDst,src,rtSrc);
-            case FMT_R5G6B5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R5G6B5_UNORM          >::type>(rtDst,src,rtSrc);
-            case FMT_B5G6R5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_B5G6R5_UNORM          >::type>(rtDst,src,rtSrc);
-            case FMT_R5G5B5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R5G5B5A1_UNORM        >::type>(rtDst,src,rtSrc);
-            case FMT_B5G5R5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B5G5R5A1_UNORM        >::type>(rtDst,src,rtSrc);
-            case FMT_A1R5G5B5_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_A1R5G5B5_UNORM        >::type>(rtDst,src,rtSrc);
+            case FMT_R4G4B4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R4G4B4A4_UNORM        >>(rtDst,src,rtSrc);
+            case FMT_B4G4R4A4_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B4G4R4A4_UNORM        >>(rtDst,src,rtSrc);
+            case FMT_R5G6B5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R5G6B5_UNORM          >>(rtDst,src,rtSrc);
+            case FMT_B5G6R5_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_B5G6R5_UNORM          >>(rtDst,src,rtSrc);
+            case FMT_R5G5B5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R5G5B5A1_UNORM        >>(rtDst,src,rtSrc);
+            case FMT_B5G5R5A1_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_B5G5R5A1_UNORM        >>(rtDst,src,rtSrc);
+            case FMT_A1R5G5B5_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_A1R5G5B5_UNORM        >>(rtDst,src,rtSrc);
 
-            case FMT_R8G8B8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UNORM          >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SNORM          >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_USCALED        >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SSCALED        >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UINT           >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SINT           >::type>(rtDst,src,rtSrc);
+            case FMT_R8G8B8_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UNORM          >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SNORM          >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_USCALED        >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SSCALED        >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_UINT           >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8_SINT           >>(rtDst,src,rtSrc);
 
-            case FMT_R8G8B8A8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UNORM        >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8A8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SNORM        >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8A8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_USCALED      >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8A8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SSCALED      >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8A8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UINT         >::type>(rtDst,src,rtSrc);
-            case FMT_R8G8B8A8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SINT         >::type>(rtDst,src,rtSrc);
+            case FMT_R8G8B8A8_UNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UNORM        >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8A8_SNORM         :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SNORM        >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8A8_USCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_USCALED      >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8A8_SSCALED       :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SSCALED      >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8A8_UINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_UINT         >>(rtDst,src,rtSrc);
+            case FMT_R8G8B8A8_SINT          :  return  convert<TFrom,TypeOfFormat<FMT_R8G8B8A8_SINT         >>(rtDst,src,rtSrc);
 
-            case FMT_A2B10G10R10_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UNORM     >::type>(rtDst,src,rtSrc);
-            case FMT_A2B10G10R10_SNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SNORM     >::type>(rtDst,src,rtSrc);
-            case FMT_A2B10G10R10_USCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_USCALED   >::type>(rtDst,src,rtSrc);
-            case FMT_A2B10G10R10_SSCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SSCALED   >::type>(rtDst,src,rtSrc);
-            case FMT_A2B10G10R10_UINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UINT      >::type>(rtDst,src,rtSrc);
-            case FMT_A2B10G10R10_SINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SINT      >::type>(rtDst,src,rtSrc);
+            case FMT_A2B10G10R10_UNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UNORM     >>(rtDst,src,rtSrc);
+            case FMT_A2B10G10R10_SNORM      :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SNORM     >>(rtDst,src,rtSrc);
+            case FMT_A2B10G10R10_USCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_USCALED   >>(rtDst,src,rtSrc);
+            case FMT_A2B10G10R10_SSCALED    :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SSCALED   >>(rtDst,src,rtSrc);
+            case FMT_A2B10G10R10_UINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_UINT      >>(rtDst,src,rtSrc);
+            case FMT_A2B10G10R10_SINT       :  return  convert<TFrom,TypeOfFormat<FMT_A2B10G10R10_SINT      >>(rtDst,src,rtSrc);
 
-            case FMT_R16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_UNORM             >::type>(rtDst,src,rtSrc);
-            case FMT_R16_SNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_SNORM             >::type>(rtDst,src,rtSrc);
-            case FMT_R16_USCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_USCALED           >::type>(rtDst,src,rtSrc);
-            case FMT_R16_SSCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_SSCALED           >::type>(rtDst,src,rtSrc);
-            case FMT_R16_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_UINT              >::type>(rtDst,src,rtSrc);
-            case FMT_R16_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_SINT              >::type>(rtDst,src,rtSrc);
+            case FMT_R16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_UNORM             >>(rtDst,src,rtSrc);
+            case FMT_R16_SNORM              :  return  convert<TFrom,TypeOfFormat<FMT_R16_SNORM             >>(rtDst,src,rtSrc);
+            case FMT_R16_USCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_USCALED           >>(rtDst,src,rtSrc);
+            case FMT_R16_SSCALED            :  return  convert<TFrom,TypeOfFormat<FMT_R16_SSCALED           >>(rtDst,src,rtSrc);
+            case FMT_R16_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_UINT              >>(rtDst,src,rtSrc);
+            case FMT_R16_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R16_SINT              >>(rtDst,src,rtSrc);
 
-            case FMT_R16G16_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UNORM          >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SNORM          >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_USCALED        >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SSCALED        >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UINT           >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SINT           >::type>(rtDst,src,rtSrc);
+            case FMT_R16G16_UNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UNORM          >>(rtDst,src,rtSrc);
+            case FMT_R16G16_SNORM           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SNORM          >>(rtDst,src,rtSrc);
+            case FMT_R16G16_USCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_USCALED        >>(rtDst,src,rtSrc);
+            case FMT_R16G16_SSCALED         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SSCALED        >>(rtDst,src,rtSrc);
+            case FMT_R16G16_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_UINT           >>(rtDst,src,rtSrc);
+            case FMT_R16G16_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_SINT           >>(rtDst,src,rtSrc);
 
-            case FMT_R16G16B16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UNORM       >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SNORM       >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_USCALED     >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SSCALED     >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UINT        >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SINT        >::type>(rtDst,src,rtSrc);
+            case FMT_R16G16B16_UNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UNORM       >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16_SNORM        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SNORM       >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16_USCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_USCALED     >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16_SSCALED      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SSCALED     >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_UINT        >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_SINT        >>(rtDst,src,rtSrc);
 
-            case FMT_R16G16B16A16_UNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UNORM    >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16A16_SNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SNORM    >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16A16_USCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_USCALED  >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16A16_SSCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SSCALED  >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16A16_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UINT     >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16A16_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SINT     >::type>(rtDst,src,rtSrc);
+            case FMT_R16G16B16A16_UNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UNORM    >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16A16_SNORM     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SNORM    >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16A16_USCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_USCALED  >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16A16_SSCALED   :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SSCALED  >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16A16_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_UINT     >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16A16_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_SINT     >>(rtDst,src,rtSrc);
 
-            case FMT_R32_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_UINT              >::type>(rtDst,src,rtSrc);
-            case FMT_R32_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_SINT              >::type>(rtDst,src,rtSrc);
+            case FMT_R32_UINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_UINT              >>(rtDst,src,rtSrc);
+            case FMT_R32_SINT               :  return  convert<TFrom,TypeOfFormat<FMT_R32_SINT              >>(rtDst,src,rtSrc);
 
-            case FMT_R32G32_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_UINT           >::type>(rtDst,src,rtSrc);
-            case FMT_R32G32_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_SINT           >::type>(rtDst,src,rtSrc);
+            case FMT_R32G32_UINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_UINT           >>(rtDst,src,rtSrc);
+            case FMT_R32G32_SINT            :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_SINT           >>(rtDst,src,rtSrc);
 
-            case FMT_R32G32B32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_UINT        >::type>(rtDst,src,rtSrc);
-            case FMT_R32G32B32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_SINT        >::type>(rtDst,src,rtSrc);
+            case FMT_R32G32B32_UINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_UINT        >>(rtDst,src,rtSrc);
+            case FMT_R32G32B32_SINT         :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_SINT        >>(rtDst,src,rtSrc);
 
-            case FMT_R32G32B32A32_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_UINT     >::type>(rtDst,src,rtSrc);
-            case FMT_R32G32B32A32_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_SINT     >::type>(rtDst,src,rtSrc);
+            case FMT_R32G32B32A32_UINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_UINT     >>(rtDst,src,rtSrc);
+            case FMT_R32G32B32A32_SINT      :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_SINT     >>(rtDst,src,rtSrc);
 
-            case FMT_R16_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R16_FLOAT             >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_FLOAT          >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_FLOAT       >::type>(rtDst,src,rtSrc);
-            case FMT_R16G16B16A16_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_FLOAT    >::type>(rtDst,src,rtSrc);
+            case FMT_R16_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R16_FLOAT             >>(rtDst,src,rtSrc);
+            case FMT_R16G16_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R16G16_FLOAT          >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16_FLOAT       >>(rtDst,src,rtSrc);
+            case FMT_R16G16B16A16_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R16G16B16A16_FLOAT    >>(rtDst,src,rtSrc);
 
-            case FMT_R32_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R32_FLOAT             >::type>(rtDst,src,rtSrc);
-            case FMT_R32G32_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_FLOAT          >::type>(rtDst,src,rtSrc);
-            case FMT_R32G32B32_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_FLOAT       >::type>(rtDst,src,rtSrc);
-            case FMT_R32G32B32A32_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_FLOAT    >::type>(rtDst,src,rtSrc);
+            case FMT_R32_FLOAT              :  return  convert<TFrom,TypeOfFormat<FMT_R32_FLOAT             >>(rtDst,src,rtSrc);
+            case FMT_R32G32_FLOAT           :  return  convert<TFrom,TypeOfFormat<FMT_R32G32_FLOAT          >>(rtDst,src,rtSrc);
+            case FMT_R32G32B32_FLOAT        :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32_FLOAT       >>(rtDst,src,rtSrc);
+            case FMT_R32G32B32A32_FLOAT     :  return  convert<TFrom,TypeOfFormat<FMT_R32G32B32A32_FLOAT    >>(rtDst,src,rtSrc);
 
-            case FMT_D16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D16_UNORM             >::type>(rtDst,src,rtSrc);
-            case FMT_D32_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D32_UNORM             >::type>(rtDst,src,rtSrc);
+            case FMT_D16_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D16_UNORM             >>(rtDst,src,rtSrc);
+            case FMT_D32_UNORM              :  return  convert<TFrom,TypeOfFormat<FMT_D32_UNORM             >>(rtDst,src,rtSrc);
             }
             return  *this;
         }
@@ -563,15 +563,34 @@ namespace   FE
             }
         }
     protected:
-        template<class TFrom,class TTo>
+        /// Tag: TypeOfFormat<FMT>标签,携带宿存储类型type与宿格式value(决定宿量化语义)
+        /// 不支持的转换对直接返回*this,避免实例化产生编译错误
+        template<class TFrom,class Tag>
         inline  auto&   convert(const RectU32& rect,const TFrom& src)
         {
-            const auto  tSrc    =   castTo<TFrom,TTo>(src);
-            return  fill<TTo>(rect,tSrc);
+            using   TTo                 =   typename Tag::type;
+            constexpr FEFormat  toFMT   =   Tag::value;
+            if constexpr (!IsTConvertible<ExtractColorValueType<TFrom>,TTo,toFMT,ColorFormatOf<TFrom>::value>::value)
+            {
+                return  *this;
+            }
+            else
+            {
+                const auto  tSrc    =   castTo<TFrom,TTo,toFMT>(src);
+                return  fill<TTo>(rect,tSrc);
+            }
         }
-        template<class TFrom,class TTo>
+        template<class TFrom,class Tag>
         inline  auto&   convert(const RectU32& rect,const TFrom* src)
         {
+            using   TTo                 =   typename Tag::type;
+            constexpr FEFormat  toFMT   =   Tag::value;
+            if constexpr (!IsTConvertible<ExtractColorValueType<TFrom>,TTo,toFMT,ColorFormatOf<TFrom>::value>::value)
+            {
+                return  *this;
+            }
+            else
+            {
             const auto  width   =   rect.width();
             const auto  height  =   rect.height();
             const auto  left    =   rect.left();
@@ -582,14 +601,23 @@ namespace   FE
                 TTo*    pData   =   dataOffset<TTo>(r,0);
                 for (uint32_t c = 0; c < width; c++)
                 {
-                    pData[c]  =   castTo<TFrom,TTo>(src[c]);
+                    pData[c]  =   castTo<TFrom,TTo,toFMT>(src[c]);
                 }
             }
             return  *this;
+            }
         }
-        template<class TFrom,class TTo>
+        template<class TFrom,class Tag>
         inline  auto&   convert(const RectU32& rect,const FEImageSource& src,const RectU32& rtSrc)
         {
+            using   TTo                 =   typename Tag::type;
+            constexpr FEFormat  toFMT   =   Tag::value;
+            if constexpr (!IsTConvertible<ExtractColorValueType<TFrom>,TTo,toFMT,ColorFormatOf<TFrom>::value>::value)
+            {
+                return  *this;
+            }
+            else
+            {
             assert(rect.width() == rtSrc.width());
             assert(rect.height()== rtSrc.height());
 
@@ -606,7 +634,7 @@ namespace   FE
             {   
                 TTo*    pDst    =   dataOffset<TTo>(r,0);
                 TFrom*  pSrc    =   src.dataOffset<TFrom>(srcTop + r,srcLeft);
-                if (std::is_same_v<TTo,TFrom>)
+                if constexpr (std::is_same_v<TTo,TFrom>)
                 {
                     std::memcpy(pDst,pSrc,sizeof(TTo) * width);
                 }
@@ -614,11 +642,12 @@ namespace   FE
                 {
                     for (uint32_t c = 0; c < width; c++)
                     {
-                        pDst[c]  =   castTo<TFrom,TTo>(src[c]);
+                        pDst[c]  =   castTo<TFrom,TTo,toFMT>(pSrc[c]);
                     }
                 }
             }
             return  *this;
+            }
         }
         template<class TTo>
         inline  auto&   fill(const RectU32& rect,const TTo& color)

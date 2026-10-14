@@ -109,6 +109,12 @@ namespace   FE
             _enabledFeatures.multiDrawIndirect  =   supportedFeatures.multiDrawIndirect;
         else
             _enabledFeatures.multiDrawIndirect  =   VK_FALSE;
+
+        // PPLL OIT 需要 fragment shader 能写 storage buffer
+        if (supportedFeatures.fragmentStoresAndAtomics)
+            _enabledFeatures.fragmentStoresAndAtomics = VK_TRUE;
+        else
+            LOG_INF("fragmentStoresAndAtomics not supported — OIT PPLL will not work");
         
         if(createLogicalDevice(_enabledFeatures,_cInfo.extensions,nullptr) != VK_SUCCESS)
             return  FEResult::ER_FAILED;
@@ -447,6 +453,9 @@ namespace   FE
         PCSTRs  deviceExtensions(enabledExtensions);
         if (useSwapChain)
             deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        /// OIT: 几何趟（0 attachment）中复用带 color attachment 的普通管线需要此特性
+        bool    unusedAttachmentsSupported  =   supportExtension(VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME);
+        VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT    unusedAttachmentsFeatures    =   {};
         /// 查询线光栅化特性的详细支持情况
         bool    lineRasterizationSupported  =   supportExtension(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
         VkPhysicalDeviceLineRasterizationFeatures       lineFeatures    =   {};
@@ -501,10 +510,32 @@ namespace   FE
 
             dynamicState3Features.pNext                 =   &dynamicRenderingFeatures;
         }
+        // OIT: 几何趟复用普通管线（colorAttachmentCount=1 的管线画进 0-attachment rendering）
+        // 需要 dynamicRenderingUnusedAttachments 特性；支持的设备同时启用扩展 + 特性
+        if (unusedAttachmentsSupported)
+        {
+            deviceExtensions.push_back(VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME);
+            unusedAttachmentsFeatures.sType                             =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT;
+            unusedAttachmentsFeatures.pNext                             =   nullptr;
+            unusedAttachmentsFeatures.dynamicRenderingUnusedAttachments =   VK_TRUE;
+        }
         if (lineRasterizationSupported)
         {
-            dynamicRenderingFeatures.pNext              =   &lineFeatures;
-            lineFeatures.pNext                          =   nullptr;
+            // lineFeatures 挂在链尾（dynamicRendering 或 unusedAttachments 之后）
+            if (unusedAttachmentsSupported)
+            {
+                unusedAttachmentsFeatures.pNext                         =   &lineFeatures;
+                dynamicRenderingFeatures.pNext                          =   &unusedAttachmentsFeatures;
+            }
+            else
+            {
+                dynamicRenderingFeatures.pNext                          =   &lineFeatures;
+            }
+            lineFeatures.pNext                                          =   nullptr;
+        }
+        else if (unusedAttachmentsSupported)
+        {
+            dynamicRenderingFeatures.pNext                              =   &unusedAttachmentsFeatures;
         }
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_KHR_portability_subset)
         // SRS - When running on iOS/macOS with MoltenVK and VK_KHR_portability_subset is defined and supported by the device, enable the extension

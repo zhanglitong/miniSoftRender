@@ -4,6 +4,7 @@
 #include    "../inc/graphic/FECmdBuffer.h"
 #include    "../inc/graphic/FEInstance.h"
 #include    "../inc/graphic/FEScene.h"
+#include    "../inc/graphic/FEOITManager.h"
 #include    "../inc/material/FEMaterialCull.hpp"
 #include    "../inc/FEContext.hpp"
 
@@ -415,7 +416,11 @@ namespace   FE
     {
         if (_groupNode.empty())
             return;
-        Material    mat     =   _groupNode.front()->_mat; 
+        Material    mat     =   _groupNode.front()->_mat;
+        /// OIT 双趟过滤:LIST(几何)趟只画 OIT 材质,MAIN(主)趟只画普通材质
+        auto        oitPass =   FEOITManager::pass();
+        if (oitPass == FEOITManager::OITPass::LIST && !mat->isOIT())    return;
+        if (oitPass == FEOITManager::OITPass::MAIN &&  mat->isOIT())    return;
         auto        pl      =   mat->pipeline(_key._primitive)->as<FEGPipeline>();
 
         cmd->bindPipeline(pl);

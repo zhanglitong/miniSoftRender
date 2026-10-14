@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OIT Color Pass: 从链表读 → 排序 → alpha 合成 → 输出到屏幕 -->
+<root using_defult="1">
+  <shaders>
+    <shader url =":/data/shader/cache/oit/color.frag.spv"/>
+    <shader url =":/data/shader/cache/oit/color.vert.spv"/>
+  </shaders>
+  <dynamicStates>
+    <VIEWPORT/>
+    <SCISSOR/>
+  </dynamicStates>
+  <!-- 无顶点输入（全屏三角形用 gl_VertexIndex 展开） -->
+  <bindings>
+  </bindings>
+  <features></features>
+  <extensions></extensions>
+  <!-- Color Pass 状态：alpha blending ON, depth OFF -->
+  <states>
+    <!-- Blend: SrcAlpha / OneMinusSrcAlpha -->
+    <COLOR_BLEND_ENABLE value="true"/>
+  </states>
+</root>

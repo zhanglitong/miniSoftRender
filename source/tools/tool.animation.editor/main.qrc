@@ -21,5 +21,6 @@
     <file>res/ico_Set.png</file>
     <file>res/toTarget.png</file>
     <file>res/ico_Undo.png</file>
+    <file>res/k.png</file>
   </qresource>
 </RCC>

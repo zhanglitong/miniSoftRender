@@ -67,6 +67,18 @@ namespace   FE
 
         virtual FEResult    updateBuffer(GPUBuffer,const void* src,uint64 length,uint64 dstOff) override;
 
+        virtual FEResult    fillBuffer(GPUBuffer buf, uint64 dstOff, uint64 size, uint32 value) override
+        {
+            (void)buf; (void)dstOff; (void)size; (void)value;
+            return FEResult::ER_FAILED;
+        }
+        virtual FEResult    pipelineBarrier(uint32 srcStageMask, uint32 dstStageMask,
+                                             uint32 srcAccessMask, uint32 dstAccessMask) override
+        {
+            (void)srcStageMask; (void)dstStageMask; (void)srcAccessMask; (void)dstAccessMask;
+            return FEResult::ER_FAILED;
+        }
+
         virtual FEResult    draw  (   uint32_t firstVertex
                                     , uint32_t vertexCount
                                     , uint32_t firstInstance
