@@ -97,6 +97,7 @@ namespace FE
         FEAction(const FEAction& other);
         ~FEAction() ;
     public:
+
         /// <summary>
         /// 编辑模式下,性能较差
         /// </summary>
@@ -122,6 +123,10 @@ namespace FE
         {
             _range  =   calcRange();
             clearCache();
+        }
+        void        setMode(PlayMode mode)
+        {
+            _playMode   =   mode;
         }
         /// <summary>
         /// 播放

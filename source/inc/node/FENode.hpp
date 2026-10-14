@@ -234,6 +234,27 @@ namespace   FE
         }
 
         /// <summary>
+        /// 设置 从世界到节点的缩放变换
+        /// 本地缩放 = 目标世界缩放 / 父链累计缩放(逐轴换算)
+        /// </summary>
+        /// <param name="vec">从世界到节点的缩放变换</param>
+        inline  auto&   setGlobalScaling(const real3& vec)
+        {
+            if (_parent != nullptr)
+            {
+                /// 父链累计缩放(逐轴累乘,与 localScaling 同口径)
+                real3   ps(1.0);
+                for (auto p = _parent; p != nullptr; p = p->_parent)
+                    ps  =   ps * real3(p->_local._scale);
+                _local._scale  =   real3(vec.x / ps.x, vec.y / ps.y, vec.z / ps.z);
+            }
+            else
+            {
+                _local._scale   =   vec;
+            } 
+            return  *this;
+        }
+        /// <summary>
         /// 修改父节点(传 nullptr 表示提升为顶层节点)
         /// 修改后保持场景世界变换不变,即 globalTransform 不变:
         ///     global = parentGlobal_old * local_old = parentGlobal_new * local_new
