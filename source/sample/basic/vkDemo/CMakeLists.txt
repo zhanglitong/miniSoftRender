@@ -20,29 +20,16 @@ ELSE()
     message(STATUS ${Vulkan_LIBRARY})
 ENDIF()
 
-# 健壮地获取 glslc 路径
-if(Vulkan_GLSLC_EXECUTABLE)
-    set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
-elseif(Vulkan_GLSLC)
-    set(GLSLC ${Vulkan_GLSLC})
-else()
-    # 再尝试手动查找（备用）
-    find_program(GLSLC glslc PATHS ENV VULKAN_SDK PATH_SUFFIXES bin)
-    if(NOT GLSLC)
-        message(FATAL_ERROR "glslc not found")
-    endif()
-endif()
-
-message(STATUS "Using glslc: ${GLSLC}")
-
 IF(WIN32)
     IF (Vulkan_FOUND)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WIN32_KHR")
     ENDIF()
 ENDIF(WIN32)
 
+# shader 编译已移至公共 CompileShaders 目标（source/CMakeLists.txt），
+# 本文件仅保留 shader/pipeline 源文件列出便于 IDE 浏览
+
 set(SHADER_SRC_DIR      ${CMAKE_SOURCE_DIR}/bin/data/shader/source)
-set(SHADER_CACHE_DIR    ${CMAKE_SOURCE_DIR}/bin/data/shader/cache)
 
 set(PIPELINE_DIR        ${CMAKE_SOURCE_DIR}/bin/data/pipeline)
 
@@ -81,35 +68,6 @@ add_executable(${TARGET_NAME}
         ${SHADER_SOURCES}
         ${PIPELINE_LIST}
 )
-
-set(SPV_OUTPUTS "")
-foreach(SHADER ${SHADER_SOURCES})
-    file(RELATIVE_PATH RELATIVE_PATH ${SHADER_SRC_DIR} ${SHADER})
-    
-    set(OUTPUT_SPV "${SHADER_CACHE_DIR}/${RELATIVE_PATH}.spv")
-    
-    get_filename_component(OUTPUT_DIR ${OUTPUT_SPV} DIRECTORY)
-    file(MAKE_DIRECTORY ${OUTPUT_DIR})
-    
-    add_custom_command(
-        OUTPUT ${OUTPUT_SPV}
-        COMMAND ${GLSLC} -I ${SHADER_SRC_DIR}/common ${SHADER} -o ${OUTPUT_SPV}
-        DEPENDS ${SHADER}
-        COMMENT "编译着色器 ${RELATIVE_PATH}"
-        VERBATIM
-    )
-    list(APPEND SPV_OUTPUTS ${OUTPUT_SPV})
-endforeach()
-
-add_custom_target(CompileShaders ALL DEPENDS ${SPV_OUTPUTS})
-
-# 确保 common 下的 FEShaderDefine.h 副本在编译 shader 前已更新
-add_dependencies(CompileShaders CopyResources)
-
-add_dependencies(${TARGET_NAME} CompileShaders)
-
-message(STATUS "[Shader Compile] Total shaders to compile: ${SHADER_SOURCES}")
-
 
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/../../../inc)
 
