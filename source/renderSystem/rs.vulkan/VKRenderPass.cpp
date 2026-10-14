@@ -16,88 +16,103 @@ namespace   FE
     {
         _cInfo  =   cInfo;
 
-        std::array<VkAttachmentDescription, 2> attachments  =   {};
-        {
-            // Color attachment
-            VkAttachmentDescription &   color   =   attachments[0];
-            color.format             =   system2Native(cInfo._colorFmt);
-            color.samples            =   VK_SAMPLE_COUNT_1_BIT;
-            color.loadOp             =   VK_ATTACHMENT_LOAD_OP_CLEAR;
-            color.storeOp            =   VK_ATTACHMENT_STORE_OP_STORE;
-            color.stencilLoadOp      =   VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            color.stencilStoreOp     =   VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            color.initialLayout      =   VK_IMAGE_LAYOUT_UNDEFINED;
-            color.finalLayout        =   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        
-            // Depth attachment
-            VkAttachmentDescription&    depth   =    attachments[1];
-            depth.format            =   system2Native(cInfo._depthFmt);;
-            depth.samples           =   VK_SAMPLE_COUNT_1_BIT;
-            depth.loadOp            =   VK_ATTACHMENT_LOAD_OP_CLEAR;
-            depth.storeOp           =   VK_ATTACHMENT_STORE_OP_STORE;
-            depth.stencilLoadOp     =   VK_ATTACHMENT_LOAD_OP_CLEAR;
-            depth.stencilStoreOp    =   VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            depth.initialLayout     =   VK_IMAGE_LAYOUT_UNDEFINED;
-            depth.finalLayout       =   VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        }
+        const bool withColor = cInfo._withColor;
+        const bool withDepth = cInfo._withDepth;
+        const uint32_t attachmentCount = (withColor ? 1u : 0u) + (withDepth ? 1u : 0u);
+
+        std::vector<VkAttachmentDescription> attachments;
+        attachments.reserve(attachmentCount);
 
         VkAttachmentReference   colorReference  =   {};
-        { 
-            colorReference.attachment   =   0;
-            colorReference.layout       =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        };
         VkAttachmentReference   depthReference  =   {};
-        { 
-            depthReference.attachment   =   1;
+
+        if (withColor)
+        {
+            uint32_t idx = (uint32_t)attachments.size();
+            VkAttachmentDescription desc = {};
+            desc.format             =   system2Native(cInfo._colorFmt);
+            desc.samples            =   VK_SAMPLE_COUNT_1_BIT;
+            desc.loadOp             =   VK_ATTACHMENT_LOAD_OP_CLEAR;
+            desc.storeOp            =   VK_ATTACHMENT_STORE_OP_STORE;
+            desc.stencilLoadOp      =   VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            desc.stencilStoreOp     =   VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            desc.initialLayout      =   VK_IMAGE_LAYOUT_UNDEFINED;
+            desc.finalLayout        =   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            attachments.push_back(desc);
+
+            colorReference.attachment   =   idx;
+            colorReference.layout       =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        }
+
+        if (withDepth)
+        {
+            uint32_t idx = (uint32_t)attachments.size();
+            VkAttachmentDescription desc = {};
+            desc.format             =   system2Native(cInfo._depthFmt);
+            desc.samples            =   VK_SAMPLE_COUNT_1_BIT;
+            desc.loadOp             =   VK_ATTACHMENT_LOAD_OP_CLEAR;
+            desc.storeOp            =   VK_ATTACHMENT_STORE_OP_STORE;
+            desc.stencilLoadOp      =   VK_ATTACHMENT_LOAD_OP_CLEAR;
+            desc.stencilStoreOp     =   VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            desc.initialLayout      =   VK_IMAGE_LAYOUT_UNDEFINED;
+            desc.finalLayout        =   VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            attachments.push_back(desc);
+
+            depthReference.attachment   =   idx;
             depthReference.layout       =   VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         }
 
         VkSubpassDescription subpassDescription =   {};
         {
             subpassDescription.pipelineBindPoint          =   VK_PIPELINE_BIND_POINT_GRAPHICS;
-            subpassDescription.colorAttachmentCount       =   1;
-            subpassDescription.pColorAttachments          =   &colorReference;
-            subpassDescription.pDepthStencilAttachment    =   &depthReference;
+            subpassDescription.colorAttachmentCount       =   withColor ? 1u : 0u;
+            subpassDescription.pColorAttachments          =   withColor ? &colorReference : nullptr;
+            subpassDescription.pDepthStencilAttachment    =   withDepth ? &depthReference : nullptr;
         }
 
         // Subpass dependencies for layout transitions
-        std::array<VkSubpassDependency, 3> dependencies =   {};
+        std::vector<VkSubpassDependency> dependencies;
+        if (withColor)
         {
-            VkSubpassDependency&    depend0    =  dependencies[0];
-            
-            depend0.srcSubpass      =   VK_SUBPASS_EXTERNAL;
-            depend0.dstSubpass      =   0;
-            depend0.srcStageMask    =   VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            depend0.dstStageMask    =   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            depend0.srcAccessMask   =   0;
-            depend0.dstAccessMask   =   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            
-            VkSubpassDependency&    depend1    =  dependencies[1];
-            depend1.srcSubpass      =   0;
-            depend1.dstSubpass      =   VK_SUBPASS_EXTERNAL;
-            depend1.srcStageMask    =   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            depend1.dstStageMask    =   VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-            depend1.srcAccessMask   =   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            depend1.dstAccessMask   =   VK_ACCESS_MEMORY_READ_BIT;
+            VkSubpassDependency d0 = {};
+            d0.srcSubpass       = VK_SUBPASS_EXTERNAL;
+            d0.dstSubpass       = 0;
+            d0.srcStageMask     = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            d0.dstStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            d0.srcAccessMask    = 0;
+            d0.dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            dependencies.push_back(d0);
 
-            VkSubpassDependency&    depend2    =  dependencies[2];
-            depend2.srcSubpass      =   VK_SUBPASS_EXTERNAL;
-            depend2.dstSubpass      =   0;
-            depend2.srcStageMask    =   VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            depend2.dstStageMask    =   VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-            depend2.srcAccessMask   =   0;
-            depend2.dstAccessMask   =   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            VkSubpassDependency d1 = {};
+            d1.srcSubpass       = 0;
+            d1.dstSubpass       = VK_SUBPASS_EXTERNAL;
+            d1.srcStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            d1.dstStageMask     = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            d1.srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            d1.dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT;
+            dependencies.push_back(d1);
+        }
+        if (withDepth)
+        {
+            VkSubpassDependency d2 = {};
+            d2.srcSubpass       = VK_SUBPASS_EXTERNAL;
+            d2.dstSubpass       = 0;
+            d2.srcStageMask     = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            d2.dstStageMask     = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+            d2.srcAccessMask    = 0;
+            d2.dstAccessMask    = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            dependencies.push_back(d2);
         }
 
         VkRenderPassCreateInfo renderPassInfo   =   {};
         {
             renderPassInfo.sType            =   VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-            renderPassInfo.attachmentCount  =   static_cast<uint32_t>(attachments.size());
-            renderPassInfo.pAttachments     =   attachments.data();
+            renderPassInfo.attachmentCount  =   attachmentCount;
+            renderPassInfo.pAttachments     =   attachments.empty() ? nullptr : attachments.data();
             renderPassInfo.subpassCount     =   1;
             renderPassInfo.pSubpasses       =   &subpassDescription;
-            renderPassInfo.dependencyCount  =   static_cast<uint32_t>(dependencies.size());
-            renderPassInfo.pDependencies    =   dependencies.data();
+            renderPassInfo.dependencyCount  =   (uint32_t)dependencies.size();
+            renderPassInfo.pDependencies    =   dependencies.empty() ? nullptr : dependencies.data();
         }
         auto&   vkDev   =   (VKDevice&)(_ctx.device());
         VK_CHECK_RESULT(vkCreateRenderPass(vkDev.logicalDevice(), &renderPassInfo, nullptr, &_native));

@@ -4,3 +4,4 @@
 #include    "FEMaterialPBR.hpp"
 #include    "FEMaterialPoint.hpp"
 #include    "FEMaterialV3.hpp"
+#include    "FEMaterialOIT.hpp"

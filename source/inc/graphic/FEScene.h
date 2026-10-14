@@ -24,6 +24,7 @@
 #include    "FEViewerMgr.hpp"
 #include    "FEComponentSysMgr.hpp"
 #include    "FEFrame.h"
+#include    "FEOITManager.h"
 
 namespace   FE
 {
@@ -228,7 +229,13 @@ namespace   FE
         Node                _mousePoint;
         aabb3dr             _aabb;
         String              _projectFileName;
+
+        // ===== OIT: 可选的 Order-Independent Transparency 管理器 =====
+        OITManager          _oitManager;
     public:
+        /// 设置 OIT 管理器（nullptr 关闭 OIT，默认 nullptr）
+        void            setOITManager(OITManager oit)   { _oitManager = std::move(oit); }
+        OITManager      oitManager() const              { return _oitManager; }
         /// <summary>
         /// 实现组件到系统见系统的分发功能
         /// 函数收集指定类型的组件，然后分发到对应的组件系统

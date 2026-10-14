@@ -5,6 +5,12 @@
 			<folder path="computeCull">
 				<file name="shader/cache/computeCull/shader.comp.spv" input="shader.comp.spv"/>
 			</folder>
+			<folder path="oit">
+				<file name="shader/cache/oit/color.frag.spv" input="color.frag.spv"/>
+				<file name="shader/cache/oit/color.vert.spv" input="color.vert.spv"/>
+				<file name="shader/cache/oit/geometry.frag.spv" input="geometry.frag.spv"/>
+				<file name="shader/cache/oit/geometry.vert.spv" input="geometry.vert.spv"/>
+			</folder>
 			<folder path="pbr">
 				<file name="shader/cache/pbr/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/pbr/shader.vert.spv" input="shader.vert.spv"/>
@@ -41,6 +47,12 @@
 			<folder path="computeCull">
 				<file name="shader/source/computeCull/shader.comp" input="shader.comp"/>
 				<file name="shader/source/computeCull/shader.wgls" input="shader.wgls"/>
+			</folder>
+			<folder path="oit">
+				<file name="shader/source/oit/color.frag" input="color.frag"/>
+				<file name="shader/source/oit/color.vert" input="color.vert"/>
+				<file name="shader/source/oit/geometry.frag" input="geometry.frag"/>
+				<file name="shader/source/oit/geometry.vert" input="geometry.vert"/>
 			</folder>
 			<folder path="pbr">
 				<file name="shader/source/pbr/shader.frag" input="shader.frag"/>

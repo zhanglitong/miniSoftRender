@@ -76,7 +76,10 @@ namespace   FE
         for (size_t c = 0; c < _cInfo._binds.size(); c++)
         {
             auto&           binding     =   _cInfo._binds[c];
-            FEGPUBuffer*    pBuffer     =   dynamic_cast<FEGPUBuffer*>(binding._objects.front().get());
+            /// 稀疏绑定：允许 layout 中存在尚未绑定的 descriptor（如 OIT 几何趟 DSets）
+            if (binding._objects.empty())
+                continue;
+            FEGPUBuffer*    pBuffer     =   nullptr;
             switch(binding._type)
             {
             case DT_UNIFORM_BUFFER:

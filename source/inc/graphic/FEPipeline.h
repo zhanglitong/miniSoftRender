@@ -31,6 +31,14 @@ namespace   FE
             /// </summary>
             ShaderTypes         _pushConstantStage;
             bool                _pushConstant;
+
+            // ===== Pipeline State Overrides =====
+            // 默认值 0 表示用后端硬编码值，非 0 时覆盖
+            bool                _enableDepthTest    =   true;   // OIT color pass: false
+            bool                _enableDepthWrite   =   true;   // OIT geometry pass: false（透明不互相遮挡）
+            bool                _enableColorBlend   =   false;  // OIT color pass: true
+            uint32_t            _colorAttachmentCount = 1;      // OIT geometry pass: 0
+            int                 _cullModeOverride    =   -1;     // -1=默认BACK, 0=NULL, 1=FRONT, 2=BACK, 3=FRONT_AND_BACK
         };
     public:
         FEPipeline(FEContext& ctx)

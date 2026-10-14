@@ -169,6 +169,11 @@ namespace   FE
         /// <returns></returns>
         virtual bool        setup(const String& prefix);
         /// <summary>
+        /// OIT 双趟渲染过滤标记:OIT 材质(LIST 趟收集进链表)返回 true,
+        /// 普通材质(MAIN 趟正常画)返回 false。默认 false。
+        /// </summary>
+        virtual bool        isOIT() const { return false; }
+        /// <summary>
         /// 应用动态设置
         /// </summary>
         virtual void        appDynamicState(CMDPtr cmd,EPrimitive pri);
