@@ -155,7 +155,10 @@ namespace   FE
             cInfo._inputAssemblyState._primitive = PRI_TRIANGLES;
             cInfo._dynamicStates.push_back(VIEWPORT);
             cInfo._dynamicStates.push_back(SCISSOR);
-
+            /// appDynamicState 每次绘制都会 setPrimitiveTopology/setCullMode/setDepthTest/setLineWidth，
+            /// CULL_MODE/DEPTH_TEST_ENABLE/LINE_WIDTH 由 VKGPipeline 自动补全，
+            /// 拓扑必须显式声明为动态，否则触发 VUID-08608（静态拓扑+动态设置命令）
+            cInfo._dynamicStates.push_back(PRIMITIVE_TOPOLOGY);
             /// 顶点输入布局：与 pbr.xml 完全一致（V3 逐顶点 + 实例属性），
             /// geometry.vert 声明了 location 0~7，缺了会触发 validation 报错
             {
