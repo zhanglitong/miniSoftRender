@@ -78,9 +78,7 @@
 			</folder>
 			<folder path="texture">
 				<file name="shader/source/texture/shader.frag" input="shader.frag"/>
-				<file name="shader/source/texture/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/source/texture/shader.vert" input="shader.vert"/>
-				<file name="shader/source/texture/shader.vert.spv" input="shader.vert.spv"/>
 				<file name="shader/source/texture/shader.wgls" input="shader.wgls"/>
 			</folder>
 			<folder path="v3">

@@ -113,7 +113,7 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEMaterialV3);
 
 
-        DEFINE_CLASS_CREATOR(FEAction);
+        DEFINE_CLASS_CREATOR(FEPlayback);
         DEFINE_CLASS_CREATOR(FEAnimation);
         DEFINE_CLASS_CREATOR(FEAnimClip);
         DEFINE_CLASS_CREATOR(FEKeyFrameTrack);

@@ -4,11 +4,11 @@
 #include    "../inc/FEObjectHelper.hpp"
 #include    "../inc/FENodeHelper.hpp"
 #include    "../../inc/graphic/FEScene.h"
-#include    "../inc/animation/FEAction.hpp"
+#include    "../inc/animation/FEPlayback.hpp"
 
 namespace FE
 {
-    FEAction::FEAction(FEContext& ctx)  
+    FEPlayback::FEPlayback(FEContext& ctx)  
         :FEObject(ctx)
         ,FEObjectsTemplate<Animation, AnimationLess>(AnimationLessFunc)
     {
@@ -20,7 +20,7 @@ namespace FE
         _clipTime       =   0;
         _range          =   {};
     }
-    FEAction::FEAction(const FEAction& other)
+    FEPlayback::FEPlayback(const FEPlayback& other)
         :FEObject(other)
         ,FEObjectsTemplate<Animation, AnimationLess>(other)
     {
@@ -33,13 +33,13 @@ namespace FE
         _range          =   other._range;
     }
 
-    FEAction::~FEAction()
+    FEPlayback::~FEPlayback()
     {
         _objects.clear();
         _cache.clear();
     }
 
-    void    FEAction::update(const real& delta)
+    void    FEPlayback::update(const real& delta)
     {
         if (_status != PS_Running || _objects.empty() )
             return;
@@ -110,7 +110,7 @@ namespace FE
         }
     }
 
-    void    FEAction::setClipTime(const real& clipTime)
+    void    FEPlayback::setClipTime(const real& clipTime)
     {
         _clipTime   =   std::clamp(clipTime,_range.x,_range.y);
 
@@ -132,7 +132,7 @@ namespace FE
         /// }
     }
 
-    void    FEAction::updateBatch(const real& clipTime,const real& delta)
+    void    FEPlayback::updateBatch(const real& clipTime,const real& delta)
     {
         if (_cache.empty())
         {
@@ -200,7 +200,7 @@ namespace FE
         }
     }
 
-    void    FEAction::buildCache()
+    void    FEPlayback::buildCache()
     {
         size_t  cnt =   0;
         for (auto& var : _objects)
@@ -233,12 +233,12 @@ namespace FE
         });
     }   
 
-    void    FEAction::clearCache()
+    void    FEPlayback::clearCache()
     {
         _cache.clear();
     }
 
-    real2   FEAction::calcRange()
+    real2   FEPlayback::calcRange()
     {
         real2   result(-1,-1);
         if (_objects.empty())
@@ -256,7 +256,7 @@ namespace FE
     }
 
 
-    size_t  FEAction::queryDepends(ObjectUSet& uSet) const
+    size_t  FEPlayback::queryDepends(ObjectUSet& uSet) const
     {
         auto    count   =   uSet.size();
         for (auto  var: objects())
@@ -266,7 +266,7 @@ namespace FE
         return  uSet.size() - count;
     }
 
-    void    FEAction::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const
+    void    FEPlayback::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const
     {
         UNUSED(chunk,version,ctx);
         writer.write(_playMode);
@@ -280,7 +280,7 @@ namespace FE
             writer.write(object->objectId());
         }
     }
-    void    FEAction::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx)
+    void    FEPlayback::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx)
     {
         (void)reader;
         (void)chunk;

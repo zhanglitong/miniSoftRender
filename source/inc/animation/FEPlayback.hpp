@@ -6,7 +6,7 @@
 
 namespace FE
 {
-    DEFINE_CLASS_UUID(FEAction, "{0AFD2EDB-C83A-49F4-ACC6-52E6060D54E4}");
+    DEFINE_CLASS_UUID(FEPlayback, "{0AFD2EDB-C83A-49F4-ACC6-52E6060D54E4}");
 
     /// lambda,按照动画的在时间线上的偏移量,从小到大排序
     constexpr   auto    AnimationLessFunc = [](const Animation& l, const Animation& r)
@@ -21,7 +21,7 @@ namespace FE
     /// 还没有想好如何统一编辑模式与非编辑模式
     /// TODO: 本质上是: 数据发生变化后如何重构cache,避免脏数据
     /// </summary>
-    class   FE_API FEAction 
+    class   FE_API FEPlayback 
         : public FEObject
         , public FEObjectsTemplate<Animation, AnimationLess>
     {
@@ -57,7 +57,7 @@ namespace FE
         };
         using   TrackObjects    =   std::vector<TrackObject>;
     public:
-        IMPLEMENT_CLASS_REFLECT(FEAction)
+        IMPLEMENT_CLASS_REFLECT(FEPlayback)
     public:
         enum    PlayMode :uint8_t
         {
@@ -90,12 +90,12 @@ namespace FE
             PS_Running  ,
             PS_Stoped 
         };
-        using   Notify  =   std::function<void(FEAction*)>;
+        using   Notify  =   std::function<void(FEPlayback*)>;
         using   Notifys =   std::map<void*,Notify>;
     public:
-        FEAction(FEContext& ctx)  ;
-        FEAction(const FEAction& other);
-        ~FEAction() ;
+        FEPlayback(FEContext& ctx)  ;
+        FEPlayback(const FEPlayback& other);
+        ~FEPlayback() ;
     public:
 
         /// <summary>
@@ -241,6 +241,6 @@ namespace FE
         TrackObjects    _cache;
     };
 
-    using   Action      =   SharedPtr<FEAction>;
+    using   Action      =   SharedPtr<FEPlayback>;
     using   Actions     =   std::vector<Action>;
 }

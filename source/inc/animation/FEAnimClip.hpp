@@ -88,7 +88,7 @@ namespace FE
         /// <summary>
         /// 优化时间线:检测所有 track,若 times 值相同则共享同一个 RealsObject
         /// 保留第一份,其余 track 通过 setTimeObject 引用同一份
-        /// 共享后可启用 FEAction::updateBatch 中"相同时间线只算一次 calcFrameOffset"的优化
+        /// 共享后可启用 FEPlayback::updateBatch 中"相同时间线只算一次 calcFrameOffset"的优化
         /// </summary>
         void    simplifyTimeline();
         /// <summary>

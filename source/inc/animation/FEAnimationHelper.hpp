@@ -52,7 +52,7 @@ namespace FE
                 return;
 
             /// 创建共享的时间线(空),由各轨道引用
-            /// 注意:track共享同一时间线对象时,FEAction::updateBatch 会做相同时间线优化
+            /// 注意:track共享同一时间线对象时,FEPlayback::updateBatch 会做相同时间线优化
             /// 但编辑场景下,每条track独立时间线更直观,这里为每条track创建独立时间线
             auto    makeReal3Track = [&](PropIndex idx,const char* name)
             {
