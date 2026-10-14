@@ -102,9 +102,8 @@ namespace   FE
             }
 
             /// 底面封口
-            uint    baseCenter = index;
-            float   baseR  =   R * std::sin(thetaMax);
-            float   baseY  =   R * cosThetaMax + cy;
+            uint    baseCenter  = index;
+            float   baseY       =   R * cosThetaMax + cy;
             vs.insert(vs.end(),{0, baseY, 0});
             if constexpr (bNormal) ns.insert(ns.end(),{0, -1, 0});
             if constexpr (bUV)     us.insert(us.end(),{0.5f, 0.5f});
