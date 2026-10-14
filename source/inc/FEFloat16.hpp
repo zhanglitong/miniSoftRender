@@ -3,6 +3,7 @@
 #include    <cstddef>
 #include    <cstdint>
 #include    <cmath>
+#include    <type_traits>
 
 namespace   FE
 {
@@ -13,7 +14,8 @@ namespace   FE
         {
             _data   =   val;
         }
-        template<class U>
+        /// 仅接受算术类型,避免对向量等类型误判可转换(转换语义为取整,非half编码)
+        template<class U,std::enable_if_t<std::is_arithmetic_v<U>,int> = 0>
         float16(U val)
         {
             _data   =   uint16_t(val);

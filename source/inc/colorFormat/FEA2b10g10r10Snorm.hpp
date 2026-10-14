@@ -1,5 +1,6 @@
 #pragma     once
 
+#include    <algorithm>
 #include    <cstddef>
 #include    <cstdint>
 #include    <cmath>
@@ -26,7 +27,7 @@ namespace   FE
             _value  = value;
         }
         /// <summary>
-        /// 
+        /// 由归一化浮点构造: r/g/b 域 [-1,1] 线性映射到 [-511,511], 与 red()*oneOver511F 解码互逆
         /// </summary>
         /// <param name="x">-1~+1</param>
         /// <param name="y">-1~+1</param>
@@ -34,10 +35,10 @@ namespace   FE
         /// <param name="w">-2 ~ 1</param>
         explicit FEA2b10g10r10Snorm(float x,float y,float z,float w)
         {
-            _r   =   int((x + 1) * 1023.0f - 512.0f);
-            _g   =   int((y + 1) * 1023.0f - 512.0f);
-            _b   =   int((z + 1) * 1023.0f - 512.0f);
-            _a   =   int(w);
+            _r   =   int(std::lround((std::min)((std::max)(x,-1.0f),1.0f) * 511.0f));
+            _g   =   int(std::lround((std::min)((std::max)(y,-1.0f),1.0f) * 511.0f));
+            _b   =   int(std::lround((std::min)((std::max)(z,-1.0f),1.0f) * 511.0f));
+            _a   =   int(std::lround((std::min)((std::max)(w,-2.0f),1.0f)));
         }
         /// <summary>
         /// 
