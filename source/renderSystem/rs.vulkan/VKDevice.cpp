@@ -14,6 +14,7 @@
 #include    "VKSwapchain.h"
 #include    "VKGImage.h"
 #include    "VKGImageView.h"
+#include    "VKTexture.h"
 #include    "VKCmdPool.h"
 #include    "VKDSet.h"
 #include    "VKDSetLayout.h"
@@ -183,10 +184,16 @@ namespace   FE
         LOG_DBG("VKRenderSystem.Swapchain");
         return  new VKSwapchain(_ctx);
     }
-    GImage      VKDevice::createGImage()         
+    GImage      VKDevice::createGImage()
     {
         LOG_DBG("VKRenderSystem.createGImage");
         return  new VKGImage(_ctx);
+    }
+
+    TexPtr      VKDevice::createTexture()
+    {
+        LOG_DBG("VKRenderSystem.createTexture");
+        return  new VKTexture(_ctx);
     }
 
     DSetLayout  VKDevice::createDSLayout()

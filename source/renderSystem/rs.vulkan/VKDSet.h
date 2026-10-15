@@ -10,6 +10,7 @@ namespace   FE
     {
         using   VKWDSs  =   std::vector<VkWriteDescriptorSet>;
         using   DSBIs   =   std::vector<VkDescriptorBufferInfo>;
+        using   DSImgIs =   std::vector<VkDescriptorImageInfo>;
     public:
         VKDSet(FEContext& ctx)
             :TRSObject<VkDescriptorSet,FEDSet>(ctx)
@@ -25,5 +26,6 @@ namespace   FE
     protected:
         VKWDSs  _wdss;
         DSBIs   _buffers;
+        DSImgIs _images;
     };
 }
