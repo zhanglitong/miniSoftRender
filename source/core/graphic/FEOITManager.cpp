@@ -18,20 +18,9 @@ namespace   FE
     void            FEOITManager::setPass(OITPass pass)         { s_oitPass = pass; }
     FEOITManager::OITPass FEOITManager::pass()                  { return s_oitPass; }
 
-    // ===== OITNode 大小与 shader 必须完全一致 =====
-    // vec4 color (16B) + float depth (4B) + uint next (4B) = 24B + 8B padding = 32B
-    // 编译器会自动 std140 对齐，这里显式声明与 shader 对齐
-#pragma pack(push, 1)
-    struct OITNodeHost
-    {
-        float       _color[4];     // 16B
-        float       _depth;        // 4B
-        uint32_t    _next;         // 4B
-        uint32_t    _pad[2];       // 8B 对齐
-    };
-#pragma pack(pop)
-
-    static_assert(sizeof(OITNodeHost) == 32, "OITNode size must match shader's std140 layout");
+    // ===== OITNode 定义在 FEShaderDefine.h,与 shader std430 布局完全一致 =====
+    // uint colorRG (4B) + uint colorBA (4B, half HDR) + float depth (4B) + uint next (4B) = 16B
+    static_assert(sizeof(OITNode) == 16, "OITNode size must match shader's std430 layout");
 
     struct CounterSBO
     {
@@ -62,7 +51,7 @@ namespace   FE
         // ===== 1. 创建三个 SSBO =====
         const uint64_t counterSize    =   sizeof(CounterSBO);
         const uint64_t headIndexSize  =   (uint64_t)screenW * screenH * sizeof(uint32_t);
-        const uint64_t linkedListSize =   (uint64_t)_maxNodes * sizeof(OITNodeHost);
+        const uint64_t linkedListSize =   (uint64_t)_maxNodes * sizeof(OITNode);
 
         auto makeSBO = [&](uint64_t size, const char* logName) -> SBO
         {

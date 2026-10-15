@@ -133,6 +133,22 @@ const   int     LightTypeSpot   =   2;
         float((c >> 8 ) & 0xFFu) / 255.0,
         float((c >> 0 ) & 0xFFu) / 255.0);
     }
+    /// 打包 RGBA8 颜色(R 存高字节),与 unpackColor 互逆;超出 [0,1] 的分量会被截断
+    uint    packColor(vec4 c)
+    {
+        uvec4   v = uvec4(clamp(c, 0.0, 1.0) * 255.0 + 0.5);
+        return (v.r << 24) | (v.g << 16) | (v.b << 8) | (v.a << 0);
+    }
+    /// 打包 HDR 颜色到 2 个 uint(4 通道 half),支持 >1.0 的 HDR 值,与 unpackColorHDR 互逆
+    uint2   packColorHDR(vec4 c)
+    {
+        return uint2(packHalf2x16(c.rg), packHalf2x16(c.ba));
+    }
+    /// 解包 HDR 颜色(packColorHDR 的逆操作)
+    vec4    unpackColorHDR(uint2 c)
+    {
+        return vec4(unpackHalf2x16(c.x), unpackHalf2x16(c.y));
+    }
 #endif
 
 /// <summary>
@@ -374,6 +390,23 @@ struct  ClipData
 struct  UBOSky
 {
     float _dummy;
+};
+
+/// <summary>
+/// OIT(PPLL) 链表节点,geometry/color pass 与 C++ 宿主侧布局必须完全一致
+/// color 用 2 个 uint 存 4 通道 half(packColorHDR/unpackColorHDR),支持 HDR,
+/// 整个节点 16 字节,std430 下数组步长为 16,与 C++ 端 sizeof(OITNode) 一致
+/// </summary>
+struct  OITNode
+{
+    /// HDR 颜色 RG 通道(packHalf2x16)
+    uint    colorRG;
+    /// HDR 颜色 BA 通道(packHalf2x16)
+    uint    colorBA;
+    /// fragment 深度(gl_FragCoord.z)
+    float   depth;
+    /// 下一节点索引,0xFFFFFFFF 表示链表尾
+    uint    next;
 };
 
 struct  PointData

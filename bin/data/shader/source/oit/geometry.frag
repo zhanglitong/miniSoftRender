@@ -25,14 +25,7 @@ layout(set=0, binding=11) buffer OITHeadIndex
     uint oitHeadIndex[];
 };
 
-// 链表节点池（与 color pass 布局必须完全一致）
-struct OITNode
-{
-    vec4    color;
-    float   depth;
-    uint    next;
-};
-
+// 链表节点池（OITNode 定义在 FEShaderDefine.h,与 color pass/C++ 侧布局一致）
 layout(set=0, binding=12) buffer OITLinkedList
 {
     OITNode oitNodes[];
@@ -92,8 +85,10 @@ void main()
     uint nodeIdx = atomicAdd(oitCount, 1);
     if (nodeIdx < oitMaxCount)   // 溢出保护
     {
-        oitNodes[nodeIdx].color = color;
-        oitNodes[nodeIdx].depth = gl_FragCoord.z;
+        uint2 pc = packColorHDR(color);
+        oitNodes[nodeIdx].colorRG = pc.x;
+        oitNodes[nodeIdx].colorBA = pc.y;
+        oitNodes[nodeIdx].depth   = gl_FragCoord.z;
 
         // 挂到链表头（atomicExchange 返回旧的头节点索引）
         uint oldHead = atomicExchange(oitHeadIndex[pixelIdx], nodeIdx);

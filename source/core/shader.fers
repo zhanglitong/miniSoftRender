@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='gb2312' ?>
-<root dataPath="E:/miniSoftRender/bin/data" outPath="" singleOut="1">
+<root dataPath="D:/miniSoftRender/bin/data" outPath="" singleOut="1">
 	<folder path="shader">
 		<folder path="cache">
 			<folder path="computeCull">
@@ -13,17 +13,14 @@
 			</folder>
 			<folder path="pbr">
 				<file name="shader/cache/pbr/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/pbr/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/pbr/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="phong">
 				<file name="shader/cache/phong/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/phong/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/phong/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="point">
 				<file name="shader/cache/point/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/point/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/point/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="texture">
@@ -32,12 +29,10 @@
 			</folder>
 			<folder path="v3">
 				<file name="shader/cache/v3/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/v3/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/v3/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="v3c4">
 				<file name="shader/cache/v3c4/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/v3c4/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/v3c4/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="v3Instance">
@@ -78,7 +73,9 @@
 			</folder>
 			<folder path="texture">
 				<file name="shader/source/texture/shader.frag" input="shader.frag"/>
+				<file name="shader/source/texture/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/source/texture/shader.vert" input="shader.vert"/>
+				<file name="shader/source/texture/shader.vert.spv" input="shader.vert.spv"/>
 				<file name="shader/source/texture/shader.wgls" input="shader.wgls"/>
 			</folder>
 			<folder path="v3">

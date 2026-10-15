@@ -21,15 +21,7 @@ layout(set=0, binding=11) buffer OITHeadIndex
     uint oitHeadIndex[];
 };
 
-// 链表节点池
-// 注意：用 std430 布局，与 geometry pass 的写入格式必须完全一致
-struct OITNode
-{
-    vec4    color;
-    float   depth;
-    uint    next;
-};
-
+// 链表节点池（OITNode 定义在 FEShaderDefine.h,与 geometry pass/C++ 侧布局一致）
 layout(set=0, binding=12) buffer OITLinkedList
 {
     OITNode oitNodes[];
@@ -85,7 +77,7 @@ void main()
 
     for (uint i = 0; i < count; i++)
     {
-        vec4  c = nodes[i].color;
+        vec4  c = unpackColorHDR(uint2(nodes[i].colorRG, nodes[i].colorBA));
         accumRGB   += c.rgb * c.a * (1.0 - accumAlpha);
         accumAlpha += c.a * (1.0 - accumAlpha);
     }
