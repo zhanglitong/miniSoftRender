@@ -47,6 +47,18 @@ namespace   FE
         FEPipeline::CreateInfo  cInfo;
         cInfo._renderPass   =   renderPass;
 
+        /// 可选渲染状态覆盖(未在 xml 中指定时保持 CreateInfo 默认值):
+        /// 例如文本等透明叠加层管线需要开启 alpha 混合
+        auto    aColorBlend =   root->first_attribute("enableColorBlend");
+        if (aColorBlend != nullptr)
+            cInfo._enableColorBlend =   atoi(aColorBlend->value()) != 0;
+        auto    aDepthTest  =   root->first_attribute("enableDepthTest");
+        if (aDepthTest != nullptr)
+            cInfo._enableDepthTest  =   atoi(aDepthTest->value()) != 0;
+        auto    aDepthWrite =   root->first_attribute("enableDepthWrite");
+        if (aDepthWrite != nullptr)
+            cInfo._enableDepthWrite =   atoi(aDepthWrite->value()) != 0;
+
         if (xmlStates)
         {
             for (auto xmlState = xmlStates->first_node(); xmlState ; xmlState = xmlState->next_sibling())

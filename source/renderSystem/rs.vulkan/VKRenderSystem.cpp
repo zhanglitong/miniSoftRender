@@ -152,10 +152,13 @@ namespace   FE
     {
         switch(flg)
         {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT  :
+            /// validation ERROR 用 infor 级别输出,确保写入文件日志便于排查
+            FE::FEContext::instance().log().infor("VK-VALIDATION-ERROR:%s",msg);
+            break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT    :
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT       :
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT    :
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT      :
             break;
         }
         LOG_DBG("GPU:%s",msg);

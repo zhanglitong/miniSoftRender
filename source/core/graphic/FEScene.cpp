@@ -718,8 +718,8 @@ namespace   FE
                 mat4r   vpOffset        =   vp * matOffset;
                 pData->_offsetVp        =   vpOffset;
 
-                pData->_upDir           =   float4(float3(_camera->getUp()),    0.0f);  
-                pData->_rightDir        =   float4(float3(_camera->getRight()), 0.0f); 
+                pData->_upDir           =   float4(float3(_camera->getUp()),    0.0f);
+                pData->_rightDir        =   float4(float3(_camera->getRight()), 0.0f);
                 uData._cpu->unlock();
             }
             if (uData._gpu && uData._cpu)

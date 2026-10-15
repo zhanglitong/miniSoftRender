@@ -87,6 +87,18 @@ source_group(fers       FILES ${PRRS_OUTPUTS})
 source_group(fers_cxx   FILES ${FERS_CPPS})
 
 
+# ===== FreeType:源码内置(仅用于 SDF 字体烘焙) =====
+# 禁用全部外部依赖(zlib/png/bzip2/harfbuzz/brotli),构建自包含的静态库。
+# 变量在子目录中可见,option() 见其已定义即不再覆盖。
+set(FT_DISABLE_ZLIB      TRUE)
+set(FT_DISABLE_BZIP2     TRUE)
+set(FT_DISABLE_PNG       TRUE)
+set(FT_DISABLE_HARFBUZZ  TRUE)
+set(FT_DISABLE_BROTLI    TRUE)
+set(SKIP_INSTALL_ALL     TRUE)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype"
+                 "${CMAKE_BINARY_DIR}/freetype")
+
 add_library(${TARGET_NAME} SHARED
             ${HEADER_FILES}
 		    ${SOURCE_FILES}
@@ -94,7 +106,10 @@ add_library(${TARGET_NAME} SHARED
             ${PRRS_OUTPUTS}
             ${FERS_CPPS}
 )
-target_compile_definitions(${TARGET_NAME} PRIVATE FE_EXPORTS) 
+target_compile_definitions(${TARGET_NAME} PRIVATE FE_EXPORTS)
+
+# FreeType 以源码形式链接进 core(PUBLIC include 目录提供 <ft2build.h>)
+target_link_libraries(${TARGET_NAME} PRIVATE freetype)
 
 
 add_dependencies(${TARGET_NAME} tool.resource.cc)
