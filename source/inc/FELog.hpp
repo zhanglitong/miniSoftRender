@@ -6,6 +6,8 @@
 #include    <assert.h>
 #include    <functional>
 #include    <filesystem>
+#include    <sstream>
+#include    <string>
 
 #include    "FEDefine.h"
 #include    "FEDateTime.hpp"
@@ -112,22 +114,93 @@ namespace   FE
                 return  LEVEL_INFOR;
         }
 
+        /// <summary>
+        /// 日志流代理类,支持 << 操作符链式输出,析构时一次性写入
+        /// </summary>
+        class   LogStream
+        {
+        public:
+            LogStream(FELog& log,const char* module,LEVEL lev,uint logBits,uint dbgBits)
+                :_log(log)
+                ,_module(module ? module : DEF_MODULE_NAME)
+                ,_level(lev)
+                ,_logBits(logBits)
+                ,_dbgBits(dbgBits)
+            {
+            }
+            LogStream(const LogStream&) = delete;
+            LogStream&  operator=(const LogStream&) = delete;
+            LogStream(LogStream&&) noexcept = default;
+            LogStream&  operator=(LogStream&&) noexcept = default;
+            ~LogStream()
+            {
+                flush();
+            }
+            /// <summary>
+            /// 手动刷新,立即写入当前缓冲内容,并清空
+            /// </summary>
+            void    flush()
+            {
+                auto    str =   _ss.str();
+                _ss.str("");
+                /// 去除尾部换行,避免与 LOG_FORMAT 自带换行重复
+                while (!str.empty() && (str.back() == '\n' || str.back() == '\r'))
+                    str.pop_back();
+                if (!str.empty())
+                    _log.write(_module.c_str(),_level,_logBits,_dbgBits,"%s",str.c_str());
+            }
+            /// <summary>
+            /// 通用 << 操作符,支持所有可流式输出类型
+            /// </summary>
+            template<typename T>
+            LogStream&  operator<<(const T& val)
+            {
+                _ss << val;
+                return  *this;
+            }
+            /// <summary>
+            /// 支持 ostream 流操纵符(如 std::endl,std::flush)
+            /// </summary>
+            LogStream&  operator<<(std::ostream& (*manip)(std::ostream&))
+            {
+                manip(_ss);
+                return  *this;
+            }
+            /// <summary>
+            /// 支持 ios_base 流操纵符(如 std::hex,std::dec,std::setprecision)
+            /// </summary>
+            LogStream&  operator<<(std::ios_base& (*manip)(std::ios_base&))
+            {
+                manip(_ss);
+                return  *this;
+            }
+        private:
+            FELog&              _log;
+            std::string         _module;
+            LEVEL               _level;
+            uint                _logBits;
+            uint                _dbgBits;
+            std::ostringstream  _ss;
+        };
+
         class   Module
         {
         public:
             FELog&          _log;
             char            _name[64];
             /// <summary>
-            /// 控制哪些数据被写入到日志文件中
+            /// 控制哪些数据被写入到日志文件中,默认继承 FELog 的当前配置
             /// </summary>
-            uint            _logBits    =   LOG_Bits;
+            uint            _logBits;
             /// <summary>
-            /// 控制哪些会输出到控制台
+            /// 控制哪些会输出到控制台,默认继承 FELog 的当前配置
             /// </summary>
-            uint            _dbgBits    =   DBG_Bits;
+            uint            _dbgBits;
         public:
             Module(FELog& log,const char* name)
-                :_log(log)                
+                :_log(log)
+                ,_logBits(log.logBits())
+                ,_dbgBits(log.debugBits())
             {
                 if (name)
                     strncpy_s(_name,name,sizeof(_name) - 1);
@@ -226,6 +299,25 @@ namespace   FE
             {
                 _log.write(_name,lev,_logBits,_dbgBits,format, std::forward<Args>(args)...);
                 return   *this;
+            }
+            /// <summary>
+            /// 流风格写日志,指定级别
+            /// </summary>
+            /// <returns>LogStream 代理对象,析构时自动写入</returns>
+            LogStream   operator<<(LEVEL lev)
+            {
+                return  LogStream(_log,_name,lev,_logBits,_dbgBits);
+            }
+            /// <summary>
+            /// 流风格写日志,默认 LEVEL_INFOR
+            /// </summary>
+            /// <returns>LogStream 代理对象,析构时自动写入</returns>
+            template<typename T>
+            LogStream   operator<<(const T& val)
+            {
+                LogStream  ls(_log,_name,LEVEL_INFOR,_logBits,_dbgBits);
+                ls << val;
+                return  ls;
             }
         };
     protected:
@@ -491,6 +583,25 @@ namespace   FE
             write(DEF_MODULE_NAME,lev,_logBits,_dbgBits, format,std::forward<Args>(args)...);
             return   *this;
         }
+        /// <summary>
+        /// 流风格写日志,指定级别
+        /// </summary>
+        /// <returns>LogStream 代理对象,析构时自动写入</returns>
+        LogStream   operator<<(LEVEL lev)
+        {
+            return  LogStream(*this,DEF_MODULE_NAME,lev,_logBits,_dbgBits);
+        }
+        /// <summary>
+        /// 流风格写日志,默认 LEVEL_INFOR
+        /// </summary>
+        /// <returns>LogStream 代理对象,析构时自动写入</returns>
+        template<typename T>
+        LogStream   operator<<(const T& val)
+        {
+            LogStream  ls(*this,DEF_MODULE_NAME,LEVEL_INFOR,_logBits,_dbgBits);
+            ls << val;
+            return  ls;
+        }
     public:
         /// <summary>
         /// 打开日志文件: d:/data/log.txt"
@@ -557,52 +668,34 @@ namespace   FE
         template<class ...Args>
         inline  bool    write(const char* module,LEVEL level,uint logBits,uint dbgBits,const char*  format,Args&& ... args)
         {
-            auto        type            =   nameOfEnum(level);
-            auto        len             =   std::snprintf(nullptr, 0, format, std::forward<Args>(args)...);
-            char        szTemp[1024]    =   {0};
+            auto        type    =   nameOfEnum(level);
+            /// 直接向栈缓冲格式化一次,普通长度消息无堆分配,也无需先测长度
+            char        szTemp[1024];
+            auto        len     =   std::snprintf(szTemp,sizeof(szTemp),format,std::forward<Args>(args)...);
+            if (len < 0)
+                return  false;
+            /// 仅当超过栈缓冲的罕见长消息时才回退到堆分配并二次格式化
+            std::string data;
+            const char* text    =   szTemp;
+            if (len >= (int)sizeof(szTemp))
+            {
+                data.assign(len + 1,'\0');
+                std::snprintf(&data[0],data.size(),format,std::forward<Args>(args)...);
+                data.resize(len);
+                text    =   data.c_str();
+            }
             FEDateTime  dt;
-            if (len < sizeof(szTemp))
-            {
-                std::snprintf(szTemp, sizeof(szTemp), format, std::forward<Args>(args)...);
-                if (_notify)
-                    _notify(module,type,szTemp,dt);
-                if (_notifyDebug && getOption(dbgBits,level))
-                    _notifyDebug(module,type,szTemp,dt);
-                if (level < LEVEL_MAX)
-                {
-                    if(!getOption(logBits,level))
-                        return  false;
-                    else
-                        return  write(module,type,  szTemp);
-                }
-                else
-                {
-                    return  write(module,"user",szTemp);
-                } 
-            }
-            else
-            {
-                std::unique_ptr<char[]> buffer(new char[len + 1]);
-                std::snprintf(buffer.get(), len + 1, format, std::forward<Args>(args)...);
-                if (_notify)
-                    _notify(module,type,buffer.get(),dt);
-                if (_notifyDebug && getOption(dbgBits,level))
-                    _notifyDebug(module,type,buffer.get(),dt);
-                if (level < LEVEL_MAX)
-                {
-                    if(!getOption(logBits,level))
-                        return  false;
-                    else
-                        return  write(module,type,  buffer.get());
-                }
-                else
-                {
-                    return  write(module,"user",buffer.get());
-                } 
-            }
+            if (_notify)
+                _notify(module,type,text,dt);
+            if (_notifyDebug && getOption(dbgBits,level))
+                _notifyDebug(module,type,text,dt);
+            if (level < LEVEL_MAX && !getOption(logBits,level))
+                return  false;
+            return  write(module,level < LEVEL_MAX ? type : "user",text);
         }
     };
 
-    using   LogPtr  =   SharedPtr<FELog>;
+    using   LogPtr      =   SharedPtr<FELog>;
+    using   LogStream   =   FELog::LogStream;
 }
 
