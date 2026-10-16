@@ -2,10 +2,13 @@
 #include    <iostream>
 #include    <cstring>
 #include    <cmath>
+#include    <string>
+#include    <vector>
 #include    <algorithm>
 #include    <assert.h>
 #include    "../../inc/FEImage.h"
 #include    "../../inc/FEContext.hpp"
+#include    "../../core/FEImageHelper.hpp"
 
 using   namespace   FE;
 
@@ -531,6 +534,172 @@ static  void    testFillAllFormats()
     }
 }
 
+/// =====================================================================
+/// FEImageHelper:图片加载 / 保存(stb_image 解码,stb_image_write 编码)
+/// =====================================================================
+/// 构造带已知图案的 RGBA8 图像:像素 = (x*16, y*32, (x+y)*8, 255)
+static  ImagePtr    makePattern(FEContext& ctx,uint32 w,uint32 h)
+{
+    ImagePtr    image   =   new FEImage(ctx,w,h,FMT_R8G8B8A8_UNORM);
+    auto        plane   =   image->plane(0,0);
+    for (uint32 y = 0; y < h; ++y)
+        for (uint32 x = 0; x < w; ++x)
+        {
+            uint8*  px  =   plane.dataOffset<uint8>(y,x);
+            px[0]   =   uint8(x * 16);
+            px[1]   =   uint8(y * 32);
+            px[2]   =   uint8((x + y) * 8);
+            px[3]   =   255;
+        }
+    return  image;
+}
+/// 逐行比对图像 level0 与紧凑行参考数据
+static  bool    sameRows(const FEImage& image,uint32 w,uint32 h,
+                         const uint8* expect,size_t rowByte)
+{
+    auto    plane   =   image.plane(0,0);
+    for (uint32 y = 0; y < h; ++y)
+        if (std::memcmp(plane.dataOffset<uint8>(y,0),expect + size_t(y) * rowByte,rowByte) != 0)
+            return  false;
+    return  true;
+}
+
+static  void    testHelperSaveLoad()
+{
+    std::cout << "---- testHelperSaveLoad ----\n";
+    FEContext&  ctx =   FEContext::instance();
+    const uint32    W   =   16;
+    const uint32    H   =   8;
+
+    ImagePtr    src =   makePattern(ctx,W,H);
+
+    /// 参考像素(紧凑行 RGBA8)取自图像本身
+    std::vector<uint8>  ref(size_t(W) * H * 4);
+    {
+        auto    plane   =   src->plane(0,0);
+        for (uint32 y = 0; y < H; ++y)
+            std::memcpy(ref.data() + size_t(y) * W * 4,plane.dataOffset<uint8>(y,0),size_t(W) * 4);
+    }
+
+    /// 1) 无损格式:保存 -> 加载 -> 尺寸/格式/像素完全一致
+    const char* lossless[]  =   { "png","bmp","tga" };
+    for (auto ext : lossless)
+    {
+        const std::string   file    =   std::string("./test_image_tmp.") + ext;
+        const std::string   tag     =   std::string("lossless ") + ext;
+        CHECK(FEImageHelper::save(*src,file.c_str()),           (tag + " save ok"));
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        CHECK(back != nullptr,                                  (tag + " load ok"));
+        if (back != nullptr)
+        {
+            const bool  sizeOk  =   back->cInfo()._extent.x == W && back->cInfo()._extent.y == H;
+            CHECK(sizeOk,                                       (tag + " size preserved"));
+            CHECK(back->cInfo()._format == FMT_R8G8B8A8_UNORM,  (tag + " loaded as RGBA8"));
+            CHECK(sameRows(*back,W,H,ref.data(),size_t(W) * 4),(tag + " pixels identical"));
+        }
+        std::remove(file.c_str());
+    }
+
+    /// 2) jpg 有损:尺寸一致,三通道平均绝对误差在容差内(alpha 不参与编码)
+    {
+        const std::string   file    =   "./test_image_tmp.jpg";
+        CHECK(FEImageHelper::save(*src,file.c_str(),95),        "lossy jpg save ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        CHECK(back != nullptr,                                  "lossy jpg load ok");
+        if (back != nullptr)
+        {
+            const bool  sizeOk  =   back->cInfo()._extent.x == W && back->cInfo()._extent.y == H;
+            CHECK(sizeOk,                                       "jpg size preserved");
+            double      sum =   0.0;
+            auto        plane   =   back->plane(0,0);
+            for (uint32 y = 0; y < H; ++y)
+                for (uint32 x = 0; x < W; ++x)
+                {
+                    const uint8*    got =   plane.dataOffset<uint8>(y,x);
+                    const uint8*    exp =   ref.data() + (size_t(y) * W + x) * 4;
+                    for (int c = 0; c < 3; ++c)
+                        sum +=  std::fabs(double(got[c]) - double(exp[c]));
+                }
+            const double    mae =   sum / (double(W) * H * 3.0);
+            std::cout << "  jpg mean abs error = " << mae << "\n";
+            CHECK(mae <= 12.0,                                  "jpg error within lossy tolerance");
+        }
+        std::remove(file.c_str());
+    }
+
+    /// 3) RGB8 源(3通道)保存:加载后统一补齐 alpha=255
+    {
+        FEImage     rgb(ctx,W,H,FMT_R8G8B8_UNORM);
+        auto        plane   =   rgb.plane(0,0);
+        for (uint32 y = 0; y < H; ++y)
+            for (uint32 x = 0; x < W; ++x)
+            {
+                uint8*  px  =   plane.dataOffset<uint8>(y,x);
+                px[0]   =   ref[(size_t(y) * W + x) * 4 + 0];
+                px[1]   =   ref[(size_t(y) * W + x) * 4 + 1];
+                px[2]   =   ref[(size_t(y) * W + x) * 4 + 2];
+            }
+        const std::string   file    =   "./test_image_tmp3.png";
+        CHECK(FEImageHelper::save(rgb,file.c_str()),            "rgb8 -> png save ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        CHECK(back != nullptr,                                  "rgb8 png load ok");
+        if (back != nullptr)
+        {
+            bool    ok  =   (back->cInfo()._format == FMT_R8G8B8A8_UNORM);
+            auto    bp  =   back->plane(0,0);
+            for (uint32 y = 0; ok && y < H; ++y)
+                for (uint32 x = 0; x < W; ++x)
+                {
+                    const uint8*    got =   bp.dataOffset<uint8>(y,x);
+                    const uint8*    exp =   ref.data() + (size_t(y) * W + x) * 4;
+                    ok  =   ok  &&  got[0] == exp[0] && got[1] == exp[1]
+                                &&  got[2] == exp[2] && got[3] == 255;
+                }
+            CHECK(ok,   "rgb8 png round trip identical, alpha filled 255");
+        }
+        std::remove(file.c_str());
+    }
+
+    /// 4) R8 灰度源:png 往返后 RGB 三通道都等于源灰度
+    {
+        FEImage     gray(ctx,W,H,FMT_R8_UNORM);
+        auto        plane   =   gray.plane(0,0);
+        for (uint32 y = 0; y < H; ++y)
+            for (uint32 x = 0; x < W; ++x)
+                *plane.dataOffset<uint8>(y,x)   =   uint8((x * 16 + y * 4) & 0xFF);
+        const std::string   file    =   "./test_image_tmp_gray.png";
+        CHECK(FEImageHelper::save(gray,file.c_str()),           "r8 -> png save ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        bool        ok      =   (back != nullptr);
+        if (ok)
+        {
+            auto    bp  =   back->plane(0,0);
+            for (uint32 y = 0; ok && y < H; ++y)
+                for (uint32 x = 0; x < W; ++x)
+                {
+                    const uint8*    got =   bp.dataOffset<uint8>(y,x);
+                    const uint8     g   =   uint8((x * 16 + y * 4) & 0xFF);
+                    ok  =   ok  &&  got[0] == g && got[1] == g && got[2] == g;
+                }
+        }
+        CHECK(ok,   "r8 gray png round trip");
+        std::remove(file.c_str());
+    }
+
+    /// 5) 异常路径:非8bit格式 / 不支持的扩展名 / 文件不存在 / 空文件名
+    {
+        FEImage     rgba16(ctx,2,2,FMT_R16G16B16A16_UNORM);
+        CHECK(!FEImageHelper::save(rgba16,"./test_image_tmp16.png"),
+              "16bit format save rejected");
+        CHECK(!FEImageHelper::save(*src,"./test_image_tmp.gif"),
+              "unsupported extension -> false");
+        CHECK(FEImageHelper::load(ctx,"./no_such_image_file.png") == nullptr,
+              "load missing file -> nullptr");
+        CHECK(FEImageHelper::load(ctx,nullptr) == nullptr,
+              "load null name -> nullptr");
+    }
+}
+
 int     main(int argc,char** argv)
 {
     (void)argc; (void)argv;
@@ -548,6 +717,7 @@ int     main(int argc,char** argv)
     testFillPBuffer();
 #endif
     testFillAllFormats();
+    testHelperSaveLoad();
 
     std::cout << "--------------------------------\n";
     if (g_failed == 0)

@@ -4,18 +4,26 @@
 ///   2. 程序生成 5 张贴图(baseColor / metallicRoughness / normal / occlusion / emissive)
 ///   3. 用 FEGeometrySphere 按 pos/nor/uv 生成球体 mesh
 ///   4. 经 FEMaterialPBR 设置全套贴图,验证金属度-粗糙度 PBR 渲染
+///   5. 环境图使用与 glTF-Sample-Viewer 参考查看器默认环境相同的
+///      Cannon_Exterior.hdr(equirect,线性空间),运行时转换为 float cubemap
 /// 验证点:
 ///   a. 球体表面呈现 baseColor 棋盘格(说明 uv 采样正确)
 ///   b. 高光区域显示金属色(金属工作流:F0=baseColor)
 ///   c. 法线贴图产生凹凸细节
 ///   d. AO 使边缘变暗
 ///   e. emissive 图案自发光
+///   f. IBL:球体反射 Cannon 户外环境,背光面被环境照亮
 /// 用法: test.pbr.texture.exe
 
 #include    <iostream>
 #include    <vector>
 #include    <cstdint>
+#include    <cstring>
+#include    <cstdio>
 #include    <cmath>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include    "../PBREnvironment.hpp"
 
 #include    "../../../inc/FEContext.hpp"
 #include    "../../../inc/FEAppHelper.hpp"
@@ -24,6 +32,8 @@
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/geometry/FEGeometrySphere.hpp"
 #include    "../../../inc/material/FEMaterialPBR.hpp"
+#include    "../../../core/FEImageHelper.hpp"
+#include    "../../../core/graphic/FETextureHelper.hpp"
 
 using   namespace   FE;
 
@@ -138,17 +148,21 @@ namespace
         return data;
     }
 
+    /// 由程序化像素填入 FEImage
+    ImagePtr makeImage(FEContext& ctx, const std::vector<uint8_t>& pixels)
+    {
+        ImagePtr image = new FEImage(ctx, kTexSize, kTexSize, FMT_R8G8B8A8_UNORM);
+        auto plane = image->plane(0, 0);
+        const size_t rowByte = size_t(kTexSize) * 4;
+        for (uint y = 0; y < kTexSize; ++y)
+            std::memcpy(plane.dataOffset<uint8>(y, 0), pixels.data() + size_t(y) * rowByte, rowByte);
+        return image;
+    }
+    /// 由 FEImage 创建 GPU 纹理(FETextureHelper)
     TexPtr uploadTexture(FEContext& ctx, const std::vector<uint8_t>& pixels)
     {
-        TexPtr tex = ctx.device().createTexture();
-        FETexture::CreateInfo ci{};
-        ci._width = kTexSize; ci._height = kTexSize;
-        ci._format = FMT_R8G8B8A8_UNORM;
-        ci._magFilter = FILTER_LINEAR; ci._minFilter = FILTER_LINEAR;
-        ci._addressMode = ADDRESS_REPEAT;
-        tex->create(ci);
-        tex->update(pixels.data(), pixels.size());
-        return tex;
+        return FETextureHelper::create(ctx, *makeImage(ctx, pixels),
+                                       FILTER_LINEAR, FILTER_LINEAR, ADDRESS_REPEAT);
     }
 }
 
@@ -190,8 +204,42 @@ int main(int argc, char** argv)
         }
     }
 
-    /// 生成并上传 5 张贴图
-    TexPtr baseColor = uploadTexture(ctx, makeBaseColor());
+    /// 生成并上传 5 张贴图;baseColor 额外走一遍
+    /// "保存图片到文件 -> 从文件加载图像 -> 创建纹理" 的完整链路
+    /// (验证 FEImageHelper::save/load + FETextureHelper::load;PNG 无损,渲染结果不变)
+    TexPtr baseColor;
+    {
+        const char* file = "./pbr_basecolor_tmp.png";
+        ImagePtr bcImg = makeImage(ctx, makeBaseColor());
+        const bool saved = FEImageHelper::save(*bcImg, file);
+        ImagePtr bcBack = FEImageHelper::load(ctx, file);
+        /// 逐行比对:确认"保存->加载"后贴图内容与源图像完全一致(PNG 无损)
+        bool identical = false;
+        if (bcBack != nullptr)
+        {
+            identical = true;
+            auto a = bcImg->plane(0, 0);
+            auto b = bcBack->plane(0, 0);
+            const size_t rowByte = size_t(kTexSize) * 4;
+            for (uint y = 0; identical && y < kTexSize; ++y)
+                identical = std::memcmp(a.dataOffset<uint8>(y, 0),
+                                        b.dataOffset<uint8>(y, 0), rowByte) == 0;
+        }
+        baseColor = (bcBack != nullptr)
+                    ? FETextureHelper::create(ctx, *bcBack, FILTER_LINEAR, FILTER_LINEAR, ADDRESS_REPEAT)
+                    : nullptr;
+        std::cout << "baseColor via file: save=" << (saved ? "ok" : "FAILED")
+                  << " load=" << ((bcBack != nullptr) ? "ok" : "FAILED")
+                  << " pixelsIdentical=" << (identical ? "yes" : "NO")
+                  << " loadTexture=" << ((baseColor != nullptr) ? "ok" : "FAILED") << "\n";
+        if (baseColor == nullptr)
+        {
+            std::cerr << "load baseColor texture failed\n";
+            scene = nullptr; app->destroy(); return 1;
+        }
+        /// 环境贴图需要文件保留,baseColor 临时文件用后即删
+        std::remove(file);
+    }
     TexPtr mr        = uploadTexture(ctx, makeMetallicRoughness());
     TexPtr normal    = uploadTexture(ctx, makeNormal());
     TexPtr ao        = uploadTexture(ctx, makeOcclusion());
@@ -236,6 +284,17 @@ int main(int argc, char** argv)
     node->makeDirty();
     node->update();
     scene->dispatchNodesToSystem({node});
+
+    /// 环境图(IBL):与参考查看器默认环境相同的 Cannon_Exterior.hdr,
+    /// 运行时转换为 float cubemap,提供漫反射 irradiance + 按粗糙度的镜面预滤波
+    const String hdrFile = ctx.resourcePath() + "/data/env/Cannon_Exterior.hdr";
+    auto envCube = PBRTest::createEnvCube(ctx, hdrFile.c_str(), 256);
+    if (envCube == nullptr)
+    {
+        std::cerr << "create environment cube failed\n";
+        scene = nullptr; app->destroy(); return 1;
+    }
+    pMat->setEnvironmentMap(envCube);
 
     std::cout << "pbr texture test ready, entering render loop...\n";
     app->run();
