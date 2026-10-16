@@ -31,5 +31,22 @@ namespace   FE
                              FEFilter      magFilter   =   FILTER_LINEAR,
                              FEFilter      minFilter   =   FILTER_LINEAR,
                              FEAddressMode addressMode =   ADDRESS_REPEAT);
+        /// <summary>
+        /// 由 equirect(经纬度)图像生成 float cubemap 图像:6 层 + 完整 mip 链
+        /// (CPU 重投影 + float 域 2x2 盒式滤波,保留 HDR 动态范围)
+        /// 输入图像需为浮点格式且通道数 >= 3(如 FEImageHelper::loadHdr 的输出);
+        /// 面序 +X,-X,+Y,-Y,+Z,-Z(与 Vulkan/GL 规范一致),每面 level0 为 size x size
+        /// </summary>
+        /// <param name="size">cubemap 每面边长(像素)</param>
+        /// <returns>失败返回 nullptr(尺寸非法 / 输入非浮点格式)</returns>
+        static  ImagePtr    cubeImageFromEquirect(FEContext& ctx,const FEImage& equirect,uint size);
+        /// <summary>
+        /// 由 equirect(经纬度)图像生成 float cubemap 纹理(内部先 cubeImageFromEquirect 再 create)
+        /// 常用于环境图(IBL):环境光视为无限远,采样默认使用 CLAMP_TO_EDGE 避免面接缝
+        /// </summary>
+        static  TexPtr      createCube(FEContext& ctx,const FEImage& equirect,uint size,
+                                       FEFilter      magFilter   =   FILTER_LINEAR,
+                                       FEFilter      minFilter   =   FILTER_LINEAR,
+                                       FEAddressMode addressMode =   ADDRESS_CLAMP_TO_EDGE);
     };
 }

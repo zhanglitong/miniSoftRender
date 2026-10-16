@@ -13,7 +13,7 @@
 ///   d. AO 使边缘变暗
 ///   e. emissive 图案自发光
 ///   f. IBL:球体反射 Cannon 户外环境,背光面被环境照亮
-/// 用法: test.pbr.texture.exe
+/// 用法: test.pbr.texture.exe [--vulkan|--webgpu]
 
 #include    <iostream>
 #include    <vector>
@@ -21,9 +21,6 @@
 #include    <cstring>
 #include    <cstdio>
 #include    <cmath>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include    "../PBREnvironment.hpp"
 
 #include    "../../../inc/FEContext.hpp"
 #include    "../../../inc/FEAppHelper.hpp"
@@ -168,7 +165,15 @@ namespace
 
 int main(int argc, char** argv)
 {
-    (void)argc; (void)argv;
+    FEUuid  rendererId  =   RS_VULKAN;
+    for (int i = 1; i < argc; ++i)
+    {
+        const char* arg =   argv[i];
+        if (_stricmp(arg,"--webgpu") == 0 || _stricmp(arg,"-webgpu") == 0 || _stricmp(arg,"/webgpu") == 0)
+            rendererId  =   RS_WEBGPU;
+        else if (_stricmp(arg,"--vulkan") == 0 || _stricmp(arg,"-vulkan") == 0)
+            rendererId  =   RS_VULKAN;
+    }
     FEContext& ctx = FEContext::instance();
     FEScene* pScene = nullptr;
 
@@ -184,7 +189,7 @@ int main(int argc, char** argv)
 
     Scene scene = new FEScene(ctx);
     pScene = scene.get();
-    if (!scene->setup(app, RS_VULKAN))
+    if (!scene->setup(app, rendererId))
     {
         std::cerr << "scene setup failed\n";
         scene = nullptr; app->destroy(); return 1;
@@ -286,9 +291,18 @@ int main(int argc, char** argv)
     scene->dispatchNodesToSystem({node});
 
     /// 环境图(IBL):与参考查看器默认环境相同的 Cannon_Exterior.hdr,
-    /// 运行时转换为 float cubemap,提供漫反射 irradiance + 按粗糙度的镜面预滤波
+    /// 经 FEImageHelper::load 加载为 float equirect,再由 FETextureHelper::createCube
+    /// 转成 float cubemap(漫反射 irradiance + 按粗糙度的镜面预滤波)
     const String hdrFile = ctx.resourcePath() + "/data/env/Cannon_Exterior.hdr";
-    auto envCube = PBRTest::createEnvCube(ctx, hdrFile.c_str(), 256);
+    ImagePtr envImage = FEImageHelper::load(ctx, hdrFile.c_str());
+    if (envImage == nullptr)
+    {
+        std::cerr << "load environment hdr failed: " << hdrFile << "\n";
+        scene = nullptr; app->destroy(); return 1;
+    }
+    std::cout << "hdr equirect " << envImage->cInfo()._extent.x << "x" << envImage->cInfo()._extent.y
+              << " format=" << FEFormatHelper::enumName(envImage->cInfo()._format) << "\n";
+    auto envCube = FETextureHelper::createCube(ctx, *envImage, 256);
     if (envCube == nullptr)
     {
         std::cerr << "create environment cube failed\n";

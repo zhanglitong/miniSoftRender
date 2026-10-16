@@ -32,29 +32,23 @@ namespace   FE
         {
         case FMT_R8_UNORM           :   return  WGPUTextureFormat_R8Unorm;
         case FMT_R8G8_UNORM         :   return  WGPUTextureFormat_RG8Unorm;
-        case FMT_R8G8B8_UNORM       :   return  WGPUTextureFormat_RGBA8Unorm;
         case FMT_R8G8B8A8_UNORM     :   return  WGPUTextureFormat_RGBA8Unorm;
-
 
         case FMT_R8_UINT            :   return  WGPUTextureFormat_R8Uint;
         case FMT_R8G8_UINT          :   return  WGPUTextureFormat_RG8Uint;
-        case FMT_R8G8B8_UINT        :   return  WGPUTextureFormat_RGBA8Uint;
         case FMT_R8G8B8A8_UINT      :   return  WGPUTextureFormat_RGBA8Uint;
 
         case FMT_R8_SINT            :   return  WGPUTextureFormat_R8Sint;
         case FMT_R8G8_SINT          :   return  WGPUTextureFormat_RG8Sint;
-        case FMT_R8G8B8_SINT        :   return  WGPUTextureFormat_RGBA8Sint;
         case FMT_R8G8B8A8_SINT      :   return  WGPUTextureFormat_RGBA8Sint;
 
 
         case FMT_R8_SSCALED         :   return  WGPUTextureFormat_R8Unorm;
         case FMT_R8G8_SSCALED       :   return  WGPUTextureFormat_RG8Unorm;
-        case FMT_R8G8B8_SSCALED     :   return  WGPUTextureFormat_RGBA8Unorm;
         case FMT_R8G8B8A8_SSCALED   :   return  WGPUTextureFormat_RGBA8Unorm;
 
         case FMT_R8_USCALED         :   return  WGPUTextureFormat_R8Unorm;
         case FMT_R8G8_USCALED       :   return  WGPUTextureFormat_RG8Unorm;
-        case FMT_R8G8B8_USCALED     :   return  WGPUTextureFormat_RGBA8Unorm;
         case FMT_R8G8B8A8_USCALED   :   return  WGPUTextureFormat_RGBA8Unorm;
 
         case FMT_B8G8R8A8_UNORM     :   return  WGPUTextureFormat_BGRA8Unorm;
@@ -62,12 +56,10 @@ namespace   FE
         
         case FMT_R32_FLOAT          :   return  WGPUTextureFormat_R32Float;
         case FMT_R32G32_FLOAT       :   return  WGPUTextureFormat_RG32Float;
-        case FMT_R32G32B32_FLOAT    :   return  WGPUTextureFormat_RGBA32Float;
         case FMT_R32G32B32A32_FLOAT :   return  WGPUTextureFormat_RGBA32Float;
 
         case FMT_R16_FLOAT          :   return  WGPUTextureFormat_R16Float;
         case FMT_R16G16_FLOAT       :   return  WGPUTextureFormat_RG16Float;
-        case FMT_R16G16B16_FLOAT    :   return  WGPUTextureFormat_RGBA16Float;
         case FMT_R16G16B16A16_FLOAT :   return  WGPUTextureFormat_RGBA16Float;
 
         case FMT_R4G4B4A4_UNORM     :   return  WGPUTextureFormat_Undefined;
@@ -91,9 +83,6 @@ namespace   FE
         case FMT_R32G32_UINT        :   return  WGPUTextureFormat_RG32Uint;
         case FMT_R32G32_SINT        :   return  WGPUTextureFormat_RG32Sint;
        
-        case FMT_R32G32B32_UINT     :   return  WGPUTextureFormat_RGBA32Uint;
-        case FMT_R32G32B32_SINT     :   return  WGPUTextureFormat_RGBA32Sint;
-        
         case FMT_R32G32B32A32_UINT  :   return  WGPUTextureFormat_RGBA32Uint;
         case FMT_R32G32B32A32_SINT  :   return  WGPUTextureFormat_RGBA32Sint;
 
@@ -101,9 +90,10 @@ namespace   FE
         case FMT_D32_S8_UNORM       :   return  WGPUTextureFormat_Depth32FloatStencil8;
         case FMT_D16_UNORM          :   return  WGPUTextureFormat_Depth16Unorm;
 
+        /// WebGPU 没有对应纹理格式(如 RGB 三通道、打包/SNORM 等)-> 走 default 返回 Undefined,
+        /// 由 WGGImage::create 回退到设备格式表,仍不支持则报错(不再臆造 RGBA 映射)
         default:
-            assert(0!=0);
-            return  WGPUTextureFormat_RGBA8Unorm;
+            return  WGPUTextureFormat_Undefined;
         }
     }
 
