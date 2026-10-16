@@ -1,52 +1,102 @@
 /// pbr 片段着色器 WGSL 版本,与 shader.frag 对齐
-/// 原始 GLSL 使用:
-///   layout(binding = SB_Material) uniform PBRBlock { PBRData _pbr; }
-///   layout(std140, binding = SB_Light) readonly buffer LightsBlock { LightData _lights[]; }
-/// SB_Material = 4, SB_Light = 1
-///
-/// 关于 PBRData 布局:C++ 端写入完整 PBRData (128 字节) 到 uniform 缓冲区。
-/// 但本 shader 仅使用 _emissive 和 _diffuse (偏移 0/16),声明最小结构即可,
-/// 避免 std140 与 C++ 原始结构在嵌套子结构上的偏移差异。
+/// 金属度-粗糙度工作流,支持 baseColor / metallicRoughness / normal / occlusion / emissive 贴图。
+/// 贴图绑定到 6~10(与 GLSL 一致)。
+/// 注意:当前 WebGPU 后端 WGDSet 仅处理 buffer 描述符,texture 描述符绑定尚未实现;
+/// 本文件保证逻辑与 GLSL 一致,待后端支持纹理后即可运行。
 
-struct  PBRData
+const M_PI : f32 = 3.141592653589793;
+
+/// 贴图存在标志位(见 _texParams._flags)
+const PBR_TEX_BASECOLOR      : u32 = 0x00000001u;
+const PBR_TEX_METALLICROUGH  : u32 = 0x00000002u;
+const PBR_TEX_NORMAL         : u32 = 0x00000004u;
+const PBR_TEX_OCCLUSION      : u32 = 0x00000008u;
+const PBR_TEX_EMISSIVE       : u32 = 0x00000010u;
+const PBR_TEX_ENVIRONMENT    : u32 = 0x00000020u;
+
+/// 光类型:与引擎 FEShaderDefine.h 的 LightTypeDir/Point 一致(Dir==0,不能假定为 1)
+const LT_DIR   : i32 = 0;
+const LT_POINT : i32 = 1;
+
+/// PBRData:与 C++ 紧凑布局一致(glm::vec4 对齐为 4,共 128 字节)。
+/// 不要加 @align(16):那会得到 std140 布局,与 C++ 不一致
+/// (贴图标志/强度已移出本结构,改放在 binding 12 的 PBRTexParams)。
+struct PBRData
 {
-    _emissive   : vec4f,     /// 偏移 0
-    _diffuse    : vec4f,     /// 偏移 16
+    _emissive               : vec4f,            // 0
+    _diffuse                : vec4f,            // 16
+    _spacular               : vec4f,            // 32
+    _roughness              : f32,              // 48
+    _metallic               : f32,              // 52
+    _transmission_factor    : f32,              // 56
+    _iri_factor             : f32,              // 60
+    _iri_ior                : f32,              // 64
+    _iri_tmin               : f32,              // 68
+    _iri_tmax               : f32,              // 72
+    _clearcoat_strength     : f32,              // 76
+    _clearcoat_roughness    : f32,              // 80
+    _volume_colorR          : f32,              // 84
+    _volume_colorG          : f32,              // 88
+    _volume_colorB          : f32,              // 92
+    _volume_thickness       : f32,              // 96
+    _volume_distance        : f32,              // 100
 }
-
 @group(0) @binding(4) var<uniform> _pbr : PBRData;
 
-struct  LightData
+struct LightData
 {
-    lightType   : i32,       /// 偏移 0
-    r           : f32,       /// 偏移 4
-    g           : f32,       /// 偏移 8
-    b           : f32,       /// 偏移 12
-    x           : f32,       /// 偏移 16
-    y           : f32,       /// 偏移 20
-    z           : f32,       /// 偏移 24
-    radius      : f32,       /// 偏移 28
+    lightType : i32,
+    r : f32, g : f32, b : f32,
+    x : f32, y : f32, z : f32,
+    radius : f32,
 }
-/// WGSL array<LightData> 元素步长 = roundUp(align=4, size=32) = 32,
-/// 与 C++ sizeof(LightData)=32 一致。
-
 @group(0) @binding(1) var<storage, read> _lights : array<LightData>;
 
-/// RF_COLOR = (1<<4) = 16
-const RF_COLOR : u32 = 16u;
-/// RF_SELECTED = (1<<7) = 128
-const RF_SELECTED : u32 = 128u;
+struct EngineState { selectColor : u32, }
+@group(0) @binding(5) var<uniform> _engineState : EngineState;
 
-fn  hasNodeColor(flag : u32) -> bool
+/// 相机(仅取 _v 用于反推世界相机位置)
+struct CameraData
 {
-    return (flag & RF_COLOR) != 0u;
+    _v : mat4x4f,
+    _p : mat4x4f,
+    _vp : mat4x4f,
+    _offsetVp : mat4x4f,
+    _decimal : vec4f,
+    _offset : vec4i,
+    _upDir : vec4f,
+    _rightDir : vec4f,
 }
-fn  isSelected(flag : u32) -> bool
+@group(0) @binding(0) var<uniform> _camera : CameraData;
+
+/// 贴图 + 采样器
+@group(0) @binding(6)  var u_BaseColorTex : texture_2d<f32>;
+@group(0) @binding(7)  var u_MetallicRoughnessTex : texture_2d<f32>;
+@group(0) @binding(8)  var u_NormalTex : texture_2d<f32>;
+@group(0) @binding(9)  var u_OcclusionTex : texture_2d<f32>;
+@group(0) @binding(10) var u_EmissiveTex : texture_2d<f32>;
+
+/// PBR 贴图参数(标志位/法线缩放/AO 强度/自发光强度),绑定 11(与 GLSL 一致);
+/// 对应 C++ 的 FEMaterialPBR::PBRTexParams(纯标量,布局一致)。
+struct PBRTexParams
 {
-    return (flag & RF_SELECTED) != 0u;
+    _flags              : u32,
+    _normalScale        : f32,
+    _occlusionStrength  : f32,
+    _emissiveStrength   : f32,
 }
-/// 解包 RGBA8(高字节在 R),与 C++ selectColor 打包一致
-fn  unpackColor(c : u32) -> vec4f
+@group(0) @binding(11) var<uniform> _texParams : PBRTexParams;
+
+/// 环境贴图(cubemap,IBL 用),绑定 12(与 GLSL 一致)
+@group(0) @binding(12) var u_EnvironmentMap : texture_cube<f32>;
+/// 统一采样器,绑定 13
+@group(0) @binding(13) var uSampler : sampler;
+
+const RF_COLOR    : u32 = 64u;
+const RF_SELECTED : u32 = 128u;
+fn hasNodeColor(flag : u32) -> bool { return (flag & RF_COLOR) != 0u; }
+fn isSelected(flag : u32) -> bool { return (flag & RF_SELECTED) != 0u; }
+fn unpackColor(c : u32) -> vec4f
 {
     return vec4f(
         f32((c >> 24u) & 0xFFu) / 255.0,
@@ -55,47 +105,176 @@ fn  unpackColor(c : u32) -> vec4f
         f32((c >> 0u)  & 0xFFu) / 255.0);
 }
 
-/// 引擎渲染状态(高亮颜色等),与 C++ EngineState 对齐
-struct  EngineState
+fn distributionGGX(NdotH : f32, roughness : f32) -> f32
 {
-    selectColor : u32,
+    let a  = roughness * roughness;
+    let a2 = a * a;
+    let d  = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+    return a2 / (M_PI * d * d + 1e-7);
 }
-@group(0) @binding(5) var<uniform> _engineState : EngineState;
-
-struct  FsIn
+fn geometrySchlickGGX(NdotV : f32, roughness : f32) -> f32
 {
-    @location(0) inPos          : vec3f,
-    @location(1) inNor          : vec3f,
-    @location(2) inNodeColor    : vec4f,
-    @location(3) @interpolate(flat) inFlagBits : u32,
+    let r = roughness + 1.0;
+    let k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k + 1e-7);
+}
+fn geometrySmith(NdotV : f32, NdotL : f32, roughness : f32) -> f32
+{
+    return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
+}
+fn fresnelSchlick(cosTheta : f32, F0 : vec3f) -> vec3f
+{
+    return F0 + (vec3f(1.0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+/// 带粗糙度补偿的菲涅尔(IBL 用)
+fn fresnelSchlickRoughness(cosTheta : f32, F0 : vec3f, roughness : f32) -> vec3f
+{
+    let maxF = max(vec3f(1.0 - roughness), F0);
+    return F0 + (maxF - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+fn buildTBN(position : vec3f, normal : vec3f, uv : vec2f) -> mat3x3f
+{
+    let pos_dx = dpdx(position);
+    let pos_dy = dpdy(position);
+    let uv_dx  = dpdx(uv);
+    let uv_dy  = dpdy(uv);
+    var t = normalize(uv_dy.y * pos_dx - uv_dx.y * pos_dy);
+    let n = normalize(normal);
+    t = normalize(t - dot(t, n) * n);
+    let b = cross(n, t);
+    return mat3x3f(t, b, n);
+}
+
+struct FsIn
+{
+    @location(0) inPos       : vec3f,
+    @location(1) inNor       : vec3f,
+    @location(2) inUV        : vec2f,
+    @location(3) inColor     : vec4f,
+    @location(4) @interpolate(flat) inFlagBits : u32,
 }
 
 @fragment
-fn  main(in : FsIn) -> @location(0) vec4f
+fn main(in : FsIn) -> @location(0) vec4f
 {
-    var fragColor    = vec4f(0.0, 0.0, 0.0, 1.0);
-    let diff         = select(_pbr._diffuse.rgb, in.inNodeColor.rgb, hasNodeColor(in.inFlagBits));
-    /// arrayLength(&_lights) 返回实际绑定子范围的灯光数(与 GLSL _lights.length() 一致);
-    /// C++ 端绑定时只给 count*stride 的 range,WebGPU 后端用该子范围创建 bind group。
-    let numLights    = arrayLength(&_lights);
-    let norN         = normalize(in.inNor);
+    let texFlags          = _texParams._flags;
+    let normalScale       = _texParams._normalScale;
+    let occlusionStrength = _texParams._occlusionStrength;
+    let emissiveStrength  = _texParams._emissiveStrength;
 
+    /// 1. baseColor(贴图为 sRGB,解码到线性空间)
+    var baseColor = _pbr._diffuse;
+    if ((texFlags & PBR_TEX_BASECOLOR) != 0u) {
+        let bc = textureSample(u_BaseColorTex, uSampler, in.inUV);
+        baseColor = baseColor * vec4f(pow(bc.rgb, vec3f(2.2)), bc.a);
+    }
+    baseColor = vec4f(baseColor.rgb * select(vec3f(1.0), in.inColor.rgb, hasNodeColor(in.inFlagBits)), baseColor.a);
+
+    /// 2. metallic / roughness
+    var metallic  = _pbr._metallic;
+    var roughness = _pbr._roughness;
+    if ((texFlags & PBR_TEX_METALLICROUGH) != 0u) {
+        let mr = textureSample(u_MetallicRoughnessTex, uSampler, in.inUV);
+        metallic  = metallic * mr.b;
+        roughness = roughness * mr.g;
+    }
+    roughness = clamp(roughness, 0.04, 1.0);
+    metallic  = clamp(metallic, 0.0, 1.0);
+
+    /// 3. normal
+    var n = normalize(in.inNor);
+    if ((texFlags & PBR_TEX_NORMAL) != 0u) {
+        let TBN = buildTBN(in.inPos, n, in.inUV);
+        var ns = textureSample(u_NormalTex, uSampler, in.inUV).rgb * 2.0 - 1.0;
+        ns.xy = ns.xy * normalScale;
+        n = normalize(TBN * ns);
+    }
+
+    /// 4. view
+    let camPos = -transpose(mat3x3f(_camera._v)) * _camera._v[3].xyz;
+    let v = normalize(camPos - in.inPos);
+    let NdotV = max(dot(n, v), 1e-4);
+
+    /// 5. F0
+    let F0 = mix(vec3f(0.04), baseColor.rgb, metallic);
+
+    /// 6. direct lighting
+    var Lo = vec3f(0.0);
+    let numLights = arrayLength(&_lights);
     for (var i : u32 = 0u; i < numLights; i = i + 1u)
     {
-        let lDir    = vec3f(_lights[i].x, _lights[i].y, _lights[i].z);
+        let L = _lights[i];
+        let lightColor = vec3f(L.r, L.g, L.b);
+        var l : vec3f;
+        var attenuation = 1.0;
+        if (L.lightType == LT_DIR) {
+            l = normalize(vec3f(L.x, L.y, L.z));
+        } else if (L.lightType == LT_POINT) {
+            let toLight = vec3f(L.x, L.y, L.z) - in.inPos;
+            let dist = length(toLight);
+            l = toLight / max(dist, 1e-4);
+            let range = max(L.radius, 1e-4);
+            attenuation = clamp(1.0 - (dist / range), 0.0, 1.0);
+            attenuation = attenuation * attenuation / (dist * dist + 1.0);
+        } else {
+            continue;
+        }
 
-        let NdotL   = max(0.1, dot(norN, lDir));
-        /// 与 GLSL 对齐:diffuse = diff * NdotL + emissive(不乘 lColor)
-        let diffuse = diff * NdotL + _pbr._emissive.rgb;
+        let h = normalize(v + l);
+        let NdotL = max(dot(n, l), 0.0);
+        let NdotH = max(dot(n, h), 0.0);
+        let VdotH = max(dot(v, h), 0.0);
 
-        fragColor   = vec4f(fragColor.rgb + diffuse, 1.0);
+        let D = distributionGGX(NdotH, roughness);
+        let G = geometrySmith(NdotV, NdotL, roughness);
+        let F = fresnelSchlick(VdotH, F0);
+
+        let numerator = D * G * F;
+        let denominator = 4.0 * NdotV * NdotL + 1e-7;
+        let specular = numerator / denominator;
+
+        let kD = (vec3f(1.0) - F) * (1.0 - metallic);
+        let diffuse = kD * baseColor.rgb / M_PI;
+
+        Lo = Lo + (diffuse + specular) * lightColor * attenuation * NdotL;
     }
 
-    /// 选中高亮:与高亮色混合
-    if (isSelected(in.inFlagBits))
-    {
-        let hl = unpackColor(_engineState.selectColor);
-        return vec4f(mix(fragColor.rgb, hl.rgb, vec3f(0.5)), 1.0);
+    /// 7. IBL 环境光(cubemap:最低 mip 近似 irradiance 漫反射,
+    ///    按 roughness 选择 mip 采样反射向量作预滤波镜面)
+    var color = Lo;
+    if ((texFlags & PBR_TEX_ENVIRONMENT) != 0u) {
+        let envDim   = textureDimensions(u_EnvironmentMap, 0);
+        let maxLod   = floor(log2(f32(envDim.x)));
+        let R        = reflect(-v, n);
+        let irradiance  = textureSampleLevel(u_EnvironmentMap, uSampler, n, maxLod).rgb;
+        let prefiltered = textureSampleLevel(u_EnvironmentMap, uSampler, R, roughness * maxLod).rgb;
+        let Fenv  = fresnelSchlickRoughness(NdotV, F0, roughness);
+        let kDenv = (vec3f(1.0) - Fenv) * (1.0 - metallic);
+        color = color + kDenv * irradiance * baseColor.rgb + prefiltered * Fenv;
     }
-    return fragColor;
+
+    /// 8. AO
+    if ((texFlags & PBR_TEX_OCCLUSION) != 0u) {
+        let ao = textureSample(u_OcclusionTex, uSampler, in.inUV).r;
+        color = color * mix(vec3f(1.0), vec3f(ao), occlusionStrength);
+    }
+
+    /// 9. emissive(贴图同为 sRGB,需解码)
+    var emissive = _pbr._emissive.rgb;
+    if ((texFlags & PBR_TEX_EMISSIVE) != 0u) {
+        emissive = emissive * pow(textureSample(u_EmissiveTex, uSampler, in.inUV).rgb, vec3f(2.2));
+    }
+    color = color + emissive * emissiveStrength;
+
+    /// 10. selection
+    if (isSelected(in.inFlagBits)) {
+        let sel = unpackColor(_engineState.selectColor).rgb;
+        color = mix(color, sel, 0.5);
+    }
+
+    /// 11. tonemap + gamma
+    color = color / (color + vec3f(1.0));
+    color = pow(color, vec3f(1.0 / 2.2));
+
+    return vec4f(color, baseColor.a);
 }
