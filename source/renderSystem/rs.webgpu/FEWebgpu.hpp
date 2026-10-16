@@ -139,6 +139,30 @@ namespace   FE
     }
 
     
+    /// 采样过滤(FEFilter)-> WGPUFilterMode
+    static  auto    system2Native(FEFilter filter)
+    {
+        switch (filter)
+        {
+        case FILTER_NEAREST:    return  WGPUFilterMode_Nearest;
+        case FILTER_LINEAR:     return  WGPUFilterMode_Linear;
+        }
+        return  WGPUFilterMode_Linear;
+    }
+    /// 寻址模式(FEAddressMode)-> WGPUAddressMode
+    /// WebGPU 没有 border color 寻址模式,ADDRESS_CLAMP_TO_BORDER 退化为 CLAMP_TO_EDGE
+    static  auto    system2Native(FEAddressMode mode)
+    {
+        switch (mode)
+        {
+        case ADDRESS_REPEAT:            return  WGPUAddressMode_Repeat;
+        case ADDRESS_MIRRORED_REPEAT:   return  WGPUAddressMode_MirrorRepeat;
+        case ADDRESS_CLAMP_TO_EDGE:     return  WGPUAddressMode_ClampToEdge;
+        case ADDRESS_CLAMP_TO_BORDER:   return  WGPUAddressMode_ClampToEdge;
+        }
+        return  WGPUAddressMode_Repeat;
+    }
+
     inline  static  auto    system2Native(FEAspect val)
     {
         switch(val)

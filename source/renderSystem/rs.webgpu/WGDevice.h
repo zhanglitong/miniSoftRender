@@ -62,6 +62,7 @@ namespace   FE
         virtual Pipeline    createCPipeline()   override;
         virtual Swapchain   createSwapchain()   override;
         virtual GImage      createGImage()      override;
+        virtual TexPtr      createTexture()     override;
 
         virtual DSetLayout  createDSLayout()    override;
         DSetLayout          createDSLayoutFromShaders(const std::vector<Shader>& shaders);
@@ -78,6 +79,8 @@ namespace   FE
 
         WGPUTextureFormat    getWGPUTextureFormat(FEFormat format) const;
         bool    hasPassthroughShaders() const { return _hasPassthroughShaders; }
+        /// 是否启用了 Float32Filterable(决定 float 纹理能否线性采样)
+        bool    hasFloat32Filterable() const { return _hasFloat32Filterable; }
         /// WGDevice 通过 WGPUShaderSourceWGSL 直接加载 WGSL 文本 shader
         virtual bool    supportWGSLShaders() const override
         {
@@ -92,5 +95,6 @@ namespace   FE
         Queue         _queueCompute    =   nullptr;
         Queue         _queueTransfer   =   nullptr;
         bool          _hasPassthroughShaders = false;
+        bool          _hasFloat32Filterable  = false;
     };
 }

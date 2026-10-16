@@ -97,5 +97,21 @@ namespace   FE
         WGPUComputePipeline         _currentComputePipeline =   nullptr;
         WGPUBindGroup               _currentBindGroup       =   nullptr;
         std::vector<WGPUBindGroup>  _bindGroups;
+    protected:
+        /// WebGPU 要求管线声明的每个 vertex buffer slot 在 draw 前都被绑定,
+        /// 且绑定的缓冲必须能覆盖本次 draw 的顶点/实例范围;
+        /// Vulkan 允许未绑定或过小的 slot(越界读取返回零)。
+        /// 文本等网格不含实例属性(引擎只绑定 slot 0),其管线声明的实例 slot
+        /// 会以空缓冲被绑定,故在 draw 前用零缓冲补齐/覆盖不满足覆盖要求的 slot,
+        /// 行为与 Vulkan 对齐,避免
+        /// "Instance N extends beyond limit M imposed by the buffer in slot S"。
+        std::vector<uint8_t>    _vbSlotBound;       ///< 每个 slot 是否已绑定
+        std::vector<uint8_t>    _vbSlotInstance;    ///< 每个 slot 是否为 instance 步进
+        std::vector<uint32_t>   _vbSlotStride;      ///< 每个 slot 的 stride
+        std::vector<uint64_t>   _vbSlotSize;        ///< 每个 slot 已绑定缓冲的大小
+        WGPUBuffer              _dummyVB        =   nullptr;
+        uint64_t                _dummyVBSize    =   0;
+        /// 在 draw 前补齐/覆盖未绑定或覆盖范围不足的顶点槽位(零缓冲)
+        void    ensureVertexSlots(uint32 firstInstance,uint32 instanceCount);
     };
 }

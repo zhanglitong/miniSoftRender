@@ -75,6 +75,10 @@ namespace   FE
 
         WGPUShaderModule vsModule =   nullptr;
         WGPUShaderModule fsModule =   nullptr;
+        /// 入口点名称由 WGSL 反射得到;SPIR-V 路径(glslc 编译的 void main)与分 stage
+        /// 的 WGSL 文件都叫 "main",故反射为空时回退到 "main"。
+        std::string vsEntry   =   "main";
+        std::string fsEntry   =   "main";
         for (const auto& shader : info._shaders)
         {
             if (shader == nullptr)
@@ -83,9 +87,17 @@ namespace   FE
             if (wgShader == nullptr)
                 continue;
             if (shader->cInfo()._shaderType.hasFlag(ST_VERTEX_BIT))
+            {
                 vsModule =   (WGPUShaderModule)wgShader->native();
+                const auto& ep  =   wgShader->reflectData()._entryPointVert;
+                if (!ep.empty())    vsEntry =   ep;
+            }
             if (shader->cInfo()._shaderType.hasFlag(ST_FRAGMENT_BIT))
+            {
                 fsModule =   (WGPUShaderModule)wgShader->native();
+                const auto& ep  =   wgShader->reflectData()._entryPointFrag;
+                if (!ep.empty())    fsEntry =   ep;
+            }
         }
 
         if (!vsModule || !fsModule)
@@ -100,9 +112,8 @@ namespace   FE
 
         WGPUVertexState vertexState =   {};
         vertexState.module          =   vsModule;
-        /// Vulkan SPIR-V 由 glslc 从 `void main()` 编译,入口点名为 "main"。
-        /// WGSL 同样使用 "main" 作为约定入口点。这里与 SPIR-V/WGSL 两种路径都对齐。
-        vertexState.entryPoint      =   { "main",4 };
+        /// 入口点名称来自 WGSL 反射(默认 "main");naga 要求名称与模块内函数一致。
+        vertexState.entryPoint      =   { vsEntry.c_str(),vsEntry.size() };
 
         /// 从 info._binds 构建顶点缓冲布局(WGPUVertexBufferLayout)。
         /// 每个 FEInputBindDesc 对应一个 vertex buffer binding,
@@ -156,7 +167,7 @@ namespace   FE
 
         WGPUFragmentState fragmentState         =   {};
         fragmentState.module                    =   fsModule;
-        fragmentState.entryPoint                =   { "main",4 };
+        fragmentState.entryPoint                =   { fsEntry.c_str(),fsEntry.size() };
 
         WGPUBlendState blendState   =   {};
         blendState.color.srcFactor  =   WGPUBlendFactor_SrcAlpha;

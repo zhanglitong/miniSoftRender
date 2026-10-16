@@ -16,6 +16,9 @@ namespace   FE
             FEDescType  _descriptorType;
             uint32_t    _stageFlags;
             String      _name;
+            /// WGSL 声明的类型名(如 texture_2d / texture_cube / sampler / uniform 结构体名)。
+            /// WGDSetLayout 据此决定纹理视图维度(立方体)与采样类型(深度)等细节。
+            String      _typeName;
         };
         using ReflectBindings = std::vector<ReflectBinding>;
 
@@ -28,6 +31,11 @@ namespace   FE
             /// 由 reflectShaderWGSL 解析 WGSL 结构体布局得到,供 WGPipeline 设置
             /// pipeline layout 的 immediateSize 字段。
             uint32_t            _immediateSize =   0;
+            /// 顶点/片元入口点名称。WGSL 要求同一模块内函数名唯一,故入口点未必叫 "main"
+            /// (例如 texture 着色器用 vs_main/fs_main),WGPipeline 必须按反射结果传入,
+            /// 否则会报 "Unable to find entry point"。
+            String              _entryPointVert;
+            String              _entryPointFrag;
         };
     public:
         WGShader(FEContext& ctx)
