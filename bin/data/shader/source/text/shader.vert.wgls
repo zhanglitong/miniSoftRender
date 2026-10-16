@@ -1,0 +1,71 @@
+/// 距离场文本顶点着色器 WGSL 版本,与 shader.vert 对齐
+///   顶点属性 0=pos(像素坐标/像素偏移) 1=uv
+///   实例属性 2=平移整数部分 3=平移小数部分 6=节点颜色(IS_INSTANCE_COLOR)
+///   模式(由 immediates 的 _sdf.z 选择):
+///     0 = 屏幕叠加层:不使用相机,直接把像素坐标变换到 NDC
+///     1 = 三维布告板:世界锚点经相机投影,像素偏移在裁剪空间乘 clip.w,
+///         保持恒定屏幕像素尺寸且始终面向相机
+
+struct  CameraData
+{
+    _v          : mat4x4f,
+    _p          : mat4x4f,
+    _vp         : mat4x4f,
+    _offsetVp   : mat4x4f,
+    _decimal    : vec4f,
+    _offset     : vec4i,
+    _upDir      : vec4f,
+    _rightDir   : vec4f,
+}
+
+struct  TextPush
+{
+    /// xy = 视口像素尺寸, zw = 1/视口尺寸
+    _screen     : vec4f,
+    /// x = SDF 编码增量(片元使用); z = 绘制模式(0=屏幕叠加,1=三维布告板)
+    _sdf        : vec4f,
+}
+
+@group(0) @binding(0) var<uniform> _camera : CameraData;
+var<immediate> pc : TextPush;
+
+struct  VsIn
+{
+    @location(0) inPos      : vec3f,
+    @location(1) inUV       : vec2f,
+    /// 实例平移(布告板锚点):整数/小数拆分,与 v3c4 的大坐标方案一致
+    @location(2) intPart    : vec3i,
+    @location(3) trans      : vec3f,
+    @location(6) nodeColor  : vec4f,
+}
+
+struct  VsOut
+{
+    @location(0) outUV      : vec2f,
+    @location(1) outColor   : vec4f,
+    @builtin(position) pos  : vec4f,
+}
+
+@vertex
+fn  main(in : VsIn) -> VsOut
+{
+    var out     : VsOut;
+    if (pc._sdf.z > 0.5)
+    {
+        /// 三维布告板:世界锚点 = 小数部分 + 整数部分(抵消相机整数偏移,大坐标防抖)
+        let anchor  = in.trans + vec3f(in.intPart - _camera._offset.xyz);
+        let clip    = _camera._offsetVp * vec4f(anchor, 1.0);
+        /// 像素偏移 -> NDC 偏移(y 向下取反),乘 clip.w 抵消透视除法
+        let offset  = in.inPos.xy * pc._screen.zw * 2.0 * vec2f(1.0, -1.0);
+        out.pos     = vec4f(clip.xy + offset * clip.w, clip.z, clip.w);
+    }
+    else
+    {
+        /// 屏幕叠加层:z = 0 且材质侧关闭深度测试:始终绘制在最前
+        let ndc     = in.inPos.xy * pc._screen.zw;
+        out.pos     = vec4f(ndc.x * 2.0 - 1.0, 1.0 - ndc.y * 2.0, 0.0, 1.0);
+    }
+    out.outUV   = in.inUV;
+    out.outColor= in.nodeColor;
+    return out;
+}

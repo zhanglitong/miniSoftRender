@@ -1,0 +1,62 @@
+/// 文本片段着色器 WGSL 版本,与 shader.frag 对齐
+/// 图集通过纹理 + 采样器两个绑定表达(GLB 的 sampler2D 在 WGSL 中必须拆开):
+///   绑定 4 = 字体图集(R 通道 SDF 距离场或 hinting 灰度覆盖率)
+///   绑定 5 = 图集采样器(材质只绑定纹理,采样器由描述符集从该纹理合成)
+/// 图集有两种编码,由 immediates 的 _sdf.y 选择(0=SDF,1=位图)
+
+struct  TextPush
+{
+    /// xy = 视口像素尺寸, zw = 1/视口尺寸
+    _screen     : vec4f,
+    /// x = SDF 编码增量 = 1/(2*spread); y = 渲染模式(0=SDF,1=位图)
+    _sdf        : vec4f,
+}
+
+@group(0) @binding(4) var uFontAtlas        : texture_2d<f32>;
+@group(0) @binding(5) var uFontAtlasSampler : sampler;
+
+var<immediate> pc : TextPush;
+
+struct  FsIn
+{
+    @location(0) inUV       : vec2f,
+    @location(1) inColor    : vec4f,
+}
+
+@fragment
+fn  main(in : FsIn) -> @location(0) vec4f
+{
+    /// 每个屏幕像素在图集中覆盖的纹素数(文本四边形内恒定)
+    let texSize = vec2f(textureDimensions(uFontAtlas, 0));
+    let texels  = max(fwidth(in.inUV.x) * texSize.x, fwidth(in.inUV.y) * texSize.y);
+    let r       = textureSample(uFontAtlas, uFontAtlasSampler, in.inUV).r;
+    var alpha   : f32;
+
+    if (pc._sdf.y > 0.5)
+    {
+        /// 位图模式(hinting 灰度):R 通道直接是覆盖率,不做阈值化
+        alpha   = r;
+    }
+    else
+    {
+        /// SDF 模式 3x3 超采样:邻域内取 9 个 SDF 样本,
+        /// 各自阈值化后取平均,得到亚像素级覆盖率
+        let w   = 0.5 * max(fwidth(r), texels * pc._sdf.x);
+        let stepv = vec2f(fwidth(in.inUV.x), fwidth(in.inUV.y)) / 5.0;
+        alpha   = 0.0;
+        for (var y = -1; y <= 1; y = y + 1)
+        {
+            for (var x = -1; x <= 1; x = x + 1)
+            {
+                let d = textureSample(uFontAtlas, uFontAtlasSampler,
+                                      in.inUV + vec2f(f32(x) * stepv.x, f32(y) * stepv.y)).r;
+                alpha = alpha + smoothstep(0.5 - w, 0.5 + w, d);
+            }
+        }
+        alpha   = alpha / 9.0;
+        /// 强化有覆盖率的区域:gamma < 1 把中低 alpha 拉高
+        alpha   = pow(alpha, 0.5);
+    }
+
+    return vec4f(in.inColor.rgb, in.inColor.a * alpha);
+}

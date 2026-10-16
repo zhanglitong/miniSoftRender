@@ -1,8 +1,7 @@
 /// pbr 片段着色器 WGSL 版本,与 shader.frag 对齐
 /// 金属度-粗糙度工作流,支持 baseColor / metallicRoughness / normal / occlusion / emissive 贴图。
-/// 贴图绑定到 6~10(与 GLSL 一致)。
-/// 注意:当前 WebGPU 后端 WGDSet 仅处理 buffer 描述符,texture 描述符绑定尚未实现;
-/// 本文件保证逻辑与 GLSL 一致,待后端支持纹理后即可运行。
+/// 贴图绑定到 6~10(与 GLSL 一致),11 为贴图参数 uniform、
+/// 12 为环境立方体贴图、13 为采样器。
 
 const M_PI : f32 = 3.141592653589793;
 
@@ -186,12 +185,16 @@ fn main(in : FsIn) -> @location(0) vec4f
     if ((texFlags & PBR_TEX_NORMAL) != 0u) {
         let TBN = buildTBN(in.inPos, n, in.inUV);
         var ns = textureSample(u_NormalTex, uSampler, in.inUV).rgb * 2.0 - 1.0;
-        ns.xy = ns.xy * normalScale;
+        /// WGSL 不支持对 swizzle 赋值(不能写 ns.xy = ...),改为逐分量缩放后重组
+        ns = vec3f(ns.x * normalScale, ns.y * normalScale, ns.z);
         n = normalize(TBN * ns);
     }
 
     /// 4. view
-    let camPos = -transpose(mat3x3f(_camera._v)) * _camera._v[3].xyz;
+    /// WGSL 不能直接把 mat4x4<f32> 转成 mat3x3<f32>,也不能对矩阵取负(negate),
+    /// 故用列向量重组左上 3x3,再对平移列(向量)取负:camPos = R^T * (-t)
+    let vR     = mat3x3f(_camera._v[0].xyz, _camera._v[1].xyz, _camera._v[2].xyz);
+    let camPos = transpose(vR) * (-_camera._v[3].xyz);
     let v = normalize(camPos - in.inPos);
     let NdotV = max(dot(n, v), 1e-4);
 
