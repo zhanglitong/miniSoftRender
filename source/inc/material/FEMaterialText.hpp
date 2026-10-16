@@ -1,0 +1,145 @@
+#pragma     once
+
+#include    "../graphic/FEDevice.h"
+#include    "../font/FEFont.hpp"
+#include    "FEMaterial.hpp"
+
+namespace   FE
+{
+    DEFINE_CLASS_UUID(FEMaterialText,"{8B4C1D2E-6A97-4E35-8F10-3C7D5B92A6E4}");
+    /// <summary>
+    /// 距离场文本材质:SDF 文本管线(text/*),
+    /// 图集通过 combined image sampler 绑定到 SB_Material(4),
+    /// 视口像素尺寸经 push constant 传入,顶点着色器据此完成像素->NDC 变换。
+    /// 两种绘制模式(setBillboard 切换,经 push constant _sdf.z 传给顶点着色器):
+    ///   屏幕叠加(默认):关闭深度测试与背面剔除,文本作为屏幕叠加层始终最前;
+    ///   三维布告板:节点平移为世界锚点,文本始终面向相机且屏幕像素尺寸恒定,
+    ///   开启深度测试(不写深度),可被场景几何遮挡。
+    /// 均开启 alpha 混合。
+    /// </summary>
+    class   FE_API  FEMaterialText:public FEMaterial
+    {
+    public:
+        IMPLEMENT_CLASS_REFLECT_MINI(FEMaterialText)
+    public:
+        /// push constant 布局,须与 text/shader.vert 中的 TextPush 一致
+        struct  TextData
+        {
+            /// xy = 视口像素尺寸, zw = 1/视口尺寸
+            float4  _screen =   float4(1280.0f,720.0f,1.0f / 1280.0f,1.0f / 720.0f);
+            /// x = 每个烘焙像素对应的 SDF 编码增量 = 1/(2*spread),
+            /// 片元着色器据此换算恒定的抗锯齿宽度(须与字体实际 spread 一致)
+            /// z = 绘制模式(0=屏幕叠加,1=三维布告板)
+            float4  _sdf    =   float4(1.0f / 16.0f,0.0f,0.0f,0.0f);
+        };
+    public:
+        FEMaterialText(FEContext& ctx)
+            :FEMaterial(ctx)
+        {
+            setup("text");
+            autoAttach();
+            /// 显式绑定相机 UBO:text 着色器的相机块经反射得到的块名为
+            /// "CameraBlock" 而非 "_camera",autoAttach 的名称匹配覆盖不到,
+            /// 缺少此绑定会导致布告板模式取不到相机 VP 矩阵(同 v3c4 的教训)
+            auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
+            bind(0,SB_Camera,   {cameraUBO});
+
+            if (_texture != nullptr)
+                bind(0,SB_Material,{_texture.get()});
+
+            update();
+        }
+
+        FEMaterialText(const FEMaterialText& other)
+            :FEMaterial(other)
+        {
+            _font      =   other._font;
+            _texture   =   other._texture;
+            _data      =   other._data;
+            if (_texture != nullptr)
+            {
+                bind(0,SB_Material,{_texture.get()});
+                update();
+            }
+        }
+        virtual ~FEMaterialText()
+        {}
+        /// <summary>
+        /// 设置字体(内部完成 SDF 图集绑定与上传)
+        /// </summary>
+        inline  void    setFont(Font font)
+        {
+            _font      =   font;
+            /// 取出图集引用(非 const 局部,以取得可用的裸指针)
+            _texture   =   (_font != nullptr) ? _font->texture() : nullptr;
+            /// 渲染模式:SDF 由 spread 推算编码梯度;位图直接用覆盖率
+            const   bool    bitmap  =   (_font != nullptr) && _font->isBitmap();
+            _data._sdf.x =  (bitmap) ? 0.0f
+                          : ((_font != nullptr) ? 0.5f / (real)_font->sdfSpread() : 1.0f / 16.0f);
+            /// .y = 渲染模式标志(0=SDF,1=位图)
+            _data._sdf.y =  bitmap ? 1.0f : 0.0f;
+            if (_texture != nullptr)
+            {
+                bind(0,SB_Material,{_texture.get()});
+                update();
+            }
+        }
+        /// <summary>
+        /// 获取字体
+        /// </summary>
+        inline  const   Font&   font() const
+        {
+            return  _font;
+        }
+        /// <summary>
+        /// 设置绘制模式:false=屏幕叠加层(默认),true=三维布告板。
+        /// 布告板模式下节点平移为世界锚点,文本面向相机且屏幕像素尺寸恒定,
+        /// 可被场景几何深度遮挡;网格须以锚点为原点构建(createTextMesh origin 传 (0,0)
+        /// 或按期望的对齐方式预偏移)。
+        /// </summary>
+        inline  void    setBillboard(bool b)
+        {
+            _data._sdf.z    =   b ? 1.0f : 0.0f;
+        }
+        /// <summary>
+        /// 当前是否为三维布告板模式
+        /// </summary>
+        inline  bool    isBillboard() const
+        {
+            return  _data._sdf.z > 0.5f;
+        }
+        virtual uint    pushConstantSize() const override
+        {
+            return  (uint)sizeof(TextData);
+        }
+        virtual PCVOID  pushConstantData() const override
+        {
+            return  (PCVOID)&_data;
+        }
+        virtual void    appDynamicState(CMDPtr cmd,EPrimitive pri) override
+        {
+            /// 屏幕像素尺寸用于顶点着色器的像素->NDC 变换
+            uint32  w   =   _ctx.windowsWidth();
+            uint32  h   =   _ctx.windowsHeight();
+            if (w == 0 || h == 0 || w > 100000 || h > 100000)
+            {
+                w   =   1280;
+                h   =   720;
+            }
+            _data._screen   =   float4((real)w,(real)h,1.0f / (real)w,1.0f / (real)h);
+
+            FEMaterial::appDynamicState(cmd,pri);
+
+            /// 文本不剔除;深度按模式区分:
+            ///   屏幕叠加:关闭深度测试(同时避免深度写入),始终绘制在最前
+            ///   三维布告板:开启深度测试(管线侧已关闭写入),可被场景几何遮挡
+            cmd->setDepthTest(isBillboard());
+            cmd->setCullMode(CullMode::CM_NULL);
+        }
+    protected:
+        Font        _font      =   nullptr;
+        /// SDF 图集(与 _font 同步,单独持有便于绑定描述符)
+        TexPtr      _texture   =   nullptr;
+        mutable TextData    _data;
+    };
+}

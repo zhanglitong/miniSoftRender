@@ -1,43 +1,52 @@
 #version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
 
 #include "FEShaderDefine.h"
 
-layout  (location = 0)  in  vec3    inPos;
-layout  (location = 1)  in  vec3    inNor;
-/// 平移整数部分
-layout  (location = 2)  in  ivec3   intPart;
-/// 平移小数部分
-layout  (location = 3)  in  vec3    trans;
-layout  (location = 4)  in  vec3    scale;
-/// 旋转四元数
-layout  (location = 5)  in  vec4    rot;
+layout(location = 0) in vec3  inPos;
+layout(location = 1) in vec3  inNor;
+layout(location = 8) in vec2  inUV;
+layout(location = 2) in ivec3 intPart;
+layout(location = 3) in vec3  trans;
+layout(location = 4) in vec3  scale;
+layout(location = 5) in vec4  rot;
+layout(location = 6) in vec4  nodeColor;
+layout(location = 7) in uint  flagBits;
 
-layout  (location = 6)  in  vec4    nodeColor;
-layout  (location = 7)  in  uint    flagBits;
-
-layout (binding = SB_Camera) uniform CameraBlock
-{
-    CameraData    _camera;
+layout(set = 0, binding = 0) uniform CameraBlock {
+    CameraData _camera;
 };
 
-layout (location =  0)          out vec3    outPos;
-layout (location =  1)          out vec3    outNor;
-layout (location =  2)          out vec4    outColor;
-layout (location =  3)  flat    out uint    outFlagBits;
+layout(location = 0) out vec3 outPos;
+layout(location = 1) out vec3 outNor;
+layout(location = 2) out vec2 outUV;
+layout(location = 3) out vec4 outColor;
+layout(location = 4) flat out uint outFlagBits;
+
+vec3 qtransform(vec4 q, vec3 v)
+{
+    return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
+}
 
 void main()
 {
-    /// 真实世界坐标 local 矩阵:用于世界位置/法线(光照)
-    mat4    matLocal    =   makeTransform(trans, scale, rot);
-    /// 大坐标处理:带偏移 local 矩阵,用于裁剪位置,
-    /// 抵消相机整数偏移,减少大坐标下的浮点误差
-    mat4    localOffset =   makeOffsetLocalMatrix(trans, scale, rot, intPart, _camera._offset.xyz);
+    /// 实例变换:使用量化整数坐标,避免 float 精度丢失
+    vec3 tPos        =   qtransform(rot, inPos * scale) + trans + intPart;
+    mat3 matLocalN   =   mat3(qtransform(rot, vec3(1.0, 0.0, 0.0)),
+                              qtransform(rot, vec3(0.0, 1.0, 0.0)),
+                              qtransform(rot, vec3(0.0, 0.0, 1.0)));
+    vec3 worldNormal =   matLocalN * inNor;
 
-    gl_PointSize        =   1;
-    vec4    tmp         =   matLocal * vec4(inPos.xyz, 1.0);
-    outPos              =   tmp.xyz;
-    outFlagBits         =   flagBits;
-    outColor            =   nodeColor;
-    outNor              =   normalize(mat3(matLocal) * inNor);
-    gl_Position         =   _camera._offsetVp * localOffset * vec4(inPos.xyz, 1.0);
+    /// 世界坐标(带大坐标量化偏移):用于 PBR 光照计算(V/L 方向)
+    outPos           =   tPos;
+    outNor           =   worldNormal;
+    outUV            =   inUV;
+
+    /// 节点/实例颜色:透传实例颜色属性,由片元着色器按 hasNodeColor 决定是否参与
+    outColor         =   nodeColor;
+    outFlagBits      =   flagBits;
+
+    /// 投影:使用 VP 矩阵
+    gl_Position      =   _camera._vp * vec4(tPos, 1.0);
 }

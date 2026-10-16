@@ -1,6 +1,7 @@
 #pragma     once
 #include    "graphic/FEDevice.h"
 #include    "graphic/FECmdPool.h"
+#include    "graphic/FETexture.h"
 #include    "FEVulkan.h"
 
 namespace   FE
@@ -60,6 +61,7 @@ namespace   FE
         virtual Pipeline    createCPipeline()   override;
         virtual Swapchain   createSwapchain()   override;
         virtual GImage      createGImage()      override;
+        virtual TexPtr      createTexture()     override;
 
         virtual DSetLayout  createDSLayout()    override;
         DSetLayout          createDSLayoutFromShaders(const std::vector<Shader>& shaders);

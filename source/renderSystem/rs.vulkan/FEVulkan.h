@@ -402,6 +402,20 @@ namespace   FE
             return  VK_IMAGE_TYPE_2D;
         }
     }
+
+    static  auto    system2Native(FEAddressMode mode)
+    {
+        switch(mode)
+        {
+        case ADDRESS_REPEAT:            return  VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case ADDRESS_MIRRORED_REPEAT:   return  VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case ADDRESS_CLAMP_TO_EDGE:     return  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case ADDRESS_CLAMP_TO_BORDER:   return  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        default:
+            assert(0!=0);
+            return  VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        }
+    }
     
     inline VkImageMemoryBarrier createImageMemoryBarrier()
     {

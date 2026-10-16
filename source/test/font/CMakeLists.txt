@@ -1,0 +1,4 @@
+add_subdirectory ("test.sdf.text")
+add_subdirectory ("test.sdf.font")
+add_subdirectory ("test.sdf.text.simsun")
+add_subdirectory ("test.sdf.text.billboard")

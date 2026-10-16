@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 文本管线:enableColorBlend=1 开启 alpha 混合;
+     enableDepthWrite=0:透明文本不写深度,屏幕叠加模式本就不测深度,
+     布告板模式只测不写,避免同深度字形四边形互相遮挡出缺口 -->
+<root using_defult="1" type="graphic" enableColorBlend="1" enableDepthWrite="0">
+    <shaders>
+        <shader url=":/data/shader/cache/text/shader.frag.spv"/>
+        <shader url=":/data/shader/cache/text/shader.vert.spv"/>
+    </shaders>
+    <dynamicStates>
+        <VIEWPORT/>
+        <SCISSOR/>
+        <PRIMITIVE_TOPOLOGY/>
+    </dynamicStates>
+    <bindings>
+        <binding binding="0" inputRate="0">
+            <input location="0" slots="IS_VERTEX_POS"       formats="R32G32B32_FLOAT" offsets="0"/>
+            <input location="1" slots="IS_VERTEX_TEXCOORD0" formats="R32G32_FLOAT"    offsets="12"/>
+        </binding>
+        <binding binding="2" inputRate="1">
+            <input location="6" slots="IS_INSTANCE_COLOR"   formats="R8G8B8A8_UNORM"  offsets="0"/>
+        </binding>
+        <!-- 实例平移(布告板世界锚点):只声明 intPart/trans,
+             工厂按声明打包(见 FEFactoryRender::buildInstanceVBOs),stride=24 -->
+        <binding binding="3" inputRate="1">
+            <input location="2" slots="IS_INSTANCE_ITRANSLATE" formats="R32G32B32_SINT" offsets="0"/>
+            <input location="3" slots="IS_INSTANCE_TRANSLATE"  formats="R32G32B32_FLOAT" offsets="12"/>
+        </binding>
+    </bindings>
+</root>

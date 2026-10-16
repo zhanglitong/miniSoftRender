@@ -17,7 +17,7 @@ namespace   FE
     constexpr   uint    instStateSlots  =   IS_INSTANCE_FLAG;
     constexpr   uint    instColorSlots  =   IS_INSTANCE_COLOR;
     constexpr   uint    instLodSlots    =   IS_INSTANCE_LOD_INDEX;
-    
+
     uint32  GroupNode::cullCount()        
     {   
         if (_cullMat == nullptr)
@@ -1176,7 +1176,7 @@ namespace   FE
             copyBuffer(vbo,_vboSphere,regions);
         }
     }
-  
+
     ITO     FEFactoryRender::buildIndirect(ITO&  gpuAll,ITO& gpuDraw)
     {
         uint32      cmdOffset   =   0;

@@ -1,4 +1,6 @@
 #pragma     once
+#include    "../graphic/FEConstUuid.h"
+#include    "../graphic/FEDevice.h"
 #include    "FEMaterial.hpp"
 
 namespace   FE
@@ -15,6 +17,12 @@ namespace   FE
             setup("v3c4");
             /// 自动将系统数据与材质所需数据关联起来
             autoAttach();
+            /// 显式绑定相机 UBO:v3c4 着色器的 CameraBlock 经反射得到的块名为
+            /// "CameraBlock" 而非 "_camera",autoAttach 的名称匹配覆盖不到,
+            /// 缺少此绑定会导致所有 v3c4 绘制(线框/纯色三角形等)因相机
+            /// VP 矩阵未定义而整体不可见
+            auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
+            bind(0,SB_Camera,   {cameraUBO});
             /// 更新数据
             update();
         }

@@ -14,6 +14,7 @@
 #include    "FEFence.h"
 #include    "FESemaphore.h"
 #include    "FEGPUBuffer.h"
+#include    "FETexture.h"
 #include    "FELight.h"
 #include    "FELightMgr.h"
 
@@ -104,8 +105,16 @@ namespace   FE
         virtual RenderPass  createRenderPass()      =   0;
         virtual GPipeline   createGPipeline()       =   0;
         virtual Pipeline    createCPipeline()       =   0;
-        virtual Swapchain   createSwapchain()       =   0;
-        virtual GImage      createGImage()          =   0;
+        virtual Swapchain   createSwapchain()   =   0;
+        virtual GImage      createGImage()      =   0;
+        /// <summary>
+        /// 创建纹理对象(image+view+sampler)。
+        /// 纹理支持当前仅 Vulkan 实现,未实现的后端返回 nullptr。
+        /// </summary>
+        virtual TexPtr      createTexture()
+        {
+            return  nullptr;
+        }
         virtual DSetLayout  createDSLayout()        =   0;
         virtual DSetPool    createDSetPool()        =   0;
         virtual DSet        createDSet()            =   0;
