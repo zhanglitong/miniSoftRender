@@ -34,7 +34,10 @@ namespace   FE
         imageCI.samples         =   VK_SAMPLE_COUNT_1_BIT;
         imageCI.tiling          =   VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage           =   system2Native(info._usage);
-        imageCI.initialLayout   =   system2Native(info._layout); 
+        imageCI.initialLayout   =   system2Native(info._layout);
+        /// 6 层图像视为 cubemap
+        if (info._layer == 6)
+            imageCI.flags       =   VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     
         VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &_native));
         VkMemoryRequirements    memReqs{};

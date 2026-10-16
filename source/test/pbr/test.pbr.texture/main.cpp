@@ -1,0 +1,246 @@
+/// test.pbr.texture
+/// PBR 材质贴图支持测试(Vulkan):
+///   1. 创建引擎 + 渲染窗口
+///   2. 程序生成 5 张贴图(baseColor / metallicRoughness / normal / occlusion / emissive)
+///   3. 用 FEGeometrySphere 按 pos/nor/uv 生成球体 mesh
+///   4. 经 FEMaterialPBR 设置全套贴图,验证金属度-粗糙度 PBR 渲染
+/// 验证点:
+///   a. 球体表面呈现 baseColor 棋盘格(说明 uv 采样正确)
+///   b. 高光区域显示金属色(金属工作流:F0=baseColor)
+///   c. 法线贴图产生凹凸细节
+///   d. AO 使边缘变暗
+///   e. emissive 图案自发光
+/// 用法: test.pbr.texture.exe
+
+#include    <iostream>
+#include    <vector>
+#include    <cstdint>
+#include    <cmath>
+
+#include    "../../../inc/FEContext.hpp"
+#include    "../../../inc/FEAppHelper.hpp"
+#include    "../../../inc/graphic/FEScene.h"
+#include    "../../../inc/graphic/FETexture.h"
+#include    "../../../inc/graphic/FELightDir.h"
+#include    "../../../inc/geometry/FEGeometrySphere.hpp"
+#include    "../../../inc/material/FEMaterialPBR.hpp"
+
+using   namespace   FE;
+
+USING_PLUGIN(rs_vulkan);
+USING_PLUGIN(rs_webgpu);
+
+namespace
+{
+    constexpr uint kTexSize = 256;
+
+    /// 生成 baseColor:彩色棋盘格
+    std::vector<uint8_t> makeBaseColor()
+    {
+        std::vector<uint8_t> data(size_t(kTexSize) * kTexSize * 4);
+        const uint cells = 8;
+        uint cw = kTexSize / cells, ch = kTexSize / cells;
+        for (uint y = 0; y < kTexSize; ++y)
+            for (uint x = 0; x < kTexSize; ++x)
+            {
+                bool odd = ((x / cw) + (y / ch)) & 1;
+                size_t i = (size_t(y) * kTexSize + x) * 4;
+                if (odd) { data[i]=0xE2; data[i+1]=0x7A; data[i+2]=0x2A; }  /// 橙色
+                else     { data[i]=0x2A; data[i+1]=0x9E; data[i+2]=0xE2; }  /// 青色
+                data[i+3] = 0xFF;
+            }
+        return data;
+    }
+
+    /// 生成 metallicRoughness:R 未用,G=roughness(变化),B=metallic(全 0,介电体)
+    std::vector<uint8_t> makeMetallicRoughness()
+    {
+        std::vector<uint8_t> data(size_t(kTexSize) * kTexSize * 4);
+        for (uint y = 0; y < kTexSize; ++y)
+            for (uint x = 0; x < kTexSize; ++x)
+            {
+                size_t i = (size_t(y) * kTexSize + x) * 4;
+                float fx = (float)x / kTexSize;
+                float fy = (float)y / kTexSize;
+                float rough = 0.15f + 0.7f * (fx * 0.5f + fy * 0.5f);  /// 0.15~0.85
+                data[i]   = 0;                                    /// R
+                data[i+1] = (uint8)(clamp(rough,0.f,1.f) * 255.f + 0.5f);  /// G = roughness
+                data[i+2] = 0;                                    /// B = metallic(介电)
+                data[i+3] = 255;
+            }
+        return data;
+    }
+
+    /// 生成法线贴图:正弦波凹凸
+    std::vector<uint8_t> makeNormal()
+    {
+        std::vector<uint8_t> data(size_t(kTexSize) * kTexSize * 4);
+        for (uint y = 0; y < kTexSize; ++y)
+            for (uint x = 0; x < kTexSize; ++x)
+            {
+                size_t i = (size_t(y) * kTexSize + x) * 4;
+                float fx = (float)x / kTexSize * 6.2831853f * 6.0f;
+                float fy = (float)y / kTexSize * 6.2831853f * 6.0f;
+                /// 高度场 h = sin(fx)*sin(fy),求梯度得到切线空间法线
+                float h  = sinf(fx) * sinf(fy);
+                float dx = cosf(fx) * sinf(fy) * 0.15f;
+                float dy = sinf(fx) * cosf(fy) * 0.15f;
+                float nx = -dx, ny = -dy, nz = 1.0f;
+                float len = sqrtf(nx*nx + ny*ny + nz*nz);
+                nx /= len; ny /= len; nz /= len;
+                data[i]   = (uint8)((nx * 0.5f + 0.5f) * 255.f + 0.5f);
+                data[i+1] = (uint8)((ny * 0.5f + 0.5f) * 255.f + 0.5f);
+                data[i+2] = (uint8)((nz * 0.5f + 0.5f) * 255.f + 0.5f);
+                data[i+3] = 255;
+                (void)h;
+            }
+        return data;
+    }
+
+    /// 生成 occlusion:径向,边缘暗
+    std::vector<uint8_t> makeOcclusion()
+    {
+        std::vector<uint8_t> data(size_t(kTexSize) * kTexSize * 4);
+        float cx = kTexSize * 0.5f, cy = kTexSize * 0.5f;
+        for (uint y = 0; y < kTexSize; ++y)
+            for (uint x = 0; x < kTexSize; ++x)
+            {
+                size_t i = (size_t(y) * kTexSize + x) * 4;
+                float dx = ((float)x - cx) / cx;
+                float dy = ((float)y - cy) / cy;
+                float d  = sqrtf(dx*dx + dy*dy);
+                float ao = clamp(1.0f - d * 0.8f, 0.2f, 1.0f);
+                data[i] = data[i+1] = data[i+2] = (uint8)(ao * 255.f + 0.5f);
+                data[i+3] = 255;
+            }
+        return data;
+    }
+
+    /// 生成 emissive:中心亮斑自发光
+    std::vector<uint8_t> makeEmissive()
+    {
+        std::vector<uint8_t> data(size_t(kTexSize) * kTexSize * 4, 0);
+        float cx = kTexSize * 0.5f, cy = kTexSize * 0.5f;
+        for (uint y = 0; y < kTexSize; ++y)
+            for (uint x = 0; x < kTexSize; ++x)
+            {
+                size_t i = (size_t(y) * kTexSize + x) * 4;
+                float dx = ((float)x - cx) / cx;
+                float dy = ((float)y - cy) / cy;
+                float d  = sqrtf(dx*dx + dy*dy);
+                float e  = clamp(1.0f - d * 2.5f, 0.0f, 1.0f);
+                e = e * e;
+                data[i]   = (uint8)(e * 255.f * 0.3f);          /// R
+                data[i+1] = (uint8)(e * 255.f * 0.9f);          /// G(偏黄白)
+                data[i+2] = (uint8)(e * 255.f * 1.0f);          /// B
+                data[i+3] = 255;
+            }
+        return data;
+    }
+
+    TexPtr uploadTexture(FEContext& ctx, const std::vector<uint8_t>& pixels)
+    {
+        TexPtr tex = ctx.device().createTexture();
+        FETexture::CreateInfo ci{};
+        ci._width = kTexSize; ci._height = kTexSize;
+        ci._format = FMT_R8G8B8A8_UNORM;
+        ci._magFilter = FILTER_LINEAR; ci._minFilter = FILTER_LINEAR;
+        ci._addressMode = ADDRESS_REPEAT;
+        tex->create(ci);
+        tex->update(pixels.data(), pixels.size());
+        return tex;
+    }
+}
+
+int main(int argc, char** argv)
+{
+    (void)argc; (void)argv;
+    FEContext& ctx = FEContext::instance();
+    FEScene* pScene = nullptr;
+
+    FEApp::CreateInfo info{};
+    info._width = 1280; info._height = 720;
+    info._appInst = GetModuleHandle(nullptr);
+    info._notify = [&](const FEMessage& msg) { if (pScene) pScene->onMessage(msg); };
+    App app = FEAppHelper::create(ctx, info);
+    if (!app) { std::cerr << "create app failed\n"; return 1; }
+    ctx.setWindow(app.get());
+    ctx.setWorkPath(app->path());
+    ctx.setResourcePath(app->path() + "/../");
+
+    Scene scene = new FEScene(ctx);
+    pScene = scene.get();
+    if (!scene->setup(app, RS_VULKAN))
+    {
+        std::cerr << "scene setup failed\n";
+        scene = nullptr; app->destroy(); return 1;
+    }
+
+    /// 调亮默认平行光并调整方向,使 PBR 光照层次清晰可见
+    {
+        Light mainLight;
+        if (ctx.device().lights().query("main", mainLight) && mainLight)
+        {
+            auto dir = mainLight->as<FELightDir>();
+            if (dir)
+            {
+                dir->_color = float3(2.5f, 2.5f, 2.5f);
+                dir->_dir   = float3(0.4f, 0.7f, 0.8f);  /// 斜上方照射
+            }
+        }
+    }
+
+    /// 生成并上传 5 张贴图
+    TexPtr baseColor = uploadTexture(ctx, makeBaseColor());
+    TexPtr mr        = uploadTexture(ctx, makeMetallicRoughness());
+    TexPtr normal    = uploadTexture(ctx, makeNormal());
+    TexPtr ao        = uploadTexture(ctx, makeOcclusion());
+    TexPtr emissive  = uploadTexture(ctx, makeEmissive());
+
+    /// 球体 mesh(pos/nor/uv)
+    FEGeometrySphere geo(ctx);
+    geo.param().radius = 1.0f;
+    geo.param().widthSegments  = 48;
+    geo.param().heightSegments = 32;
+    Mesh mesh = geo.triangular({
+        {IS_VERTEX_POS,       FMT_R32G32B32_FLOAT},
+        {IS_VERTEX_NOR,       FMT_R32G32B32_FLOAT},
+        {IS_VERTEX_TEXCOORD0, FMT_R32G32_FLOAT} });
+
+    if (mesh->buffers().size() < 3 || mesh->primitives().empty())
+    {
+        std::cerr << "sphere build failed\n";
+        scene = nullptr; app->destroy(); return 1;
+    }
+
+    Node node = new FENode(ctx);
+    node->setMesh(mesh);
+
+    /// PBR 材质:设置全套贴图
+    auto* pMat = new FEMaterialPBR(ctx);
+    pMat->data()._value._diffuse  = float4(1, 1, 1, 1);   /// baseColor 因子=白,完全由贴图决定
+    pMat->data()._value._metallic  = 0.0f;   /// 介电体,baseColor 走漫反射
+    pMat->data()._value._roughness = 1.0f;
+    pMat->data()._value._emissive  = float4(1, 1, 1, 1);
+    pMat->setBaseColorMap(baseColor);
+    pMat->setMetallicRoughnessMap(mr);
+    pMat->setNormalMap(normal);
+    pMat->setOcclusionMap(ao);
+    pMat->setEmissiveMap(emissive);
+    pMat->setNormalScale(1.0f);
+    pMat->setOcclusionStrength(1.0f);
+    pMat->setEmissiveStrength(1.0f);
+    pMat->data().update();
+
+    node->setMaterial(pMat);
+    node->makeDirty();
+    node->update();
+    scene->dispatchNodesToSystem({node});
+
+    std::cout << "pbr texture test ready, entering render loop...\n";
+    app->run();
+
+    scene = nullptr;
+    app->destroy();
+    return 0;
+}

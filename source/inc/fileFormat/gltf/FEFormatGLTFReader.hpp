@@ -8,6 +8,7 @@
 #include    "../../FEFileSystem.hpp"
 #include    "../../material/FEMaterialLibrary.hpp"
 #include    "../../animation/FEAnimation.hpp"
+#include    "../../graphic/FETexture.h"
 #include    "FEFormatGLTF.hpp"
 
 
@@ -30,8 +31,12 @@ namespace   FE
         using   MaterialIndex   =   std::map<int,Material>;
         using   NodeIndex       =   std::map<int,Node>;
         using   AnimatonIndex   =   std::map<int,Animation>;
+        using   TextureIndex    =   std::map<int,TexPtr>;
     public:
         IMPLEMENT_CLASS_REFLECT(FEFormatGLTFReader)
+    protected:
+        /// glTF texture 索引 → 引擎纹理缓存(每次 readBuffers 清空)
+        TextureIndex    _texCache;
     public:
         FEFormatGLTFReader(FEContext& ctx)
             :FEStreamReader(ctx)
@@ -201,6 +206,7 @@ namespace   FE
                 MaterialIndex       matMap;
                 AnimatonIndex       animations;
                 NodeIndex           nodeMap;
+                _texCache.clear();
                 gltfMesh2Mesh(gltfModel,meshMap);
                 gltfMat2Material(gltfModel,matMap);
                 auto    nodes   =   parseNodes(gltfModel,meshMap,matMap,nodeMap);
@@ -336,6 +342,67 @@ namespace   FE
                 Material    pMat    =   parseMaterialPBR(model,int(i));
                 matMap[int(i)]      =   pMat;
             }
+        }
+        /// <summary>
+        /// 由 glTF 图像数据创建纹理。
+        /// tinygltf 经 stb_image 解码:JPEG 为 RGB(component=3),PNG 可能为 RGBA(4)。
+        /// 统一转换为 RGBA8 上传;1/2 通道图像暂不支持(返回 nullptr,由材质使用默认纹理)。
+        /// </summary>
+        TexPtr      createTextureFromImage(const tinygltf::Image& image)
+        {
+            if (image.width <= 0 || image.height <= 0 || image.image.empty())
+                return  nullptr;
+            if (image.component != 3 && image.component != 4)
+                return  nullptr;
+            TexPtr  tex =   _ctx.device().createTexture();
+            if (tex == nullptr)
+                return  nullptr;
+            FETexture::CreateInfo   ci{};
+            ci._width       =   (uint)image.width;
+            ci._height      =   (uint)image.height;
+            ci._format      =   FMT_R8G8B8A8_UNORM;
+            ci._magFilter   =   FILTER_LINEAR;
+            ci._minFilter   =   FILTER_LINEAR;
+            ci._addressMode =   ADDRESS_REPEAT;
+            if (!tex->create(ci))
+                return  nullptr;
+            if (image.component == 4)
+            {
+                tex->update(image.image.data(),image.image.size());
+            }
+            else
+            {
+                /// RGB 补 alpha=255 转 RGBA
+                const size_t    pixelCount  =   size_t(image.width) * size_t(image.height);
+                std::vector<uint8>  rgba(pixelCount * 4);
+                const uint8*    src     =   image.image.data();
+                for (size_t p = 0; p < pixelCount; ++p)
+                {
+                    rgba[p*4+0]     =   src[p*3+0];
+                    rgba[p*4+1]     =   src[p*3+1];
+                    rgba[p*4+2]     =   src[p*3+2];
+                    rgba[p*4+3]     =   255;
+                }
+                tex->update(rgba.data(),rgba.size());
+            }
+            return  tex;
+        }
+        /// <summary>
+        /// 按 glTF texture 索引获取/创建纹理(带缓存,多张贴图共享同一 image 时只上传一次)
+        /// </summary>
+        TexPtr      getOrCreateTexture(const tinygltf::Model& model,int texIndex)
+        {
+            if (texIndex < 0 || texIndex >= (int)model.textures.size())
+                return  nullptr;
+            auto    itr =   _texCache.find(texIndex);
+            if (itr != _texCache.end())
+                return  itr->second;
+            const auto& texture =   model.textures[texIndex];
+            TexPtr      tex;
+            if (texture.source >= 0 && texture.source < (int)model.images.size())
+                tex =   createTextureFromImage(model.images[texture.source]);
+            _texCache[texIndex] =   tex;
+            return  tex;
         }
         void        createNodeAnimation(tinygltf::Model& model,AnimatonIndex& animas,NodeIndex& nodeMap)
         {   
@@ -896,6 +963,27 @@ namespace   FE
             pbrMat->data()._value._roughness    =   (float)material.pbrMetallicRoughness.roughnessFactor;
 
             pbrMat->data().update();
+
+            /// ===== 全套贴图(glTF 金属度-粗糙度工作流) =====
+            /// baseColor / metallicRoughness / normal / occlusion / emissive
+            /// 注:KHR_texture_transform(UV 变换)当前 shader 不支持,仅读取不应用。
+            if (pbr.baseColorTexture.index >= 0)
+                pbrMat->setBaseColorMap(getOrCreateTexture(model,pbr.baseColorTexture.index));
+            if (pbr.metallicRoughnessTexture.index >= 0)
+                pbrMat->setMetallicRoughnessMap(getOrCreateTexture(model,pbr.metallicRoughnessTexture.index));
+            if (material.normalTexture.index >= 0)
+            {
+                pbrMat->setNormalMap(getOrCreateTexture(model,material.normalTexture.index));
+                pbrMat->setNormalScale((float)material.normalTexture.scale);
+            }
+            if (material.occlusionTexture.index >= 0)
+            {
+                pbrMat->setOcclusionMap(getOrCreateTexture(model,material.occlusionTexture.index));
+                pbrMat->setOcclusionStrength((float)material.occlusionTexture.strength);
+            }
+            if (material.emissiveTexture.index >= 0)
+                pbrMat->setEmissiveMap(getOrCreateTexture(model,material.emissiveTexture.index));
+            pbrMat->setEmissiveStrength(getEmissiveStrength(material.extensions));
 
             return      pbrMat;
 

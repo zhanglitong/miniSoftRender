@@ -21,6 +21,10 @@ namespace   FE
             FEFilter        _magFilter  =   FILTER_LINEAR;
             FEFilter        _minFilter  =   FILTER_LINEAR;
             FEAddressMode   _addressMode =  ADDRESS_REPEAT;
+            /// mip 级数(>1 时 update 需按 mip 逐级提供数据,采样器 maxLod=mips-1)
+            uint            _mips       =   1;
+            /// 是否为 cubemap(6 面;update 数据按 面主序、面内 mip 顺序 紧密排布)
+            bool            _cube       =   false;
         };
     public:
         FETexture(FEContext& ctx)
@@ -49,6 +53,20 @@ namespace   FE
         inline  FEFormat    format() const
         {
             return  _cInfo._format;
+        }
+        /// <summary>
+        /// mip 级数
+        /// </summary>
+        inline  uint    mips() const
+        {
+            return  _cInfo._mips;
+        }
+        /// <summary>
+        /// 是否为 cubemap
+        /// </summary>
+        inline  bool    isCube() const
+        {
+            return  _cInfo._cube;
         }
         /// <summary>
         /// 创建 GPU 资源(image + view + sampler)

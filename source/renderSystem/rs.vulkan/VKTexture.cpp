@@ -3,6 +3,7 @@
 #include    "VKDevice.h"
 #include    "VKGPUBuffer.h"
 #include    "VKQueue.h"
+#include    "FEFormatHelper.hpp"
 
 namespace   FE
 {
@@ -36,8 +37,8 @@ namespace   FE
         imgInfo._width                      =   info._width;
         imgInfo._height                     =   info._height;
         imgInfo._depth                      =   1;
-        imgInfo._mips                       =   1;
-        imgInfo._layer                      =   1;
+        imgInfo._mips                       =   info._mips > 0 ? info._mips : 1;
+        imgInfo._layer                      =   info._cube ? 6 : 1;
         if (!_image->create(imgInfo))
         {
             LOG_ERR("VKTexture.create: image create failed");
@@ -54,18 +55,19 @@ namespace   FE
         _native =   (VkImageView)_view->native();
 
         /// 3. 创建采样器
+        const float maxLod  =   float(imgInfo._mips > 1 ? imgInfo._mips - 1 : 1);
         VkSamplerCreateInfo samplerCI   =   {};
         samplerCI.sType                 =   VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerCI.magFilter             =   info._magFilter == FILTER_NEAREST ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
         samplerCI.minFilter             =   info._minFilter == FILTER_NEAREST ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
-        samplerCI.mipmapMode            =   VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerCI.mipmapMode            =   imgInfo._mips > 1 ? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
         samplerCI.addressModeU          =   system2Native(info._addressMode);
         samplerCI.addressModeV          =   system2Native(info._addressMode);
         samplerCI.addressModeW          =   system2Native(info._addressMode);
         samplerCI.mipLodBias            =   0.0f;
         samplerCI.maxAnisotropy         =   1.0f;
         samplerCI.minLod                =   0.0f;
-        samplerCI.maxLod                =   1.0f;
+        samplerCI.maxLod                =   maxLod;
         samplerCI.borderColor           =   VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
         VK_CHECK_RESULT(vkCreateSampler(device,&samplerCI,nullptr,&_sampler));
 
@@ -101,13 +103,17 @@ namespace   FE
         beginInfo.flags                     =   VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         VK_CHECK_RESULT(vkBeginCommandBuffer(cmd,&beginInfo));
 
+        /// 布局切换范围(覆盖全部 mip/面)
+        const uint  mipLevels   =   _image->cInfo()._mips;
+        const uint  layerCount  =   _image->cInfo()._layer;
+
         /// UNDEFINED -> TRANSFER_DST_OPTIMAL
         VkImageSubresourceRange range   =   {};
         range.aspectMask                =   VK_IMAGE_ASPECT_COLOR_BIT;
         range.baseMipLevel              =   0;
-        range.levelCount                =   1;
+        range.levelCount                =   mipLevels;
         range.baseArrayLayer            =   0;
-        range.layerCount                =   1;
+        range.layerCount                =   layerCount;
 
         VkImageMemoryBarrier barrier            =   {};
         barrier.sType                           =   VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -126,17 +132,54 @@ namespace   FE
                             ,0,0,nullptr,0,nullptr,1,&barrier);
 
         /// staging buffer -> image
-        VkBufferImageCopy   region      =   {};
-        region.imageSubresource.aspectMask  =   VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel    =   0;
-        region.imageSubresource.baseArrayLayer  =   0;
-        region.imageSubresource.layerCount  =   1;
-        region.imageExtent                  =   { _cInfo._width,_cInfo._height,1 };
+        /// 数据排布:面主序、面内 mip 顺序(与 FETexture::CreateInfo 注释一致);
+        /// 每像素字节数由格式决定(RGBA8=4,RGBA32F=16 等)。
+        std::vector<VkBufferImageCopy>  regions;
+        if (layerCount > 1 || mipLevels > 1)
+        {
+            const uint  bpp     =   FEFormatHelper::sizeOf(_cInfo._format);
+            uint64  offset  =   0;
+            for (uint layer = 0; layer < layerCount; ++layer)
+            {
+                uint    mipW    =   _cInfo._width;
+                uint    mipH    =   _cInfo._height;
+                for (uint mip = 0; mip < mipLevels; ++mip)
+                {
+                    VkBufferImageCopy   region      =   {};
+                    region.bufferOffset                 =   offset;
+                    region.imageSubresource.aspectMask  =   VK_IMAGE_ASPECT_COLOR_BIT;
+                    region.imageSubresource.mipLevel    =   mip;
+                    region.imageSubresource.baseArrayLayer  =   layer;
+                    region.imageSubresource.layerCount  =   1;
+                    region.imageExtent                  =   { mipW,mipH,1 };
+                    regions.push_back(region);
+                    offset  +=   uint64(mipW) * mipH * bpp;
+                    mipW    =   mipW > 1 ? mipW >> 1 : 1;
+                    mipH    =   mipH > 1 ? mipH >> 1 : 1;
+                }
+            }
+            if (offset != size)
+            {
+                LOG_ERR("VKTexture.update: size mismatch (%llu != %llu)",(uint64)offset,(uint64)size);
+                vkFreeCommandBuffers(device,cmdPool,1,&cmd);
+                return  false;
+            }
+        }
+        else
+        {
+            VkBufferImageCopy   region      =   {};
+            region.imageSubresource.aspectMask  =   VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel    =   0;
+            region.imageSubresource.baseArrayLayer  =   0;
+            region.imageSubresource.layerCount  =   1;
+            region.imageExtent                  =   { _cInfo._width,_cInfo._height,1 };
+            regions.push_back(region);
+        }
         vkCmdCopyBufferToImage(cmd
                             ,(VkBuffer)staging->native()
                             ,image()
                             ,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-                            ,1,&region);
+                            ,(uint32_t)regions.size(),regions.data());
 
         /// TRANSFER_DST_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL
         barrier.oldLayout       =   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;

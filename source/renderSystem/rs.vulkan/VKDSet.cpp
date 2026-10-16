@@ -61,7 +61,7 @@ namespace   FE
         
         auto&   vkDevice    =   (VKDevice&)_ctx.device();
         auto    device      =   vkDevice.logicalDevice();
-        assert(_cInfo._binds.size() <= 8);
+        assert(_cInfo._binds.size() <= 16);
         
         size_t  ncnt    =   0;
         for (size_t i = 0; i < _cInfo._binds.size(); i++)
