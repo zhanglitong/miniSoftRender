@@ -154,7 +154,13 @@ namespace   FE
         primitiveState.nextInChain      =   nullptr;
         primitiveState.topology         =   system2Native(info._inputAssemblyState._primitive);
         primitiveState.frontFace        =   WGPUFrontFace_CCW;
+        /// _cullModeOverride: -1=默认(保持 None), 0=None, 1=Front, 2=Back
+        /// (wgpu 枚举无 FrontAndBack,3 按回退 None 处理;本项目管线仅用 0/2)
         primitiveState.cullMode         =   WGPUCullMode_None;
+        if (info._cullModeOverride == 1)
+            primitiveState.cullMode     =   WGPUCullMode_Front;
+        else if (info._cullModeOverride == 2)
+            primitiveState.cullMode     =   WGPUCullMode_Back;
         primitiveState.unclippedDepth   =   false;
 
         pipelineDesc.primitive =   primitiveState;
@@ -170,7 +176,10 @@ namespace   FE
         fragmentState.entryPoint                =   { fsEntry.c_str(),fsEntry.size() };
 
         WGPUBlendState blendState   =   {};
-        blendState.color.srcFactor  =   WGPUBlendFactor_SrcAlpha;
+        // 预乘 alpha(transmission 玻璃): One / OneMinusSrcAlpha;普通管线:标准 SrcAlpha
+        blendState.color.srcFactor  =   info._premultipliedAlpha
+                                        ? WGPUBlendFactor_One
+                                        : WGPUBlendFactor_SrcAlpha;
         blendState.color.dstFactor  =   WGPUBlendFactor_OneMinusSrcAlpha;
         blendState.color.operation  =   WGPUBlendOperation_Add;
         blendState.alpha.srcFactor  =   WGPUBlendFactor_One;
@@ -192,7 +201,8 @@ namespace   FE
         /// 若与渲染 pass 中实际深度附件格式不一致,会触发验证错误:
         /// "Incompatible depth-stencil attachment format"。
         depthStencilState.format                    =   WGPUTextureFormat_Depth32FloatStencil8;
-        depthStencilState.depthWriteEnabled         =   WGPUOptionalBool_True;
+        depthStencilState.depthWriteEnabled         =   info._enableDepthWrite ? WGPUOptionalBool_True
+                                                                               : WGPUOptionalBool_False;
         depthStencilState.depthCompare              =   WGPUCompareFunction_Less;
         depthStencilState.stencilFront.compare      =   WGPUCompareFunction_Always;
         depthStencilState.stencilFront.failOp       =   WGPUStencilOperation_Keep;

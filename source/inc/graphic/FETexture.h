@@ -2,6 +2,7 @@
 #include    "RSObject.h"
 #include    "../FEFormat.hpp"
 #include    "FEGraphicEnums.h"
+#include    "FEGImage.h"
 
 namespace   FE
 {
@@ -25,6 +26,9 @@ namespace   FE
             uint            _mips       =   1;
             /// 是否为 cubemap(6 面;update 数据按 面主序、面内 mip 顺序 紧密排布)
             bool            _cube       =   false;
+            /// 是否作为渲染目标(color attachment + sampled 双用途,
+            /// 如 transmission 场景折射纹理;此时无需 update 上传像素)
+            bool            _renderTarget = false;
         };
     public:
         FETexture(FEContext& ctx)
@@ -76,6 +80,10 @@ namespace   FE
         /// 上传像素数据(RAW 像素,按 format 紧密排布,行尾无 padding)
         /// </summary>
         virtual bool        update(const void* data,uint64 size)    =   0;
+        /// <summary>
+        /// 图像视图(render target 用法下作为 color attachment 挂到 RenderInfo._colors)
+        /// </summary>
+        virtual GImgView    imageView() {   return  nullptr;    }
     protected:
         CreateInfo  _cInfo;
     };

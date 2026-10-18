@@ -174,6 +174,12 @@ namespace   FE
         /// </summary>
         virtual bool        isOIT() const { return false; }
         /// <summary>
+        /// 透明物体标记(alpha 混合/transmission):渲染工厂据此保证透明组
+        /// 在同 factory 内所有不透明组之后绘制,渲染层据此把透明 factory
+        /// 的渲染优先级排到最后,避免透明面先画被后续不透明几何覆盖。
+        /// </summary>
+        virtual bool        isTransparent() const { return false; }
+        /// <summary>
         /// 应用动态设置
         /// </summary>
         virtual void        appDynamicState(CMDPtr cmd,EPrimitive pri);

@@ -25,6 +25,22 @@
 
 namespace   FE
 {
+    /// 递归把 transmission 场景折射纹理挂到节点子树的所有 FEMaterialPBR 上
+    static  void    applySceneTextureToNode(const Node& node,TexPtr sceneTex)
+    {
+        if (node == nullptr)
+            return;
+        auto    mat =   node->material();
+        if (mat != nullptr)
+        {
+            auto    pbr =   mat->as<FEMaterialPBR>();
+            if (pbr != nullptr)
+                pbr->setSceneTexture(sceneTex);
+        }
+        for (auto& child : node->children())
+            applySceneTextureToNode(child,sceneTex);
+    }
+
     FEScene::FEScene(FEContext& ctx)
         :FEObject(ctx)
         ,_nodeTree(ctx)
@@ -180,7 +196,7 @@ namespace   FE
             }
         }};
         /// 创建网格
-        createGrid();
+        _gridNode   =   createGrid();
         /// 创建工具
         createTools();
         return  true;
@@ -196,11 +212,14 @@ namespace   FE
         _updateQueue.queue().clear();
 
         _mousePoint =   nullptr;
+        _gridNode   =   nullptr;
 
         _cmdPool    =   nullptr;
         _frame      =   nullptr;
         _imgDepth   =   nullptr;
         _depthView  =   nullptr;
+        _sceneTex   =   nullptr;
+        _sceneTexView = nullptr;
 
         for (auto  var : _factorys.objects())
         {
@@ -236,6 +255,12 @@ namespace   FE
         dispatchToSystem<FEAnimation>(_comSysMgr,nodeList);
         dispatchToSystem<FEConstraint>(_comSysMgr,nodeList);
         dispatchToSystem<FEInput>(_comSysMgr,nodeList);
+        /// transmission:新进场节点的 PBR 材质挂接场景折射纹理(若已创建)
+        if (_sceneTex)
+        {
+            for (auto& node : nodeList)
+                applySceneTextureToNode(node,_sceneTex);
+        }
     }
 
     void    FEScene::onFrameStart()
@@ -340,7 +365,7 @@ namespace   FE
         FECmdBuffer::RenderInfo  rsInfo  =   {};
         rsInfo._depth       =   _depthView;
         rsInfo._colors      =   {_frame->_imageViewer};
-        rsInfo._clearColor  =   float4(0,0,0,1);
+        rsInfo._clearColor  =   _clearColor;
         rsInfo._rect.set(0,0,width,height);
 
         auto    cmd = _frame->_cmd;
@@ -401,6 +426,33 @@ namespace   FE
             }
 
             cmd->endRender(compInfo);
+        }
+        else if (_sceneTexView && FEMaterialPBR::anyTransmissionMaterial())
+        {
+            // ===== transmission 场景折射:双趟渲染 =====
+            // pass1: 仅不透明场景 → sceneTex(工厂 TP_OPAQUE 趟过滤掉透明组)
+            FEFactoryRender::setTransPass(FEFactoryRender::TransPass::TP_OPAQUE);
+            FECmdBuffer::RenderInfo p1Info  =   rsInfo;
+            p1Info._colors  =   {_sceneTexView};
+            cmd->beginRender(p1Info);
+            for (auto viewer : _viewerMgr.objects())
+            {
+                FEFramInfo  info = {0, cmd};
+                viewer->onMessage(MsgRender(info));
+            }
+            /// endRender 把 sceneTex 从 COLOR_ATTACHMENT 转入 SHADER_READ_ONLY
+            /// (VK 端按 usage 自动选择,见 VKCmdBuffer::endRender)
+            cmd->endRender(p1Info);
+
+            // pass2: 全量渲染 → swapchain(透明材质在 shader 中采样 sceneTex 折射)
+            FEFactoryRender::setTransPass(FEFactoryRender::TransPass::TP_ALL);
+            cmd->beginRender(rsInfo);
+            for (auto viewer : _viewerMgr.objects())
+            {
+                FEFramInfo  info    =  {0, cmd};
+                viewer->onMessage(MsgRender(info));
+            }
+            cmd->endRender(rsInfo);
         }
         else
         {
@@ -841,7 +893,33 @@ namespace   FE
             _imgDepth->create(info);
             _depthView  =   _imgDepth->createView();
         }
-        
+
+        /// transmission 场景折射纹理:与窗口同尺寸,color attachment + sampled 双用途
+        _sceneTex       =   nullptr;
+        _sceneTexView   =   nullptr;
+        {
+            auto    sceneTex    =   _device->createTexture();
+            FETexture::CreateInfo   tci;
+            tci._width          =   width;
+            tci._height         =   height;
+            /// 必须与交换链同格式:pass1 用为 swapchain 格式创建的管线渲染到本纹理,
+            /// 格式不一致时 wgpu 验证直接报 color attachment 不兼容
+            /// (Rgba8Unorm vs Bgra8Unorm)并丢设备;Vulkan 同属不兼容 render pass
+            tci._format         =   _swapchain ? _swapchain->colorFormat() : FMT_R8G8B8A8_UNORM;
+            tci._magFilter      =   FILTER_LINEAR;
+            tci._minFilter      =   FILTER_LINEAR;
+            tci._addressMode    =   ADDRESS_CLAMP_TO_EDGE;
+            tci._renderTarget   =   true;
+            if (sceneTex && sceneTex->create(tci) && sceneTex->imageView())
+            {
+                _sceneTex       =   sceneTex;
+                _sceneTexView   =   sceneTex->imageView();
+                /// 纹理对象重建后需重挂所有 PBR 材质(旧绑定指向已销毁纹理)
+                for (auto& node : _nodeTree.topLevelNodes())
+                    applySceneTextureToNode(node,_sceneTex);
+            }
+        }
+
         assert(_camera != nullptr);
 
         if (_camera)
@@ -884,6 +962,23 @@ namespace   FE
             _factorys.addObject(var);
         }
         return  node;
+    }
+
+    void    FEScene::showGrid(bool show)
+    {
+        if (_gridNode == nullptr)
+            return;
+        auto    mat =   _gridNode->material();
+        if (mat == nullptr)
+            return;
+        /// 网格挂在独立工厂上,按材质反查所在工厂后切换其可见标志
+        for (auto var : _factorys.objects())
+        {
+            if (!var->hasMaterialGroup(mat))
+                continue;
+            if (show)   var->flags().addFlag(FE::FLAG_VISIBLE);
+            else        var->flags().removeFlag(FE::FLAG_VISIBLE);
+        }
     }
 
     void    FEScene::createTools()

@@ -7,6 +7,7 @@
 #include    "../inc/graphic/FEOITManager.h"
 #include    "../inc/material/FEMaterialCull.hpp"
 #include    "../inc/FEContext.hpp"
+#include    "../inc/FEFormatHelper.hpp"
 
 namespace   FE
 {
@@ -238,6 +239,17 @@ namespace   FE
         return  pDst;
     }
 
+    FEFactoryRender::TransPass    FEFactoryRender::s_transPass  =   FEFactoryRender::TransPass::TP_ALL;
+
+    void                FEFactoryRender::setTransPass(TransPass p)
+    {
+        s_transPass =   p;
+    }
+    FEFactoryRender::TransPass    FEFactoryRender::transPass()
+    {
+        return  s_transPass;
+    }
+
     FEFactoryRender::FEFactoryRender(FEContext& ctx)
         :FEFactory(ctx)
         ,_device(ctx.device())
@@ -412,10 +424,35 @@ namespace   FE
         updateImpl(cmd);
     }
 
+    bool    FEFactoryRender::isTransparent() const
+    {
+        for (auto& grp : _groupNode)
+        {
+            if (grp->_mat && grp->_mat->isTransparent())
+                return  true;
+        }
+        return  false;
+    }
+
     void    FEFactoryRender::render(CMDPtr cmd)
     {
         if (_groupNode.empty())
             return;
+        /// 工厂被摘空(所有组均无节点,如变体二次切换后的旧工厂)时
+        /// VBO/IBO 均为空,绑定会空指针崩溃,直接跳过
+        {
+            bool    hasNodes    =   false;
+            for (auto& var : _groupNode)
+            {
+                if (!var->_objects.empty())
+                {
+                    hasNodes    =   true;
+                    break;
+                }
+            }
+            if (!hasNodes)
+                return;
+        }
         Material    mat     =   _groupNode.front()->_mat;
         /// OIT 双趟过滤:LIST(几何)趟只画 OIT 材质,MAIN(主)趟只画普通材质
         auto        oitPass =   FEOITManager::pass();
@@ -448,8 +485,25 @@ namespace   FE
             break;
         }
         bool    gpuCull =   supportGPUCull();
+        /// 透明组(alpha 混合/transmission)必须在同工厂所有不透明组之后绘制:
+        /// 混合管线不写深度,先画会被后画的不透明几何整体覆盖,表现为"玻璃不透明"。
+        /// 两遍循环:pass=0 不透明组,pass=1 透明组。
+        auto    drawGroups  =   [&](bool transparentPass)
+        {
         for (auto& grp : _groupNode)
         {
+            const bool  grpTransparent  =   grp->_mat && grp->_mat->isTransparent();
+            if (grpTransparent != transparentPass)
+                continue;
+            /// 同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
+            /// 切换到该组材质自身的管线与动态状态(混合状态/剔除模式随管线变化)
+            auto    grpPl   =   grp->_mat->pipeline(_key._primitive)->as<FEGPipeline>();
+            if (grpPl != pl)
+            {
+                pl  =   grpPl;
+                cmd->bindPipeline(pl);
+                grp->_mat->appDynamicState(cmd,_key._primitive);
+            }
             FECmdBuffer::DSetBind   binds   =   {};
             binds.dSets         =   grp->_mat->dsets();
             binds.firstSet      =   0;
@@ -496,6 +550,15 @@ namespace   FE
                             continue;
                         FECmdIndex  ci;
                         node->mesh()->drawCmd(ci,(uint)i,0);
+                        /// primitive 上的 _indexOffset/_vertexOffset 会被其它工厂的
+                        /// IBO/VBO 构建覆盖,这里必须用本工厂构建时记录的偏移
+                        /// (与绑定的 _ibo 及 _vboVertexs 布局一致)
+                        auto    itOff   =   _priOffsets.find(pris[i].get());
+                        if (itOff != _priOffsets.end())
+                            ci.firstIndex   =   itOff->second;
+                        auto    itVtx   =   _priVertexOffsets.find(pris[i].get());
+                        if (itVtx != _priVertexOffsets.end())
+                            ci.baseVertex   =   itVtx->second;
                         switch(_key._drawType)
                         {
                         case EDrawType::DRAW_ARRAY:
@@ -522,6 +585,12 @@ namespace   FE
                 break;
             }
         }
+        };
+        drawGroups(false);
+        /// transmission 场景折射预渲染趟(TP_OPAQUE):只画不透明组,
+        /// 透明组从场景纹理中剔除(否则玻璃会出现在自身折射背景里并自折射)
+        if (s_transPass == TransPass::TP_ALL)
+            drawGroups(true);
     }
 
     void    FEFactoryRender::destroy()
@@ -530,6 +599,8 @@ namespace   FE
         _vboVertexs.clear();
         _vboInstances.clear();
         _ibo            =   nullptr;
+        _priOffsets.clear();
+        _priVertexOffsets.clear();
         _indirectClip   =   nullptr;
         _indirectFull   =   nullptr;
         _vboSphere      =   nullptr;
@@ -629,37 +700,23 @@ namespace   FE
         }
     }
 
-    uints   bufferIndexs(Mesh mesh,const InputDescs& inputs)
-    {   
-        uints   indexs;
-        auto&   buffers =   mesh->buffers();
-        for (size_t i = 0 ;i < buffers.size(); ++ i)
-        {
-            for (auto& input : inputs)
-            {
-                if (input.slot == buffers[i].attr().slot())
-                {
-                    indexs.push_back(uint(i));
-                }
-            }
-        }
-        return  indexs;
-    }
     VBinds  FEFactoryRender::buildVertexVBOs(MeshUSet& meshSet)
     {
         if (meshSet.empty())
             return  {};
-        Material    mat     =   _groupNode.front()->_mat; 
+        Material    mat     =   _groupNode.front()->_mat;
         auto        pl      =   mat->pipeline(_key._primitive)->as<FEGPipeline>();
         auto&       binds   =   pl->cInfo()._binds;
         VBinds      vboCPUs;
-        
+
         for (auto& bind : binds)
         {
             if (bind.inputRate == V_INPUT_INSTANCE)
                 continue;
-            auto    indexs  =   bufferIndexs(*meshSet.begin(),bind.inputs);
-            VBO     cpuVBO  =   buildBuffer(meshSet,indexs);
+            /// 交错布局必须按管线声明驱动:
+            /// mesh 缺失的声明属性(如 helmet 无 TEXCOORD1)以 0 填充,
+            /// 保证大缓冲区记录跨度与管线 stride(xml offsets)一致
+            VBO     cpuVBO  =   buildBuffer(meshSet,bind.inputs);
             assert(cpuVBO != nullptr);
             if (cpuVBO == nullptr)
                 continue;
@@ -694,6 +751,7 @@ namespace   FE
                 {
                     pri->setFactory(this);
                     pri->setVertexOffset(nCount);
+                    _priVertexOffsets[pri.get()]    =   nCount;
                 }
             }
             /// 设置mesh 所属工厂
@@ -727,9 +785,13 @@ namespace   FE
                         continue;
                     auto    pri =   srcPri->as<FEDrawElementUint8>();
                     uint32  cnt =   pri->copyIndexTo<uint16>((uint16*)pDst,count.x);
-                    pDst        +=  FE::alignUp<uint>(cnt * sizeof(uint16),4);
+                    /// 写游标按 4 字节对齐前进,记录的 indexOffset 必须按同一对齐换算,
+                    /// 否则奇数 count 图元之后的所有图元索引整体错位(渲染出垃圾三角形)
+                    uint    adv =   FE::alignUp<uint>(cnt * sizeof(uint16),4);
+                    pDst        +=  adv;
                     pri->setIndexOffset(offset);
-                    offset      +=  cnt;
+                    _priOffsets[srcPri.get()]   =   offset;
+                    offset      +=  adv / sizeof(uint16);
                 }
             }
             break;
@@ -742,9 +804,12 @@ namespace   FE
                         continue;
                     auto    pri =   srcPri->as<FEDrawElementUint16>();
                     uint32  cnt =   pri->copyIndexTo<uint16>((uint16*)pDst,count.x);
-                    pDst        +=  FE::alignUp<uint>(cnt * sizeof(uint16),4);
+                    /// 同 uint8 路径:写入位置与 indexOffset 必须按同一对齐规则推进
+                    uint    adv =   FE::alignUp<uint>(cnt * sizeof(uint16),4);
+                    pDst        +=  adv;
                     pri->setIndexOffset(offset);
-                    offset      +=  cnt;
+                    _priOffsets[srcPri.get()]   =   offset;
+                    offset      +=  adv / sizeof(uint16);
                 }
             }
             break;
@@ -759,6 +824,7 @@ namespace   FE
                     uint32  cnt =   pri->copyIndexTo<uint32>((uint32*)pDst,count.x);
                     pDst        +=  cnt * 4;
                     pri->setIndexOffset(offset);
+                    _priOffsets[srcPri.get()]   =   offset;
                     offset      +=  cnt;
                 }
             }
@@ -839,6 +905,10 @@ namespace   FE
             var->setStart(count);
             count   +=  (uint32)var->_objects.size();
         }
+        /// 工厂可能被摘空(如变体二次切换后旧工厂全部节点被移除),
+        /// 0 实例不能创建 0 字节 VBO(vkCreateBuffer 要求 size>0)
+        if (count == 0)
+            return  {};
         VBinds      vboCPUs;
         uint        flgBits =   FENode::ModifyValue;
         for (auto& bind : binds)
@@ -906,6 +976,9 @@ namespace   FE
             var->setStart(count);
             count   +=  (uint32)var->_objects.size();
         }
+        /// 同 buildInstanceVBOs:摘空的工厂不创建 0 字节 VBO
+        if (count == 0)
+            return  nullptr;
         VBO     vboCPU  =   _device.createVBO();
         VBO     vboGPU  =   _device.createVBO();
         /// 找到需要更新属性的槽索引数组
@@ -1200,7 +1273,7 @@ namespace   FE
             cmdOffset   +=  nCmd;
         }
         uint64      length  =   sizeof(FECmdIndex) * cmdOffset;
-        assert(length != 0);
+        /// 工厂被摘空时无间接命令,合法返回空(渲染按 cmdCount==0 跳过)
         if (length == 0)
             return  nullptr;
 
@@ -1402,19 +1475,34 @@ namespace   FE
         return  vboCPU;
     }
 
-    VBO     FEFactoryRender::buildBuffer(MeshUSet& meshSet,const uints& indexs)
+    VBO     FEFactoryRender::buildBuffer(MeshUSet& meshSet,const InputDescs& inputs)
     {
-        if (meshSet.empty())    
+        if (meshSet.empty())
             return  nullptr;
+        /// 交错布局必须按管线声明顺序驱动(与 xml offsets/stride 一致):
+        /// 1. 组内各 mesh 属性集合可能不同(如 glTF 部分图元无 TANGENT),按 slot 逐 mesh 匹配;
+        /// 2. mesh 缺失的声明属性(如 helmet 无 TEXCOORD1)交错时写 0 填充,
+        ///    保证大缓冲区记录跨度与管线声明的 stride 一致,否则顶点属性整体错位。
+        struct  DataStride
+        {
+            uint8*  source  =   nullptr;
+            uint16  stride  =   0;
+        };
+        uints   slots;
+        std::vector<DataStride> strides;
+        strides.reserve(inputs.size());
+        for (auto& input : inputs)
+        {
+            slots.push_back(input.slot);
+            strides.push_back({nullptr,uint16(FEFormatHelper::sizeOf(input.format))});
+        }
         /// 统计缓冲所有mesh属性缓冲区的长度
         size_t      length  =   0;
         for (auto& mesh : meshSet)
         {
-            for (auto index: indexs)
-            {
-                auto&   buffer  =    mesh->buffers()[index];
-                length  +=  buffer.length();
-            }
+            auto    count   =   mesh->buffers().front().count();
+            for (size_t i = 0 ;i < slots.size(); ++ i)
+                length  +=  size_t(count) * strides[i].stride;
         }
         /// 创建host 缓冲区
         VBO     vboCPU  =   _device.createVBO();
@@ -1424,31 +1512,42 @@ namespace   FE
             return  nullptr;
         /// 属性数据拷贝到大缓冲区中
         uint8*  pData   =   (uint8*)vboCPU->lock(length,0);
+        std::vector<uint8>  zeros(64,0);
         for (auto& mesh : meshSet)
         {
-            struct  DataStride
-            {
-                uint8*  source  =   nullptr;
-                uint16  stride  =   0;
-            };
             auto&   buffers     =   mesh->buffers();
             auto    count       =   buffers.front().count();
-                 
+
             DataStride  dataStride[16]  =   {};
-            assert(indexs.size() < sizeof(dataStride)/sizeof(dataStride[0]));
-            for (size_t i = 0 ;i < indexs.size(); ++ i)
+            assert(slots.size() < sizeof(dataStride)/sizeof(dataStride[0]));
+            for (size_t i = 0 ;i < slots.size(); ++ i)
             {
-                dataStride[i].source    =   (uint8*)buffers[i].data();
-                dataStride[i].stride    =   buffers[i].attr().stride();
+                /// 按 slot 在当前 mesh 中找属性缓冲,找不到则该属性交错时填 0
+                for (auto& buffer : buffers)
+                {
+                    if (buffer.attr().slot() == slots[i])
+                    {
+                        dataStride[i].source    =   (uint8*)buffer.data();
+                        break;
+                    }
+                }
+                dataStride[i].stride    =   strides[i].stride;
             }
             for (uint c = 0; c < count; ++c)
             {
-                for (size_t i = 0 ;i < indexs.size(); ++ i)
+                for (size_t i = 0 ;i < slots.size(); ++ i)
                 {
                     auto    stride  =   dataStride[i].stride;
-                    memcpy(pData,dataStride[i].source,stride);
+                    if (dataStride[i].source != nullptr)
+                    {
+                        memcpy(pData,dataStride[i].source,stride);
+                        dataStride[i].source    +=  stride;
+                    }
+                    else
+                    {
+                        memcpy(pData,zeros.data(),stride);
+                    }
                     pData                   +=  stride;
-                    dataStride[i].source    +=  stride;
                 }
             }
         }
@@ -1544,18 +1643,27 @@ namespace   FE
                 case DRAW_ARRAY         :
                     break;
                 case DRAW_ELEMENT_UINT8 :
-                    result.x    +=  pri->as<FEDrawElementUint8>()->count();
-                    result.y    =   result.x * sizeof(uint8);
-                    result.y    =   FE::alignUp<uint>(result.y,4);
+                    {
+                        /// uint8 索引在 buildVertexIBO 中转成 uint16 写入,
+                        /// 且每个图元末尾按 4 字节对齐填充,分配必须按"写入布局"逐图元累计
+                        uint    cnt =   pri->as<FEDrawElementUint8>()->count();
+                        result.x    +=  cnt;
+                        result.y    +=  FE::alignUp<uint>(cnt * sizeof(uint16),4);
+                    }
                     break;
                 case DRAW_ELEMENT_UINT16:
-                    result.x    +=  pri->as<FEDrawElementUint16>()->count();
-                    result.y    =   result.x * sizeof(uint16); 
-                    result.y    =   FE::alignUp<uint>(result.y,4);
+                    {
+                        uint    cnt =   pri->as<FEDrawElementUint16>()->count();
+                        result.x    +=  cnt;
+                        result.y    +=  FE::alignUp<uint>(cnt * sizeof(uint16),4);
+                    }
                     break;
                 case DRAW_ELEMENT_UINT32:
-                    result.x    +=  pri->as<FEDrawElementUint32>()->count();
-                    result.y    =   result.x * sizeof(uint32); 
+                    {
+                        uint    cnt =   pri->as<FEDrawElementUint32>()->count();
+                        result.x    +=  cnt;
+                        result.y    +=  cnt * sizeof(uint32);
+                    }
                     break;
                 }
             }

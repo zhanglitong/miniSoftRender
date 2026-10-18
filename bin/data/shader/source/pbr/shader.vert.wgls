@@ -57,6 +57,7 @@ struct  VsIn
     @location(0) inPos      : vec3f,
     @location(1) inNor      : vec3f,
     @location(8) inUV       : vec2f,
+    @location(9) inUV1      : vec2f,
     @location(2) intPart    : vec3i,
     @location(3) trans      : vec3f,
     @location(4) scale      : vec3f,
@@ -72,6 +73,8 @@ struct  VsOut
     @location(2) outUV        : vec2f,
     @location(3) outColor     : vec4f,
     @location(4) @interpolate(flat) outFlagBits : u32,
+    /// 第二套 UV(glTF TEXCOORD_1,AO 专用 UV 集等;网格未提供时由零缓冲兜底)
+    @location(5) outUV1       : vec2f,
     @builtin(position) pos    : vec4f,
 }
 
@@ -86,6 +89,7 @@ fn  main(in : VsIn) -> VsOut
     out.outPos      = tmp.xyz;
     out.outFlagBits = in.flagBits;
     out.outUV       = in.inUV;
+    out.outUV1      = in.inUV1;
     out.outColor    = in.nodeColor;
     let mat3Local   = mat3x3f(matLocal[0].xyz, matLocal[1].xyz, matLocal[2].xyz);
     out.outNor      = normalize(mat3Local * in.inNor);

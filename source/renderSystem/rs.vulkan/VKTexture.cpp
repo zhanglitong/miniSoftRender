@@ -33,7 +33,10 @@ namespace   FE
         imgInfo._format                     =   info._format;
         imgInfo._type                       =   IT_2D;
         imgInfo._layout                     =   IL_UNDEFINED;
-        imgInfo._usage                      =   USAGE_TRANSFER_DST | USAGE_SAMPLED;
+        /// 渲染目标纹理(transmission 场景折射):color attachment + sampled 双用途
+        imgInfo._usage                      =   info._renderTarget
+                                                ? (USAGE_COLOR_ATTACHMENT | USAGE_SAMPLED)
+                                                : (USAGE_TRANSFER_DST | USAGE_SAMPLED);
         imgInfo._width                      =   info._width;
         imgInfo._height                     =   info._height;
         imgInfo._depth                      =   1;

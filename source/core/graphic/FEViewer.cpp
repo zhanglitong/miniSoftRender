@@ -143,6 +143,12 @@ namespace   FE
         auto        factorys    =   _ctx.scene()->factoryMgr().objects();
         std::sort(factorys.begin(),factorys.end(),[](const FactoryRender& left,const FactoryRender& right)
         {
+            /// 透明工厂(alpha 混合/transmission)一律在不透明工厂之后绘制:
+            /// 混合材质不写深度,先画会被后续不透明几何覆盖,表现为玻璃不透明
+            const bool  transLeft   =   left->isTransparent();
+            const bool  transRight  =   right->isTransparent();
+            if (transLeft != transRight)
+                return  !transLeft;
             auto    prioLeft    =   left->priority(FEFactory::PT_Render);
             auto    prioRight   =   right->priority(FEFactory::PT_Render);
             if(prioLeft.priority() == prioRight.priority())

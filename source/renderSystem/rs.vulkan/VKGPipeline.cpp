@@ -153,7 +153,10 @@ namespace   FE
         if (info._enableColorBlend)
         {
             // 标准 alpha blending: src * srcAlpha + dst * (1 - srcAlpha)
-            blendAttachmentState.srcColorBlendFactor    =   VK_BLEND_FACTOR_SRC_ALPHA;
+            // 预乘 alpha(transmission 玻璃): src * 1 + dst * (1 - srcAlpha)
+            blendAttachmentState.srcColorBlendFactor    =   info._premultipliedAlpha
+                                                            ? VK_BLEND_FACTOR_ONE
+                                                            : VK_BLEND_FACTOR_SRC_ALPHA;
             blendAttachmentState.dstColorBlendFactor    =   VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
             blendAttachmentState.colorBlendOp           =   VK_BLEND_OP_ADD;
             blendAttachmentState.srcAlphaBlendFactor    =   VK_BLEND_FACTOR_ONE;

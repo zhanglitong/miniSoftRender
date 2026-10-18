@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--PBR 透明混合变体:双面 + 预乘 alpha 混合 + 不写深度,用于 glTF BLEND/transmission 材质。
+    premultipliedAlpha:src=ONE/dst=ONE_MINUS_SRC_ALPHA —— transmission 玻璃的 BRDF
+    反射色已含 F 权重,shader 直接输出(加性),近似参考查看器透射 pass;普通 BLEND
+    材质由 shader 输出 color*alpha 预乘色,混合结果与标准 alpha 混合等价。-->
+<root using_defult="1" cullMode="0" enableColorBlend="1" premultipliedAlpha="1" enableDepthWrite="0">
+  <!--shader-->
+  <shaders>
+    <shader url =":/data/shader/cache/pbr/shader.frag.spv"/>
+    <shader url =":/data/shader/cache/pbr/shader.vert.spv"/>
+</shaders>
+  <dynamicStates>
+    <VIEWPORT/>
+    <SCISSOR/>
+    <PRIMITIVE_TOPOLOGY/>
+  </dynamicStates>
+  <!--顶点定义: 重要-->
+  <bindings>
+    <binding binding="0" inputRate="0">
+      <input
+          name      = ""
+          location  = "0"
+          slots     = "IS_VERTEX_POS"
+          formats   = "R32G32B32_FLOAT"
+          offsets   = "0"/>
+      <input
+          name      = ""
+          location  = "1"
+          slots     = "IS_VERTEX_NOR"
+          formats   = "R32G32B32_FLOAT"
+          offsets   = "12"/>
+      <input
+          name      = ""
+          location  = "8"
+          slots     = "IS_VERTEX_TEXCOORD0"
+          formats   = "R32G32_FLOAT"
+          offsets   = "24"/>
+      <input
+          name      = ""
+          location  = "9"
+          slots     = "IS_VERTEX_TEXCOORD1"
+          formats   = "R32G32_FLOAT"
+          offsets   = "32"/>
+    </binding>
+    <binding binding="1" inputRate="1">
+      <input
+           name      = "intPart"
+           location  = "2"
+           slots     = "IS_INSTANCE_ITRANSLATE"
+           formats   = "R32G32B32_SINT"
+           offsets   = "0"/>
+      <input
+           name      = "trans"
+           location  = "3"
+           slots     = "IS_INSTANCE_TRANSLATE"
+           formats   = "R32G32B32_FLOAT"
+           offsets   = "12"/>
+      <input
+           name      = "scale"
+           location  = "4"
+           slots     = "IS_INSTANCE_SCALE"
+           formats   = "R32G32B32_FLOAT"
+           offsets   = "24"/>
+      <input
+           name      = "rot"
+           location  = "5"
+           slots     = "IS_INSTANCE_ROTATE"
+           formats   = "R32G32B32A32_FLOAT"
+           offsets   = "36"/>
+    </binding>
+    <binding binding="2" inputRate="1">
+      <input
+           name      = "nodeColor"
+           location  = "6"
+           slots     = "IS_INSTANCE_COLOR"
+           formats   = "R8G8B8A8_UNORM"
+           offsets   = "0"/>
+    </binding>
+    <binding binding="3" inputRate="1">
+      <input
+           name      = "flagBits"
+           location  = "7"
+           slots     = "IS_INSTANCE_FLAG"
+           formats   = "R32_UINT"
+           offsets   = "0"/>
+    </binding>
+  </bindings>
+  <!--支持的特性-->
+  <features></features>
+  <!--支持的扩展-->
+  <extensions></extensions>
+  <!--动态状态-->
+  <states></states>
+</root>
