@@ -75,6 +75,10 @@ namespace   FE
 
         WGPUShaderModule vsModule =   nullptr;
         WGPUShaderModule fsModule =   nullptr;
+        /// 入口点名称由 WGSL 反射得到;SPIR-V 路径(glslc 编译的 void main)与分 stage
+        /// 的 WGSL 文件都叫 "main",故反射为空时回退到 "main"。
+        std::string vsEntry   =   "main";
+        std::string fsEntry   =   "main";
         for (const auto& shader : info._shaders)
         {
             if (shader == nullptr)
@@ -83,9 +87,17 @@ namespace   FE
             if (wgShader == nullptr)
                 continue;
             if (shader->cInfo()._shaderType.hasFlag(ST_VERTEX_BIT))
+            {
                 vsModule =   (WGPUShaderModule)wgShader->native();
+                const auto& ep  =   wgShader->reflectData()._entryPointVert;
+                if (!ep.empty())    vsEntry =   ep;
+            }
             if (shader->cInfo()._shaderType.hasFlag(ST_FRAGMENT_BIT))
+            {
                 fsModule =   (WGPUShaderModule)wgShader->native();
+                const auto& ep  =   wgShader->reflectData()._entryPointFrag;
+                if (!ep.empty())    fsEntry =   ep;
+            }
         }
 
         if (!vsModule || !fsModule)
@@ -100,9 +112,8 @@ namespace   FE
 
         WGPUVertexState vertexState =   {};
         vertexState.module          =   vsModule;
-        /// Vulkan SPIR-V 由 glslc 从 `void main()` 编译,入口点名为 "main"。
-        /// WGSL 同样使用 "main" 作为约定入口点。这里与 SPIR-V/WGSL 两种路径都对齐。
-        vertexState.entryPoint      =   { "main",4 };
+        /// 入口点名称来自 WGSL 反射(默认 "main");naga 要求名称与模块内函数一致。
+        vertexState.entryPoint      =   { vsEntry.c_str(),vsEntry.size() };
 
         /// 从 info._binds 构建顶点缓冲布局(WGPUVertexBufferLayout)。
         /// 每个 FEInputBindDesc 对应一个 vertex buffer binding,
@@ -143,7 +154,13 @@ namespace   FE
         primitiveState.nextInChain      =   nullptr;
         primitiveState.topology         =   system2Native(info._inputAssemblyState._primitive);
         primitiveState.frontFace        =   WGPUFrontFace_CCW;
+        /// _cullModeOverride: -1=默认(保持 None), 0=None, 1=Front, 2=Back
+        /// (wgpu 枚举无 FrontAndBack,3 按回退 None 处理;本项目管线仅用 0/2)
         primitiveState.cullMode         =   WGPUCullMode_None;
+        if (info._cullModeOverride == 1)
+            primitiveState.cullMode     =   WGPUCullMode_Front;
+        else if (info._cullModeOverride == 2)
+            primitiveState.cullMode     =   WGPUCullMode_Back;
         primitiveState.unclippedDepth   =   false;
 
         pipelineDesc.primitive =   primitiveState;
@@ -156,10 +173,13 @@ namespace   FE
 
         WGPUFragmentState fragmentState         =   {};
         fragmentState.module                    =   fsModule;
-        fragmentState.entryPoint                =   { "main",4 };
+        fragmentState.entryPoint                =   { fsEntry.c_str(),fsEntry.size() };
 
         WGPUBlendState blendState   =   {};
-        blendState.color.srcFactor  =   WGPUBlendFactor_SrcAlpha;
+        // 预乘 alpha(transmission 玻璃): One / OneMinusSrcAlpha;普通管线:标准 SrcAlpha
+        blendState.color.srcFactor  =   info._premultipliedAlpha
+                                        ? WGPUBlendFactor_One
+                                        : WGPUBlendFactor_SrcAlpha;
         blendState.color.dstFactor  =   WGPUBlendFactor_OneMinusSrcAlpha;
         blendState.color.operation  =   WGPUBlendOperation_Add;
         blendState.alpha.srcFactor  =   WGPUBlendFactor_One;
@@ -181,7 +201,8 @@ namespace   FE
         /// 若与渲染 pass 中实际深度附件格式不一致,会触发验证错误:
         /// "Incompatible depth-stencil attachment format"。
         depthStencilState.format                    =   WGPUTextureFormat_Depth32FloatStencil8;
-        depthStencilState.depthWriteEnabled         =   WGPUOptionalBool_True;
+        depthStencilState.depthWriteEnabled         =   info._enableDepthWrite ? WGPUOptionalBool_True
+                                                                               : WGPUOptionalBool_False;
         depthStencilState.depthCompare              =   WGPUCompareFunction_Less;
         depthStencilState.stencilFront.compare      =   WGPUCompareFunction_Always;
         depthStencilState.stencilFront.failOp       =   WGPUStencilOperation_Keep;

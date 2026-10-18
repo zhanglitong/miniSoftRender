@@ -282,20 +282,28 @@ namespace   FE
         for (size_t i = 0; i < nCnt; i++)
         {
             auto    colorImage =   rs._colors[i]->cInfo()._image;
-            if (colorImage && colorImage->cInfo()._layout != IL_PRESENT_SRC)
+            /// 离屏渲染目标(color attachment + sampled,如 transmission 场景纹理)
+            /// 渲染结束后转入 SHADER_READ_ONLY 供后续趟采样;
+            /// swapchain 图像(包装 cInfo 无 COLOR_ATTACHMENT 标志)转 PRESENT
+            const bool  sampled =   colorImage
+                                    && colorImage->cInfo()._usage.hasFlag(USAGE_SAMPLED)
+                                    && colorImage->cInfo()._usage.hasFlag(USAGE_COLOR_ATTACHMENT);
+            const auto  dstLayout   =   sampled ? IL_SHADER_READ_ONLY_OPTIMAL : IL_PRESENT_SRC;
+            if (colorImage && colorImage->cInfo()._layout != dstLayout)
             {
                 auto    cImage  =   (VkImage)(colorImage->native());
                 insertImageMemoryBarrier(
                     _native,
                     cImage,
                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    VK_ACCESS_MEMORY_READ_BIT,
+                    sampled ? VK_ACCESS_SHADER_READ_BIT : VK_ACCESS_MEMORY_READ_BIT,
                     system2Native(colorImage->cInfo()._layout),
-                    system2Native(IL_PRESENT_SRC),
+                    system2Native(dstLayout),
                     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    sampled ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                            : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                     VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
-                colorImage->setLayout(IL_PRESENT_SRC);
+                colorImage->setLayout(dstLayout);
             }
         }
         return  FEResult::ER_SUCCESS;

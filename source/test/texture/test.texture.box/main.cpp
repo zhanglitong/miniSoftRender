@@ -57,7 +57,9 @@ namespace
 
 int     main(int argc, char** argv)
 {
-    /// 选择渲染后端,默认 Vulkan(纹理当前仅实现 Vulkan 版本)
+    /// 选择渲染后端,默认 Vulkan。
+    /// WebGPU 纹理子系统(WGTexture)已实现,texture shader 的 WGSL 也已按
+    /// 引擎约定移植(Camera=0/贴图=4/采样器=5),故 --webgpu 同样支持。
     FEUuid  rendererId  =   RS_VULKAN;
     for (int i = 1; i < argc; ++i)
     {
@@ -65,8 +67,7 @@ int     main(int argc, char** argv)
         if (_stricmp(arg, "--webgpu") == 0 || _stricmp(arg, "-webgpu") == 0 ||
             _stricmp(arg, "/webgpu") == 0)
         {
-            std::cerr << "texture support is vulkan-only for now, please run without --webgpu" << std::endl;
-            return  0;
+            rendererId  =   RS_WEBGPU;
         }
     }
 

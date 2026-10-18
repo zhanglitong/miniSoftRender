@@ -4,17 +4,22 @@
 ///   2. 程序生成 5 张贴图(baseColor / metallicRoughness / normal / occlusion / emissive)
 ///   3. 用 FEGeometrySphere 按 pos/nor/uv 生成球体 mesh
 ///   4. 经 FEMaterialPBR 设置全套贴图,验证金属度-粗糙度 PBR 渲染
+///   5. 环境图使用与 glTF-Sample-Viewer 参考查看器默认环境相同的
+///      Cannon_Exterior.hdr(equirect,线性空间),运行时转换为 float cubemap
 /// 验证点:
 ///   a. 球体表面呈现 baseColor 棋盘格(说明 uv 采样正确)
 ///   b. 高光区域显示金属色(金属工作流:F0=baseColor)
 ///   c. 法线贴图产生凹凸细节
 ///   d. AO 使边缘变暗
 ///   e. emissive 图案自发光
-/// 用法: test.pbr.texture.exe
+///   f. IBL:球体反射 Cannon 户外环境,背光面被环境照亮
+/// 用法: test.pbr.texture.exe [--vulkan|--webgpu]
 
 #include    <iostream>
 #include    <vector>
 #include    <cstdint>
+#include    <cstring>
+#include    <cstdio>
 #include    <cmath>
 
 #include    "../../../inc/FEContext.hpp"
@@ -24,6 +29,8 @@
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/geometry/FEGeometrySphere.hpp"
 #include    "../../../inc/material/FEMaterialPBR.hpp"
+#include    "../../../core/FEImageHelper.hpp"
+#include    "../../../core/graphic/FETextureHelper.hpp"
 
 using   namespace   FE;
 
@@ -138,23 +145,35 @@ namespace
         return data;
     }
 
+    /// 由程序化像素填入 FEImage
+    ImagePtr makeImage(FEContext& ctx, const std::vector<uint8_t>& pixels)
+    {
+        ImagePtr image = new FEImage(ctx, kTexSize, kTexSize, FMT_R8G8B8A8_UNORM);
+        auto plane = image->plane(0, 0);
+        const size_t rowByte = size_t(kTexSize) * 4;
+        for (uint y = 0; y < kTexSize; ++y)
+            std::memcpy(plane.dataOffset<uint8>(y, 0), pixels.data() + size_t(y) * rowByte, rowByte);
+        return image;
+    }
+    /// 由 FEImage 创建 GPU 纹理(FETextureHelper)
     TexPtr uploadTexture(FEContext& ctx, const std::vector<uint8_t>& pixels)
     {
-        TexPtr tex = ctx.device().createTexture();
-        FETexture::CreateInfo ci{};
-        ci._width = kTexSize; ci._height = kTexSize;
-        ci._format = FMT_R8G8B8A8_UNORM;
-        ci._magFilter = FILTER_LINEAR; ci._minFilter = FILTER_LINEAR;
-        ci._addressMode = ADDRESS_REPEAT;
-        tex->create(ci);
-        tex->update(pixels.data(), pixels.size());
-        return tex;
+        return FETextureHelper::create(ctx, *makeImage(ctx, pixels),
+                                       FILTER_LINEAR, FILTER_LINEAR, ADDRESS_REPEAT);
     }
 }
 
 int main(int argc, char** argv)
 {
-    (void)argc; (void)argv;
+    FEUuid  rendererId  =   RS_VULKAN;
+    for (int i = 1; i < argc; ++i)
+    {
+        const char* arg =   argv[i];
+        if (_stricmp(arg,"--webgpu") == 0 || _stricmp(arg,"-webgpu") == 0 || _stricmp(arg,"/webgpu") == 0)
+            rendererId  =   RS_WEBGPU;
+        else if (_stricmp(arg,"--vulkan") == 0 || _stricmp(arg,"-vulkan") == 0)
+            rendererId  =   RS_VULKAN;
+    }
     FEContext& ctx = FEContext::instance();
     FEScene* pScene = nullptr;
 
@@ -170,7 +189,7 @@ int main(int argc, char** argv)
 
     Scene scene = new FEScene(ctx);
     pScene = scene.get();
-    if (!scene->setup(app, RS_VULKAN))
+    if (!scene->setup(app, rendererId))
     {
         std::cerr << "scene setup failed\n";
         scene = nullptr; app->destroy(); return 1;
@@ -190,8 +209,42 @@ int main(int argc, char** argv)
         }
     }
 
-    /// 生成并上传 5 张贴图
-    TexPtr baseColor = uploadTexture(ctx, makeBaseColor());
+    /// 生成并上传 5 张贴图;baseColor 额外走一遍
+    /// "保存图片到文件 -> 从文件加载图像 -> 创建纹理" 的完整链路
+    /// (验证 FEImageHelper::save/load + FETextureHelper::load;PNG 无损,渲染结果不变)
+    TexPtr baseColor;
+    {
+        const char* file = "./pbr_basecolor_tmp.png";
+        ImagePtr bcImg = makeImage(ctx, makeBaseColor());
+        const bool saved = FEImageHelper::save(*bcImg, file);
+        ImagePtr bcBack = FEImageHelper::load(ctx, file);
+        /// 逐行比对:确认"保存->加载"后贴图内容与源图像完全一致(PNG 无损)
+        bool identical = false;
+        if (bcBack != nullptr)
+        {
+            identical = true;
+            auto a = bcImg->plane(0, 0);
+            auto b = bcBack->plane(0, 0);
+            const size_t rowByte = size_t(kTexSize) * 4;
+            for (uint y = 0; identical && y < kTexSize; ++y)
+                identical = std::memcmp(a.dataOffset<uint8>(y, 0),
+                                        b.dataOffset<uint8>(y, 0), rowByte) == 0;
+        }
+        baseColor = (bcBack != nullptr)
+                    ? FETextureHelper::create(ctx, *bcBack, FILTER_LINEAR, FILTER_LINEAR, ADDRESS_REPEAT)
+                    : nullptr;
+        std::cout << "baseColor via file: save=" << (saved ? "ok" : "FAILED")
+                  << " load=" << ((bcBack != nullptr) ? "ok" : "FAILED")
+                  << " pixelsIdentical=" << (identical ? "yes" : "NO")
+                  << " loadTexture=" << ((baseColor != nullptr) ? "ok" : "FAILED") << "\n";
+        if (baseColor == nullptr)
+        {
+            std::cerr << "load baseColor texture failed\n";
+            scene = nullptr; app->destroy(); return 1;
+        }
+        /// 环境贴图需要文件保留,baseColor 临时文件用后即删
+        std::remove(file);
+    }
     TexPtr mr        = uploadTexture(ctx, makeMetallicRoughness());
     TexPtr normal    = uploadTexture(ctx, makeNormal());
     TexPtr ao        = uploadTexture(ctx, makeOcclusion());
@@ -236,6 +289,26 @@ int main(int argc, char** argv)
     node->makeDirty();
     node->update();
     scene->dispatchNodesToSystem({node});
+
+    /// 环境图(IBL):与参考查看器默认环境相同的 Cannon_Exterior.hdr,
+    /// 经 FEImageHelper::load 加载为 float equirect,再由 FETextureHelper::createCube
+    /// 转成 float cubemap(漫反射 irradiance + 按粗糙度的镜面预滤波)
+    const String hdrFile = ctx.resourcePath() + "/data/env/Cannon_Exterior.hdr";
+    ImagePtr envImage = FEImageHelper::load(ctx, hdrFile.c_str());
+    if (envImage == nullptr)
+    {
+        std::cerr << "load environment hdr failed: " << hdrFile << "\n";
+        scene = nullptr; app->destroy(); return 1;
+    }
+    std::cout << "hdr equirect " << envImage->cInfo()._extent.x << "x" << envImage->cInfo()._extent.y
+              << " format=" << FEFormatHelper::enumName(envImage->cInfo()._format) << "\n";
+    auto envCube = FETextureHelper::createCube(ctx, *envImage, 256);
+    if (envCube == nullptr)
+    {
+        std::cerr << "create environment cube failed\n";
+        scene = nullptr; app->destroy(); return 1;
+    }
+    pMat->setEnvironmentMap(envCube);
 
     std::cout << "pbr texture test ready, entering render loop...\n";
     app->run();

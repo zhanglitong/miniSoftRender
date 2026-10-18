@@ -120,6 +120,14 @@ namespace   FE
         virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
         virtual void    destroy();
         /// <summary>
+        /// 显示/隐藏编辑网格(setup 时默认创建)
+        /// </summary>
+        void            showGrid(bool show);
+        /// <summary>
+        /// 设置渲染目标清屏色(默认黑色)
+        /// </summary>
+        void            setClearColor(const float4& color)  {   _clearColor =   color;  }
+        /// <summary>
         /// 节点加入到系统下，只是挂在节点上，并不做渲染
         /// </summary>
         virtual void    addNodesToTree(const Nodes& nodeList);
@@ -192,6 +200,14 @@ namespace   FE
         /// <returns></returns>
         Node    createGrid();
         /// <summary>
+        /// 编辑网格节点(setup 时由 createGrid 创建,供 showGrid 使用)
+        /// </summary>
+        Node                _gridNode;
+        /// <summary>
+        /// 渲染目标清屏色(onFrameRender 每帧 beginRender 使用)
+        /// </summary>
+        float4              _clearColor =   float4(0,0,0,1);
+        /// <summary>
         /// 创建工具
         /// </summary>
         void    createTools();
@@ -225,6 +241,9 @@ namespace   FE
         CMDPool             _cmdPool;
         GImage              _imgDepth   =   nullptr;
         GImgView            _depthView  =   nullptr;
+        /// transmission 场景折射纹理(不透明场景预渲染,color attachment + sampled 双用途)
+        TexPtr              _sceneTex   =   nullptr;
+        GImgView            _sceneTexView = nullptr;
         Frame               _frame;
         Node                _mousePoint;
         aabb3dr             _aabb;
@@ -236,6 +255,8 @@ namespace   FE
         /// 设置 OIT 管理器（nullptr 关闭 OIT，默认 nullptr）
         void            setOITManager(OITManager oit)   { _oitManager = std::move(oit); }
         OITManager      oitManager() const              { return _oitManager; }
+        /// transmission 场景折射纹理(resize 时创建;材质经 setSceneTexture 挂接)
+        TexPtr          sceneTexture() const            { return _sceneTex; }
         /// <summary>
         /// 实现组件到系统见系统的分发功能
         /// 函数收集指定类型的组件，然后分发到对应的组件系统

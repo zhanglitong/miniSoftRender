@@ -7,6 +7,7 @@
 layout(location = 0) in vec3  inPos;
 layout(location = 1) in vec3  inNor;
 layout(location = 8) in vec2  inUV;
+layout(location = 9) in vec2  inUV1;
 layout(location = 2) in ivec3 intPart;
 layout(location = 3) in vec3  trans;
 layout(location = 4) in vec3  scale;
@@ -23,6 +24,8 @@ layout(location = 1) out vec3 outNor;
 layout(location = 2) out vec2 outUV;
 layout(location = 3) out vec4 outColor;
 layout(location = 4) flat out uint outFlagBits;
+/// 第二套 UV(glTF TEXCOORD_1,AO 专用 UV 集等;网格未提供时引擎不绑定,读 0)
+layout(location = 5) out vec2 outUV1;
 
 vec3 qtransform(vec4 q, vec3 v)
 {
@@ -42,6 +45,7 @@ void main()
     outPos           =   tPos;
     outNor           =   worldNormal;
     outUV            =   inUV;
+    outUV1           =   inUV1;
 
     /// 节点/实例颜色:透传实例颜色属性,由片元着色器按 hasNodeColor 决定是否参与
     outColor         =   nodeColor;

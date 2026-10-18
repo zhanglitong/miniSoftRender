@@ -1,8 +1,7 @@
 /// pbr 片段着色器 WGSL 版本,与 shader.frag 对齐
 /// 金属度-粗糙度工作流,支持 baseColor / metallicRoughness / normal / occlusion / emissive 贴图。
-/// 贴图绑定到 6~10(与 GLSL 一致)。
-/// 注意:当前 WebGPU 后端 WGDSet 仅处理 buffer 描述符,texture 描述符绑定尚未实现;
-/// 本文件保证逻辑与 GLSL 一致,待后端支持纹理后即可运行。
+/// 贴图绑定到 6~10(与 GLSL 一致),11 为贴图参数 uniform、
+/// 12 为环境立方体贴图、13 为采样器。
 
 const M_PI : f32 = 3.141592653589793;
 
@@ -13,6 +12,7 @@ const PBR_TEX_NORMAL         : u32 = 0x00000004u;
 const PBR_TEX_OCCLUSION      : u32 = 0x00000008u;
 const PBR_TEX_EMISSIVE       : u32 = 0x00000010u;
 const PBR_TEX_ENVIRONMENT    : u32 = 0x00000020u;
+const PBR_TEX_IRITHICKNESS   : u32 = 0x00000040u;
 
 /// 光类型:与引擎 FEShaderDefine.h 的 LightTypeDir/Point 一致(Dir==0,不能假定为 1)
 const LT_DIR   : i32 = 0;
@@ -20,7 +20,7 @@ const LT_POINT : i32 = 1;
 
 /// PBRData:与 C++ 紧凑布局一致(glm::vec4 对齐为 4,共 128 字节)。
 /// 不要加 @align(16):那会得到 std140 布局,与 C++ 不一致
-/// (贴图标志/强度已移出本结构,改放在 binding 12 的 PBRTexParams)。
+/// (贴图标志/强度已移出本结构,改放在 binding 11 的 PBRTexParams)。
 struct PBRData
 {
     _emissive               : vec4f,            // 0
@@ -76,26 +76,54 @@ struct CameraData
 @group(0) @binding(9)  var u_OcclusionTex : texture_2d<f32>;
 @group(0) @binding(10) var u_EmissiveTex : texture_2d<f32>;
 
-/// PBR 贴图参数(标志位/法线缩放/AO 强度/自发光强度),绑定 11(与 GLSL 一致);
-/// 对应 C++ 的 FEMaterialPBR::PBRTexParams(纯标量,布局一致)。
+/// PBR 贴图参数(标志位/法线缩放/AO 强度/自发光强度 + KHR 扩展参数),绑定 11;
+/// 对应 C++ 的 FEMaterialPBR::PBRTexParams(纯标量,尾部追加,布局逐字节一致)。
 struct PBRTexParams
 {
     _flags              : u32,
     _normalScale        : f32,
     _occlusionStrength  : f32,
     _emissiveStrength   : f32,
+    _transmissionFactor : f32,
+    _clearcoatStrength  : f32,
+    _clearcoatRoughness : f32,
+    _iriFactor          : f32,
+    _iriIor             : f32,
+    _iriTmin            : f32,
+    _iriTmax            : f32,
+    _aoTexCoord         : f32,
+    /// KHR_texture_transform:6 类贴图各一套 2x2 矩阵 + 平移,每槽 2 个 vec4
+    /// (数组从偏移 48 开始,与 C++ PBRTexParams::_uvTransform 逐字节一致)
+    _uvTr               : array<vec4f, 12>,
 }
 @group(0) @binding(11) var<uniform> _texParams : PBRTexParams;
 
-/// 环境贴图(cubemap,IBL 用),绑定 12(与 GLSL 一致)
+/// 环境贴图(cubemap,IBL 用),绑定 12;漫反射辐照度 cubemap(球谐预卷积)绑定 13;
+/// 统一采样器绑定 14(纯 sampler 槽位由已绑定纹理合成)
 @group(0) @binding(12) var u_EnvironmentMap : texture_cube<f32>;
-/// 统一采样器,绑定 13
-@group(0) @binding(13) var uSampler : sampler;
+@group(0) @binding(13) var u_IrradianceMap : texture_cube<f32>;
+@group(0) @binding(14) var uSampler : sampler;
+/// IBL split-sum BRDF 积分 LUT(R=scale,G=offset),绑定 15(与 GLSL 一致)
+@group(0) @binding(15) var u_BRDFLUT : texture_2d<f32>;
+/// 虹彩薄膜厚度贴图(G 通道),绑定 16(复用 14 的统一 sampler,与 GLSL 一致)
+@group(0) @binding(16) var u_IriThicknessTex : texture_2d<f32>;
+/// transmission 场景折射纹理(不透明场景预渲染结果,屏幕空间采样),绑定 17
+@group(0) @binding(17) var u_SceneTex : texture_2d<f32>;
 
 const RF_COLOR    : u32 = 64u;
 const RF_SELECTED : u32 = 128u;
 fn hasNodeColor(flag : u32) -> bool { return (flag & RF_COLOR) != 0u; }
 fn isSelected(flag : u32) -> bool { return (flag & RF_SELECTED) != 0u; }
+
+/// KHR_texture_transform:按贴图槽位(0~5 = baseColor/mr/normal/ao/emissive/iriThickness)变换 UV
+fn applyUvTr(slot : u32, uv : vec2f) -> vec2f
+{
+    let m = _texParams._uvTr[slot * 2u];
+    let t = _texParams._uvTr[slot * 2u + 1u];
+    return vec2f(m.x * uv.x + m.y * uv.y + t.x,
+                 m.z * uv.x + m.w * uv.y + t.y);
+}
+
 fn unpackColor(c : u32) -> vec4f
 {
     return vec4f(
@@ -145,6 +173,105 @@ fn buildTBN(position : vec3f, normal : vec3f, uv : vec2f) -> mat3x3f
     return mat3x3f(t, b, n);
 }
 
+/// ===== KHR_materials_iridescence 规范实现(Belcour 薄膜干涉,与 GLSL 版一致,
+///       对齐 glTF-Sample-Viewer iridescence.glsl)=====
+/// WGSL 不支持函数重载,标量/向量两版分别以 F/V 后缀区分;
+/// var 是关键字,灵敏度常数改名 varc;矩阵常量用函数内 let
+fn sqF(x : f32) -> f32 { return x * x; }
+fn sqV(x : vec3f) -> vec3f { return x * x; }
+
+/// Schlick 菲涅尔(标量/向量两版,薄膜干涉内部使用)
+fn iriSchlickF(f0 : f32, cosTheta : f32) -> f32 { return f0 + (1.0 - f0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0); }
+fn iriSchlickV(f0 : vec3f, cosTheta : f32) -> vec3f { return f0 + (vec3f(1.0) - f0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0); }
+
+fn iriFresnel0ToIor(f0 : vec3f) -> vec3f
+{
+    let sqrtF0 = sqrt(f0);
+    return (vec3f(1.0) + sqrtF0) / (vec3f(1.0) - sqrtF0);
+}
+fn iriIorToFresnel0V(transmittedIor : vec3f, incidentIor : f32) -> vec3f
+{
+    return sqV((transmittedIor - vec3f(incidentIor)) / (transmittedIor + vec3f(incidentIor)));
+}
+fn iriIorToFresnel0F(transmittedIor : f32, incidentIor : f32) -> f32
+{
+    return sqF((transmittedIor - incidentIor) / (transmittedIor + incidentIor));
+}
+
+/// XYZ 灵敏度曲线的傅里叶求值(OPD 单位 nm)
+fn evalSensitivity(OPD : f32, shift : vec3f) -> vec3f
+{
+    /// XYZ → sRGB(Rec709) 变换矩阵(列主序,与 iridescence.glsl 一致)
+    let XYZ_TO_REC709 = mat3x3f(
+        vec3f( 3.2404542, -0.9692660,  0.0556434),
+        vec3f(-1.5371385,  1.8760108, -0.2040259),
+        vec3f(-0.4985314,  0.0415560,  1.0572252));
+
+    let phase = 2.0 * M_PI * OPD * 1.0e-9;
+    let val = vec3f(5.4856e-13, 4.4201e-13, 5.2481e-13);
+    let pos = vec3f(1.6810e+06, 1.7953e+06, 2.2084e+06);
+    let varc = vec3f(4.3278e+09, 9.3046e+09, 6.6121e+09);
+
+    var xyz = val * sqrt(2.0 * M_PI * varc) * cos(pos * phase + shift) * exp(-sqF(phase) * varc);
+    xyz.x = xyz.x + 9.7470e-14 * sqrt(2.0 * M_PI * 4.5282e+09) * cos(2.2399e+06 * phase + shift[0]) * exp(-4.5282e+09 * sqF(phase));
+    xyz = xyz / 1.0685e-7;
+
+    return XYZ_TO_REC709 * xyz;
+}
+
+/// 薄膜干涉虹彩菲涅尔:返回视角相关的 RGB 反射率(替代常规 F)
+fn evalIridescence(outsideIOR : f32, eta2 : f32, cosTheta1 : f32, thinFilmThickness : f32, baseF0 : vec3f) -> vec3f
+{
+    /// 厚度→0 时虹彩 IOR 退化到外界 IOR(无干涉)
+    let iridescenceIor = mix(outsideIOR, eta2, smoothstep(0.0, 0.03, thinFilmThickness));
+    /// Snell 定律求基层折射角
+    let sinTheta2Sq = sqF(outsideIOR / iridescenceIor) * (1.0 - sqF(cosTheta1));
+    let cosTheta2Sq = 1.0 - sinTheta2Sq;
+    if (cosTheta2Sq < 0.0) { return vec3f(1.0); }   /// 全反射
+    let cosTheta2 = sqrt(cosTheta2Sq);
+
+    /// 第一界面(空气→薄膜)
+    let R0 = iriIorToFresnel0F(iridescenceIor, outsideIOR);
+    let R12 = iriSchlickF(R0, cosTheta1);
+    let T121 = 1.0 - R12;
+    var phi12 = 0.0;
+    if (iridescenceIor < outsideIOR) { phi12 = M_PI; }
+    let phi21 = M_PI - phi12;
+
+    /// 第二界面(薄膜→基材)
+    let baseIOR = iriFresnel0ToIor(clamp(baseF0, vec3f(0.0), vec3f(0.9999)));
+    let R1 = iriIorToFresnel0V(baseIOR, iridescenceIor);
+    let R23 = iriSchlickV(R1, cosTheta2);
+    var phi23 = vec3f(0.0);
+    if (baseIOR[0] < iridescenceIor) { phi23[0] = M_PI; }
+    if (baseIOR[1] < iridescenceIor) { phi23[1] = M_PI; }
+    if (baseIOR[2] < iridescenceIor) { phi23[2] = M_PI; }
+
+    /// 光程差与相位
+    let OPD = 2.0 * iridescenceIor * thinFilmThickness * cosTheta2;
+    let phi = vec3f(phi21) + phi23;
+
+    /// 多光束干涉复合项
+    let R123 = clamp(R12 * R23, vec3f(1e-5), vec3f(0.9999));
+    let r123 = sqrt(R123);
+    let Rs = sqF(T121) * R23 / (vec3f(1.0) - R123);
+
+    /// m=0 直流项
+    var I = R12 + Rs;
+
+    /// m=1,2 干涉项
+    var Cm = Rs - T121;
+    for (var m = 1; m <= 2; m = m + 1)
+    {
+        Cm = Cm * r123;
+        let Sm = 2.0 * evalSensitivity(f32(m) * OPD, f32(m) * phi);
+        I = I + Cm * Sm;
+    }
+
+    /// 色域外负值钳制
+    return max(I, vec3f(0.0));
+}
+
 struct FsIn
 {
     @location(0) inPos       : vec3f,
@@ -152,6 +279,8 @@ struct FsIn
     @location(2) inUV        : vec2f,
     @location(3) inColor     : vec4f,
     @location(4) @interpolate(flat) inFlagBits : u32,
+    /// 第二套 UV(glTF TEXCOORD_1,AO 专用 UV 集;网格未提供时由零缓冲兜底)
+    @location(5) inUV1       : vec2f,
 }
 
 @fragment
@@ -165,7 +294,7 @@ fn main(in : FsIn) -> @location(0) vec4f
     /// 1. baseColor(贴图为 sRGB,解码到线性空间)
     var baseColor = _pbr._diffuse;
     if ((texFlags & PBR_TEX_BASECOLOR) != 0u) {
-        let bc = textureSample(u_BaseColorTex, uSampler, in.inUV);
+        let bc = textureSample(u_BaseColorTex, uSampler, applyUvTr(0u, in.inUV));
         baseColor = baseColor * vec4f(pow(bc.rgb, vec3f(2.2)), bc.a);
     }
     baseColor = vec4f(baseColor.rgb * select(vec3f(1.0), in.inColor.rgb, hasNodeColor(in.inFlagBits)), baseColor.a);
@@ -174,7 +303,7 @@ fn main(in : FsIn) -> @location(0) vec4f
     var metallic  = _pbr._metallic;
     var roughness = _pbr._roughness;
     if ((texFlags & PBR_TEX_METALLICROUGH) != 0u) {
-        let mr = textureSample(u_MetallicRoughnessTex, uSampler, in.inUV);
+        let mr = textureSample(u_MetallicRoughnessTex, uSampler, applyUvTr(1u, in.inUV));
         metallic  = metallic * mr.b;
         roughness = roughness * mr.g;
     }
@@ -184,19 +313,47 @@ fn main(in : FsIn) -> @location(0) vec4f
     /// 3. normal
     var n = normalize(in.inNor);
     if ((texFlags & PBR_TEX_NORMAL) != 0u) {
-        let TBN = buildTBN(in.inPos, n, in.inUV);
-        var ns = textureSample(u_NormalTex, uSampler, in.inUV).rgb * 2.0 - 1.0;
-        ns.xy = ns.xy * normalScale;
+        /// 法线贴图的 UV 变换须同时用于 TBN 构造,保证切线方向与纹理空间一致
+        let uvN = applyUvTr(2u, in.inUV);
+        let TBN = buildTBN(in.inPos, n, uvN);
+        var ns = textureSample(u_NormalTex, uSampler, uvN).rgb * 2.0 - 1.0;
+        /// WGSL 不支持对 swizzle 赋值(不能写 ns.xy = ...),改为逐分量缩放后重组
+        ns = vec3f(ns.x * normalScale, ns.y * normalScale, ns.z);
         n = normalize(TBN * ns);
     }
 
     /// 4. view
-    let camPos = -transpose(mat3x3f(_camera._v)) * _camera._v[3].xyz;
+    /// WGSL 不能直接把 mat4x4<f32> 转成 mat3x3<f32>,也不能对矩阵取负(negate),
+    /// 故用列向量重组左上 3x3,再对平移列(向量)取负:camPos = R^T * (-t)
+    let vR     = mat3x3f(_camera._v[0].xyz, _camera._v[1].xyz, _camera._v[2].xyz);
+    let camPos = transpose(vR) * (-_camera._v[3].xyz);
     let v = normalize(camPos - in.inPos);
     let NdotV = max(dot(n, v), 1e-4);
 
     /// 5. F0
-    let F0 = mix(vec3f(0.04), baseColor.rgb, metallic);
+    var F0 = mix(vec3f(0.04), baseColor.rgb, metallic);
+
+    /// 5b. KHR 材质扩展参数(与 FEMaterialPBR::PBRTexParams 尾部字段对齐)
+    let transmission = clamp(_texParams._transmissionFactor, 0.0, 1.0);
+    let ccStrength   = clamp(_texParams._clearcoatStrength,  0.0, 1.0);
+    let ccRoughness  = clamp(_texParams._clearcoatRoughness, 0.04, 1.0);
+    /// clearcoat 分层权重 w = ccStrength * F_cc(NdotV)(NdotV 版菲涅尔,IBL 与
+    /// punctual 共用,与 glTF-Sample-Viewer pbr.frag:173 一致)
+    let ccWeight     = ccStrength * (0.04 + 0.96 * pow(clamp(1.0 - NdotV, 0.0, 1.0), 5.0));
+    let iriFactor    = clamp(_texParams._iriFactor,          0.0, 1.0);
+    /// 薄膜厚度(nm):有厚度贴图时取 G 通道在 [tmin,tmax] 插值,否则取中值
+    var iriThickness = mix(_texParams._iriTmin, _texParams._iriTmax, 0.5);
+    if ((texFlags & PBR_TEX_IRITHICKNESS) != 0u) {
+        iriThickness = mix(_texParams._iriTmin, _texParams._iriTmax,
+                           textureSample(u_IriThicknessTex, uSampler, applyUvTr(5u, in.inUV)).g);
+    }
+    /// 虹彩菲涅尔(规范薄膜干涉,视角相关):介电 baseF0=0.04 与金属 baseF0=baseColor
+    /// 两版按 metallic 混合(参考 pbr.frag:151-152),后续替换常规 F 而非混入 F0
+    var iriFresnel = vec3f(0.0);
+    if (iriFactor > 0.0) {
+        iriFresnel = mix(evalIridescence(1.0, _texParams._iriIor, NdotV, iriThickness, vec3f(0.04)),
+                         evalIridescence(1.0, _texParams._iriIor, NdotV, iriThickness, baseColor.rgb), metallic);
+    }
 
     /// 6. direct lighting
     var Lo = vec3f(0.0);
@@ -227,44 +384,98 @@ fn main(in : FsIn) -> @location(0) vec4f
 
         let D = distributionGGX(NdotH, roughness);
         let G = geometrySmith(NdotV, NdotL, roughness);
-        let F = fresnelSchlick(VdotH, F0);
+        /// 虹彩:以规范薄膜干涉菲涅尔替换常规 F(参考 pbr.frag:346-347)
+        var F = fresnelSchlick(VdotH, F0);
+        if (iriFactor > 0.0) {
+            F = mix(F, iriFresnel, iriFactor);
+        }
 
         let numerator = D * G * F;
         let denominator = 4.0 * NdotV * NdotL + 1e-7;
         let specular = numerator / denominator;
 
-        let kD = (vec3f(1.0) - F) * (1.0 - metallic);
+        var kD = (vec3f(1.0) - F) * (1.0 - metallic);
+        /// transmission:透射光穿过材质,漫反射按透射因子衰减
+        kD = kD * (vec3f(1.0) - transmission);
         let diffuse = kD * baseColor.rgb / M_PI;
 
-        Lo = Lo + (diffuse + specular) * lightColor * attenuation * NdotL;
+        var contrib = (diffuse + specular) * lightColor * attenuation * NdotL;
+
+        /// clearcoat:独立清漆层镜面(GGX,粗糙度独立,F0=0.04),
+        /// 与基础层按 w 混合分层(能量补偿:基础层乘 1-w、清漆层乘 w,
+        /// 参考 glTF-Sample-Viewer pbr.frag:363)
+        if (ccStrength > 0.0) {
+            let ccD = distributionGGX(NdotH, ccRoughness);
+            let ccG = geometrySmith(NdotV, NdotL, ccRoughness);
+            let ccF = fresnelSchlick(VdotH, vec3f(0.04));
+            let ccDenom = 4.0 * NdotV * NdotL + 1e-7;
+            let ccBRDF = (ccD * ccG * ccF / ccDenom) * lightColor * attenuation * NdotL;
+            contrib = mix(contrib, ccBRDF, ccWeight);
+        }
+        Lo = Lo + contrib;
     }
 
-    /// 7. IBL 环境光(cubemap:最低 mip 近似 irradiance 漫反射,
-    ///    按 roughness 选择 mip 采样反射向量作预滤波镜面)
+    /// 7. IBL 环境光(同 GLSL 版 split-sum:预滤波 cubemap × BRDF LUT):
     var color = Lo;
     if ((texFlags & PBR_TEX_ENVIRONMENT) != 0u) {
         let envDim   = textureDimensions(u_EnvironmentMap, 0);
         let maxLod   = floor(log2(f32(envDim.x)));
         let R        = reflect(-v, n);
-        let irradiance  = textureSampleLevel(u_EnvironmentMap, uSampler, n, maxLod).rgb;
+        let irradiance  = textureSampleLevel(u_IrradianceMap, uSampler, n, 0.0).rgb;
         let prefiltered = textureSampleLevel(u_EnvironmentMap, uSampler, R, roughness * maxLod).rgb;
         let Fenv  = fresnelSchlickRoughness(NdotV, F0, roughness);
-        let kDenv = (vec3f(1.0) - Fenv) * (1.0 - metallic);
-        color = color + kDenv * irradiance * baseColor.rgb + prefiltered * Fenv;
+        let brdf  = textureSample(u_BRDFLUT, uSampler, vec2f(NdotV, roughness)).rg;
+        /// 虹彩:IBL 菲涅尔权重同步替换(参考 pbr.frag:219-220)
+        var envSpecW = Fenv * brdf.x + brdf.y;
+        var envF     = Fenv;
+        if (iriFactor > 0.0) {
+            envSpecW = mix(envSpecW, iriFresnel, iriFactor);
+            envF     = mix(envF,     iriFresnel, iriFactor);
+        }
+        var kDenv = (vec3f(1.0) - envF) * (1.0 - metallic);
+        /// transmission:IBL 漫反射同样按透射因子衰减
+        kDenv = kDenv * (vec3f(1.0) - transmission);
+        color = color + kDenv * irradiance * baseColor.rgb + prefiltered * envSpecW;
+
+        /// clearcoat IBL:清漆层镜面 = 按清漆粗糙度预滤波的环境色,
+        /// 与基础层按 w 混合(参考 pbr.frag:236;不叠 LUT,外层权重已含菲涅尔)
+        if (ccStrength > 0.0) {
+            let ccPrefiltered = textureSampleLevel(u_EnvironmentMap, uSampler, R, ccRoughness * maxLod).rgb;
+            color = mix(color, ccPrefiltered, ccWeight);
+        }
     }
 
-    /// 8. AO
+    /// 7b. transmission 场景折射:透射光按因子补足被衰减的漫反射
+    ///     (参考 glTF-Sample-Viewer getIBLVolumeRefraction)。
+    ///     薄壁近似(volume 未接入,厚度 0):折射出口点即片元自身投影位置,
+    ///     屏幕空间 UV 采样不透明场景预渲染纹理 u_SceneTex。
+    ///     sceneTex 为已 ACES+gamma 的 LDR,近似还原线性后随本体再次色调映射。
+    if (transmission > 0.0) {
+        let ndc      = _camera._vp * vec4f(in.inPos, 1.0);
+        /// NDC→sceneTex UV:与 GLSL 一致,Y 取反(Vulkan 负高视口/WebGPU
+        /// NDC-Y-up 视口变换均使 NDC+Y 落到帧缓冲顶行),ndc.y*0.5+0.5 =
+        /// 1-y_f/h,取反后才是本像素在 sceneTex 中的行
+        let ruv      = ndc.xy / ndc.w * vec2f(0.5, -0.5) + vec2f(0.5);
+        let sceneRGB = textureSampleLevel(u_SceneTex, uSampler, ruv, 0.0).rgb;
+        /// 官方:f_specular_transmission 取代 f_diffuse 后再经 (1-F_ibl) 混合,
+        /// 透射项最终权重 = transmission*(1-F);sceneTex 为 LDR,近似线性化。
+        let Ft       = fresnelSchlickRoughness(NdotV, vec3f(0.04), roughness);
+        color = color + pow(sceneRGB, vec3f(2.2)) * baseColor.rgb * transmission * (vec3f(1.0) - Ft);
+    }
+
+    /// 8. AO(AO 的 UV 集由材质参数选择:glTF occlusionTexture.texCoord)
     if ((texFlags & PBR_TEX_OCCLUSION) != 0u) {
-        let ao = textureSample(u_OcclusionTex, uSampler, in.inUV).r;
+        let aoUV = select(in.inUV, in.inUV1, _texParams._aoTexCoord > 0.5);
+        let ao = textureSample(u_OcclusionTex, uSampler, applyUvTr(3u, aoUV)).r;
         color = color * mix(vec3f(1.0), vec3f(ao), occlusionStrength);
     }
 
-    /// 9. emissive(贴图同为 sRGB,需解码)
+    /// 9. emissive(贴图同为 sRGB,需解码);自发光同样按 1-w 被清漆层衰减(pbr.frag:386)
     var emissive = _pbr._emissive.rgb;
     if ((texFlags & PBR_TEX_EMISSIVE) != 0u) {
-        emissive = emissive * pow(textureSample(u_EmissiveTex, uSampler, in.inUV).rgb, vec3f(2.2));
+        emissive = emissive * pow(textureSample(u_EmissiveTex, uSampler, applyUvTr(4u, in.inUV)).rgb, vec3f(2.2));
     }
-    color = color + emissive * emissiveStrength;
+    color = color + emissive * emissiveStrength * (1.0 - ccWeight);
 
     /// 10. selection
     if (isSelected(in.inFlagBits)) {
@@ -272,9 +483,16 @@ fn main(in : FsIn) -> @location(0) vec4f
         color = mix(color, sel, 0.5);
     }
 
-    /// 11. tonemap + gamma
-    color = color / (color + vec3f(1.0));
+    /// 11. tonemap(ACES filmic 近似,与 glTF-Sample-Viewer 同款)+ gamma
+    color = clamp((color * (2.51 * color + vec3f(0.03))) / (color * (2.43 * color + vec3f(0.59)) + vec3f(0.14)), vec3f(0.0), vec3f(1.0));
     color = pow(color, vec3f(1.0 / 2.2));
 
-    return vec4f(color, baseColor.a);
+    /// 12. 透明度输出,同 GLSL 版(pbrBlend 为预乘 alpha 混合 src=ONE):
+    ///     transmission 玻璃由场景折射双趟经 7b 段提供背景,alpha=1 不透明写出,
+    ///     避免 dst 背景与 sceneTex 采样二次叠加;
+    ///     普通 alpha 材质输出预乘色 color*baseColor.a。
+    if (transmission > 0.0) {
+        return vec4f(color, 1.0);
+    }
+    return vec4f(color * baseColor.a, baseColor.a);
 }

@@ -35,6 +35,10 @@ namespace   FE
             if (binding._stageFlags.hasFlag(ST_COMPUTE_BIT))
                 entry.visibility |=   WGPUShaderStage_Compute;
 
+            /// 由 WGSL 声明的类型名判定纹理视图维度:
+            /// texture_cube<f32> -> Cube;其余( texture_2d 等 )-> 2D
+            const bool  bCube   =   binding._typeName.find("cube") != String::npos;
+
             switch (binding._descriptorType)
             {
             case DT_UNIFORM_BUFFER:
@@ -70,7 +74,8 @@ namespace   FE
             case DT_SAMPLED_IMAGE:
                 entry.texture.nextInChain    =   nullptr;
                 entry.texture.sampleType     =   WGPUTextureSampleType_Float;
-                entry.texture.viewDimension  =   WGPUTextureViewDimension_2D;
+                entry.texture.viewDimension  =   bCube ? WGPUTextureViewDimension_Cube
+                                                      : WGPUTextureViewDimension_2D;
                 entry.texture.multisampled   =   WGPU_FALSE;
                 break;
             case DT_STORAGE_IMAGE:
@@ -86,7 +91,8 @@ namespace   FE
             case DT_COMBINED_IMAGE_SAMPLER:
                 entry.texture.nextInChain    =   nullptr;
                 entry.texture.sampleType     =   WGPUTextureSampleType_Float;
-                entry.texture.viewDimension  =   WGPUTextureViewDimension_2D;
+                entry.texture.viewDimension  =   bCube ? WGPUTextureViewDimension_Cube
+                                                      : WGPUTextureViewDimension_2D;
                 entry.texture.multisampled   =   WGPU_FALSE;
                 break;
             }

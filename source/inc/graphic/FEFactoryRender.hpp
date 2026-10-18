@@ -303,6 +303,17 @@ namespace   FE
     public:
         virtual void    update(CMDPtr cmd);
         virtual void    render(CMDPtr cmd);
+        /// ===== transmission 场景折射双趟过滤(全局趟状态,FEScene 每趟渲染前切换)=====
+        ///   TP_ALL:    正常渲染(不透明组 + 透明组都画)
+        ///   TP_OPAQUE: 仅不透明组(场景折射纹理预渲染趟,透明组跳过,
+        ///              否则玻璃会出现在自身折射背景里并自折射)
+        /// (枚举值带 TP_ 前缀:OPAQUE 与 wingdi.h 宏冲突)
+        enum class  TransPass : uint { TP_ALL = 0, TP_OPAQUE };
+        static  void        setTransPass(TransPass p);
+        static  TransPass   transPass();
+        /// 工厂内含任意透明材质组(alpha 混合/transmission)时返回 true,
+        /// 渲染层据此把工厂排到不透明工厂之后绘制
+        virtual bool    isTransparent() const;
         /// <summary>
         /// 销毁前一定调用该函数，解除数据对工厂的引用计数
         /// 才能正确的释放数据
@@ -366,7 +377,7 @@ namespace   FE
         Material        createCullMaterial(Group grp,Camera camera);
         void            updateCullMaterial(Group grp,Camera camera);
         VBO     buildBuffer(MeshUSet& meshSet,FEInputSlot slot);
-        VBO     buildBuffer(MeshUSet& meshSet,const uints& indexs);
+        VBO     buildBuffer(MeshUSet& meshSet,const InputDescs& inputs);
         /// <summary>
         /// CPU数据上传到GPU上 
         /// </summary>
@@ -394,6 +405,13 @@ namespace   FE
         /// <returns>返回有多少给node带有mesh信息</returns>
         static  uint        collectMesh(MeshUSet& meshSet,const Groups& grps);
         static  RFactorys   addNodesToFactory(FEContext& ctx,FEScene& scene,const Nodes& nodes);
+        /// <summary>
+        /// 该工厂是否包含某材质的渲染组(供场景侧按材质定位工厂,如编辑网格的显示/隐藏)
+        /// </summary>
+        bool    hasMaterialGroup(Material mat)
+        {
+            return  queryGroup(mat) != nullptr;
+        }
     protected:
         FEDevice&       _device;
         MeshKey         _key;
@@ -407,6 +425,19 @@ namespace   FE
         /// 所有mesh
         /// </summary>
         IBO             _ibo;
+        /// <summary>
+        /// 本工厂 IBO 内各 primitive 的索引偏移表(key = primitive 裸指针)。
+        /// 共享 mesh 的同一 primitive 会被多个工厂各自拷入 IBO,
+        /// primitive 对象上的 _indexOffset 会被最后一次构建覆盖,
+        /// 每帧直接取对象值渲染的路径(WGSL)必须查本表
+        /// </summary>
+        std::map<const void*,uint>  _priOffsets;
+        /// <summary>
+        /// 本工厂 VBO 大数组内各 primitive 的顶点基址表(key = primitive 裸指针)。
+        /// 与 _priOffsets 同理:primitive 对象上的 _vertexOffset 会被最后一次
+        /// 构建该 mesh 的工厂覆盖,每帧直接取对象值渲染的路径(WGSL)必须查本表
+        /// </summary>
+        std::map<const void*,int>   _priVertexOffsets;
         /// <summary>
         /// 绘制命令
         /// </summary>
@@ -423,6 +454,8 @@ namespace   FE
         ViewerUsages    _usages     =   ViewerUsage::USAGE_Classic;
         bool            _gpuCull    =   true;
         bool            _resident   =   false;
+        /// transmission 场景折射双趟过滤全局状态(定义于 FEFactoryRender.cpp)
+        static  TransPass   s_transPass;
     };
     using   RFactory            =   SharedPtr<FEFactoryRender>;
     using   RFactorys           =   std::vector<RFactory>;

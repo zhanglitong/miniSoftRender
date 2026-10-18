@@ -2,10 +2,14 @@
 #include    <iostream>
 #include    <cstring>
 #include    <cmath>
+#include    <string>
+#include    <vector>
 #include    <algorithm>
 #include    <assert.h>
 #include    "../../inc/FEImage.h"
 #include    "../../inc/FEContext.hpp"
+#include    "../../core/FEImageHelper.hpp"
+#include    "../../core/graphic/FETextureHelper.hpp"
 
 using   namespace   FE;
 
@@ -531,9 +535,477 @@ static  void    testFillAllFormats()
     }
 }
 
+/// =====================================================================
+/// FEImageHelper:图片加载 / 保存(stb_image 解码,stb_image_write 编码)
+/// =====================================================================
+/// 构造带已知图案的 RGBA8 图像:像素 = (x*16, y*32, (x+y)*8, 255)
+static  ImagePtr    makePattern(FEContext& ctx,uint32 w,uint32 h)
+{
+    ImagePtr    image   =   new FEImage(ctx,w,h,FMT_R8G8B8A8_UNORM);
+    auto        plane   =   image->plane(0,0);
+    for (uint32 y = 0; y < h; ++y)
+        for (uint32 x = 0; x < w; ++x)
+        {
+            uint8*  px  =   plane.dataOffset<uint8>(y,x);
+            px[0]   =   uint8(x * 16);
+            px[1]   =   uint8(y * 32);
+            px[2]   =   uint8((x + y) * 8);
+            px[3]   =   255;
+        }
+    return  image;
+}
+/// 逐行比对图像 level0 与紧凑行参考数据
+static  bool    sameRows(const FEImage& image,uint32 w,uint32 h,
+                         const uint8* expect,size_t rowByte)
+{
+    auto    plane   =   image.plane(0,0);
+    for (uint32 y = 0; y < h; ++y)
+        if (std::memcmp(plane.dataOffset<uint8>(y,0),expect + size_t(y) * rowByte,rowByte) != 0)
+            return  false;
+    return  true;
+}
+
+static  void    testHelperSaveLoad()
+{
+    std::cout << "---- testHelperSaveLoad ----\n";
+    FEContext&  ctx =   FEContext::instance();
+    const uint32    W   =   16;
+    const uint32    H   =   8;
+
+    ImagePtr    src =   makePattern(ctx,W,H);
+
+    /// 参考像素(紧凑行 RGBA8)取自图像本身
+    std::vector<uint8>  ref(size_t(W) * H * 4);
+    {
+        auto    plane   =   src->plane(0,0);
+        for (uint32 y = 0; y < H; ++y)
+            std::memcpy(ref.data() + size_t(y) * W * 4,plane.dataOffset<uint8>(y,0),size_t(W) * 4);
+    }
+
+    /// 1) 无损格式:保存 -> 加载 -> 尺寸/格式/像素完全一致
+    const char* lossless[]  =   { "png","bmp","tga" };
+    for (auto ext : lossless)
+    {
+        const std::string   file    =   std::string("./test_image_tmp.") + ext;
+        const std::string   tag     =   std::string("lossless ") + ext;
+        CHECK(FEImageHelper::save(*src,file.c_str()),           (tag + " save ok"));
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        CHECK(back != nullptr,                                  (tag + " load ok"));
+        if (back != nullptr)
+        {
+            const bool  sizeOk  =   back->cInfo()._extent.x == W && back->cInfo()._extent.y == H;
+            CHECK(sizeOk,                                       (tag + " size preserved"));
+            CHECK(back->cInfo()._format == FMT_R8G8B8A8_UNORM,  (tag + " loaded as RGBA8"));
+            CHECK(sameRows(*back,W,H,ref.data(),size_t(W) * 4),(tag + " pixels identical"));
+        }
+        std::remove(file.c_str());
+    }
+
+    /// 2) jpg 有损:尺寸一致,三通道平均绝对误差在容差内(alpha 不参与编码)
+    {
+        const std::string   file    =   "./test_image_tmp.jpg";
+        CHECK(FEImageHelper::save(*src,file.c_str(),95),        "lossy jpg save ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        CHECK(back != nullptr,                                  "lossy jpg load ok");
+        if (back != nullptr)
+        {
+            const bool  sizeOk  =   back->cInfo()._extent.x == W && back->cInfo()._extent.y == H;
+            CHECK(sizeOk,                                       "jpg size preserved");
+            double      sum =   0.0;
+            auto        plane   =   back->plane(0,0);
+            for (uint32 y = 0; y < H; ++y)
+                for (uint32 x = 0; x < W; ++x)
+                {
+                    const uint8*    got =   plane.dataOffset<uint8>(y,x);
+                    const uint8*    exp =   ref.data() + (size_t(y) * W + x) * 4;
+                    for (int c = 0; c < 3; ++c)
+                        sum +=  std::fabs(double(got[c]) - double(exp[c]));
+                }
+            const double    mae =   sum / (double(W) * H * 3.0);
+            std::cout << "  jpg mean abs error = " << mae << "\n";
+            CHECK(mae <= 12.0,                                  "jpg error within lossy tolerance");
+        }
+        std::remove(file.c_str());
+    }
+
+    /// 3) RGB8 源(3通道)保存:加载后统一补齐 alpha=255
+    {
+        FEImage     rgb(ctx,W,H,FMT_R8G8B8_UNORM);
+        auto        plane   =   rgb.plane(0,0);
+        for (uint32 y = 0; y < H; ++y)
+            for (uint32 x = 0; x < W; ++x)
+            {
+                uint8*  px  =   plane.dataOffset<uint8>(y,x);
+                px[0]   =   ref[(size_t(y) * W + x) * 4 + 0];
+                px[1]   =   ref[(size_t(y) * W + x) * 4 + 1];
+                px[2]   =   ref[(size_t(y) * W + x) * 4 + 2];
+            }
+        const std::string   file    =   "./test_image_tmp3.png";
+        CHECK(FEImageHelper::save(rgb,file.c_str()),            "rgb8 -> png save ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        CHECK(back != nullptr,                                  "rgb8 png load ok");
+        if (back != nullptr)
+        {
+            bool    ok  =   (back->cInfo()._format == FMT_R8G8B8A8_UNORM);
+            auto    bp  =   back->plane(0,0);
+            for (uint32 y = 0; ok && y < H; ++y)
+                for (uint32 x = 0; x < W; ++x)
+                {
+                    const uint8*    got =   bp.dataOffset<uint8>(y,x);
+                    const uint8*    exp =   ref.data() + (size_t(y) * W + x) * 4;
+                    ok  =   ok  &&  got[0] == exp[0] && got[1] == exp[1]
+                                &&  got[2] == exp[2] && got[3] == 255;
+                }
+            CHECK(ok,   "rgb8 png round trip identical, alpha filled 255");
+        }
+        std::remove(file.c_str());
+    }
+
+    /// 4) R8 灰度源:png 往返后 RGB 三通道都等于源灰度
+    {
+        FEImage     gray(ctx,W,H,FMT_R8_UNORM);
+        auto        plane   =   gray.plane(0,0);
+        for (uint32 y = 0; y < H; ++y)
+            for (uint32 x = 0; x < W; ++x)
+                *plane.dataOffset<uint8>(y,x)   =   uint8((x * 16 + y * 4) & 0xFF);
+        const std::string   file    =   "./test_image_tmp_gray.png";
+        CHECK(FEImageHelper::save(gray,file.c_str()),           "r8 -> png save ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file.c_str());
+        bool        ok      =   (back != nullptr);
+        if (ok)
+        {
+            auto    bp  =   back->plane(0,0);
+            for (uint32 y = 0; ok && y < H; ++y)
+                for (uint32 x = 0; x < W; ++x)
+                {
+                    const uint8*    got =   bp.dataOffset<uint8>(y,x);
+                    const uint8     g   =   uint8((x * 16 + y * 4) & 0xFF);
+                    ok  =   ok  &&  got[0] == g && got[1] == g && got[2] == g;
+                }
+        }
+        CHECK(ok,   "r8 gray png round trip");
+        std::remove(file.c_str());
+    }
+
+    /// 5) 异常路径:非8bit格式 / 不支持的扩展名 / 文件不存在 / 空文件名
+    {
+        FEImage     rgba16(ctx,2,2,FMT_R16G16B16A16_UNORM);
+        CHECK(!FEImageHelper::save(rgba16,"./test_image_tmp16.png"),
+              "16bit format save rejected");
+        CHECK(!FEImageHelper::save(*src,"./test_image_tmp.gif"),
+              "unsupported extension -> false");
+        CHECK(FEImageHelper::load(ctx,"./no_such_image_file.png") == nullptr,
+              "load missing file -> nullptr");
+        CHECK(FEImageHelper::load(ctx,nullptr) == nullptr,
+              "load null name -> nullptr");
+    }
+}
+
+/// =====================================================================
+/// FEImageHelper::loadHdr + FETextureHelper::cubeImageFromEquirect
+/// (equirect float image -> float cubemap image,纯 CPU 侧)
+/// =====================================================================
+/// 取路径的目录部分(用 argv[0] 定位可执行文件目录,进而定位 ../data)
+static  String  dirOf(const char* path)
+{
+    const String    s   =   (path != nullptr) ? String(path) : String();
+    const size_t    pos =   s.find_last_of("/\\");
+    return  (pos == String::npos) ? String(".") : s.substr(0,pos);
+}
+/// 取 cubemap 指定面 / level 的 RGB 均值
+static  float3  faceMean(const FEImage& cube,uint32 level,uint32 face)
+{
+    auto            plane   =   cube.plane(level,face);
+    const uint32    w       =   plane.width();
+    const uint32    h       =   plane.height();
+    double          sum[3]  =   { 0.0,0.0,0.0 };
+    for (uint32 y = 0; y < h; ++y)
+        for (uint32 x = 0; x < w; ++x)
+        {
+            const float*    px  =   plane.dataOffset<float>(y,x);
+            sum[0] += px[0]; sum[1] += px[1]; sum[2] += px[2];
+        }
+    const double    n   =   double(w) * h;
+    return  float3(float(sum[0] / n),float(sum[1] / n),float(sum[2] / n));
+}
+
+static  void    testHdrAndCubeImage(const char* hdrPath)
+{
+    std::cout << "---- testHdrAndCubeImage ----\n";
+    FEContext&  ctx =   FEContext::instance();
+
+    /// 1) 真实 HDR -> float equirect image
+    ImagePtr    equirect    =   FEImageHelper::loadHdr(ctx,hdrPath);
+    if (equirect == nullptr)
+    {
+        std::cout << "  (skip) hdr file not found: " << (hdrPath ? hdrPath : "(null)") << "\n";
+        return;
+    }
+    const auto& eqInfo  =   equirect->cInfo();
+    std::cout << "  hdr " << eqInfo._extent.x << "x" << eqInfo._extent.y
+              << " format=" << FEFormatHelper::enumName(eqInfo._format) << "\n";
+    CHECK(eqInfo._format == FMT_R32G32B32A32_FLOAT,     "hdr loaded as RGBA32F");
+    /// equirect 约定:宽为高的 2 倍
+    CHECK(eqInfo._extent.x == 2 * eqInfo._extent.y,     "hdr is 2:1 equirect");
+
+    /// 动态范围:浮点保留 >1 的高光,alpha 恒为 1
+    {
+        auto    plane   =   equirect->plane(0,0);
+        float   maxC    =   0.0f;
+        bool    alpha1  =   true;
+        for (uint32 y = 0; y < plane.height(); ++y)
+            for (uint32 x = 0; x < plane.width(); ++x)
+            {
+                const float*    px  =   plane.dataOffset<float>(y,x);
+                for (int c = 0; c < 3; ++c)
+                    maxC    =   px[c] > maxC ? px[c] : maxC;
+                alpha1  =   alpha1 && (px[3] == 1.0f);
+            }
+        std::cout << "  hdr rgbMax = " << maxC << "\n";
+        CHECK(maxC > 1.0f,                              "hdr keeps >1.0 float range");
+        CHECK(alpha1,                                   "hdr alpha filled 1.0");
+    }
+
+    /// 2) equirect -> cubemap image(6 层 + 完整 mip 链)
+    const uint32    cubeSize    =   64;
+    ImagePtr        cube        =   FETextureHelper::cubeImageFromEquirect(ctx,*equirect,cubeSize);
+    CHECK(cube != nullptr,                              "cube image created");
+    if (cube != nullptr)
+    {
+        const auto& ci  =   cube->cInfo();
+        CHECK(ci._layers == 6,                          "cube image has 6 layers");
+        CHECK(ci._format == FMT_R32G32B32A32_FLOAT,     "cube image RGBA32F");
+        CHECK(ci._levels == 7,                          "64x64 cube has 7 mip levels");
+        CHECK(ci._extent.x == cubeSize && ci._extent.y == cubeSize, "cube face is size x size");
+
+        /// 各 level 尺寸逐级减半(最小 1)
+        bool    dimsOk  =   true;
+        for (uint32 l = 0; l < ci._levels; ++l)
+        {
+            auto            p   =   cube->plane(l,0);
+            const uint32    e   =   (std::max<uint32>)(cubeSize >> l,1);
+            dimsOk  =   dimsOk && p.width() == e && p.height() == e;
+        }
+        CHECK(dimsOk,                                   "cube mip dims halve each level");
+
+        /// 盒式滤波保均值:最低 mip 的单像素 == level0 该面 RGB 均值(逐面,浮点容差内)
+        bool    meanOk  =   true;
+        for (uint32 f = 0; f < 6; ++f)
+        {
+            const float3    m0      =   faceMean(*cube,0,f);
+            const auto      last    =   cube->plane(ci._levels - 1,f);
+            const float*    px      =   last.dataOffset<float>(0,0);
+            const float     tol     =   1e-3f;
+            meanOk  =   meanOk  &&  std::fabs(px[0] - m0.x) < tol
+                                &&  std::fabs(px[1] - m0.y) < tol
+                                &&  std::fabs(px[2] - m0.z) < tol
+                                &&  px[3] == 1.0f;
+        }
+        CHECK(meanOk,                                   "cube mip chain preserves face mean");
+    }
+
+    /// 3) 合成常色 equirect -> cube 每个像素都等于该常色(确定性校验重采样全链路)
+    {
+        const uint32    w   =   8;
+        const uint32    h   =   4;
+        FEImage         eq(ctx,w,h,FMT_R32G32B32A32_FLOAT);
+        auto            plane   =   eq.plane(0,0);
+        for (uint32 y = 0; y < h; ++y)
+            for (uint32 x = 0; x < w; ++x)
+            {
+                float*  px  =   plane.dataOffset<float>(y,x);
+                px[0] = 0.25f; px[1] = 0.5f; px[2] = 0.75f; px[3] = 1.0f;
+            }
+        ImagePtr    c   =   FETextureHelper::cubeImageFromEquirect(ctx,eq,4);
+        bool        ok  =   (c != nullptr);
+        if (ok)
+        {
+            for (uint32 l = 0; ok && l < c->cInfo()._levels; ++l)
+                for (uint32 f = 0; ok && f < 6; ++f)
+                {
+                    auto    p   =   c->plane(l,f);
+                    for (uint32 y = 0; ok && y < p.height(); ++y)
+                        for (uint32 x = 0; ok && x < p.width(); ++x)
+                        {
+                            const float*    px  =   p.dataOffset<float>(y,x);
+                            ok  =   ok  &&  px[0] == 0.25f && px[1] == 0.5f
+                                        &&  px[2] == 0.75f && px[3] == 1.0f;
+                        }
+                }
+        }
+        CHECK(ok,   "constant equirect -> constant cube (all faces/levels)");
+    }
+
+    /// 4) 错误路径:非浮点输入 / 尺寸为 0
+    {
+        FEImage     rgba8(ctx,4,4,FMT_R8G8B8A8_UNORM);
+        CHECK(FETextureHelper::cubeImageFromEquirect(ctx,rgba8,4) == nullptr,
+              "non-float equirect rejected");
+        CHECK(FETextureHelper::cubeImageFromEquirect(ctx,*equirect,0) == nullptr,
+              "size 0 rejected");
+    }
+}
+
+/// =====================================================================
+/// FEImageHelper::load / loadHdr 显式目标格式(调用方决定格式)
+/// =====================================================================
+static  void    testExplicitFormat(const char* hdrPath)
+{
+    std::cout << "---- testExplicitFormat ----\n";
+    FEContext&  ctx =   FEContext::instance();
+
+    /// 1) HDR 显式 RGB32F(3通道) vs 默认 RGBA32F(4通道)
+    ImagePtr    rgb     =   FEImageHelper::loadHdr(ctx,hdrPath,FMT_R32G32B32_FLOAT);
+    ImagePtr    rgba    =   FEImageHelper::loadHdr(ctx,hdrPath,FMT_R32G32B32A32_FLOAT);
+    if (rgb == nullptr || rgba == nullptr)
+    {
+        std::cout << "  (skip) hdr file not found: " << (hdrPath ? hdrPath : "(null)") << "\n";
+        return;
+    }
+    CHECK(rgb->cInfo()._format == FMT_R32G32B32_FLOAT,      "loadHdr explicit RGB32F");
+    CHECK(rgb->cInfo()._extent.x == rgba->cInfo()._extent.x
+       && rgb->cInfo()._extent.y == rgba->cInfo()._extent.y,"RGB32F extent == RGBA32F extent");
+    /// 同一像素 RGB 三通道应逐位相同(3通道仅是少了 alpha)
+    {
+        auto    pr  =   rgb->plane(0,0);
+        auto    pa  =   rgba->plane(0,0);
+        bool    same=   true;
+        for (uint32 y = 0; same && y < pa.height(); ++y)
+            for (uint32 x = 0; same && x < pa.width(); ++x)
+            {
+                const float*    a   =   pa.dataOffset<float>(y,x);
+                const float*    b   =   pr.dataOffset<float>(y,x);
+                same    =   same && a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
+            }
+        CHECK(same,                                         "RGB32F rgb values == RGBA32F rgb values");
+    }
+    /// 3通道 equirect 转 cube 应与 4通道结果完全一致(验证 cubeImageFromEquirect 支持3通道)
+    {
+        ImagePtr    c3  =   FETextureHelper::cubeImageFromEquirect(ctx,*rgb,32);
+        ImagePtr    c4  =   FETextureHelper::cubeImageFromEquirect(ctx,*rgba,32);
+        CHECK(c3 != nullptr && c4 != nullptr,               "cube from 3ch and 4ch equirect");
+        bool    same    =   (c3 != nullptr && c4 != nullptr);
+        if (same)
+        {
+            for (uint32 l = 0; same && l < c4->cInfo()._levels; ++l)
+                for (uint32 f = 0; same && f < 6; ++f)
+                {
+                    auto    p3  =   c3->plane(l,f);
+                    auto    p4  =   c4->plane(l,f);
+                    for (uint32 y = 0; same && y < p4.height(); ++y)
+                        for (uint32 x = 0; same && x < p4.width(); ++x)
+                        {
+                            const float*    a   =   p4.dataOffset<float>(y,x);
+                            const float*    b   =   p3.dataOffset<float>(y,x);
+                            same    =   same && a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
+                        }
+                }
+        }
+        CHECK(same,                                         "3ch equirect -> same cube as 4ch");
+    }
+    /// HDR 显式单通道 R32F;及 loadHdr 拒绝非浮点系格式
+    ImagePtr    r   =   FEImageHelper::loadHdr(ctx,hdrPath,FMT_R32_FLOAT);
+    CHECK(r != nullptr && r->cInfo()._format == FMT_R32_FLOAT, "loadHdr explicit R32F");
+    CHECK(FEImageHelper::loadHdr(ctx,hdrPath,FMT_R8G8B8A8_UNORM) == nullptr,
+          "loadHdr rejects non-float format");
+
+    /// 1c) HDR 显式半浮点(16F):与 32F 逐位对照,验证 float->half 转换链路
+    {
+        ImagePtr    h4  =   FEImageHelper::loadHdr(ctx,hdrPath,FMT_R16G16B16A16_FLOAT);
+        CHECK(h4 != nullptr && h4->cInfo()._format == FMT_R16G16B16A16_FLOAT,
+              "loadHdr explicit RGBA16F");
+        if (h4 != nullptr)
+        {
+            auto            pf      =   rgba->plane(0,0);
+            auto            ph      =   h4->plane(0,0);
+            /// 逐像素逐通道:半点原始位 == float2Half(对应 32F 值) —— 位精确,无需容差
+            bool            exact   =   true;
+            float           maxRel  =   0.0f;
+            for (uint32 y = 0; y < pf.height(); ++y)
+            {
+                const float*    f   =   pf.rowAt<float>(y);
+                const uint16*   h   =   ph.rowAt<uint16>(y);
+                for (uint32 i = 0; i < pf.width() * 4; ++i)
+                {
+                    exact   =   exact && (h[i] == float16::float2Half(f[i]));
+                    const float hv  =   float16::half2Float(h[i]);
+                    const float rel =   (f[i] != 0.0f) ? std::fabs(hv - f[i]) / std::fabs(f[i])
+                                                       : std::fabs(hv);
+                    maxRel  =   rel > maxRel ? rel : maxRel;
+                }
+            }
+            std::cout << "  hdr RGBA16F maxRelErr = " << maxRel << "\n";
+            CHECK(exact,                                    "RGBA16F bits == float2Half(RGBA32F) bit-exact");
+            /// 半点相对精度 2^-11 ≈ 4.9e-4,留一倍余量
+            CHECK(maxRel < 1.0e-3f,                          "RGBA16F within half precision of RGBA32F");
+        }
+    }
+    CHECK(FEImageHelper::loadHdr(ctx,hdrPath,FMT_R16_FLOAT)      != nullptr, "loadHdr explicit R16F");
+    CHECK(FEImageHelper::loadHdr(ctx,hdrPath,FMT_R16G16B16_FLOAT) != nullptr, "loadHdr explicit RGB16F");
+    CHECK(FEImageHelper::loadHdr(ctx,hdrPath,FMT_R16_UNORM)      == nullptr, "loadHdr rejects R16_UNORM (not float family)");
+    CHECK(FEImageHelper::loadHdr(ctx,hdrPath,FMT_R16G16B16A16_UNORM) == nullptr, "loadHdr rejects RGBA16_UNORM");
+
+    /// 2) LDR:保存已知图案 PNG,再按不同显式格式加载
+    const std::string   file    =   "./test_image_fmt_tmp.png";
+    ImagePtr            src     =   makePattern(ctx,8,4);
+    CHECK(FEImageHelper::save(*src,file.c_str()),       "pattern saved to png");
+
+    ImagePtr    rgba8   =   FEImageHelper::load(ctx,file.c_str());
+    ImagePtr    rgb8    =   FEImageHelper::load(ctx,file.c_str(),FMT_R8G8B8_UNORM);
+    ImagePtr    r8      =   FEImageHelper::load(ctx,file.c_str(),FMT_R8_UNORM);
+    ImagePtr    f4      =   FEImageHelper::load(ctx,file.c_str(),FMT_R32G32B32A32_FLOAT);
+    ImagePtr    h4      =   FEImageHelper::load(ctx,file.c_str(),FMT_R16G16B16A16_FLOAT);
+    CHECK(rgba8 != nullptr && rgba8->cInfo()._format == FMT_R8G8B8A8_UNORM, "load default -> RGBA8");
+    CHECK(rgb8  != nullptr && rgb8->cInfo()._format  == FMT_R8G8B8_UNORM,   "load explicit RGB8");
+    CHECK(r8    != nullptr && r8->cInfo()._format    == FMT_R8_UNORM,       "load explicit R8");
+    CHECK(f4    != nullptr && f4->cInfo()._format    == FMT_R32G32B32A32_FLOAT, "load explicit RGBA32F");
+    CHECK(h4    != nullptr && h4->cInfo()._format    == FMT_R16G16B16A16_FLOAT, "load explicit RGBA16F");
+
+    /// LDR 的半点路径与单精度路径一致(同样逐位对照,PNG 的 8bit 值转浮点后两次加载可比)
+    if (h4 != nullptr && f4 != nullptr)
+    {
+        auto            pf      =   f4->plane(0,0);
+        auto            ph      =   h4->plane(0,0);
+        bool            exact   =   true;
+        for (uint32 y = 0; exact && y < pf.height(); ++y)
+        {
+            const float*    f   =   pf.rowAt<float>(y);
+            const uint16*   h   =   ph.rowAt<uint16>(y);
+            for (uint32 i = 0; i < pf.width() * 4; ++i)
+                exact   =   exact && (h[i] == float16::float2Half(f[i]));
+        }
+        CHECK(exact,                                    "LDR RGBA16F == float2Half(RGBA32F) bit-exact");
+    }
+
+    /// RGB8 与默认 RGBA8 的 RGB 通道一致(载荷语义不因通道裁剪改变)
+    if (rgb8 != nullptr && rgba8 != nullptr)
+    {
+        auto    p8  =   rgb8->plane(0,0);
+        auto    p4  =   rgba8->plane(0,0);
+        bool    same=   true;
+        for (uint32 y = 0; same && y < p4.height(); ++y)
+            for (uint32 x = 0; same && x < p4.width(); ++x)
+            {
+                const uint8*    a   =   p4.dataOffset<uint8>(y,x);
+                const uint8*    b   =   p8.dataOffset<uint8>(y,x);
+                same    =   same && a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
+            }
+        CHECK(same,                                     "explicit RGB8 == default RGBA8 rgb channels");
+    }
+
+    /// 3) 不支持的目标格式(16bit / 位打包)-> nullptr
+    CHECK(FEImageHelper::load(ctx,file.c_str(),FMT_R16_UNORM) == nullptr,          "unsupported R16 rejected");
+    CHECK(FEImageHelper::load(ctx,file.c_str(),FMT_R16G16B16A16_UNORM) == nullptr, "unsupported RGBA16 rejected");
+    CHECK(FEImageHelper::load(ctx,file.c_str(),FMT_A2B10G10R10_UNORM) == nullptr,  "unsupported packed rejected");
+
+    std::remove(file.c_str());
+}
+
 int     main(int argc,char** argv)
 {
-    (void)argc; (void)argv;
+    /// 由可执行文件位置定位资源目录: <exeDir>/../data/env/Cannon_Exterior.hdr
+    const String    hdrFile =   dirOf(argc > 0 ? argv[0] : nullptr)
+                            +   "/../data/env/Cannon_Exterior.hdr";
 
     testCreate();
     testLevelSizeAndOffset();
@@ -548,6 +1020,9 @@ int     main(int argc,char** argv)
     testFillPBuffer();
 #endif
     testFillAllFormats();
+    testHelperSaveLoad();
+    testHdrAndCubeImage(hdrFile.c_str());
+    testExplicitFormat(hdrFile.c_str());
 
     std::cout << "--------------------------------\n";
     if (g_failed == 0)

@@ -11,6 +11,11 @@ namespace   FE
 {
     WGCmdBuffer::~WGCmdBuffer()
     {
+        if (_dummyVB)
+        {
+            wgpuBufferRelease(_dummyVB);
+            _dummyVB    =   nullptr;
+        }
         if (_computePassEncoder)
         {
             wgpuComputePassEncoderRelease(_computePassEncoder);
@@ -174,6 +179,12 @@ namespace   FE
         if (!_renderPassEncoder)
             return FEResult::ER_FAILED;
 
+        /// 新的 render pass:顶点缓冲绑定状态重置,避免沿用上一趟 pass 的槽位记录
+        _vbSlotBound.clear();
+        _vbSlotInstance.clear();
+        _vbSlotStride.clear();
+        _vbSlotSize.clear();
+
         return FEResult::ER_SUCCESS;
     }
 
@@ -226,6 +237,19 @@ namespace   FE
         {
             _currentPipeline =   (WGPURenderPipeline)wgPipeline->native();
             wgpuRenderPassEncoderSetPipeline(_renderPassEncoder,_currentPipeline);
+
+            /// 记录该管线声明的顶点缓冲槽位(stride/步进模式),
+            /// 并在 draw 前把未绑定或覆盖不足的槽位用零缓冲补齐(见 ensureVertexSlots)。
+            const auto& vbBinds =   wgPipeline->cInfo()._binds;
+            _vbSlotBound.assign(vbBinds.size(),0);
+            _vbSlotInstance.assign(vbBinds.size(),0);
+            _vbSlotStride.resize(vbBinds.size());
+            _vbSlotSize.assign(vbBinds.size(),0);
+            for (size_t i = 0;i < vbBinds.size();++i)
+            {
+                _vbSlotStride[i]    =   vbBinds[i].stride;
+                _vbSlotInstance[i]  =   (vbBinds[i].inputRate == V_INPUT_INSTANCE) ? 1 : 0;
+            }
         }
 
         return FEResult::ER_SUCCESS;
@@ -285,6 +309,11 @@ namespace   FE
                         continue;
                     bufferSize -= bufferOffset;
                     wgpuRenderPassEncoderSetVertexBuffer(_renderPassEncoder,first + i,(WGPUBuffer)wgBuf->native(),bufferOffset,bufferSize);
+                    if (first + i < _vbSlotBound.size())
+                    {
+                        _vbSlotBound[first + i] =   1;
+                        _vbSlotSize[first + i]  =   bufferSize;
+                    }
                 }
             }
         }
@@ -302,9 +331,85 @@ namespace   FE
         {
             uint64_t bufferSize = wgBuf->cInfo()._length;
             wgpuRenderPassEncoderSetVertexBuffer(_renderPassEncoder,first,(WGPUBuffer)wgBuf->native(),offset,bufferSize);
+            if (first < _vbSlotBound.size())
+            {
+                _vbSlotBound[first] =   1;
+                _vbSlotSize[first]  =   bufferSize > offset ? bufferSize - offset : 0;
+            }
         }
 
         return FEResult::ER_SUCCESS;
+    }
+
+    /// 在 draw 前补齐/覆盖不满足覆盖要求的顶点槽位(零缓冲)。
+    /// Vulkan 允许未绑定或过小的 slot(越界读取返回零),WebGPU 则在 draw 时校验
+    /// 每个声明槽位绑定的缓冲能覆盖本次 draw 的顶点/实例范围,否则报
+    /// "Instance N extends beyond limit M imposed by the buffer in slot S"。
+    /// 文本网格等不含实例属性的网格(引擎只绑定 slot 0)依赖此兜底:
+    /// 其未绑定的实例槽位、以及以空缓冲绑定的槽位都会被覆盖为零缓冲。
+    void    WGCmdBuffer::ensureVertexSlots(uint32 firstInstance,uint32 instanceCount)
+    {
+        if (!_renderPassEncoder || _vbSlotBound.empty())
+            return;
+
+        auto&   wgDevice    =   (WGDevice&)(_ctx.device());
+
+        auto    ensureDummy =   [&](uint64_t need) -> bool
+        {
+            need    =   (need + 255) & ~uint64_t(255);
+            if (need == 0)
+                need    =   256;
+            if (_dummyVB != nullptr && _dummyVBSize >= need)
+                return  true;
+            if (_dummyVB)
+            {
+                wgpuBufferRelease(_dummyVB);
+                _dummyVB    =   nullptr;
+            }
+            WGPUBufferDescriptor    bd      =   {};
+            bd.nextInChain                  =   nullptr;
+            bd.label                        =   { nullptr,0 };
+            bd.usage                        =   WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst;
+            bd.size                         =   need;
+            bd.mappedAtCreation             =   WGPU_FALSE;
+            _dummyVB    =   wgpuDeviceCreateBuffer(wgDevice.device(),&bd);
+            _dummyVBSize=   need;
+            if (_dummyVB == nullptr)
+                return  false;
+            std::vector<uint8_t>    zeros(need,0);
+            wgpuQueueWriteBuffer(wgDevice.queue(),_dummyVB,0,zeros.data(),need);
+            return  true;
+        };
+
+        for (size_t slot = 0;slot < _vbSlotBound.size();++slot)
+        {
+            const uint32_t  stride      =   slot < _vbSlotStride.size()   ? _vbSlotStride[slot]   : 0;
+            const bool      isInstance  =   slot < _vbSlotInstance.size() && _vbSlotInstance[slot] != 0;
+            const uint64_t  boundSize   =   slot < _vbSlotSize.size()     ? _vbSlotSize[slot]     : 0;
+
+            /// 该槽位需要覆盖的字节数:instance 步进槽位需覆盖
+            /// [firstInstance, firstInstance+instanceCount) 的实例范围;顶点步进槽位不校验实例范围。
+            uint64_t    required    =   0;
+            if (isInstance)
+            {
+                const uint64_t  cnt =   instanceCount > 0 ? instanceCount : 1;
+                required    =   uint64_t(firstInstance + cnt) * (stride > 0 ? stride : 4);
+            }
+
+            const bool  needFill    =   (boundSize == 0)                       ///< 未绑定或空缓冲
+                                     || (required > 0 && boundSize < required);///< 已绑定但覆盖不足
+            if (!needFill)
+                continue;
+
+            if (!ensureDummy(required > 256 ? required : 256))
+            {
+                LOG_ERR("WGCmdBuffer.ensureVertexSlots: create dummy vertex buffer failed (slot %zu)",slot);
+                return;
+            }
+            wgpuRenderPassEncoderSetVertexBuffer(_renderPassEncoder,(uint32_t)slot,_dummyVB,0,_dummyVBSize);
+            _vbSlotBound[slot]  =   1;
+            _vbSlotSize[slot]   =   _dummyVBSize;
+        }
     }
 
     FEResult WGCmdBuffer::bindIBO(IBO ibo,uint64 offset,FEIndexType typpe)
@@ -405,6 +510,7 @@ namespace   FE
         if (!_renderPassEncoder)
             return FEResult::ER_FAILED;
 
+        ensureVertexSlots(firstInstance,instanceCount);
         wgpuRenderPassEncoderDraw(_renderPassEncoder,vertexCount,instanceCount,firstVertex,firstInstance);
         return FEResult::ER_SUCCESS;
     }
@@ -414,6 +520,7 @@ namespace   FE
         if (!_renderPassEncoder)
             return FEResult::ER_FAILED;
 
+        ensureVertexSlots(firstInstance,instanceCount);
         wgpuRenderPassEncoderDrawIndexed(_renderPassEncoder,indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
         return FEResult::ER_SUCCESS;
     }

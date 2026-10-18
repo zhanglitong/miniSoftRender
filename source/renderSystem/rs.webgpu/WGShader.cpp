@@ -322,6 +322,7 @@ namespace   FE
             layoutBinding._descriptorType   =   binding._descriptorType;
             layoutBinding._stageFlags       =   _reflectData._stageFlags;
             layoutBinding._name             =   binding._name;
+            layoutBinding._typeName         =   binding._typeName;
             info._bindings.push_back(layoutBinding);
         }
 
@@ -371,6 +372,37 @@ namespace   FE
         if (text.find("@fragment")   != std::string::npos)  _reflectData._stageFlags |= ST_FRAGMENT_BIT;
         _reflectData._stages =   _reflectData._stageFlags;
 
+        /// 1b) 反射入口点名称:WGSL 要求同一模块内函数名唯一,故入口点不一定是 "main"
+        /// (例如同时含顶点/片元的 shader.wgls 用 vs_main/fs_main)。
+        /// WGPipeline 必须使用这里的名称,否则 naga 找不到入口点、管线创建失败。
+        auto    reflectEntryPoint  =   [&text](const char* stageTag) -> std::string
+        {
+            size_t  p   =   text.find(stageTag);
+            if (p == std::string::npos)
+                return  std::string();
+            /// 从 @vertex/@fragment 之后找 `fn`,再取其后第一个标识符
+            size_t  fnPos   =   text.find("fn",p + strlen(stageTag));
+            if (fnPos == std::string::npos)
+                return  std::string();
+            size_t  s   =   fnPos + 2;
+            while (s < text.size() && isspace((unsigned char)text[s]))   ++s;
+            size_t  e   =   s;
+            while (e < text.size() &&
+                   (isalnum((unsigned char)text[e]) || text[e] == '_')) ++e;
+            return  text.substr(s,e - s);
+        };
+        if (_reflectData._stageFlags & ST_VERTEX_BIT)
+            _reflectData._entryPointVert    =   reflectEntryPoint("@vertex");
+        if (_reflectData._stageFlags & ST_FRAGMENT_BIT)
+            _reflectData._entryPointFrag    =   reflectEntryPoint("@fragment");
+        if (_reflectData._stageFlags & ST_COMPUTE_BIT)
+        {
+            /// 计算着色器复用 _entryPointFrag 字段(管线侧只对 VS/FS 取名)
+            auto    ep  =   reflectEntryPoint("@compute");
+            if (_reflectData._entryPointFrag.empty())
+                _reflectData._entryPointFrag    =   ep;
+        }
+
         /// 2) 扫描 @group(N) @binding(M) var<K> name : type; 形式的全局变量
         const std::string groupTag   =   "@group(";
         const std::string bindingTag =   "@binding(";
@@ -400,9 +432,13 @@ namespace   FE
             /// 跳过 var 关键字
             size_t afterVar = varPos + varTag.size();
             /// 解析 var<uniform> / var<storage,read> / var<storage,read_write> / var<storage>
-            FEDescType descType = DT_STORAGE_BUFFER;
-            if (text[afterVar] == '<')
+            /// hasAccessor 为 false 表示形如 `var name : type;`(无地址空间访问器),
+            /// 此时需按类型名(texture_2d/texture_cube/sampler 等)判定描述符类型。
+            FEDescType  descType    =   DT_STORAGE_BUFFER;
+            bool        hasAccessor =   false;
+            if (afterVar < text.size() && text[afterVar] == '<')
             {
+                hasAccessor =   true;
                 size_t close = text.find('>', afterVar);
                 if (close != std::string::npos)
                 {
@@ -432,6 +468,35 @@ namespace   FE
                 ++afterVar;
             std::string name = text.substr(nameStart, afterVar - nameStart);
 
+            /// 解析可选的 `: 类型名`,例如 `var u_Tex : texture_cube<f32>;`。
+            /// 类型名保留完整文本(含泛型参数),供 WGDSetLayout 判定视图维度(cube)等。
+            std::string typeName;
+            {
+                size_t tp = afterVar;
+                while (tp < text.size() && isspace((unsigned char)text[tp])) ++tp;
+                if (tp < text.size() && text[tp] == ':')
+                {
+                    ++tp;
+                    while (tp < text.size() && isspace((unsigned char)text[tp])) ++tp;
+                    size_t ts = tp;
+                    while (tp < text.size() && text[tp] != ';' && text[tp] != ',') ++tp;
+                    size_t te = tp;
+                    while (te > ts && isspace((unsigned char)text[te - 1])) --te;
+                    typeName = text.substr(ts, te - ts);
+                }
+            }
+
+            /// 无访问器的全局变量:按类型名前缀分类
+            if (!hasAccessor && !typeName.empty())
+            {
+                if (typeName.compare(0, 16, "texture_storage_") == 0)
+                    descType = DT_STORAGE_IMAGE;
+                else if (typeName.compare(0, 8, "texture_") == 0)
+                    descType = DT_SAMPLED_IMAGE;
+                else if (typeName.compare(0, 7, "sampler") == 0)
+                    descType = DT_SAMPLER;
+            }
+
             /// 只接受 group == 0 的 binding(本项目的描述符集约定)
             if (group == 0 && !name.empty())
             {
@@ -440,6 +505,7 @@ namespace   FE
                 rb._descriptorType =   descType;
                 rb._stageFlags     =   _reflectData._stageFlags;
                 rb._name           =   name;
+                rb._typeName       =   typeName;
                 _reflectData._bindings.push_back(rb);
             }
 

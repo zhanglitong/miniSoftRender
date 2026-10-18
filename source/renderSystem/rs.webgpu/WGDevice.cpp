@@ -10,6 +10,7 @@
 #include    "WGSwapchain.h"
 #include    "WGGImage.h"
 #include    "WGGImageView.h"
+#include    "WGTexture.h"
 #include    "WGCmdPool.h"
 #include    "WGDSet.h"
 #include    "WGDSetLayout.h"
@@ -89,8 +90,18 @@ namespace   FE
             (WGPUFeatureName)0x00030036,  // PassthroughShaders
             WGPUFeatureName_Depth32FloatStencil8,
             (WGPUFeatureName)0x00030005,  // VertexWritableStorage
-            (WGPUFeatureName)WGPUNativeFeature_Immediates
+            (WGPUFeatureName)WGPUNativeFeature_Immediates,
+            /// Float32Filterable:让 32 位浮点纹理(如 HDR 环境立方体贴图 RGBA32F)
+            /// 可被线性采样。WebGPU 核心里该格式不可过滤,若不开启,"float 采样类型 +
+            /// 过滤采样器"的组合在创建 bind group 时会校验失败(PBR 环境图依赖线性采样)。
+            /// 仅在 adapter 支持时请求,避免其不支持时设备请求整体失败。
+            WGPUFeatureName_Float32Filterable
         };
+        _hasFloat32Filterable   =   wgpuAdapterHasFeature(adapter,WGPUFeatureName_Float32Filterable) != 0;
+        if (_hasFloat32Filterable)
+            LOG_INF("WGDevice: Float32Filterable support = true");
+        else
+            LOG_WAR("WGDevice: Float32Filterable support = false (HDR float 纹理不可线性采样)");
 
         /// 请求 immediate data 上限。PointData 布局为 _mvp(mat4,64)+2*u32,
         /// sizeof=80,这里预留到 128 以容纳后续扩展。仅显式设置需要的字段,
@@ -101,7 +112,7 @@ namespace   FE
         WGPUDeviceDescriptor deviceDesc = {};
         deviceDesc.nextInChain              =   nullptr;
         deviceDesc.label                    =   { "Device",6 };
-        deviceDesc.requiredFeatureCount     =   4;
+        deviceDesc.requiredFeatureCount     =   _hasFloat32Filterable ? 5 : 4;
         deviceDesc.requiredFeatures         =   requiredFeatures;
         deviceDesc.requiredLimits           =   &requiredLimits;
         deviceDesc.defaultQueue             =   {};
@@ -259,6 +270,12 @@ namespace   FE
         return new WGGImage(_ctx);
     }
 
+    TexPtr WGDevice::createTexture()
+    {
+        LOG_DBG("WGDevice.createTexture");
+        return new WGTexture(_ctx);
+    }
+
     DSetLayout WGDevice::createDSLayout()
     {
         LOG_DBG("WGDevice.createDSLayout");
@@ -292,6 +309,7 @@ namespace   FE
                     setBinding._descriptorType = binding._descriptorType;
                     setBinding._stageFlags = binding._stageFlags;
                     setBinding._name = binding._name;
+                    setBinding._typeName = binding._typeName;
                     bindingMap[key] = setBinding;
                 }
             }

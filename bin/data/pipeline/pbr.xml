@@ -32,6 +32,12 @@
           slots     = "IS_VERTEX_TEXCOORD0"
           formats   = "R32G32_FLOAT"
           offsets   = "24"/>
+      <input
+          name      = ""
+          location  = "9"
+          slots     = "IS_VERTEX_TEXCOORD1"
+          formats   = "R32G32_FLOAT"
+          offsets   = "32"/>
     </binding>
     <binding binding="1" inputRate="1">
       <input

@@ -25,6 +25,7 @@ namespace   FE
 
         virtual bool    create(const CreateInfo& info)  override;
         virtual bool    update(const void* data,uint64 size)    override;
+        virtual GImgView imageView() override { return _view; }
 
         inline  VkSampler   sampler() const
         {

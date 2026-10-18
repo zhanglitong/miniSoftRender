@@ -52,12 +52,19 @@ namespace   FE
         auto    aColorBlend =   root->first_attribute("enableColorBlend");
         if (aColorBlend != nullptr)
             cInfo._enableColorBlend =   atoi(aColorBlend->value()) != 0;
+        auto    aPreMulA    =   root->first_attribute("premultipliedAlpha");
+        if (aPreMulA != nullptr)
+            cInfo._premultipliedAlpha = atoi(aPreMulA->value()) != 0;
         auto    aDepthTest  =   root->first_attribute("enableDepthTest");
         if (aDepthTest != nullptr)
             cInfo._enableDepthTest  =   atoi(aDepthTest->value()) != 0;
         auto    aDepthWrite =   root->first_attribute("enableDepthWrite");
         if (aDepthWrite != nullptr)
             cInfo._enableDepthWrite =   atoi(aDepthWrite->value()) != 0;
+        /// 剔除模式覆盖:-1=默认BACK, 0=NULL(双面), 1=FRONT, 2=BACK, 3=FRONT_AND_BACK
+        auto    aCullMode   =   root->first_attribute("cullMode");
+        if (aCullMode != nullptr)
+            cInfo._cullModeOverride =   atoi(aCullMode->value());
 
         if (xmlStates)
         {

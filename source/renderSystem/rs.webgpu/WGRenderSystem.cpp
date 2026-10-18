@@ -26,7 +26,10 @@ namespace   FE
         if (_native)
         {
             wgpuSetLogCallback(log_callback,this);
-            wgpuSetLogLevel(WGPULogLevel_Debug);
+            /// 保持 Error 级:Debug 级单次启动产生 340K+ 行日志(naga 解析等),
+            /// 控制台交错输出会显著放大既有的启动期堆损坏竞态(4/4 崩溃),
+            /// 降为 Error 后 wgpu 端可稳定启动;调试 wgpu 时临时改回 Debug 即可
+            wgpuSetLogLevel(WGPULogLevel_Error);
         }
     }
 

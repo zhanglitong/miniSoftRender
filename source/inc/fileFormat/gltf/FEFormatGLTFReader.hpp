@@ -9,6 +9,7 @@
 #include    "../../material/FEMaterialLibrary.hpp"
 #include    "../../animation/FEAnimation.hpp"
 #include    "../../graphic/FETexture.h"
+#include    "../../graphic/FEScene.h"
 #include    "FEFormatGLTF.hpp"
 
 
@@ -37,6 +38,15 @@ namespace   FE
     protected:
         /// glTF texture 索引 → 引擎纹理缓存(每次 readBuffers 清空)
         TextureIndex    _texCache;
+        /// ===== KHR_materials_variants =====
+        /// 变体名表(顺序即 glTF 扩展中 variants 数组顺序)
+        Strings                                         _variantNames;
+        /// glTF 材质索引 → (变体索引,目标材质索引) 列表
+        std::map<int,std::vector<std::pair<int,int>>>   _variantMappings;
+        /// 本次加载的全部材质(gltf 索引 → 引擎材质),变体切换时查询目标材质
+        MaterialIndex                                   _variantMaterials;
+        /// 引用了材质的节点及对应 glTF 材质索引(变体切换时更新)
+        std::vector<std::pair<Node,int>>                _variantNodes;
     public:
         FEFormatGLTFReader(FEContext& ctx)
             :FEStreamReader(ctx)
@@ -197,6 +207,8 @@ namespace   FE
             {
                 tinygltf::Model     gltfModel;
                 tinygltf::TinyGLTF  gltfContext;
+                /// 保留未知扩展的原始 JSON(KHR_materials_variants 等扩展解析依赖)
+                gltfContext.SetStoreOriginalJSONForExtrasAndExtensions(true);
                 String              error;
                 String              warning;
                 String              dir =   FEFileSystem::filePath(fileName.c_str());
@@ -207,8 +219,11 @@ namespace   FE
                 AnimatonIndex       animations;
                 NodeIndex           nodeMap;
                 _texCache.clear();
+                _variantNodes.clear();
                 gltfMesh2Mesh(gltfModel,meshMap);
                 gltfMat2Material(gltfModel,matMap);
+                parseVariants(gltfModel);
+                _variantMaterials   =   matMap;
                 auto    nodes   =   parseNodes(gltfModel,meshMap,matMap,nodeMap);
                 /// animation;
                 results.reserve(results.size() + nodes.size());
@@ -344,6 +359,177 @@ namespace   FE
             }
         }
         /// <summary>
+        /// 解析根级 KHR_materials_variants 扩展:
+        ///   变体名表(extensions.KHR_materials_variants.variants)与
+        ///   每个材质的 mappings([{material:目标材质索引, variants:[变体索引,...]}])
+        /// </summary>
+        void        parseVariants(tinygltf::Model& model)
+        {
+            _variantNames.clear();
+            _variantMappings.clear();
+            auto    extItr  =   model.extensions.find("KHR_materials_variants");
+            if (extItr == model.extensions.end())
+                return;
+            const auto& obj     =   extItr->second.Get<tinygltf::Value::Object>();
+            auto    varItr      =   obj.find("variants");
+            if (varItr == obj.end() || !varItr->second.IsArray())
+                return;
+            for (const auto& v : varItr->second.Get<tinygltf::Value::Array>())
+            {
+                /// 变体条目形如 {"name": "Carmine Candy"},也可能是纯字符串
+                if (v.IsString())
+                    _variantNames.push_back(v.Get<std::string>());
+                else if (v.IsObject())
+                {
+                    const auto& vObj    =   v.Get<tinygltf::Value::Object>();
+                    auto    nameItr     =   vObj.find("name");
+                    if (nameItr != vObj.end() && nameItr->second.IsString())
+                        _variantNames.push_back(nameItr->second.Get<std::string>());
+                    else
+                        _variantNames.push_back("variant" + std::to_string(_variantNames.size()));
+                }
+            }
+            for (size_t m = 0; m < model.materials.size(); ++m)
+            {
+                auto    mitr    =   model.materials[m].extensions.find("KHR_materials_variants");
+                if (mitr == model.materials[m].extensions.end())
+                    continue;
+                const auto& mobj    =   mitr->second.Get<tinygltf::Value::Object>();
+                auto    mapItr      =   mobj.find("mappings");
+                if (mapItr == mobj.end() || !mapItr->second.IsArray())
+                    continue;
+                auto&   mappings    =   _variantMappings[int(m)];
+                for (const auto& mv : mapItr->second.Get<tinygltf::Value::Array>())
+                {
+                    if (!mv.IsObject())
+                        continue;
+                    const auto& mvObj   =   mv.Get<tinygltf::Value::Object>();
+                    auto    matItr      =   mvObj.find("material");
+                    auto    varItr2     =   mvObj.find("variants");
+                    if (matItr == mvObj.end() || varItr2 == mvObj.end() || !varItr2->second.IsArray())
+                        continue;
+                    int     target      =   matItr->second.GetNumberAsInt();
+                    for (const auto& vi : varItr2->second.Get<tinygltf::Value::Array>())
+                        mappings.push_back({vi.GetNumberAsInt(),target});
+                }
+            }
+            /// 规范位置:mappings 挂在每个 mesh primitive 的 extensions 上
+            /// (上面的材质级解析作兼容保留);按源材质索引合并并去重
+            /// (同一源材质可被多个 primitive 引用,映射相同)
+            for (const auto& mesh : model.meshes)
+            {
+                for (const auto& pri : mesh.primitives)
+                {
+                    if (pri.material < 0)
+                        continue;
+                    auto    pitr    =   pri.extensions.find("KHR_materials_variants");
+                    if (pitr == pri.extensions.end())
+                        continue;
+                    const auto& pobj    =   pitr->second.Get<tinygltf::Value::Object>();
+                    auto    pmItr       =   pobj.find("mappings");
+                    if (pmItr == pobj.end() || !pmItr->second.IsArray())
+                        continue;
+                    auto&   mappings    =   _variantMappings[pri.material];
+                    for (const auto& mv : pmItr->second.Get<tinygltf::Value::Array>())
+                    {
+                        if (!mv.IsObject())
+                            continue;
+                        const auto& mvObj   =   mv.Get<tinygltf::Value::Object>();
+                        auto    matItr      =   mvObj.find("material");
+                        auto    varItr2     =   mvObj.find("variants");
+                        if (matItr == mvObj.end() || varItr2 == mvObj.end() || !varItr2->second.IsArray())
+                            continue;
+                        int     target      =   matItr->second.GetNumberAsInt();
+                        for (const auto& vi : varItr2->second.Get<tinygltf::Value::Array>())
+                        {
+                            int     varIdx  =   vi.GetNumberAsInt();
+                            bool    exists  =   false;
+                            for (auto& pr : mappings)
+                            {
+                                if (pr.first == varIdx && pr.second == target)
+                                {
+                                    exists  =   true;
+                                    break;
+                                }
+                            }
+                            if (!exists)
+                                mappings.push_back({varIdx,target});
+                        }
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// 切换 KHR_materials_variants 变体:
+        /// 把引用了带映射材质的节点换成该变体的目标材质。
+        /// 已进渲染工厂的节点需重新入组(先按旧材质摘除,再按新材质注册,
+        /// 因为混合/双面材质可能属于不同管线的工厂)。
+        /// </summary>
+        bool        applyVariant(Nodes& nodes,int variantIndex)
+        {
+            (void)nodes;
+            if (variantIndex < 0 || variantIndex >= (int)_variantNames.size())
+                return  false;
+            FEScene*    scene   =   _ctx.scene();
+            bool        applied =   false;
+            for (auto& var : _variantNodes)
+            {
+                auto&   node    =   var.first;
+                auto    mitr    =   _variantMappings.find(var.second);
+                if (mitr == _variantMappings.end())
+                    continue;
+                /// 查找该变体的目标材质
+                Material    newMat  =   nullptr;
+                for (auto& mapping : mitr->second)
+                {
+                    if (mapping.first != variantIndex)
+                        continue;
+                    auto    mItr    =   _variantMaterials.find(mapping.second);
+                    if (mItr != _variantMaterials.end())
+                        newMat  =   mItr->second;
+                    break;
+                }
+                if (newMat == nullptr || node->material() == newMat)
+                    continue;
+                /// 节点是否已注册到渲染工厂
+                bool    inFactory   =   false;
+                if (node->mesh())
+                {
+                    for (auto& pri : node->mesh()->primitives())
+                    {
+                        if (pri && pri->factory())
+                        {
+                            inFactory   =   true;
+                            break;
+                        }
+                    }
+                }
+                if (scene != nullptr && inFactory)
+                {
+                    /// 拷贝工厂列表(FERef 的 const operator-> 返回 const 指针,无法调 removeNode)
+                    RFactorys   factories  =   scene->factoryMgr().objects();
+                    size_t      removed     =   0;
+                    for (auto& factory : factories)
+                        removed +=  factory->removeNode(node);
+                    node->setMaterial(newMat.get());
+                    auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*scene,{node});
+                    for (auto& ret : results)
+                        scene->factoryMgr().addObject(ret);
+                }
+                else
+                {
+                    node->setMaterial(newMat.get());
+                }
+                applied =   true;
+            }
+            return  applied;
+        }
+        /// 变体名表(KHR_materials_variants),顺序即变体索引
+        const   Strings&    variantNames() const
+        {
+            return  _variantNames;
+        }
+        /// <summary>
         /// 由 glTF 图像数据创建纹理。
         /// tinygltf 经 stb_image 解码:JPEG 为 RGB(component=3),PNG 可能为 RGBA(4)。
         /// 统一转换为 RGBA8 上传;1/2 通道图像暂不支持(返回 nullptr,由材质使用默认纹理)。
@@ -357,34 +543,79 @@ namespace   FE
             TexPtr  tex =   _ctx.device().createTexture();
             if (tex == nullptr)
                 return  nullptr;
+
+            /// 先统一成 level0 RGBA8(RGB 补 alpha=255)
+            const uint      w0      =   (uint)image.width;
+            const uint      h0      =   (uint)image.height;
+            std::vector<uint8>  level0(size_t(w0) * h0 * 4);
+            if (image.component == 4)
+                memcpy(level0.data(),image.image.data(),level0.size());
+            else
+            {
+                const uint8*    src =   image.image.data();
+                for (size_t p = 0; p < size_t(w0) * h0; ++p)
+                {
+                    level0[p*4+0]   =   src[p*3+0];
+                    level0[p*4+1]   =   src[p*3+1];
+                    level0[p*4+2]   =   src[p*3+2];
+                    level0[p*4+3]   =   255;
+                }
+            }
+
+            /// 生成完整 mip 链(2x2 盒式,边缘钳制;含 mipmap 后高频贴图
+            /// (如法线 flakes / 纹理 transform 大重复)远距离不再 aliasing 噪点),
+            /// 数据按 mip 顺序紧凑拼接(update 约定:layer 主序、层内 mip 顺序)
+            uint    mipCount    =   1;
+            for (uint s = (w0 > h0 ? w0 : h0); s > 1; s >>= 1)
+                ++mipCount;
+            std::vector<uint8>  pixels  =   level0;
+            const uint8*        srcMip  =   level0.data();
+            uint                srcW    =   w0;
+            uint                srcH    =   h0;
+            std::vector<uint8>  next;
+            for (uint m = 1; m < mipCount; ++m)
+            {
+                const uint  dstW    =   srcW > 1 ? srcW >> 1 : 1;
+                const uint  dstH    =   srcH > 1 ? srcH >> 1 : 1;
+                next.resize(size_t(dstW) * dstH * 4);
+                for (uint y = 0; y < dstH; ++y)
+                {
+                    for (uint x = 0; x < dstW; ++x)
+                    {
+                        uint    sum[4]  =   { 0, 0, 0, 0 };
+                        for (uint dy = 0; dy < 2; ++dy)
+                        {
+                            for (uint dx = 0; dx < 2; ++dx)
+                            {
+                                const uint  sx  =   x * 2 + dx < srcW ? x * 2 + dx : srcW - 1;
+                                const uint  sy  =   y * 2 + dy < srcH ? y * 2 + dy : srcH - 1;
+                                const uint8*    px  =   srcMip + (size_t(sy) * srcW + sx) * 4;
+                                for (uint c = 0; c < 4; ++c)
+                                    sum[c] += px[c];
+                            }
+                        }
+                        uint8*  px  =   next.data() + (size_t(y) * dstW + x) * 4;
+                        for (uint c = 0; c < 4; ++c)
+                            px[c]   =   uint8((sum[c] + 2) >> 2);
+                    }
+                }
+                pixels.insert(pixels.end(),next.begin(),next.end());
+                srcMip  =   pixels.data() + (pixels.size() - next.size());
+                srcW    =   dstW;
+                srcH    =   dstH;
+            }
+
             FETexture::CreateInfo   ci{};
-            ci._width       =   (uint)image.width;
-            ci._height      =   (uint)image.height;
+            ci._width       =   w0;
+            ci._height      =   h0;
             ci._format      =   FMT_R8G8B8A8_UNORM;
             ci._magFilter   =   FILTER_LINEAR;
             ci._minFilter   =   FILTER_LINEAR;
             ci._addressMode =   ADDRESS_REPEAT;
+            ci._mips        =   mipCount;
             if (!tex->create(ci))
                 return  nullptr;
-            if (image.component == 4)
-            {
-                tex->update(image.image.data(),image.image.size());
-            }
-            else
-            {
-                /// RGB 补 alpha=255 转 RGBA
-                const size_t    pixelCount  =   size_t(image.width) * size_t(image.height);
-                std::vector<uint8>  rgba(pixelCount * 4);
-                const uint8*    src     =   image.image.data();
-                for (size_t p = 0; p < pixelCount; ++p)
-                {
-                    rgba[p*4+0]     =   src[p*3+0];
-                    rgba[p*4+1]     =   src[p*3+1];
-                    rgba[p*4+2]     =   src[p*3+2];
-                    rgba[p*4+3]     =   255;
-                }
-                tex->update(rgba.data(),rgba.size());
-            }
+            tex->update(pixels.data(),pixels.size());
             return  tex;
         }
         /// <summary>
@@ -966,24 +1197,111 @@ namespace   FE
 
             /// ===== 全套贴图(glTF 金属度-粗糙度工作流) =====
             /// baseColor / metallicRoughness / normal / occlusion / emissive
-            /// 注:KHR_texture_transform(UV 变换)当前 shader 不支持,仅读取不应用。
+            /// KHR_texture_transform(UV 变换)逐贴图解析后通过 setUvTransform 下发,
+            /// shader 侧 applyUvTr(slot, uv) 在采样前应用(槽序 = PBRTexSlot)
+            auto        applyTexTr  =   [&](const tinygltf::ExtensionMap& extensions,FEMaterialPBR::PBRTexSlot slot)
+            {
+                float2  vScale(1.0f,1.0f), vTrans(0.0f,0.0f);
+                float   radian  =   0.0f;
+                if (texTransform(extensions,vScale,vTrans,radian))
+                    pbrMat->setUvTransform(uint(slot),vScale,vTrans,radian);
+            };
             if (pbr.baseColorTexture.index >= 0)
+            {
                 pbrMat->setBaseColorMap(getOrCreateTexture(model,pbr.baseColorTexture.index));
+                applyTexTr(pbr.baseColorTexture.extensions,FEMaterialPBR::SLOT_BASECOLOR);
+            }
             if (pbr.metallicRoughnessTexture.index >= 0)
+            {
                 pbrMat->setMetallicRoughnessMap(getOrCreateTexture(model,pbr.metallicRoughnessTexture.index));
+                applyTexTr(pbr.metallicRoughnessTexture.extensions,FEMaterialPBR::SLOT_METALLICROUGH);
+            }
             if (material.normalTexture.index >= 0)
             {
                 pbrMat->setNormalMap(getOrCreateTexture(model,material.normalTexture.index));
                 pbrMat->setNormalScale((float)material.normalTexture.scale);
+                applyTexTr(material.normalTexture.extensions,FEMaterialPBR::SLOT_NORMAL);
             }
             if (material.occlusionTexture.index >= 0)
             {
                 pbrMat->setOcclusionMap(getOrCreateTexture(model,material.occlusionTexture.index));
                 pbrMat->setOcclusionStrength((float)material.occlusionTexture.strength);
+                applyTexTr(material.occlusionTexture.extensions,FEMaterialPBR::SLOT_OCCLUSION);
             }
             if (material.emissiveTexture.index >= 0)
+            {
                 pbrMat->setEmissiveMap(getOrCreateTexture(model,material.emissiveTexture.index));
+                applyTexTr(material.emissiveTexture.extensions,FEMaterialPBR::SLOT_EMISSIVE);
+            }
             pbrMat->setEmissiveStrength(getEmissiveStrength(material.extensions));
+
+            /// ===== KHR 材质扩展 =====
+            auto    getExtFloat =   [](const tinygltf::ExtensionMap& extensions,const char* extName,const char* key,float defVal)
+            {
+                auto    extItr  =   extensions.find(extName);
+                if (extItr == extensions.end())
+                    return  defVal;
+                const auto& obj =   extItr->second.Get<tinygltf::Value::Object>();
+                auto    itr     =   obj.find(key);
+                if (itr == obj.end())
+                    return  defVal;
+                return  float(itr->second.GetNumberAsDouble());
+            };
+            /// KHR_materials_clearcoat 清漆层
+            float   ccStrength  =   getExtFloat(material.extensions,"KHR_materials_clearcoat","clearcoatFactor",0.0f);
+            if (ccStrength > 0.0f)
+            {
+                float   ccRoughness =   getExtFloat(material.extensions,"KHR_materials_clearcoat","clearcoatRoughnessFactor",0.0f);
+                pbrMat->setClearcoat(ccStrength,ccRoughness);
+            }
+            /// KHR_materials_transmission 透射(无折射 pass,以 alpha 混合近似)
+            float   transmission    =   getExtFloat(material.extensions,"KHR_materials_transmission","transmissionFactor",0.0f);
+            if (transmission > 0.0f)
+                pbrMat->setTransmission(transmission);
+            /// KHR_materials_iridescence 虹彩(薄膜干涉)
+            float   iriFactor   =   getExtFloat(material.extensions,"KHR_materials_iridescence","iridescenceFactor",0.0f);
+            if (iriFactor > 0.0f)
+            {
+                float   iriIor      =   getExtFloat(material.extensions,"KHR_materials_iridescence","iridescenceIor",1.3f);
+                float   iriTmin     =   getExtFloat(material.extensions,"KHR_materials_iridescence","iridescenceThicknessMinimum",100.0f);
+                float   iriTmax     =   getExtFloat(material.extensions,"KHR_materials_iridescence","iridescenceThicknessMaximum",400.0f);
+                pbrMat->setIridescence(iriFactor,iriIor,iriTmin,iriTmax);
+
+                /// iridescenceThicknessTexture(嵌套 textureInfo:index/texCoord/extensions,
+                /// G 通道在 [tmin,tmax] 插值;CarConcept Paint 1 Pearl 即带此贴图)
+                auto    iriExtItr   =   material.extensions.find("KHR_materials_iridescence");
+                if (iriExtItr != material.extensions.end() && iriExtItr->second.IsObject())
+                {
+                    const auto& iriObj  =   iriExtItr->second.Get<tinygltf::Value::Object>();
+                    auto        texItr  =   iriObj.find("iridescenceThicknessTexture");
+                    if (texItr != iriObj.end() && texItr->second.IsObject())
+                    {
+                        const auto& texObj  =   texItr->second.Get<tinygltf::Value::Object>();
+                        auto        idxItr  =   texObj.find("index");
+                        const int   texIndex=   (idxItr != texObj.end() && idxItr->second.IsNumber())
+                                                ? idxItr->second.GetNumberAsInt() : -1;
+                        if (texIndex >= 0)
+                        {
+                            pbrMat->setIriThicknessMap(getOrCreateTexture(model,texIndex));
+                            /// KHR_texture_transform(嵌套于 textureInfo.extensions;
+                            /// tinygltf 中 Value::Object 与 ExtensionMap 同为 map<string,Value>)
+                            auto    extTItr =   texObj.find("extensions");
+                            if (extTItr != texObj.end() && extTItr->second.IsObject())
+                                applyTexTr(extTItr->second.Get<tinygltf::Value::Object>(),FEMaterialPBR::SLOT_IRITHICKNESS);
+                        }
+                    }
+                }
+            }
+            /// AO 贴图使用 TEXCOORD_1(CarConcept 即如此)
+            if (material.occlusionTexture.index >= 0 && material.occlusionTexture.texCoord == 1)
+                pbrMat->setOcclusionTexCoord(1);
+
+            /// ===== 管线变体(放在最后,贴图/参数设置完成后再切管线,避免多次重绑)=====
+            /// BLEND 或 transmission>0 → 混合管线(pbrBlend 本身双面);否则 doubleSided → 双面管线(pbr2s)
+            if (material.alphaMode == "BLEND" || transmission > 0.0f)
+                pbrMat->setAlphaBlend(true);
+            else if (material.doubleSided)
+                pbrMat->setDoubleSided(true);
 
             return      pbrMat;
 
@@ -1061,6 +1379,7 @@ namespace   FE
             if(node.matrix.size() == 16)
             {
                 mat4r   mat;
+                /// glTF node.matrix 为列主序:元素 e = col*4+row,引擎 mat4r 同为列主序,直接填充
                 for(int i = 0; i < node.matrix.size(); ++i)
                 {
                     mat[i/4][i%4] = node.matrix[i];
@@ -1086,6 +1405,9 @@ namespace   FE
                         return  pNode;
                     pNode->setMesh(meshs.front());
                     pNode->setMaterial(mat);
+                    /// 变体:源材质带 KHR_materials_variants 映射时记录节点(供 applyVariant 切换)
+                    if (_variantMappings.find(gltfMesh.primitives[0].material) != _variantMappings.end())
+                        _variantNodes.push_back({pNode,gltfMesh.primitives[0].material});
                 }
                 else if (meshs.size() == gltfMesh.primitives.size() && !meshs.empty())
                 {
@@ -1097,6 +1419,9 @@ namespace   FE
                         Node        child   =   new FENode(_ctx);
                         child->setMesh(meshs[i]);
                         child->setMaterial(mat);
+                        /// 变体:同上,多 primitive 时记录到 child 节点
+                        if (_variantMappings.find(gltfMesh.primitives[i].material) != _variantMappings.end())
+                            _variantNodes.push_back({child,gltfMesh.primitives[i].material});
 
                         pNode->addChild(child.get());
                     }
