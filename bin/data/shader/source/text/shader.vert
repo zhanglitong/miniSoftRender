@@ -56,6 +56,10 @@ void main()
         vec2    ndc =   inPos.xy * pc._screen.zw;
         gl_Position =   vec4(ndc.x * 2.0 - 1.0,1.0 - ndc.y * 2.0,0.0,1.0);
     }
+    /// 点图元变体(using_defult 会为该管线生成 POINT_LIST):显式写 gl_PointSize,
+    /// 否则 Vulkan 校验层报 "PointSize is not written but topology is POINT_LIST"
+    gl_PointSize    =   1.0;
+
     outUV       =   inUV;
     outColor    =   nodeColor;
 }
