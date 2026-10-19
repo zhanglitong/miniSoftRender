@@ -129,6 +129,15 @@ namespace   FE
         /// 插入 pipeline barrier（OIT Geometry→Color 之间保证 SSBO 写入可见）
         virtual FEResult    pipelineBarrier(uint32 srcStageMask, uint32 dstStageMask,
                                              uint32 srcAccessMask, uint32 dstAccessMask) =   0;
+
+        /// 生成离屏渲染目标纹理的 mip 链(如 transmission 场景折射纹理:
+        /// pass1 渲到 mip0 后,逐级 blit downsample 填满其余 mip,
+        /// 供 shader 按 roughness 选 lod 采样,实现磨砂玻璃模糊折射)。
+        /// 默认空实现:不支持的后端(WebGPU 暂不处理)直接返回成功。
+        virtual FEResult    generateMips(GImgView /*view*/)
+        {
+            return  FEResult::ER_SUCCESS;
+        }
        
         virtual FEResult    draw  (   uint32_t firstVertex  
                                     , uint32_t vertexCount

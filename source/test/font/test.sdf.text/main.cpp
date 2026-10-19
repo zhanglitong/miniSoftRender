@@ -241,11 +241,10 @@ int     main(int argc, char** argv)
             pMat->setFont(font);
             if (pMat->pipeline(PRI_TRIANGLES) == nullptr)
             {
-                std::cerr << "pipeline text/TRIANGLES not found" << std::endl;
+                std::cout << "pipeline text/TRIANGLES not found" << std::endl;
                 passed  =   false;
             }
             node->setMaterial(pMat);
-            /// 白色文字,便于观察 SDF 抗锯齿效果
             node->setColor(Rgba8(255,255,255,255));
             node->makeDirty();
             node->update();

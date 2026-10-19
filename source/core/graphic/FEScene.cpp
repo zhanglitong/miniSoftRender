@@ -25,22 +25,6 @@
 
 namespace   FE
 {
-    /// 递归把 transmission 场景折射纹理挂到节点子树的所有 FEMaterialPBR 上
-    static  void    applySceneTextureToNode(const Node& node,TexPtr sceneTex)
-    {
-        if (node == nullptr)
-            return;
-        auto    mat =   node->material();
-        if (mat != nullptr)
-        {
-            auto    pbr =   mat->as<FEMaterialPBR>();
-            if (pbr != nullptr)
-                pbr->setSceneTexture(sceneTex);
-        }
-        for (auto& child : node->children())
-            applySceneTextureToNode(child,sceneTex);
-    }
-
     FEScene::FEScene(FEContext& ctx)
         :FEObject(ctx)
         ,_nodeTree(ctx)
@@ -94,6 +78,7 @@ namespace   FE
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
         _app        =   app;
+        _rendererId =   rendererId;
         _renderSys  =   FERenderSystem::create(_ctx,rendererId);
         assert(_renderSys != nullptr);
         if (_renderSys == nullptr)
@@ -255,12 +240,7 @@ namespace   FE
         dispatchToSystem<FEAnimation>(_comSysMgr,nodeList);
         dispatchToSystem<FEConstraint>(_comSysMgr,nodeList);
         dispatchToSystem<FEInput>(_comSysMgr,nodeList);
-        /// transmission:新进场节点的 PBR 材质挂接场景折射纹理(若已创建)
-        if (_sceneTex)
-        {
-            for (auto& node : nodeList)
-                applySceneTextureToNode(node,_sceneTex);
-        }
+        /// transmission 场景折射纹理由 PBR 材质渲染时自取自用(见 FEMaterialPBR::refreshSceneTexture)
     }
 
     void    FEScene::onFrameStart()
@@ -443,6 +423,9 @@ namespace   FE
             /// endRender 把 sceneTex 从 COLOR_ATTACHMENT 转入 SHADER_READ_ONLY
             /// (VK 端按 usage 自动选择,见 VKCmdBuffer::endRender)
             cmd->endRender(p1Info);
+            /// 生成 sceneTex mip 链(mip0 之外的级别,供粗糙透射按 lod 采样)
+            if (_sceneTex && _sceneTex->mips() > 1)
+                cmd->generateMips(_sceneTexView);
 
             // pass2: 全量渲染 → swapchain(透明材质在 shader 中采样 sceneTex 折射)
             FEFactoryRender::setTransPass(FEFactoryRender::TransPass::TP_ALL);
@@ -910,13 +893,27 @@ namespace   FE
             tci._minFilter      =   FILTER_LINEAR;
             tci._addressMode    =   ADDRESS_CLAMP_TO_EDGE;
             tci._renderTarget   =   true;
+            /// Vulkan 端建满 mip 链:pass1 渲 mip0 后由 VKCmdBuffer::generateMips
+            /// 逐级 blit 生成,shader 按 roughness 选 lod 实现磨砂玻璃模糊折射
+            /// (对标 glTF-Sample-Viewer);WebGPU 暂不处理,保持单 mip
+            if (_rendererId == RS_VULKAN)
+            {
+                uint    maxDim  =   (std::max)(width,height);
+                uint    mipCnt  =   1;
+                while (maxDim > 1)
+                {
+                    maxDim  >>= 1;
+                    ++mipCnt;
+                }
+                tci._mips       =   mipCnt;
+            }
             if (sceneTex && sceneTex->create(tci) && sceneTex->imageView())
             {
                 _sceneTex       =   sceneTex;
                 _sceneTexView   =   sceneTex->imageView();
-                /// 纹理对象重建后需重挂所有 PBR 材质(旧绑定指向已销毁纹理)
-                for (auto& node : _nodeTree.topLevelNodes())
-                    applySceneTextureToNode(node,_sceneTex);
+                /// 注册到 device cache,PBR 材质渲染时自取并自动检测重建后重绑
+                sceneTex->setObjectId(FEConstUuid::SceneTexId);
+                _device->cacheObject(sceneTex.get());
             }
         }
 

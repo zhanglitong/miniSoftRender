@@ -236,6 +236,9 @@ namespace   FE
         Camera              _camera;
         FrustumCull         _frustCull;
         RenderSys           _renderSys;
+        /// 渲染后端 id(setup 传入;用于区分 Vulkan/WebGPU 的能力差异,
+        /// 如 transmission sceneTex 的 mip 链目前仅 Vulkan 端生成)
+        FEUuid              _rendererId;
         Device              _device;
         Swapchain           _swapchain;
         CMDPool             _cmdPool;

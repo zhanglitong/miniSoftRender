@@ -11,6 +11,10 @@
 
 namespace   FE
 {
+    /// DEBUG: 帧采样全局标志(由 rs.webgpu 的 WGCmdBuffer.beginRender 每帧维护,
+    /// core 端组级打点据此与 WGCMD.bind 采样帧对齐)
+    FE_API bool g_dbgFrameSampled   =   false;
+
     using   GroupNode   =   FEFactoryRender::GroupNode;
     using   VBinds      =   FEFactoryRender::VBinds;
 
@@ -490,6 +494,9 @@ namespace   FE
         /// 两遍循环:pass=0 不透明组,pass=1 透明组。
         auto    drawGroups  =   [&](bool transparentPass)
         {
+        /// DEBUG: 组级审计——帧采样帧内逐组记录(标志由 WGCmdBuffer.beginRender 维护),
+        /// 捕获空 _dsets / null pipeline 的材质,并把 mat 指针与同帧 WGCMD.bind 按序关联
+        bool    dbgGrpSampled   =   g_dbgFrameSampled;
         for (auto& grp : _groupNode)
         {
             const bool  grpTransparent  =   grp->_mat && grp->_mat->isTransparent();
@@ -511,6 +518,12 @@ namespace   FE
             binds.offsets       =   nullptr;
             binds.plBindPoint   =   PL_GRAPIC;
             binds.plLayout      =   pl->nativeLayout();
+            if (dbgGrpSampled)
+            {
+                LOG_ERR("WGGRP: mat=%p pl=%p ndsets=%zu transp=%d",
+                        (void*)grp->_mat.get(),(void*)pl,
+                        binds.dSets.size(),(int)transparentPass);
+            }
             cmd->bindDescriptors(binds);
             uint64  offset      =   grp->cmdOffset() * sizeof(FECmdIndex);
             uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
@@ -518,31 +531,17 @@ namespace   FE
                 continue;
             if (_device.supportWGSLShaders())
             {
-                /// WebGPU: 用 VBO offset 替代 firstInstance,
-                /// 每个 instance binding 有各自的 stride, 必须分别计算 offset。
-                /// pipeline layout 中 binding 1 stride=64(matrix), binding 2 stride=4(color), binding 3 stride=4(flag)
+                /// WebGPU: 直接使用 firstInstance 索引实例属性。
+                /// 实例 VBO 已在 render() 开头以 offset=0 整体绑定,drawIndex 的
+                /// firstInstance 由 wgpuRenderPassEncoderDrawIndexed 原生支持,
+                /// 实例范围覆盖校验由 ensureVertexSlots 完成。
+                /// (原先"每对象按 stride 重算 VBO offset"的路径废弃)
                 uint    start   =   grp ? grp->start() : 0u;
                 for (size_t k = 0; k < grp->_objects.size(); ++k)
                 {
                     auto    node    =   grp->_objects[k];
                     if (!node || !node->mesh()) continue;
                     uint    instIdx =   start + (uint)k;
-                    /// 为每个 instance VBO binding 按其自身 stride 计算 offset
-                    for (auto& var : _vboInstances)
-                    {
-                        uint32  stride  =   0;
-                        for (const auto& bind : pl->cInfo()._binds)
-                        {
-                            if (bind.binding == var._binding)
-                            {
-                                stride  =   bind.stride;
-                                break;
-                            }
-                        }
-                        uint64  instOff =   (uint64)instIdx * stride;
-                        uint64s offsets(var._vbos.size(), instOff);
-                        cmd->bindVBO(var._binding, uint(var._vbos.size()), var._vbos, offsets);
-                    }
                     auto&   pris    =   node->mesh()->primitives();
                     for (size_t i = 0; i < pris.size(); ++i)
                     {
@@ -562,11 +561,11 @@ namespace   FE
                         switch(_key._drawType)
                         {
                         case EDrawType::DRAW_ARRAY:
-                            cmd->draw(ci.firstIndex,ci.count,0,ci.primCount);
+                            cmd->draw(ci.firstIndex,ci.count,instIdx,ci.primCount);
                             break;
                         default:
                             cmd->drawIndex(ci.firstIndex,ci.count,ci.baseVertex,
-                                           0,ci.primCount);
+                                           instIdx,ci.primCount);
                             break;
                         }
                     }

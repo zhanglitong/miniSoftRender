@@ -138,6 +138,13 @@ namespace   FE
                     entry.size   =   binding._ranges.empty()
                                      ? buffer->cInfo()._length
                                      : binding._ranges[0];
+                    /// DEBUG: 追踪 UBO 绑定(binding 4 = PBRData),与 WGBUF.update 对账
+                    if (binding._type == DT_UNIFORM_BUFFER && entry.size == 128)
+                    {
+                        LOG_ERR("WGDSET.ubo: dset=%p binding=%u buffer=%p offset=%llu size=%llu",
+                                (void*)this,binding._binding,entry.buffer,
+                                (unsigned long long)entry.offset,(unsigned long long)entry.size);
+                    }
                 }
                 break;
             }

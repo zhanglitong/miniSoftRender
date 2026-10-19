@@ -37,6 +37,10 @@ namespace   FE
         imgInfo._usage                      =   info._renderTarget
                                                 ? (USAGE_COLOR_ATTACHMENT | USAGE_SAMPLED)
                                                 : (USAGE_TRANSFER_DST | USAGE_SAMPLED);
+        /// 多 mip 渲染目标:pass1 渲 mip0 后逐级 blit downsample 生成 mip 链
+        /// (VKCmdBuffer::generateMips),需传输源/目标用法
+        if (info._renderTarget && info._mips > 1)
+            imgInfo._usage                  |=  (USAGE_TRANSFER_SRC | USAGE_TRANSFER_DST);
         imgInfo._width                      =   info._width;
         imgInfo._height                     =   info._height;
         imgInfo._depth                      =   1;

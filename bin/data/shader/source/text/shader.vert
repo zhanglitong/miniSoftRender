@@ -29,6 +29,9 @@ layout  (push_constant) uniform TextPush
     /// x = 每个烘焙像素对应的 SDF 编码增量 = 1/(2*spread)(片元着色器使用)
     /// z = 绘制模式(0=屏幕叠加,1=三维布告板)
     vec4    _sdf;
+    /// x = 描边宽度(屏幕像素,0=无描边); yzw = 描边颜色 RGB(归一化 0~1)
+    /// 顶点阶段不使用,仅为与片元着色器保持 push constant 布局一致
+    vec4    _stroke;
 }   pc;
 
 layout  (location = 0)  out vec2    outUV;

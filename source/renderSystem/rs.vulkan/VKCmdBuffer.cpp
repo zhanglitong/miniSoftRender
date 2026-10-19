@@ -544,6 +544,84 @@ namespace   FE
                              0, nullptr);
         return  FEResult::ER_SUCCESS;
     }
+    FEResult    VKCmdBuffer::generateMips(GImgView view)
+    {
+        if (!isValid() || view == nullptr)
+            return  FEResult::ER_FAILED;
+        auto    image   =   view->cInfo()._image;
+        if (image == nullptr || image->native() == nullptr)
+            return  FEResult::ER_FAILED;
+        const auto& imgInfo =   image->cInfo();
+        const uint  mipLevels   =   imgInfo._mips;
+        if (mipLevels < 2)
+            return  FEResult::ER_SUCCESS;
+
+        auto    vkImage =   (VkImage)image->native();
+
+        /// 进入时状态(pass1 endRender 之后):mip0 = SHADER_READ_ONLY,
+        /// 其余 mip 尚未触碰过(UNDEFINED)。流程:
+        ///   1. mip0 SHADER_READ_ONLY -> TRANSFER_SRC
+        ///   2. 逐级:mip i UNDEFINED -> TRANSFER_DST,blit(i-1 -> i,线性过滤),
+        ///      mip i TRANSFER_DST -> SHADER_READ_ONLY
+        ///   3. mip0 TRANSFER_SRC -> SHADER_READ_ONLY
+        insertImageMemoryBarrier(
+            _native, vkImage,
+            VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+        uint    srcW    =   imgInfo._width;
+        uint    srcH    =   imgInfo._height;
+        for (uint mip = 1; mip < mipLevels; ++mip)
+        {
+            const uint  dstW    =   srcW > 1 ? srcW >> 1 : 1;
+            const uint  dstH    =   srcH > 1 ? srcH >> 1 : 1;
+
+            insertImageMemoryBarrier(
+                _native, vkImage,
+                0, VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip, 1, 0, 1 });
+
+            VkImageBlit blit                =   {};
+            blit.srcSubresource.aspectMask  =   VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.srcSubresource.mipLevel    =   mip - 1;
+            blit.srcSubresource.layerCount  =   1;
+            blit.srcOffsets[0]              =   { 0, 0, 0 };
+            blit.srcOffsets[1]              =   { (int32_t)srcW, (int32_t)srcH, 1 };
+            blit.dstSubresource.aspectMask  =   VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.dstSubresource.mipLevel    =   mip;
+            blit.dstSubresource.layerCount  =   1;
+            blit.dstOffsets[0]              =   { 0, 0, 0 };
+            blit.dstOffsets[1]              =   { (int32_t)dstW, (int32_t)dstH, 1 };
+            vkCmdBlitImage(_native,
+                           vkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1, &blit, VK_FILTER_LINEAR);
+
+            insertImageMemoryBarrier(
+                _native, vkImage,
+                VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip, 1, 0, 1 });
+
+            srcW    =   dstW;
+            srcH    =   dstH;
+        }
+
+        insertImageMemoryBarrier(
+            _native, vkImage,
+            VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+        /// 整体布局追踪值不变(全部 mip 最终均为 SHADER_READ_ONLY)
+        return  FEResult::ER_SUCCESS;
+    }
 
 
     FEResult    VKCmdBuffer::draw  (   uint32_t firstVertex  

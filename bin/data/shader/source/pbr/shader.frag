@@ -59,6 +59,10 @@ layout(set = 0, binding = 11) uniform PBRTexBlock {
     /// baseColor/metallicRoughness/normal/occlusion/emissive/iriThickness),
     /// 与 FEMaterialPBR::PBRTexParams::_uvTransform 逐字节一致
     vec4    _pbrUvTr[12];
+    /// KHR_materials_volume(尾部追加,与 PBRTexParams::_volume 逐字节一致):
+    /// [0]=(thickness, attenuationColor.rgb),[1]=(attenuationDistance,-,-,-),
+    /// distance<=0 视为无穷大(不吸收)
+    vec4    _pbrVolume[2];
 };
 
 /// 环境贴图(cubemap,IBL 镜面预滤波用),绑定到 12
@@ -438,24 +442,47 @@ void main()
 
     /// 7b. transmission 场景折射:透射光按因子补足被衰减的漫反射
     ///     (参考 glTF-Sample-Viewer getIBLVolumeRefraction)。
-    ///     薄壁近似(KHR_materials_volume 未接入,厚度 0):折射光线出口点即片元
-    ///     自身投影位置,屏幕空间 UV 采样不透明场景预渲染纹理 u_SceneTex。
+    ///     KHR_materials_volume:thickness>0 时折射光线按 IOR 折射并偏移厚度,
+    ///     出口点投影采样屏幕空间 UV;再按 Beer-Lambert 吸收衰减。
+    ///     thickness=0 时出口点即片元自身,退化为薄壁近似。
     ///     sceneTex 存的是已 ACES+gamma 的 LDR,这里近似还原线性后随本体再次
     ///     色调映射(二次 ACES 使玻璃后景物略暗,视觉上接近玻璃吸收,可接受)。
     if (transmission > 0.0)
     {
-        vec4 ndc      = _camera._vp * vec4(inPos, 1.0);
+        /// KHR_materials_ior 未接入,固定玻璃典型值 1.5
+        /// (参考实现 applyIorToRoughness(1.5)=identity,故 lod 仍按 roughness 取)
+        const float VOL_IOR = 1.5;
+        float volThickness  = _pbrVolume[0].x;
+        vec3  volAttColor   = _pbrVolume[0].yzw;
+        float volAttDist    = _pbrVolume[1].x;
+        /// 折射向量(IOR 1.0→1.5),出口点 = 片元位置 + 折射向量*厚度
+        /// (参考:transmissionRay = refract(-v, n, 1.0/ior) * thickness;
+        ///  TIR 时 refract 返回零向量,出口点退化为片元自身)
+        vec3  refractVec    = refract(-v, n, 1.0 / VOL_IOR);
+        vec3  exitPos       = inPos + refractVec * volThickness;
+        vec4  ndc           = _camera._vp * vec4(exitPos, 1.0);
         /// NDC→sceneTex UV:X 自洽不翻;Y 必须取反——引擎投影为 OpenGL 风格
         /// (NDC+Y 朝上),Vulkan 经 INVERT_VIEWPORT 负高视口、WebGPU 经自身
         /// NDC-Y-up 视口变换,均使 NDC+Y 落到帧缓冲顶行(y_f=0),即
         /// y_nd = 1-2*y_f/h,故 ndc.y*0.5+0.5 = 1-y_f/h,取反后才是本像素行
         vec2 ruv      = ndc.xy / ndc.w * vec2(0.5, -0.5) + 0.5;
-        vec3 sceneRGB = textureLod(u_SceneTex, ruv, 0.0).rgb;
+        /// 磨砂玻璃模糊折射:按 roughness 选 mip lod 采样(对标 glTF-Sample-Viewer
+        /// framebufferLod = roughness * log2(screenW);满链时 log2(screenW)≈maxLod,
+        /// sceneTex 仅 Vulkan 端建满 mip 链,占位 1x1 白图 maxLod=0 退化为原行为)
+        float sceneMaxLod = float(textureQueryLevels(u_SceneTex) - 1);
+        vec3 sceneRGB = textureLod(u_SceneTex, ruv, roughness * sceneMaxLod).rgb;
+        /// Beer-Lambert 体积吸收(参考 applyVolumeAttenuation):
+        /// attenuation = pow(attenuationColor, vec3(thickness/attenuationDistance));
+        /// distance<=0 视为无穷大(不吸收);thickness=0 时不进入分支
+        /// (避免 pow(0,0) 未定义),且 pow(c,0)=1 本就等价不吸收
+        vec3 volAtt = vec3(1.0);
+        if (volAttDist > 0.0 && volThickness > 0.0)
+            volAtt = pow(clamp(volAttColor, 0.0, 1.0), vec3(volThickness / volAttDist));
         /// 官方:f_specular_transmission 取代 f_diffuse 后再经 (1-F_ibl) 混合,
         /// 透射项最终权重 = transmission*(1-F)(掠射角透射减弱、反射增强)。
         /// sceneTex 存的是已 ACES+gamma 的 LDR,近似还原线性后随本体再次色调映射。
         vec3 Ft       = fresnelSchlickRoughness(NdotV, vec3(0.04), roughness);
-        color += pow(sceneRGB, vec3(2.2)) * baseColor.rgb * transmission * (vec3(1.0) - Ft);
+        color += pow(sceneRGB, vec3(2.2)) * volAtt * baseColor.rgb * transmission * (vec3(1.0) - Ft);
     }
 
     /// 8. 环境遮蔽(AO 的 UV 集由材质参数选择:glTF occlusionTexture.texCoord)

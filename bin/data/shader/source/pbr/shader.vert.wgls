@@ -82,8 +82,9 @@ struct  VsOut
 fn  main(in : VsIn) -> VsOut
 {
     var out      : VsOut;
-    let matLocal = makeTransform(in.trans, in.scale, in.rot);
-    let localOffset = makeOffsetLocalMatrix(in.trans, in.scale, in.rot, in.intPart, _camera._offset.xyz);
+    /// DEBUG: identity transform — bypass instance attributes entirely
+    let matLocal = mat4x4f(vec4f(1.0,0.0,0.0,0.0), vec4f(0.0,1.0,0.0,0.0), vec4f(0.0,0.0,1.0,0.0), vec4f(0.0,0.0,0.0,1.0));
+    let localOffset = matLocal;
 
     let tmp      = matLocal * vec4f(in.inPos.xyz, 1.0);
     out.outPos      = tmp.xyz;

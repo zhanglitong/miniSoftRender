@@ -24,6 +24,9 @@ struct  TextPush
     _screen     : vec4f,
     /// x = SDF 编码增量(片元使用); z = 绘制模式(0=屏幕叠加,1=三维布告板)
     _sdf        : vec4f,
+    /// x = 描边宽度(屏幕像素,0=无描边); yzw = 描边颜色 RGB(归一化 0~1)
+    /// 顶点阶段不使用,仅为与片元着色器保持 push constant 布局一致
+    _stroke     : vec4f,
 }
 
 @group(0) @binding(0) var<uniform> _camera : CameraData;

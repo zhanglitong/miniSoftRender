@@ -45,6 +45,12 @@ namespace   FE
         /// (std140 下 vec4 数组从偏移 48 开始、元素步长 16 字节;前 12 标量占 48 字节;
         /// 槽序 0~5 = baseColor/mr/normal/ao/emissive/iriThickness,同 PBRTexSlot)
         float   _uvTransform[6 * 8];
+        /// ===== KHR_materials_volume(尾部追加;2 个 vec4,保持总尺寸为 16 字节
+        /// 倍数——WGSL uniform 结构尺寸必须 16 对齐,std140 vec4 数组天然对齐)=====
+        /// [0]: x=thickness 折射厚度(米,0=薄壁无偏移),yzw=attenuationColor 吸收色 RGB
+        /// [1]: x=attenuationDistance 吸收距离(<=0 视为无穷大=不吸收),yzw 保留
+        /// 与 shader 侧 vec4 _pbrVolume[2] 逐字节一致(偏移 240/256)
+        float   _volume[2 * 4];
         PBRTexParams()
             :_flags(0)
             ,_normalScale(1.0f)
@@ -62,6 +68,9 @@ namespace   FE
             /// 默认单位变换(无 UV 变换)
             for (uint slot = 0; slot < 6; ++slot)
                 setUvIdentity(slot);
+            /// 默认无体积(薄壁、不吸收)
+            for (uint i = 0; i < 8; ++i)
+                _volume[i] = 0.0f;
         }
         /// 把某贴图槽位的变换重置为单位矩阵
         void    setUvIdentity(uint slot)
@@ -206,6 +215,7 @@ namespace   FE
             _sceneTexMap    =   other._sceneTexMap;
             _sceneTexWhite  =   other._sceneTexWhite;
             _hasRealSceneTex=   other._hasRealSceneTex;
+            _autoSceneTex   =   other._autoSceneTex;
             bindAllTextures();
             updateSceneTexCount();
             update();
@@ -344,12 +354,13 @@ namespace   FE
             updateSceneTexCount();
         }
         /// <summary>
-        /// 挂接 transmission 场景折射纹理(FEScene 双趟渲染的不透明场景预渲染结果,
-        /// 全屏 RGBA8,shader 中屏幕空间采样)。内部维护"已挂真纹理且 transmission>0"
-        /// 材质的全局计数,FEScene 据此决定是否启用场景折射双趟渲染。
+        /// 挂接 transmission 场景折射纹理(手动模式:外部渲染器接管绑定,
+        /// 自动刷新随之关闭)。标准场景内无需调用——transmission>0 的材质
+        /// 会在渲染时自动从 device cache(FEConstUuid::SceneTexId)自取。
         /// </summary>
         inline  void    setSceneTexture(TexPtr tex)
         {
+            _autoSceneTex   =   false;
             if (tex != nullptr)
             {
                 _sceneTexMap        =   tex;
@@ -363,6 +374,31 @@ namespace   FE
         static  bool    anyTransmissionMaterial()
         {
             return  s_transmissionMats > 0;
+        }
+        /// <summary>
+        /// KHR_materials_volume 体积参数(需配合 transmission>0 才有视觉效果):
+        ///   thickness > 0 时折射光线按 IOR=1.5 折射并沿折射向量偏移厚度后再投影
+        ///   采样 sceneTex(对标 glTF-Sample-Viewer getIBLVolumeRefraction);
+        ///   attDist > 0 时按 Beer-Lambert 吸收:att = pow(attColor, thickness/attDist),
+        ///   attDist <= 0 视为无穷大(不吸收);attColor 默认应为白(不吸收)。
+        /// </summary>
+        inline  void    setVolume(float thickness,const float3& attColor,float attDist)
+        {
+            float*  v   =   _texParams._value._volume;
+            v[0] = thickness;
+            v[1] = attColor.x; v[2] = attColor.y; v[3] = attColor.z;
+            v[4] = attDist;    v[5] = 0.0f; v[6] = 0.0f; v[7] = 0.0f;
+            _texParams.update();
+        }
+        /// 当前体积参数自检:返回 (thickness, attenuationDistance)
+        inline  float2  volume() const
+        {
+            return  float2(_texParams._value._volume[0],_texParams._value._volume[4]);
+        }
+        /// 当前挂接的场景折射纹理(自动模式下即 device cache 中那份;未挂接时为 nullptr)
+        TexPtr  sceneTexture() const
+        {
+            return  _hasRealSceneTex ? _sceneTexMap : TexPtr(nullptr);
         }
         /// KHR_materials_iridescence 虹彩(薄膜干涉)
         inline  void    setIridescence(float factor,float ior = 1.3f,float tmin = 100.0f,float tmax = 400.0f)
@@ -452,6 +488,7 @@ namespace   FE
     public:
         virtual void        appDynamicState(CMDPtr cmd,EPrimitive pri) override
         {
+            refreshSceneTexture();
             _pbr.checkDirty();
             _texParams.checkDirty();
             FEMaterial::appDynamicState(cmd,pri);
@@ -586,6 +623,9 @@ namespace   FE
         TexPtr              _sceneTexWhite;
         /// 是否已通过 setSceneTexture 挂接真场景纹理(区别于构造期占位)
         bool                _hasRealSceneTex    =   false;
+        /// 自动模式(默认):渲染时从 device cache(SceneTexId)自取场景纹理,
+        /// sceneTex 重建(resize)后下一帧自动重绑;外部 setSceneTexture 后转手动
+        bool                _autoSceneTex       =   true;
         /// 本材质当前是否计入 s_transmissionMats(真纹理 + transmission>0)
         bool                _sceneTexCounted    =   false;
         /// 全局"已挂场景纹理且 transmission>0"材质计数(定义于 FEMaterialPBR.cpp)
@@ -599,6 +639,25 @@ namespace   FE
                 bind(0,BIND_SCENE_TEX,{_sceneTexMap.get()});
             else
                 bind(0,BIND_SCENE_TEX,{_sceneTexWhite.get()});
+        }
+        /// <summary>
+        /// 自动模式下每帧(渲染调用 appDynamicState 时)从 device cache 自取
+        /// 场景折射纹理:构造时 sceneTex 可能尚未创建(resize 时才建),建成后
+        /// 下一帧自动检测指针变化并重绑;sceneTex 重建后亦然。指针未变时零开销。
+        /// </summary>
+        inline  void        refreshSceneTexture()
+        {
+            if (!_autoSceneTex)
+                return;
+            auto    obj =   _ctx.device().queryCache(FEConstUuid::SceneTexId);
+            auto    tex =   obj ? obj->as<FETexture>() : nullptr;
+            if (tex == _sceneTexMap.get())
+                return;
+            _sceneTexMap        =   tex;
+            _hasRealSceneTex    =   (tex != nullptr);
+            bindSceneTex();
+            update();
+            updateSceneTexCount();
         }
         /// 按当前 纹理/透射因子 状态刷新全局计数
         inline  void        updateSceneTexCount()
