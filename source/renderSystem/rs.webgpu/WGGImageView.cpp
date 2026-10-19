@@ -41,8 +41,10 @@ namespace   FE
         viewDesc.format             =   viewFormat;
         viewDesc.dimension          =   bCube ? WGPUTextureViewDimension_Cube : WGPUTextureViewDimension_2D;
         viewDesc.aspect             =   WGPUTextureAspect_All;
-        viewDesc.baseMipLevel       =   0;
-        viewDesc.mipLevelCount      =   mips;
+        viewDesc.baseMipLevel       =   info._baseMip;
+        viewDesc.mipLevelCount      =   info._levelCount > 0
+                                            ? info._levelCount
+                                            : mips;
         viewDesc.baseArrayLayer     =   0;
         viewDesc.arrayLayerCount    =   bCube ? 6 : 1;
 

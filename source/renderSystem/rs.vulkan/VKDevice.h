@@ -92,6 +92,12 @@ namespace   FE
 
 		VkFormat	getSupportedDepthFormat(bool checkSamplingSupport);
         /// <summary>
+        /// 用临时 cmd buffer 把 image 全链从 UNDEFINED 切到 SHADER_READ_ONLY,
+        /// 用于 renderTarget(multi-mip)刚创建/resize 后的初始状态,
+        /// 避免第 1 帧 pass1 分支未进时 shader 采样 UNDEFINED image 触发验证层报错
+        /// </summary>
+        void    initializeImageToShaderReadable(GImage img);
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="name"></param>

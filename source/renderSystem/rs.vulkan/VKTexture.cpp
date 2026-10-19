@@ -78,6 +78,11 @@ namespace   FE
         samplerCI.borderColor           =   VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
         VK_CHECK_RESULT(vkCreateSampler(device,&samplerCI,nullptr,&_sampler));
 
+        /// 4. renderTarget 且多 mip:立即把 image 全链从 UNDEFINED barrier 到 SHADER_READ_ONLY
+        /// (否则第 1 帧 pass1 分支若未进,透明管线 descriptor 期望 SHADER_READ 但 image 仍 UNDEFINED 炸验证层)
+        if (info._renderTarget && imgInfo._mips > 1)
+            vkDevice.initializeImageToShaderReadable(_image);
+
         LOG_DBG("VKTexture.create %ux%u ok",info._width,info._height);
         return  true;
     }
@@ -128,7 +133,7 @@ namespace   FE
         barrier.newLayout                       =   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         barrier.srcQueueFamilyIndex             =   VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex             =   VK_QUEUE_FAMILY_IGNORED;
-        barrier.image                           =   image();
+        barrier.image                           =   vkImage();
         barrier.subresourceRange                =   range;
         barrier.srcAccessMask                   =   0;
         barrier.dstAccessMask                   =   VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -184,7 +189,7 @@ namespace   FE
         }
         vkCmdCopyBufferToImage(cmd
                             ,(VkBuffer)staging->native()
-                            ,image()
+                            ,vkImage()
                             ,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                             ,(uint32_t)regions.size(),regions.data());
 

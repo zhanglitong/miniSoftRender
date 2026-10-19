@@ -26,12 +26,13 @@ namespace   FE
         virtual bool    create(const CreateInfo& info)  override;
         virtual bool    update(const void* data,uint64 size)    override;
         virtual GImgView imageView() override { return _view; }
+        virtual GImage  image()    override { return _image; }
 
         inline  WGPUSampler sampler() const
         {
             return  _sampler;
         }
-        inline  WGPUTexture image() const
+        inline  WGPUTexture wgpuImage() const
         {
             return  _image ? (WGPUTexture)_image->native() : nullptr;
         }

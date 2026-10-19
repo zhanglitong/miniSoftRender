@@ -84,6 +84,10 @@ namespace   FE
         /// 图像视图(render target 用法下作为 color attachment 挂到 RenderInfo._colors)
         /// </summary>
         virtual GImgView    imageView() {   return  nullptr;    }
+        /// <summary>
+        /// 底层 GPU 图像(用于创建指定 mip 范围的 imageView 等高级操作)
+        /// </summary>
+        virtual GImage      image() {   return  nullptr;    }
     protected:
         CreateInfo  _cInfo;
     };

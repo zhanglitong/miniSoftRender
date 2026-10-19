@@ -99,6 +99,19 @@ set(SKIP_INSTALL_ALL     TRUE)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype"
                  "${CMAKE_BINARY_DIR}/freetype")
 
+# ===== libktx:源码内置(KTX/KTX2 纹理加载,KTX-Software v4.0,本地源码同步)=====
+# 静态库直接编入 core;关闭工具/测试/文档/JNI/Python/JS 等附属目标,
+# 只保留读写核心(含 BasisU/ETC1S/UASTC transcode 到 RGBA32 的能力)
+set(KTX_FEATURE_TESTS OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_DOC   OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JNI   OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_PY    OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JS    OFF  CACHE BOOL "" FORCE)
+set(KTX_WERROR        OFF  CACHE BOOL "" FORCE)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/ktx"
+                 "${CMAKE_BINARY_DIR}/ktx")
+
 add_library(${TARGET_NAME} SHARED
             ${HEADER_FILES}
 		    ${SOURCE_FILES}
@@ -110,6 +123,9 @@ target_compile_definitions(${TARGET_NAME} PRIVATE FE_EXPORTS)
 
 # FreeType 以源码形式链接进 core(PUBLIC include 目录提供 <ft2build.h>)
 target_link_libraries(${TARGET_NAME} PRIVATE freetype)
+
+# libktx 静态库编入 core(PUBLIC include 目录提供 <ktx.h>)
+target_link_libraries(${TARGET_NAME} PRIVATE ktx)
 
 
 add_dependencies(${TARGET_NAME} tool.resource.cc)

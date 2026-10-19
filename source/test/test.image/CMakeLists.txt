@@ -1,4 +1,4 @@
-﻿set(TARGET_NAME test.image)
+set(TARGET_NAME test.image)
 
 file(GLOB_RECURSE HEADER_FILES *.h *.hpp)
 file(GLOB_RECURSE SOURCE_FILES *.c *.cc *.cpp) 
@@ -22,4 +22,4 @@ target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICOD
 
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "test")
 
-target_link_libraries(${TARGET_NAME} core rs.vulkan)
+target_link_libraries(${TARGET_NAME} core rs.vulkan ktx)

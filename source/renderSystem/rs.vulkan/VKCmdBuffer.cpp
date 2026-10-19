@@ -560,10 +560,14 @@ namespace   FE
 
         /// 进入时状态(pass1 endRender 之后):mip0 = SHADER_READ_ONLY,
         /// 其余 mip 尚未触碰过(UNDEFINED)。流程:
-        ///   1. mip0 SHADER_READ_ONLY -> TRANSFER_SRC
-        ///   2. 逐级:mip i UNDEFINED -> TRANSFER_DST,blit(i-1 -> i,线性过滤),
-        ///      mip i TRANSFER_DST -> SHADER_READ_ONLY
-        ///   3. mip0 TRANSFER_SRC -> SHADER_READ_ONLY
+        ///   0. mip0 SHADER_READ_ONLY -> TRANSFER_SRC(为第 1 轮 blit 准备 src)
+        ///   1. 对每级 mip i=1..N:
+        ///      a) 若 i>1,上轮已把 mip i-1 恢复到 SHADER_READ,这里再切回 TRANSFER_SRC
+        ///      b) mip i UNDEFINED -> TRANSFER_DST
+        ///      c) blit(mip i-1 -> mip i,线性过滤)
+        ///      d) mip i-1 TRANSFER_SRC -> SHADER_READ(src 用完立刻恢复)
+        ///      e) mip i   TRANSFER_DST -> SHADER_READ
+        ///   循环结束后 mip 0..N 全部 SHADER_READ_ONLY
         insertImageMemoryBarrier(
             _native, vkImage,
             VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
@@ -578,6 +582,18 @@ namespace   FE
             const uint  dstW    =   srcW > 1 ? srcW >> 1 : 1;
             const uint  dstH    =   srcH > 1 ? srcH >> 1 : 1;
 
+            /// i>1 时上轮末尾已把 src(mip i-1) 恢复到 SHADER_READ,这里再切回 TRANSFER_SRC
+            if (mip > 1)
+            {
+                insertImageMemoryBarrier(
+                    _native, vkImage,
+                    VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip - 1, 1, 0, 1 });
+            }
+
+            /// dst(mip i) UNDEFINED -> TRANSFER_DST
             insertImageMemoryBarrier(
                 _native, vkImage,
                 0, VK_ACCESS_TRANSFER_WRITE_BIT,
@@ -601,6 +617,16 @@ namespace   FE
                            vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            1, &blit, VK_FILTER_LINEAR);
 
+            /// blit 完成:src 和 dst 都用完了,各自恢复 SHADER_READ
+            /// src(mip i-1):TRANSFER_SRC -> SHADER_READ
+            insertImageMemoryBarrier(
+                _native, vkImage,
+                VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip - 1, 1, 0, 1 });
+
+            /// dst(mip i):TRANSFER_DST -> SHADER_READ
             insertImageMemoryBarrier(
                 _native, vkImage,
                 VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
@@ -612,14 +638,8 @@ namespace   FE
             srcH    =   dstH;
         }
 
-        insertImageMemoryBarrier(
-            _native, vkImage,
-            VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
-
-        /// 整体布局追踪值不变(全部 mip 最终均为 SHADER_READ_ONLY)
+        /// 循环结束后 mip 0..N 全部 SHADER_READ_ONLY,同步引擎侧状态
+        image->setLayout(IL_SHADER_READ_ONLY_OPTIMAL);
         return  FEResult::ER_SUCCESS;
     }
 

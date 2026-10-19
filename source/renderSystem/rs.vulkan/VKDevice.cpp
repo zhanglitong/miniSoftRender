@@ -13,9 +13,9 @@
 #include    "VKGPipeline.h"
 #include    "VKSwapchain.h"
 #include    "VKGImage.h"
+#include    "VKCmdPool.h"
 #include    "VKGImageView.h"
 #include    "VKTexture.h"
-#include    "VKCmdPool.h"
 #include    "VKDSet.h"
 #include    "VKDSetLayout.h"
 #include    "VKDSetPool.h"
@@ -645,5 +645,72 @@ namespace   FE
         }
         return  _queueTransfer;
     };
+
+    void    VKDevice::initializeImageToShaderReadable(GImage img)
+    {
+        if (img == nullptr || img->native() == nullptr)
+            return;
+        if (_graphicPool == nullptr || _queueGraphic == nullptr)
+            return;
+
+        auto    vkImg   =   (VkImage)img->native();
+        const auto& info =   img->cInfo();
+
+        /// 从 VKCmdPool 拿 VkCommandPool
+        auto*   vkPool  =   dynamic_cast<VKCmdPool*>(_graphicPool.get());
+        if (vkPool == nullptr)
+            return;
+        auto    pool    =   (VkCommandPool)vkPool->native();
+        auto    queue   =   (VkQueue)_queueGraphic->native();
+
+        /// 1. 分配临时 cmd buffer
+        VkCommandBufferAllocateInfo allocInfo   =   {};
+        allocInfo.sType                         =   VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool                   =   pool;
+        allocInfo.level                         =   VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount            =   1;
+        VkCommandBuffer     cmd                 =   VK_NULL_HANDLE;
+        if (vkAllocateCommandBuffers(_logicalDevice, &allocInfo, &cmd) != VK_SUCCESS)
+            return;
+
+        /// 2. record:全链 UNDEFINED -> SHADER_READ_ONLY barrier
+        VkCommandBufferBeginInfo beginInfo  =   {};
+        beginInfo.sType                     =   VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        vkBeginCommandBuffer(cmd, &beginInfo);
+
+        VkImageMemoryBarrier    barrier     =   {};
+        barrier.sType                       =   VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout                   =   VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout                   =   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcQueueFamilyIndex         =   VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex         =   VK_QUEUE_FAMILY_IGNORED;
+        barrier.image                       =   vkImg;
+        barrier.subresourceRange.aspectMask =   VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel   =   0;
+        barrier.subresourceRange.levelCount     =   info._mips;
+        barrier.subresourceRange.baseArrayLayer  =   0;
+        barrier.subresourceRange.layerCount      =   info._layer == 0 ? 1 : info._layer;
+        barrier.srcAccessMask               =   0;
+        barrier.dstAccessMask               =   VK_ACCESS_SHADER_READ_BIT;
+
+        vkCmdPipelineBarrier(cmd,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+        vkEndCommandBuffer(cmd);
+
+        /// 3. submit + wait + free
+        VkSubmitInfo    submitInfo  =   {};
+        submitInfo.sType            =   VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers  =   &cmd;
+        vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(queue);
+        vkFreeCommandBuffers(_logicalDevice, pool, 1, &cmd);
+
+        /// 4. 引擎侧同步
+        img->setLayout(IL_SHADER_READ_ONLY_OPTIMAL);
+    }
 
 }

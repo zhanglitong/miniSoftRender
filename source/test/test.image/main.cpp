@@ -10,6 +10,8 @@
 #include    "../../inc/FEContext.hpp"
 #include    "../../core/FEImageHelper.hpp"
 #include    "../../core/graphic/FETextureHelper.hpp"
+/// libktx(external/ktx,写测试用 KTX 文件;引擎加载路径也用它)
+#include    <ktx.h>
 
 using   namespace   FE;
 
@@ -1001,6 +1003,333 @@ static  void    testExplicitFormat(const char* hdrPath)
     std::remove(file.c_str());
 }
 
+/// =====================================================================
+/// FEImageHelper::loadKtx(KTX/KTX2,external/ktx libktx 静态库)
+/// 用 libktx 写出确定性 KTX1/KTX2(含 mip 链/方向元数据/ETC1S 压缩),
+/// 再经 FEImageHelper::load 读回校验:尺寸/格式/mip 链/像素与行序
+/// =====================================================================
+/// 生成确定性 RGBA8 图案数据(按 level 尺寸):像素 = (x*16, y*32, (x+y)*8, 255)
+static  void    fillPattern(std::vector<uint8>& out,uint32 w,uint32 h)
+{
+    out.resize(size_t(w) * h * 4);
+    for (uint32 y = 0; y < h; ++y)
+        for (uint32 x = 0; x < w; ++x)
+        {
+            uint8*  px  =   out.data() + (size_t(y) * w + x) * 4;
+            px[0]   =   uint8(x * 16);
+            px[1]   =   uint8(y * 32);
+            px[2]   =   uint8((x + y) * 8);
+            px[3]   =   255;
+        }
+}
+/// 写出 KTX2(w×h,levels 级 mip,各级独立图案;orientY='d'顶行在前/'u'底行在前)
+static  bool    writeKtx2(const char* file,uint32 w,uint32 h,uint32 levels,char orientY)
+{
+    ktxTextureCreateInfo    ci  =   {};
+    ci.vkFormat         =   37;     /// VK_FORMAT_R8G8B8A8_UNORM
+    ci.baseWidth        =   w;
+    ci.baseHeight       =   h;
+    ci.baseDepth        =   1;
+    ci.numDimensions    =   2;
+    ci.numLevels        =   levels;
+    ci.numLayers        =   1;
+    ci.numFaces         =   1;
+    ci.isArray          =   KTX_FALSE;
+    ci.generateMipmaps  =   KTX_FALSE;
+    ktxTexture2*    ktex2   =   nullptr;
+    if  (ktxTexture2_Create(&ci,KTX_TEXTURE_CREATE_ALLOC_STORAGE,&ktex2) != KTX_SUCCESS)
+        return  false;
+    ktex2->orientation.y    =   (orientY == 'd') ? KTX_ORIENT_Y_DOWN : KTX_ORIENT_Y_UP;
+    bool    ok  =   true;
+    for (uint32 l = 0; ok && l < levels; ++l)
+    {
+        std::vector<uint8>  pixels;
+        fillPattern(pixels,(std::max)(w >> l,1u),(std::max)(h >> l,1u));
+        ok  =   ktxTexture_SetImageFromMemory(ktxTexture(ktex2),l,0,0,
+                                              pixels.data(),pixels.size()) == KTX_SUCCESS;
+    }
+    if (ok)
+        ok  =   ktxTexture_WriteToNamedFile(ktxTexture(ktex2),file) == KTX_SUCCESS;
+    ktxTexture_Destroy(ktxTexture(ktex2));
+    return  ok;
+}
+/// 写出 KTX1(RGBA8,levels 级 mip,默认方向元数据)
+static  bool    writeKtx1(const char* file,uint32 w,uint32 h,uint32 levels)
+{
+    ktxTextureCreateInfo    ci  =   {};
+    ci.glInternalformat =   0x8058; /// GL_RGBA8
+    ci.baseWidth        =   w;
+    ci.baseHeight       =   h;
+    ci.baseDepth        =   1;
+    ci.numDimensions    =   2;
+    ci.numLevels        =   levels;
+    ci.numLayers        =   1;
+    ci.numFaces         =   1;
+    ci.isArray          =   KTX_FALSE;
+    ci.generateMipmaps  =   KTX_FALSE;
+    ktxTexture1*    ktex1   =   nullptr;
+    if  (ktxTexture1_Create(&ci,KTX_TEXTURE_CREATE_ALLOC_STORAGE,&ktex1) != KTX_SUCCESS)
+        return  false;
+    bool    ok  =   true;
+    for (uint32 l = 0; ok && l < levels; ++l)
+    {
+        std::vector<uint8>  pixels;
+        fillPattern(pixels,(std::max)(w >> l,1u),(std::max)(h >> l,1u));
+        ok  =   ktxTexture_SetImageFromMemory(ktxTexture(ktex1),l,0,0,
+                                              pixels.data(),pixels.size()) == KTX_SUCCESS;
+    }
+    if (ok)
+        ok  =   ktxTexture_WriteToNamedFile(ktxTexture(ktex1),file) == KTX_SUCCESS;
+    ktxTexture_Destroy(ktxTexture(ktex1));
+    return  ok;
+}
+/// 校验图像某 level 与参考图案一致(flipY=true 时按垂直翻转比对)
+static  bool    samePattern(const FEImage& image,uint32 level,uint32 w,uint32 h,bool flipY)
+{
+    std::vector<uint8>  ref;
+    fillPattern(ref,w,h);
+    auto    plane   =   image.plane(level,0);
+    if (plane._buffer == nullptr || plane.width() != w || plane.height() != h)
+        return  false;
+    for (uint32 y = 0; y < h; ++y)
+    {
+        const uint32    srcY    =   flipY ? (h - 1 - y) : y;
+        if (std::memcmp(plane.dataOffset<uint8>(y,0),ref.data() + size_t(srcY) * w * 4,size_t(w) * 4) != 0)
+            return  false;
+    }
+    return  true;
+}
+
+static  void    testKtxLoad()
+{
+    std::cout << "---- testKtxLoad ----\n";
+    FEContext&  ctx =   FEContext::instance();
+
+    /// 1) KTX2 往返:8x8 满 mip 链(4 级),orientation='d'(顶行在前)→ 不翻转
+    {
+        const char* file    =   "./test_ktx2_d.ktx2";
+        CHECK(writeKtx2(file,8,8,4,'d'),                    "ktx2(d) write ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file);
+        CHECK(back != nullptr,                              "ktx2(d) load ok");
+        if (back != nullptr)
+        {
+            CHECK(back->cInfo()._extent.x == 8 && back->cInfo()._extent.y == 8, "ktx2(d) size preserved");
+            CHECK(back->cInfo()._format == FMT_R8G8B8A8_UNORM,                  "ktx2(d) loaded as RGBA8");
+            CHECK(back->cInfo()._levels == 4,                                   "ktx2(d) mip chain 4 levels");
+            bool    ok  =   true;
+            for (uint32 l = 0; l < 4; ++l)
+                ok  =   ok && samePattern(*back,l,(std::max)(8u >> l,1u),(std::max)(8u >> l,1u),false);
+            CHECK(ok,                                                           "ktx2(d) all levels pixel-identical");
+        }
+        std::remove(file);
+    }
+
+    /// 2) KTX2 行序:orientation='u'/'d' 只是元数据提示,libktx 原样存储
+    ///    SetImageFromMemory 的字节(顶行在前),读回也不翻转
+    {
+        const char* file    =   "./test_ktx2_u.ktx2";
+        CHECK(writeKtx2(file,8,8,1,'u'),                    "ktx2(u) write ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file);
+        CHECK(back != nullptr && samePattern(*back,0,8,8,false),
+                                                            "ktx2(u) read back top-row-first (no flip)");
+        std::remove(file);
+    }
+
+    /// 3) KTX1 往返:RGBA8 + mip 链;libktx 原样存储顶行在前的字节
+    {
+        const char* file    =   "./test_ktx1.ktx";
+        CHECK(writeKtx1(file,8,8,3),                        "ktx1 write ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file);
+        CHECK(back != nullptr,                              "ktx1 load ok");
+        if (back != nullptr)
+        {
+            CHECK(back->cInfo()._extent.x == 8 && back->cInfo()._extent.y == 8, "ktx1 size preserved");
+            CHECK(back->cInfo()._format == FMT_R8G8B8A8_UNORM,                  "ktx1 loaded as RGBA8");
+            CHECK(back->cInfo()._levels == 3,                                   "ktx1 mip chain 3 levels");
+            bool    ok  =   true;
+            for (uint32 l = 0; l < 3; ++l)
+                ok  =   ok && samePattern(*back,l,(std::max)(8u >> l,1u),(std::max)(8u >> l,1u),false);
+            CHECK(ok,                                                           "ktx1 all levels top-row-first (no flip)");
+        }
+        std::remove(file);
+    }
+
+    /// 4) ETC1S 压缩 KTX2:常色图压缩 → transcode RGBA32 读回(有损,容差 ±4)
+    {
+        const char*     file    =   "./test_ktx2_etc1s.ktx2";
+        const uint32    W = 8, H = 8;
+        ktxTextureCreateInfo    ci  =   {};
+        ci.vkFormat         =   37;
+        ci.baseWidth        =   W;
+        ci.baseHeight       =   H;
+        ci.baseDepth        =   1;
+        ci.numDimensions    =   2;
+        ci.numLevels        =   1;
+        ci.numLayers        =   1;
+        ci.numFaces         =   1;
+        ci.isArray          =   KTX_FALSE;
+        ci.generateMipmaps  =   KTX_FALSE;
+        ktxTexture2*    ktex2   =   nullptr;
+        bool    ok  =   ktxTexture2_Create(&ci,KTX_TEXTURE_CREATE_ALLOC_STORAGE,&ktex2) == KTX_SUCCESS;
+        const uint8     kColor[4]   =   { 200,100,50,255 };
+        if (ok)
+        {
+            std::vector<uint8>  pixels(size_t(W) * H * 4);
+            for (size_t i = 0; i < size_t(W) * H; ++i)
+                std::memcpy(pixels.data() + i * 4,kColor,4);
+            ok  =   ktxTexture_SetImageFromMemory(ktxTexture(ktex2),0,0,0,pixels.data(),pixels.size()) == KTX_SUCCESS;
+        }
+        if (ok)
+        {
+            /// 简化压缩接口:quality 取中值 128(ETC1S,常色图任意质量均可)
+            ok  =   ktxTexture2_CompressBasis(ktex2,128) == KTX_SUCCESS;
+        }
+        if (ok)
+            ok  =   ktxTexture_WriteToNamedFile(ktxTexture(ktex2),file) == KTX_SUCCESS;
+        if (ktex2 != nullptr)
+            ktxTexture_Destroy(ktxTexture(ktex2));
+        CHECK(ok,                                                           "ktx2 etc1s compress+write ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file);
+        CHECK(back != nullptr,                                              "ktx2 etc1s load(transcode) ok");
+        if (back != nullptr)
+        {
+            CHECK(back->cInfo()._format == FMT_R8G8B8A8_UNORM,              "etc1s transcoded to RGBA8");
+            auto    plane   =   back->plane(0,0);
+            bool    close   =   true;
+            for (uint32 y = 0; y < H; ++y)
+                for (uint32 x = 0; x < W; ++x)
+                {
+                    const uint8*    px  =   plane.dataOffset<uint8>(y,x);
+                    for (int c = 0; c < 4; ++c)
+                        close   =   close && std::abs(int(px[c]) - int(kColor[c])) <= 4;
+                }
+            CHECK(close,                                                    "etc1s constant color within +-4");
+        }
+        std::remove(file);
+    }
+
+    /// 5) 异常路径:文件不存在 / 不支持的目标格式 / 空文件名
+    {
+        CHECK(FEImageHelper::load(ctx,"./no_such_texture.ktx2") == nullptr,
+              "load missing ktx2 -> nullptr");
+        CHECK(FEImageHelper::load(ctx,"./no_such_texture.ktx") == nullptr,
+              "load missing ktx -> nullptr");
+        const char* file    =   "./test_ktx2_fmt.ktx2";
+        CHECK(writeKtx2(file,4,4,1,'d'),                                    "ktx2 fmt-guard write ok");
+        CHECK(FEImageHelper::load(ctx,file,FMT_R16G16B16A16_FLOAT) == nullptr,
+              "loadKtx rejects non-RGBA8 target format");
+        ImagePtr    ok  =   FEImageHelper::load(ctx,file,FMT_R8G8B8A8_UNORM);
+        CHECK(ok != nullptr,                                                "loadKtx accepts explicit RGBA8");
+        std::remove(file);
+    }
+
+    /// 6) FEImageHelper::save 往返(ktx / ktx2 无压缩 / ktx2 压缩 / R8G8)
+    {
+        FEImage::CreateInfo ci;
+        ci._extent  =   uint3(8,8,1);
+        ci._format  =   FMT_R8G8B8A8_UNORM;
+        ci._layers  =   1;
+        ci._levels  =   4;
+        ImagePtr    img =   new FEImage(ctx);
+        CHECK(img->create(ci) && img->size() > 0,                          "save-rt create RGBA8 mip image");
+        for (uint32 l = 0; l < 4; ++l)
+        {
+            auto    plane   =   img->plane(l,0);
+            std::vector<uint8>  pixels;
+            fillPattern(pixels,(std::max)(8u >> l,1u),(std::max)(8u >> l,1u));
+            /// plane 是值对象(非指针),dataOffset 返回裸指针
+            for (uint32 y = 0; y < plane.height(); ++y)
+                std::memcpy(plane.dataOffset<uint8>(y,0),pixels.data() + size_t(y) * plane.width() * 4,
+                            size_t(plane.width()) * 4);
+        }
+
+        /// ktx 往返(KTX1 + GL_RGBA8 + 完整 mip)
+        {
+            const char* file    =   "./rt.ktx";
+            CHECK(FEImageHelper::save(*img,file),                           "save RGBA8 mip -> ktx ok");
+            ImagePtr    back    =   FEImageHelper::load(ctx,file);
+            CHECK(back != nullptr && back->cInfo()._levels == 4,            "ktx load 4 levels");
+            bool    ok  =   true;
+            for (uint32 l = 0; l < 4; ++l)
+                ok  =   ok && samePattern(*back,l,(std::max)(8u >> l,1u),(std::max)(8u >> l,1u),false);
+            CHECK(ok,                                                        "ktx roundtrip all levels identical");
+            std::remove(file);
+        }
+        /// ktx2 无压缩往返(quality=0 → 跳过 Basis → 像素逐字节一致)
+        {
+            const char* file    =   "./rt.ktx2";
+            CHECK(FEImageHelper::save(*img,file,0),                          "save RGBA8 mip -> ktx2 (no compress)");
+            ImagePtr    back    =   FEImageHelper::load(ctx,file);
+            CHECK(back != nullptr && back->cInfo()._levels == 4,            "ktx2 load 4 levels");
+            bool    ok  =   true;
+            for (uint32 l = 0; l < 4; ++l)
+                ok  =   ok && samePattern(*back,l,(std::max)(8u >> l,1u),(std::max)(8u >> l,1u),false);
+            CHECK(ok,                                                        "ktx2(no compress) roundtrip all levels identical");
+            std::remove(file);
+        }
+        /// ktx2 压缩往返(quality=128 ETC1S → 读回 transcode,常色图容差 ±4)
+        /// 常色图 ETC1S 压缩失真可忽略,验证 save→压缩→transcode 全链路
+        {
+            const uint8     kColor[4]   =   { 120,200,40,255 };
+            FEImage::CreateInfo ce;
+            ce._extent = uint3(8,8,1); ce._format = FMT_R8G8B8A8_UNORM; ce._levels = 2; ce._layers = 1;
+            ImagePtr    ic  =   new FEImage(ctx);
+            CHECK(ic->create(ce) && ic->size() > 0,                         "etc1s constant image created");
+            for (uint32 l = 0; l < 2; ++l)
+            {
+                auto    pc  =   ic->plane(l,0);
+                const uint32    w = pc.width(), h = pc.height();
+                for (uint32 y = 0; y < h; ++y)
+                    for (uint32 x = 0; x < w; ++x)
+                        std::memcpy(pc.dataOffset<uint8>(y,x),kColor,4);
+            }
+            const char* file    =   "./rt_etc1s.ktx2";
+            CHECK(FEImageHelper::save(*ic,file,128),                        "save RGBA8 mip -> ktx2(ETC1S q=128) ok");
+            ImagePtr    back    =   FEImageHelper::load(ctx,file);
+            CHECK(back != nullptr && back->cInfo()._levels == 2,            "ktx2(ETC1S) load 2 levels");
+            if (back != nullptr)
+            {
+                bool    close   =   true;
+                for (uint32 l = 0; close && l < 2; ++l)
+                {
+                    auto    pc  =   back->plane(l,0);
+                    for (uint32 y = 0; close && y < pc.height(); ++y)
+                        for (uint32 x = 0; close && x < pc.width(); ++x)
+                        {
+                            const uint8*    px  =   pc.dataOffset<uint8>(y,x);
+                            for (int c = 0; c < 4 && close; ++c)
+                                close = close && std::abs(int(px[c]) - int(kColor[c])) <= 4;
+                        }
+                }
+                CHECK(close,                                                "ktx2(ETC1S) constant color within +-4");
+            }
+            std::remove(file);
+        }
+
+        /// R8G8(2 通道) save ktx —— 覆盖通道映射 switch(loadKtx 暂只开 RGBA8)
+        {
+            FEImage::CreateInfo c2;
+            c2._extent = uint3(6,4,1); c2._format = FMT_R8G8_UNORM; c2._levels = 1; c2._layers = 1;
+            ImagePtr    i2  =   new FEImage(ctx);
+            CHECK(i2->create(c2) && i2->size() > 0,                         "save-rt create R8G8 image");
+            auto    p   =   i2->plane(0,0);
+            for (uint32 y = 0; y < 4; ++y)
+                for (uint32 x = 0; x < 6; ++x)
+                {
+                    uint8*  px  =   p.dataOffset<uint8>(y,x);
+                    px[0]   =   uint8(x * 40);
+                    px[1]   =   uint8(y * 60);
+                }
+            const char* file    =   "./rt_rg8.ktx";
+            CHECK(FEImageHelper::save(*i2,file),                            "save R8G8 -> ktx ok (channel mapping works)");
+            /// loadKtx 目前只接受 RGBA8 —— R8G8 格式会被拒绝,这是预期行为;
+            /// 将来如果 loadKtx 扩通道覆盖,此断言应同步改为逐像素比对
+            CHECK(FEImageHelper::load(ctx,file) == nullptr,                 "loadKtx rejects R8G8 ktx (RGBA8 only for now)");
+            std::remove(file);
+        }
+    }
+}
+
 int     main(int argc,char** argv)
 {
     /// 由可执行文件位置定位资源目录: <exeDir>/../data/env/Cannon_Exterior.hdr
@@ -1023,6 +1352,7 @@ int     main(int argc,char** argv)
     testHelperSaveLoad();
     testHdrAndCubeImage(hdrFile.c_str());
     testExplicitFormat(hdrFile.c_str());
+    testKtxLoad();
 
     std::cout << "--------------------------------\n";
     if (g_failed == 0)

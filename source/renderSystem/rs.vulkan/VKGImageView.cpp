@@ -27,8 +27,10 @@ namespace   FE
             imageViewCI.subresourceRange    =   {};
 
             imageViewCI.subresourceRange.aspectMask         =   system2Native(imgCInfo._aspect);
-            imageViewCI.subresourceRange.baseMipLevel       =   0;
-            imageViewCI.subresourceRange.levelCount         =   imgCInfo._mips;
+            imageViewCI.subresourceRange.baseMipLevel       =   info._baseMip;
+            imageViewCI.subresourceRange.levelCount         =   info._levelCount > 0
+                                                                    ? info._levelCount
+                                                                    : imgCInfo._mips;
             imageViewCI.subresourceRange.baseArrayLayer     =   0;
             imageViewCI.subresourceRange.layerCount         =   imgCInfo._layer;
             if (imageViewCI.format >= VK_FORMAT_D16_UNORM_S8_UINT) 

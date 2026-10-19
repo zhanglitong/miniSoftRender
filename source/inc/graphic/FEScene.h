@@ -246,7 +246,8 @@ namespace   FE
         GImgView            _depthView  =   nullptr;
         /// transmission 场景折射纹理(不透明场景预渲染,color attachment + sampled 双用途)
         TexPtr              _sceneTex   =   nullptr;
-        GImgView            _sceneTexView = nullptr;
+        GImgView            _sceneTexView = nullptr;   ///< 完整 mip 链(shader 采样)
+        GImgView            _sceneTexColorView = nullptr;   ///< 仅 mip0(pass1 color attachment)
         Frame               _frame;
         Node                _mousePoint;
         aabb3dr             _aabb;

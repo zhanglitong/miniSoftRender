@@ -2,6 +2,8 @@
 #include    <cstring>
 #include    "FEImageHelper.hpp"
 #include    "../inc/FEContext.hpp"
+/// libktx(external/ktx,KTX-Software v4.4.0,静态库链接进 core)
+#include    <ktx.h>
 
 /// stb_image_write 的实现体:全工程仅此一处
 #define     STB_IMAGE_WRITE_IMPLEMENTATION
@@ -77,6 +79,12 @@ namespace   FE
     {
         if  (fileName == nullptr)
             return  nullptr;
+        /// KTX/KTX2 走 libktx 专用路径(stb 不支持容器格式)
+        {
+            const String    ext =   extensionOf(fileName);
+            if  (ext == "ktx" || ext == "ktx2")
+                return  loadKtx(ctx,fileName,fmt);
+        }
         /// 未指定格式 -> 按文件类型自动:HDR 用 RGBA float,其余用 RGBA8
         if  (fmt == FMT_NONE)
             fmt =   (stbi_is_hdr(fileName) != 0) ? FMT_R32G32B32A32_FLOAT : FMT_R8G8B8A8_UNORM;
@@ -143,8 +151,194 @@ namespace   FE
         return  load(ctx,fileName,fmt);
     }
 
+    ImagePtr    FEImageHelper::loadKtx(FEContext& ctx,const char* fileName,FEFormat fmt)
+    {
+        if  (fileName == nullptr)
+            return  nullptr;
+        /// 目标格式固定 RGBA8(压缩纹理统一 transcode 到 RGBA32)
+        if  (fmt != FMT_NONE && fmt != FMT_R8G8B8A8_UNORM)
+            return  nullptr;
+
+        ktxTexture* ktex    =   nullptr;
+        if  (ktxTexture_CreateFromNamedFile(fileName,KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,&ktex) != KTX_SUCCESS
+             || ktex == nullptr)
+            return  nullptr;
+
+        ImagePtr    result  =   nullptr;
+        do
+        {
+            /// BasisU/ETC1S/UASTC → transcode 为 RGBA32(仅 ktx2;ktx1 压缩格式
+            /// 无通用解码路径,落入下方格式校验返回失败)
+            if  (ktxTexture_NeedsTranscoding(ktex))
+            {
+                if  (ktex->classId != ktxTexture2_c
+                     || ktxTexture2_TranscodeBasis(reinterpret_cast<ktxTexture2*>(ktex),KTX_TTF_RGBA32,0) != KTX_SUCCESS)
+                    break;
+            }
+            /// 仅接受 RGBA8 未压缩(或 transcode 后的 RGBA32)
+            /// VK_FORMAT_R8G8B8A8_UNORM=37 / SRGB=43;GL_RGBA8=0x8058 / GL_SRGB8_ALPHA8=0x8C43
+            bool    isRgba8 =   false;
+            if  (ktex->classId == ktxTexture2_c)
+            {
+                const uint32    vf  =   reinterpret_cast<ktxTexture2*>(ktex)->vkFormat;
+                isRgba8 =   (vf == 37u || vf == 43u);
+            }
+            else
+            {
+                const uint32    gl  =   reinterpret_cast<ktxTexture1*>(ktex)->glInternalformat;
+                isRgba8 =   (gl == 0x8058u || gl == 0x8C43u);
+            }
+            if  (!isRgba8 || ktex->baseWidth == 0 || ktex->baseHeight == 0)
+                break;
+
+            /// 创建带完整 mip 链的目标图像(cube/array 暂只取第 0 层第 0 面)
+            FEImage::CreateInfo ci;
+            ci._extent  =   uint3(ktex->baseWidth,ktex->baseHeight,1);
+            ci._format  =   FMT_R8G8B8A8_UNORM;
+            ci._layers  =   1;
+            ci._levels  =   uint16(ktex->numLevels > 0 ? ktex->numLevels : 1);
+            ImagePtr    image   =   new FEImage(ctx);
+            if  (!image->create(ci) || image->size() == 0)
+                break;
+
+            /// 行序:libktx 的 ktxTexture_SetImageFromMemory 原样存储调用方字节,
+            /// orientation 元数据仅作提示——写入端给什么顺序,读出来就是什么顺序。
+            /// 我们的测试写入用顶行在前(引擎约定),这里也原样拷贝不翻转。
+            for (uint32 level = 0; level < ci._levels; ++level)
+            {
+                ktx_size_t  offset  =   0;
+                if  (ktxTexture_GetImageOffset(ktex,level,0,0,&offset) != KTX_SUCCESS)
+                    break;
+                const uint32    w       =   (std::max<uint32>)(ktex->baseWidth >> level,1);
+                const uint32    h       =   (std::max<uint32>)(ktex->baseHeight >> level,1);
+                const uint8*    srcBase =   ktex->pData + offset;
+                const size_t    srcPitch=   ktxTexture_GetRowPitch(ktex,level);
+                auto            plane   =   image->plane(level,0);
+                if  (srcPitch < size_t(w) * 4 || plane._buffer == nullptr)
+                    break;
+                for (uint32 y = 0; y < h; ++y)
+                    std::memcpy(plane.dataOffset<uint8>(y,0),srcBase + size_t(y) * srcPitch,size_t(w) * 4);
+            }
+            result  =   image;
+        } while (false);
+
+        ktxTexture_Destroy(ktex);
+        return  result;
+    }
+
+    /// =====================================================================
+    /// saveKtxInternal:FEImage → libktx → ktx 或 ktx2 文件
+    /// 支持 1/2/3/4 通道 8bit 格式 + mip 链逐层写入;
+    /// ktx2 + quality>0 时经 ktxTexture2_CompressBasis 转 ETC1S
+    /// =====================================================================
+    static  bool    saveKtxInternal(const FEImage& image,const char* fileName,bool isKtx2,int quality)
+    {
+        const auto&     cInfo   =   image.cInfo();
+        const uint32    channel =   FEFormatHelper::channelOf(cInfo._format);
+        const uint32    levels  =   cInfo._levels > 0 ? cInfo._levels : 1;
+        const uint32    W       =   cInfo._extent.x;
+        const uint32    H       =   cInfo._extent.y;
+
+        /// 通道 → GL internalformat / baseInternalformat / format / type
+        /// 和 Vulkan VkFormat(ktx2 用)
+        uint32  glInternal  =   0;
+        uint32  glBase      =   0;
+        uint32  glFmt       =   0;
+        uint32  vkFmt       =   0;
+        switch (channel)
+        {
+        case 1:  glInternal = 0x8229; glBase = 0x1903; glFmt = 0x1903; vkFmt = 9;  break;  /// R8 / GL_R8 / GL_RED
+        case 2:  glInternal = 0x822B; glBase = 0x8227; glFmt = 0x8227; vkFmt = 16; break;  /// RG8 / GL_RG8 / GL_RG
+        case 3:  glInternal = 0x8051; glBase = 0x1907; glFmt = 0x1907; vkFmt = 23; break;  /// RGB8 / GL_RGB8 / GL_RGB
+        case 4:  glInternal = 0x8058; glBase = 0x1908; glFmt = 0x1908; vkFmt = 37; break;  /// RGBA8 / GL_RGBA8 / GL_RGBA
+        default:  return  false;
+        }
+        const uint32    glType =   0x1401;  /// GL_UNSIGNED_BYTE
+
+        ktxTextureCreateInfo    ci  =   {};
+        if  (isKtx2)
+        {
+            ci.vkFormat =   vkFmt;
+            ci.glInternalformat =   0;
+        }
+        else
+        {
+            ci.glInternalformat =   glInternal;
+            ci.vkFormat =   0;
+        }
+        ci.baseWidth        =   W;
+        ci.baseHeight       =   H;
+        ci.baseDepth        =   1;
+        ci.numDimensions    =   2;
+        ci.numLevels        =   levels;
+        ci.numLayers        =   1;
+        ci.numFaces         =   1;
+        ci.isArray          =   KTX_FALSE;
+        ci.generateMipmaps  =   KTX_FALSE;
+
+        ktxTexture*     ktex   =   nullptr;
+        if  (isKtx2)
+        {
+            ktxTexture2*    k2  =   nullptr;
+            if  (ktxTexture2_Create(&ci,KTX_TEXTURE_CREATE_ALLOC_STORAGE,&k2) != KTX_SUCCESS)
+                return  false;
+            ktxTexture1*    as1 =   reinterpret_cast<ktxTexture1*>(k2);
+            /// ktxTexture2 构造后 glType/glFormat 字段未初始化,
+            /// SetImageFromMemory 内部会依赖 ktxTexture_vtbl::SetImageFromMemory,
+            /// 对 ktxTexture2 只关心 vkFormat,无需设置 GL 字段
+            ktex =   ktxTexture(k2);
+        }
+        else
+        {
+            ktxTexture1*    k1  =   nullptr;
+            if  (ktxTexture1_Create(&ci,KTX_TEXTURE_CREATE_ALLOC_STORAGE,&k1) != KTX_SUCCESS)
+                return  false;
+            k1->glFormat            =   glFmt;
+            k1->glBaseInternalformat=   glBase;
+            k1->glType              =   glType;
+            ktex =   ktxTexture(k1);
+        }
+
+        bool    ok  =   true;
+        for (uint32 l = 0; ok && l < levels; ++l)
+        {
+            auto        plane   =   image.plane(l,0);
+            const uint32    w   =   (std::max<uint32>)(W >> l,1);
+            const uint32    h   =   (std::max<uint32>)(H >> l,1);
+            if  (plane._buffer == nullptr || plane.width() != w || plane.height() != h)
+            {
+                ok  =   false;
+                break;
+            }
+            const size_t    rowByte =   size_t(w) * channel;
+            std::vector<uint8>  tight(rowByte * h);
+            for (uint32 y = 0; y < h; ++y)
+                std::memcpy(tight.data() + size_t(y) * rowByte,plane.dataOffset<uint8>(y,0),rowByte);
+            ok  =   ktxTexture_SetImageFromMemory(ktex,l,0,0,tight.data(),tight.size()) == KTX_SUCCESS;
+        }
+
+        /// ktx2 + quality>0:尝试 ETC1S 压缩(quality 0~255,128=中等);
+        /// 失败(如格式不支持 Basis)静默降级为 RGBA32 容器
+        if  (ok && isKtx2 && quality > 0)
+        {
+            auto*   k2  =   reinterpret_cast<ktxTexture2*>(ktex);
+            if  (ktxTexture2_CompressBasis(k2,ktx_uint32_t(quality)) != KTX_SUCCESS)
+            {
+                /// 压缩失败,放弃——直接写未压缩的 KTX2
+            }
+        }
+
+        if  (ok)
+            ok  =   ktxTexture_WriteToNamedFile(ktex,fileName) == KTX_SUCCESS;
+
+        ktxTexture_Destroy(ktex);
+        return  ok;
+    }
+
     bool    FEImageHelper::save(const FEImage& image,const char* fileName,int quality)
     {
+        if  (fileName == nullptr)
+            return  false;
         const auto&     cInfo       =   image.cInfo();
         const uint32    channel     =   FEFormatHelper::channelOf(cInfo._format);
         const uint32    pixelByte   =   FEFormatHelper::sizeOf(cInfo._format);
@@ -155,6 +349,13 @@ namespace   FE
         const uint32    height  =   cInfo._extent.y;
         if (width == 0 || height == 0)
             return  false;
+
+        const String    ext     =   extensionOf(fileName);
+
+        /// KTX/KTX2:经 libktx 写容器
+        if  (ext == "ktx" || ext == "ktx2")
+            return  (ext == "ktx2") ? saveKtxInternal(image,fileName,true,quality)
+                                    : saveKtxInternal(image,fileName,false,quality);
 
         const auto  plane   =   image.plane(0,0);
         if (plane._buffer == nullptr)
@@ -169,7 +370,6 @@ namespace   FE
         const int       w       =   int(width);
         const int       h       =   int(height);
         const int       c       =   int(channel);
-        const String    ext     =   extensionOf(fileName);
         int             result  =   0;
         if  (ext == "png")
             result  =   stbi_write_png(fileName,w,h,c,tight.data(),int(rowByte));

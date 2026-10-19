@@ -205,6 +205,7 @@ namespace   FE
         _depthView  =   nullptr;
         _sceneTex   =   nullptr;
         _sceneTexView = nullptr;
+        _sceneTexColorView = nullptr;
 
         for (auto  var : _factorys.objects())
         {
@@ -413,7 +414,7 @@ namespace   FE
             // pass1: 仅不透明场景 → sceneTex(工厂 TP_OPAQUE 趟过滤掉透明组)
             FEFactoryRender::setTransPass(FEFactoryRender::TransPass::TP_OPAQUE);
             FECmdBuffer::RenderInfo p1Info  =   rsInfo;
-            p1Info._colors  =   {_sceneTexView};
+            p1Info._colors  =   {_sceneTexColorView ? _sceneTexColorView : _sceneTexView};
             cmd->beginRender(p1Info);
             for (auto viewer : _viewerMgr.objects())
             {
@@ -880,6 +881,7 @@ namespace   FE
         /// transmission 场景折射纹理:与窗口同尺寸,color attachment + sampled 双用途
         _sceneTex       =   nullptr;
         _sceneTexView   =   nullptr;
+        _sceneTexColorView =   nullptr;
         {
             auto    sceneTex    =   _device->createTexture();
             FETexture::CreateInfo   tci;
@@ -911,6 +913,10 @@ namespace   FE
             {
                 _sceneTex       =   sceneTex;
                 _sceneTexView   =   sceneTex->imageView();
+                /// 关键修复:pass1 只渲 mip0,单独建 levelCount=1 的 color attachment view
+                /// 否则 VK 验证层要求 framebuffer 内完整 mip 链都在 COLOR_ATTACHMENT,
+                /// 但 mip>=1 未被写入(保持 UNDEFINED)直接报 validation error
+                _sceneTexColorView =   sceneTex->image()->createView(0, 1);
                 /// 注册到 device cache,PBR 材质渲染时自取并自动检测重建后重绑
                 sceneTex->setObjectId(FEConstUuid::SceneTexId);
                 _device->cacheObject(sceneTex.get());
