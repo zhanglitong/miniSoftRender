@@ -387,9 +387,26 @@ struct  ClipData
     float3  pos;
     float3  color;
 };
+/// <summary>
+/// 天空盒(大气散射)参数 UBO:std140 布局,C++ 与 GLSL/WGSL 两侧结构体完全一致。
+/// 全部字段用 vec4 承载,规避 vec3 在 std140 下 16 字节对齐产生的隐式填充歧义。
+///   _sunDirection : xyz=归一化太阳方向, w=曝光(exposure,默认 0.05,对齐 three.js 示例)
+///   _params       : x=turbidity, y=rayleigh, z=mieCoefficient, w=mieDirectionalG
+///   _up           : xyz=世界上方向(引擎默认 Z 朝上,此处默认 (0,0,1)), w=保留
+/// </summary>
 struct  UBOSky
 {
-    float _dummy;
+    float4  _sunDirection;
+    float4  _params;
+    float4  _up;
+#ifdef __cplusplus
+    UBOSky()
+    {
+        _sunDirection   =   float4(0.0f,  0.0f,  1.0f,   0.05f);
+        _params         =   float4(10.0f, 3.0f,  0.005f, 0.8f);
+        _up             =   float4(0.0f,  0.0f,  1.0f,   0.0f);
+    }
+#endif
 };
 
 /// <summary>

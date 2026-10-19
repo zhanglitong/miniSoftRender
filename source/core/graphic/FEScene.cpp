@@ -699,7 +699,7 @@ namespace   FE
         device.cacheObject(clipUBO.get());
 
         auto    skyUBO      =   device.createUBO();
-        skyUBO->create({sizeof(skyUBO),         MemoryUsage::DEVICE_DEFAULT_BIT});
+        skyUBO->create({sizeof(UBOSky),         MemoryUsage::DEVICE_DEFAULT_BIT});
         skyUBO->setObjectId(FEConstUuid::SkyUBOId);
         device.cacheObject(skyUBO.get());
 

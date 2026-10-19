@@ -191,11 +191,15 @@ namespace   FE
             if  (!isRgba8 || ktex->baseWidth == 0 || ktex->baseHeight == 0)
                 break;
 
-            /// 创建带完整 mip 链的目标图像(cube/array 暂只取第 0 层第 0 面)
+            /// 支持 2D(单层) 与 cubemap(6 面,KTX/KTX2 均由 isCubemap 标记);
+            /// 每面独立按 level 读取,面序与 Vulkan/GL 规范一致(+X,-X,+Y,-Y,+Z,-Z)
+            const uint32    faces   =   (ktex->isCubemap != 0) ? 6u : 1u;
+
+            /// 创建带完整 mip 链的目标图像
             FEImage::CreateInfo ci;
             ci._extent  =   uint3(ktex->baseWidth,ktex->baseHeight,1);
             ci._format  =   FMT_R8G8B8A8_UNORM;
-            ci._layers  =   1;
+            ci._layers  =   uint16(faces);
             ci._levels  =   uint16(ktex->numLevels > 0 ? ktex->numLevels : 1);
             ImagePtr    image   =   new FEImage(ctx);
             if  (!image->create(ci) || image->size() == 0)
@@ -204,21 +208,34 @@ namespace   FE
             /// 行序:libktx 的 ktxTexture_SetImageFromMemory 原样存储调用方字节,
             /// orientation 元数据仅作提示——写入端给什么顺序,读出来就是什么顺序。
             /// 我们的测试写入用顶行在前(引擎约定),这里也原样拷贝不翻转。
-            for (uint32 level = 0; level < ci._levels; ++level)
+            bool    ok  =   true;
+            for (uint32 face = 0; face < faces && ok; ++face)
             {
-                ktx_size_t  offset  =   0;
-                if  (ktxTexture_GetImageOffset(ktex,level,0,0,&offset) != KTX_SUCCESS)
-                    break;
-                const uint32    w       =   (std::max<uint32>)(ktex->baseWidth >> level,1);
-                const uint32    h       =   (std::max<uint32>)(ktex->baseHeight >> level,1);
-                const uint8*    srcBase =   ktex->pData + offset;
-                const size_t    srcPitch=   ktxTexture_GetRowPitch(ktex,level);
-                auto            plane   =   image->plane(level,0);
-                if  (srcPitch < size_t(w) * 4 || plane._buffer == nullptr)
-                    break;
-                for (uint32 y = 0; y < h; ++y)
-                    std::memcpy(plane.dataOffset<uint8>(y,0),srcBase + size_t(y) * srcPitch,size_t(w) * 4);
+                for (uint32 level = 0; level < ci._levels; ++level)
+                {
+                    ktx_size_t  offset  =   0;
+                    /// 参数序:(level, layer, faceSlice);cubemap 时 numLayers=1,numFaces=6
+                    if  (ktxTexture_GetImageOffset(ktex,level,0,face,&offset) != KTX_SUCCESS)
+                    {
+                        ok  =   false;
+                        break;
+                    }
+                    const uint32    w       =   (std::max<uint32>)(ktex->baseWidth >> level,1);
+                    const uint32    h       =   (std::max<uint32>)(ktex->baseHeight >> level,1);
+                    const uint8*    srcBase =   ktex->pData + offset;
+                    const size_t    srcPitch=   ktxTexture_GetRowPitch(ktex,level);
+                    auto            plane   =   image->plane(level,face);
+                    if  (srcPitch < size_t(w) * 4 || plane._buffer == nullptr)
+                    {
+                        ok  =   false;
+                        break;
+                    }
+                    for (uint32 y = 0; y < h; ++y)
+                        std::memcpy(plane.dataOffset<uint8>(y,0),srcBase + size_t(y) * srcPitch,size_t(w) * 4);
+                }
             }
+            if  (!ok)
+                break;
             result  =   image;
         } while (false);
 

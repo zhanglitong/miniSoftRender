@@ -113,6 +113,8 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEMaterialV3);
         DEFINE_CLASS_CREATOR(FEMaterialTexture);
         DEFINE_CLASS_CREATOR(FEMaterialText);
+        DEFINE_CLASS_CREATOR(FEMaterialCube);
+        DEFINE_CLASS_CREATOR(FEMaterialSky);
 
 
         DEFINE_CLASS_CREATOR(FEPlayback);

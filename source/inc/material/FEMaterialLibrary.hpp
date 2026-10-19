@@ -7,3 +7,5 @@
 #include    "FEMaterialOIT.hpp"
 #include    "FEMaterialTexture.hpp"
 #include    "FEMaterialText.hpp"
+#include    "FEMaterialCube.hpp"
+#include    "FEMaterialSky.hpp"

@@ -23,6 +23,7 @@
 #include    "VKSemaphore.h"
 #include    "VKGPUBuffer.h"
 #include    "VKCPipeline.h"
+#include    "VKImGuiBackend.h"
 
 namespace   FE
 {
@@ -194,6 +195,12 @@ namespace   FE
     {
         LOG_DBG("VKRenderSystem.createTexture");
         return  new VKTexture(_ctx);
+    }
+
+    FEImGuiBackend* VKDevice::createImGuiBackend()
+    {
+        LOG_DBG("VKRenderSystem.createImGuiBackend");
+        return  new VKImGuiBackend(_ctx,*this);
     }
 
     DSetLayout  VKDevice::createDSLayout()

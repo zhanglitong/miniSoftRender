@@ -65,6 +65,13 @@ namespace   FE
         {
             return  _device;
         }
+        /// <summary>
+        /// 交换链颜色格式(调试 GUI 等需要与渲染目标一致的颜色格式时使用)
+        /// </summary>
+        inline  FEFormat swapchainColorFormat() const
+        {
+            return  _swapchain ? _swapchain->colorFormat() : FMT_R8G8B8A8_UNORM;
+        }
 
         inline  auto    camera() const
         {

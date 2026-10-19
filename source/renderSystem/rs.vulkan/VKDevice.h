@@ -62,6 +62,7 @@ namespace   FE
         virtual Swapchain   createSwapchain()   override;
         virtual GImage      createGImage()      override;
         virtual TexPtr      createTexture()     override;
+        virtual FEImGuiBackend* createImGuiBackend() override;
 
         virtual DSetLayout  createDSLayout()    override;
         DSetLayout          createDSLayoutFromShaders(const std::vector<Shader>& shaders);

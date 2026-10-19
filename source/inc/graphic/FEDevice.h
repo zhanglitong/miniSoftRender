@@ -20,6 +20,7 @@
 
 namespace   FE
 {
+    class   FEImGuiBackend;
     DEFINE_CLASS_UUID(FEDevice,"{0C870EE5-B0CB-445B-A23A-DE0639B582DB}");
     /// <summary>
     /// 
@@ -112,6 +113,15 @@ namespace   FE
         /// 纹理支持当前仅 Vulkan 实现,未实现的后端返回 nullptr。
         /// </summary>
         virtual TexPtr      createTexture()
+        {
+            return  nullptr;
+        }
+        /// <summary>
+        /// 创建调试 GUI(ImGui)渲染后端。
+        /// 支持的后端(如 Vulkan)返回具体实现,未实现的后端返回 nullptr。
+        /// 调用者负责在退出时 destroy() 并 delete。
+        /// </summary>
+        virtual FEImGuiBackend* createImGuiBackend()
         {
             return  nullptr;
         }
