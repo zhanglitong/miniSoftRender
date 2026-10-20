@@ -24,7 +24,9 @@ namespace   FE
 
             if (files.empty())
                 return  nullptr;
+            /// <summary>
             /// 1. 使用参数的格式
+            /// </summary>
             Format  fmtIn   =   fmt;
             /// 2. 如果不可用，则根据扩展名获取
             if (!fmtIn.isValid())
@@ -109,7 +111,9 @@ namespace   FE
 
             if (file.empty())
                 return  nullptr;
+            /// <summary>
             /// 1. 使用参数的格式
+            /// </summary>
             Format  fmtIn   =   fmt;
             /// 2. 如果不可用，则根据扩展名获取
             if (!fmtIn.isValid())

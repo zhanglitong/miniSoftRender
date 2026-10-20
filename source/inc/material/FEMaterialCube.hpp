@@ -21,7 +21,9 @@ namespace   FE
             :FEMaterial(ctx)
         {
             setup("cube");
+            /// <summary>
             /// 自动将内置 UBO(camera/binding5 engineState)与 shader 反射绑定关联
+            /// </summary>
             autoAttach();
 
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
@@ -29,7 +31,9 @@ namespace   FE
             if (_cube)
                 bind(0,SB_Material, {_cube.get()});
 
+            /// <summary>
             /// 同步数据到显卡
+            /// </summary>
             update();
         }
 

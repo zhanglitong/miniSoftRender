@@ -122,17 +122,27 @@ namespace   FE
         /// </summary>
         /// <param name="camera"></param>
         void    update(FECamera& camera);
+        /// <summary>
         ///旋转轴顶点(6个: X/Y/Z 起止)
+        /// </summary>
         const   float3 (&rotateAxis())[6];
+        /// <summary>
         ///屏幕圆顶点(62个: 球面31 + 大圆31)
+        /// </summary>
         const   float3 (&rotateScreenCircle())[62];
+        /// <summary>
         ///三轴圆弧顶点
+        /// </summary>
         const   float3s    (&rotateArcs())[3];
+        /// <summary>
         ///切线顶点(8个)
+        /// </summary>
         const   float3 (&tangent())[8];
         ///旋转扇形顶点
         const   float3s&    fan() const;
+        /// <summary>
         ///是否正在旋转(绘制扇形/切线用)
+        /// </summary>
         inline  bool    isRotatting() const
         {
             return  _bRotatting;
@@ -189,23 +199,37 @@ namespace   FE
         /// <param name=""></param>
         virtual void    onMessage(const FEMessage& ) override;
     private:
+        /// <summary>
         ///高亮轴
+        /// </summary>
         AXIS    hoverAxis(const int2& pos);
+        /// <summary>
         ///拾取轴
+        /// </summary>
         AXIS    pickAxis(const int2& pos);
+        /// <summary>
         ///拾取球
+        /// </summary>
         AXIS    pickBall(const int2& pos);
+        /// <summary>
         ///拾取圆
+        /// </summary>
         AXIS    pickCricle(const int2& pos);
+        /// <summary>
         ///更新此次的旋转轴方向以及该旋转方向的权重
+        /// </summary>
         void    updateRotationAxisAndWeight();
+        /// <summary>
         ///旋转计算
+        /// </summary>
         void    calcRotate(const int2& start, const int2& end, real& rAngle);
         real    rotateX(const int2& start, const int2& end, const real3& axis);
         real    rotateY(const int2& start, const int2& end, const real3& axis);
         real    rotateZ(const int2& start, const int2& end, const real3& axis);
         real    rotateSC(const int2& start, const int2& end, const real3& axis);
+        /// <summary>
         ///计算切线与扇形
+        /// </summary>
         void    calcTangentAndFan(const real3& rotateAxis, real radius, real3& vtStart, real3& vtEnd);
     protected:
         virtual bool mouseButtonPress(const int2& pos)  ;
@@ -215,60 +239,108 @@ namespace   FE
         virtual bool touchUp(const int2& pos)           ;
         virtual bool touchMove(const int2& pos)         ;
     private:
+        /// <summary>
         ///旋转轴
+        /// </summary>
         float3      _rotateAxis[6];
+        /// <summary>
         ///始终与屏幕平行的圆(球面31 + 大圆31)
+        /// </summary>
         float3      _rotateScreenCricle[62];
+        /// <summary>
         ///x, y, z 摄像机方向的圆弧
+        /// </summary>
         float3s     _vRotateAxis[3];
+        /// <summary>
         ///切线
+        /// </summary>
         float3      _tangent[8];
+        /// <summary>
         ///旋转中扇形
+        /// </summary>
         float3s     _fan;
 
+        /// <summary>
         ///球半径
+        /// </summary>
         real        _radiusBall;
+        /// <summary>
         ///大圆半径
+        /// </summary>
         real        _radiusCircle;
 
+        /// <summary>
         ///选中的轴
+        /// </summary>
         AXIS        _selectedAxis;
+        /// <summary>
         ///高亮的轴
+        /// </summary>
         AXIS        _hoveredAxis;
 
+        /// <summary>
         ///是否正在旋转
+        /// </summary>
         bool        _bRotatting;
+        /// <summary>
         ///此次的旋转轴
+        /// </summary>
         real3       _rotationAxis;
+        /// <summary>
         ///此次的旋转角权重
+        /// </summary>
         real        _rotationAngleWeight;
+        /// <summary>
         ///旋转过的角度
+        /// </summary>
         real        _offAngle;
 
+        /// <summary>
         ///鼠标按钮按下
+        /// </summary>
         bool        _bMouseDown;
+        /// <summary>
         ///鼠标按下的最后位置
+        /// </summary>
         int2        _downPos;
+        /// <summary>
         ///开始时的鼠标位置
+        /// </summary>
         int2        _startPos;
 
+        /// <summary>
         ///触屏按下
+        /// </summary>
         bool        _bTouchDown;
+        /// <summary>
         ///触屏拾取轴
+        /// </summary>
         bool        _bTouchPickup;
+        /// <summary>
         ///触屏按下的最后位置
+        /// </summary>
         int2        _touchDownPos;
+        /// <summary>
         ///触屏开始时按下的位置
+        /// </summary>
         int2        _touchStartPos;
 
+        /// <summary>
         ///旋转吸附是否启用
+        /// </summary>
         bool                _adsorptionEnabled;
+        /// <summary>
         ///旋转吸附标志
+        /// </summary>
         AdsorptionFlags     _adsorptionFlags;
+        /// <summary>
         ///旋转吸附角度
+        /// </summary>
         real                _adsorptionAngle;
 
+        /// <summary>
         ///回调
+        /// </summary>
         MDelegate           _delegate;
     };
 

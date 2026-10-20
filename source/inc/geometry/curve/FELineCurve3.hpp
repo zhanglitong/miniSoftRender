@@ -29,15 +29,21 @@ namespace   FE
             return  v1 + (v2 - v1) * t;
         }
 
+        /// <summary>
         /// 直线的弧长参数与 t 一致
+        /// </summary>
         virtual Point   getTangent(T /*t*/) const override
         {
             return  FE::normalize(v2 - v1);
         }
     };
 
+    /// <summary>
     /// 单精度别名 (向后兼容)
+    /// </summary>
     using   FELineCurve3   =   FELineCurve3T<float>;
+    /// <summary>
     /// 双精度别名
+    /// </summary>
     using   FELineCurve3D  =   FELineCurve3T<double>;
 }

@@ -14,9 +14,13 @@ namespace   FE
         {  
             _pushConst._point   =   0;
             setup("v3");
+            /// <summary>
             /// 自动将系统数据与材质所需数据关联起来
+            /// </summary>
             autoAttach();
+            /// <summary>
             /// 更新数据
+            /// </summary>
             update();
         }
         FEMaterialV3(const FEMaterialV3& other)

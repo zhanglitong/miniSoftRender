@@ -87,13 +87,17 @@ namespace   FE
     using   BufferUsages        =  FEFlags<BufferUsage,uint>;
 
 
+    /// <summary>
     /// 纹理过滤模式
+    /// </summary>
     enum    FEFilter : uint32_t
     {
         FILTER_NEAREST  =   0,
         FILTER_LINEAR   =   1,
     };
+    /// <summary>
     /// 纹理寻址模式
+    /// </summary>
     enum    FEAddressMode : uint32_t
     {
         ADDRESS_REPEAT              =   0,

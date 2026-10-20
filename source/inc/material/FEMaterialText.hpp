@@ -22,17 +22,25 @@ namespace   FE
     public:
         IMPLEMENT_CLASS_REFLECT_MINI(FEMaterialText)
     public:
+        /// <summary>
         /// push constant 布局,须与 text/shader.vert/.frag(及 .wgls)中的 TextPush 一致
+        /// </summary>
         struct  TextData
         {
+            /// <summary>
             /// xy = 视口像素尺寸, zw = 1/视口尺寸
+            /// </summary>
             float4  _screen =   float4(1280.0f,720.0f,1.0f / 1280.0f,1.0f / 720.0f);
+            /// <summary>
             /// x = 每个烘焙像素对应的 SDF 编码增量 = 1/(2*spread),
             /// 片元着色器据此换算恒定的抗锯齿宽度(须与字体实际 spread 一致)
             /// y = 渲染模式(0=SDF,1=位图)
             /// z = 绘制模式(0=屏幕叠加,1=三维布告板)
+            /// </summary>
             float4  _sdf    =   float4(1.0f / 16.0f,0.0f,0.0f,0.0f);
+            /// <summary>
             /// x = 描边宽度(屏幕像素,0=无描边); yzw = 描边颜色 RGB(归一化 0~1)
+            /// </summary>
             float4  _stroke =   float4(0.0f,0.0f,0.0f,1.0f);
         };
     public:
@@ -149,10 +157,12 @@ namespace   FE
         {
             return  _strokeColor;
         }
+        /// <summary>
         /// text 管线开启了 alpha 混合(enableColorBlend=1),属于透明材质。
         /// 必须返回 true,否则工厂的不透明/透明两遍分组与渲染层排序会把文本
         /// 当作不透明物体先画,被后续不透明几何整体覆盖(commit 18c5b40 引入
         /// isTransparent 排序后暴露的问题)。
+        /// </summary>
         virtual bool        isTransparent() const override
         {
             return  true;
@@ -187,11 +197,17 @@ namespace   FE
         }
     protected:
         Font        _font      =   nullptr;
+        /// <summary>
         /// SDF 图集(与 _font 同步,单独持有便于绑定描述符)
+        /// </summary>
         TexPtr      _texture   =   nullptr;
+        /// <summary>
         /// 描边宽度(屏幕像素),0=无描边;与 _data._stroke.x 同步
+        /// </summary>
         float       _strokeWidth  =   0.0f;
+        /// <summary>
         /// 描边颜色;与 _data._stroke.yzw 同步
+        /// </summary>
         Rgba8       _strokeColor  =   Rgba8(0,0,0,255);
         mutable TextData    _data;
     };

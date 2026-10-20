@@ -66,8 +66,10 @@ namespace   FE
         auto    oldEnd  =   _objects.begin() + oldSize;
         std::sort(oldEnd, _objects.end());
 
+        /// <summary>
         /// 4. 原地归并两个有序段：[begin, old_end) 和 [old_end, end)
         ///    这是关键，直接利用原数组空间，不额外创建新 vector
+        /// </summary>
         std::inplace_merge(_objects.begin(), oldEnd, _objects.end());
         for (auto itr = nBegin; itr != eEnd; ++ itr )
         {
@@ -112,7 +114,9 @@ namespace   FE
     size_t  GroupNode::removeNodes(Nodes& deletes)
     {
         size_t  nOld    =   _objects.size();
+        /// <summary>
         /// 先排序，后续查找速度快
+        /// </summary>
         std::sort(deletes.begin(),deletes.end());
         /// 删除逻辑：如果当前值在 deletes 里能找到，就删除(返回 true)
         auto    newEnd  =   std::remove_if(_objects.begin(), _objects.end(), [&](const Node& object) 
@@ -337,9 +341,11 @@ namespace   FE
     size_t  FEFactoryRender::addNodesImpl(Nodes& nodes)
     {
         size_t  result  =   0;
+        /// <summary>
         /// 按照材质排序
         /// 同一个材质的节点可以按照批次直接加入到对相应的节点组中
         /// 性能比单个插入好很多
+        /// </summary>
         std::sort(nodes.begin(),nodes.end(),[](const Node& left,const Node& right)
         {
             return  left->material().get() < right->material().get();
@@ -1478,10 +1484,12 @@ namespace   FE
     {
         if (meshSet.empty())
             return  nullptr;
+        /// <summary>
         /// 交错布局必须按管线声明顺序驱动(与 xml offsets/stride 一致):
         /// 1. 组内各 mesh 属性集合可能不同(如 glTF 部分图元无 TANGENT),按 slot 逐 mesh 匹配;
         /// 2. mesh 缺失的声明属性(如 helmet 无 TEXCOORD1)交错时写 0 填充,
         ///    保证大缓冲区记录跨度与管线声明的 stride 一致,否则顶点属性整体错位。
+        /// </summary>
         struct  DataStride
         {
             uint8*  source  =   nullptr;

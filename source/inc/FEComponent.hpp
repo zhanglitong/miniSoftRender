@@ -6,12 +6,16 @@
 
 namespace   FE 
 {     
+    /// <summary>
     /// 按照优先级排序,优先级相同的按照order排序
+    /// </summary>
     constexpr   auto    ObjectLessFunc = [](const Object& l, const Object& r)
     {
         return  l.get() < r.get();
     };
+    /// <summary>
     /// 推导出来类型
+    /// </summary>
     using   ObjectLess  =   decltype(ObjectLessFunc);
 
     using   ObjectList  =   FEObjectsTemplate<Object,ObjectLess>;

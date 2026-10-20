@@ -417,7 +417,9 @@ namespace   FE
     }
     FEEditAxisRotate::AXIS FEEditAxisRotate::pickCricle(const int2& screen)
     {
+        /// <summary>
         /// 大圆比轴更粗更靠外, 用更大的拾取范围
+        /// </summary>
         static const real DIST_MAX = 10;
         FECamera &camera = _ctx.activeCamera();
         real3       mouse(screen.x, screen.y, 0);

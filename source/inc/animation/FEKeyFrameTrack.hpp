@@ -125,7 +125,9 @@ namespace FE
             /// 时间点已存在,返回失败
             if (itr != times.end() && *itr == time)
                 return  false;
+            /// <summary>
             /// 直接在有序位置插入,无需再 sortKeyFames()
+            /// </summary>
             size_t  idx =   (size_t)std::distance(times.begin(),itr);
             times.insert(itr,time);
             if (!insertValue(idx,val))
@@ -621,7 +623,9 @@ namespace FE
         template<class TValue>
         static  TValue  cubicBezierInterpolate(TValue p0, TValue p1, TValue p2, TValue p3, real t) 
         {
+            /// <summary>
             /// 三次贝塞尔公式: B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
+            /// </summary>
             real    u   =   1.0 - t;
             return  u * u * u * p0 + 
                     3.0 * u * u * t * p1 + 

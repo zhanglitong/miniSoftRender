@@ -22,12 +22,18 @@ namespace   FE
             FEFilter        _magFilter  =   FILTER_LINEAR;
             FEFilter        _minFilter  =   FILTER_LINEAR;
             FEAddressMode   _addressMode =  ADDRESS_REPEAT;
+            /// <summary>
             /// mip 级数(>1 时 update 需按 mip 逐级提供数据,采样器 maxLod=mips-1)
+            /// </summary>
             uint            _mips       =   1;
+            /// <summary>
             /// 是否为 cubemap(6 面;update 数据按 面主序、面内 mip 顺序 紧密排布)
+            /// </summary>
             bool            _cube       =   false;
+            /// <summary>
             /// 是否作为渲染目标(color attachment + sampled 双用途,
             /// 如 transmission 场景折射纹理;此时无需 update 上传像素)
+            /// </summary>
             bool            _renderTarget = false;
         };
     public:

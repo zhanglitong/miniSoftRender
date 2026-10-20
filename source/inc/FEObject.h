@@ -70,8 +70,10 @@ namespace   FE
         }
     };
 
+    /// <summary>
     /// #define UNUSED(...)         (void)(__VA_ARGS__)
     /// C++17 （利用折叠表达式）
+    /// </summary>
     template <typename... Args>
     inline void UNUSED(Args&&... args) 
     {

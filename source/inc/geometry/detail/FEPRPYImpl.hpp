@@ -61,14 +61,18 @@ namespace   FE
                 return  index++;
             };
 
+            /// <summary>
             /// 底面 4 顶点 (法线朝下 -Y)
             /// 顺序: (-bx,-by), (bx,-by), (bx,by), (-bx,by)
+            /// </summary>
             uint    b0 = fnPushV(-bx, -halfH, -by, 0,-1,0, 0,0);
             uint    b1 = fnPushV( bx, -halfH, -by, 0,-1,0, 1,0);
             uint    b2 = fnPushV( bx, -halfH,  by, 0,-1,0, 1,1);
             uint    b3 = fnPushV(-bx, -halfH,  by, 0,-1,0, 0,1);
 
+            /// <summary>
             /// 顶面 4 顶点 (法线朝上 +Y)
+            /// </summary>
             uint    t0 = fnPushV(-tx+ox, halfH, -ty+oy, 0,1,0, 0,0);
             uint    t1 = fnPushV( tx+ox, halfH, -ty+oy, 0,1,0, 1,0);
             uint    t2 = fnPushV( tx+ox, halfH,  ty+oy, 0,1,0, 1,1);
@@ -99,13 +103,21 @@ namespace   FE
                 ids.insert(ids.end(),{s0, s1, s2});
             };
 
+            /// <summary>
             /// 前面 (z=by/ty, 法线 +Z)
+            /// </summary>
             fnSide(-bx, by,  bx, by,  tx+ox, ty+oy, -tx+ox, ty+oy,  0,0,1);
+            /// <summary>
             /// 右面 (x=bx/tx, 法线 +X)
+            /// </summary>
             fnSide( bx, by,  bx,-by,  tx+ox,-ty+oy,  tx+ox, ty+oy,  1,0,0);
+            /// <summary>
             /// 后面 (z=-by/-ty, 法线 -Z)
+            /// </summary>
             fnSide( bx,-by, -bx,-by, -tx+ox,-ty+oy,  tx+ox,-ty+oy,  0,0,-1);
+            /// <summary>
             /// 左面 (x=-bx/-tx, 法线 -X)
+            /// </summary>
             fnSide(-bx,-by, -bx, by, -tx+ox, ty+oy, -tx+ox,-ty+oy, -1,0,0);
         }
     };

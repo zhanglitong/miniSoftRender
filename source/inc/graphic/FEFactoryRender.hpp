@@ -303,16 +303,20 @@ namespace   FE
     public:
         virtual void    update(CMDPtr cmd);
         virtual void    render(CMDPtr cmd);
+        /// <summary>
         /// ===== transmission 场景折射双趟过滤(全局趟状态,FEScene 每趟渲染前切换)=====
         ///   TP_ALL:    正常渲染(不透明组 + 透明组都画)
         ///   TP_OPAQUE: 仅不透明组(场景折射纹理预渲染趟,透明组跳过,
         ///              否则玻璃会出现在自身折射背景里并自折射)
         /// (枚举值带 TP_ 前缀:OPAQUE 与 wingdi.h 宏冲突)
+        /// </summary>
         enum class  TransPass : uint { TP_ALL = 0, TP_OPAQUE };
         static  void        setTransPass(TransPass p);
         static  TransPass   transPass();
+        /// <summary>
         /// 工厂内含任意透明材质组(alpha 混合/transmission)时返回 true,
         /// 渲染层据此把工厂排到不透明工厂之后绘制
+        /// </summary>
         virtual bool    isTransparent() const;
         /// <summary>
         /// 销毁前一定调用该函数，解除数据对工厂的引用计数
@@ -451,15 +455,19 @@ namespace   FE
         /// </summary>
         VBO             _vboSphere;
         Counts          _counts;
+        /// <summary>
         /// 工厂默认归属的场景层。
         /// 注意:不能默认为 USAGE_Classic —— 它是 Background|Scene|GUI|Overlay 的并集,
         /// 是给 viewer 声明“启用哪些层”用的;工厂若继承它,会被每个启用层各绘制一遍
         /// (单趟渲染下即 4× 过度绘制,且透明物体被重复混合)。
         /// 需要其它图层的工厂(如 ImGui 工厂)应显式指定自己的 usages。
+        /// </summary>
         ViewerUsages    _usages     =   ViewerUsage::USAGE_Scene;
         bool            _gpuCull    =   true;
         bool            _resident   =   false;
+        /// <summary>
         /// transmission 场景折射双趟过滤全局状态(定义于 FEFactoryRender.cpp)
+        /// </summary>
         static  TransPass   s_transPass;
     };
     using   RFactory            =   SharedPtr<FEFactoryRender>;

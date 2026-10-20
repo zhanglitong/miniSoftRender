@@ -219,12 +219,18 @@ namespace   FE
         }
         void    update64(const unsigned char input[], size_t length)
         {
+            /// <summary>
             /// 支持内存超过4G的情况
             /// 每次最大1G内存计算
+            /// </summary>
             constexpr   uint  BLOCK   =   1024 * 1024 * 1024;
+            /// <summary>
             /// 块数
+            /// </summary>
             size_t      nBlock  =   length/BLOCK;
+            /// <summary>
             /// 剩余字节
+            /// </summary>
             size_t      nLast   =   length - nBlock * BLOCK;
             uint8*      pBuf    =   (uint8*)input;
             for (size_t i = 0; i < nBlock; i++)
@@ -285,9 +291,13 @@ namespace   FE
             FILE*   pFile   =   fopen(fileName,"rb");
             if (pFile == nullptr)
                 return  FEMd5Key();
+            /// <summary>
             /// 每次读取的大小
+            /// </summary>
             char    szTemp[4096]    =   {};
+            /// <summary>
             /// 获取文件大小
+            /// </summary>
             _fseeki64(pFile,0,  SEEK_END);
             uint64_t    nFile   =   _ftelli64(pFile);
             _fseeki64(pFile,0,  SEEK_SET);

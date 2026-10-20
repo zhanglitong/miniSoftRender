@@ -7,12 +7,16 @@ namespace FE
 {
     DEFINE_CLASS_UUID(FEAnimClip, "{4DC5CFDD-59F2-4715-A852-10C8A76D06E6}");
 
+    /// <summary>
     /// lambda
+    /// </summary>
     constexpr   auto    TrackLessFunc = [](const KeyFrameTrack& l, const KeyFrameTrack& r)
     {
         return  l->times().get() < r->times().get();
     };
+    /// <summary>
     /// 推导出来类型
+    /// </summary>
     using   TrackLess    =   decltype(TrackLessFunc);
 
     class   FEAnimation;

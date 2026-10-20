@@ -77,7 +77,9 @@ namespace   FE
             node->update();
             return  node;
         }
+        /// <summary>
         /// ===== 参数设置(立即写入 SkyUBO) =====
+        /// </summary>
         void    setTurbidity(float v)
         {
             _value._params.x    =   v;
@@ -103,29 +105,37 @@ namespace   FE
             _value._sunDirection.w  =   v;
             apply();
         }
+        /// <summary>
         /// ===== 云参数(对齐 three.js SkyMesh 的 uniforms)=====
         /// 云量:0 表示无云(着色器内直接跳过云的计算)
+        /// </summary>
         void    setCloudCoverage(float v)
         {
             _cloudCoverage  =   v;
             _value._cloud.x =   v;
             apply();
         }
+        /// <summary>
         /// 云密度:越大云越厚实、越不透明
+        /// </summary>
         void    setCloudDensity(float v)
         {
             _cloudDensity   =   v;
             _value._cloud.y =   v;
             apply();
         }
+        /// <summary>
         /// 云层高度:越大云看起来越低、越靠近地平线
+        /// </summary>
         void    setCloudElevation(float v)
         {
             _cloudElevation =   v;
             _value._cloud.z =   v;
             apply();
         }
+        /// <summary>
         /// 云速:驱动云流动与翻涌的速度(单位/秒)
+        /// </summary>
         void    setCloudSpeed(float v)
         {
             _cloudSpeed     =   v;
@@ -192,7 +202,9 @@ namespace   FE
             return  false;
         }
     protected:
+        /// <summary>
         /// 同步天空参数到 GPU
+        /// </summary>
         void    apply()
         {
             if  (_ubo != nullptr)
@@ -205,12 +217,16 @@ namespace   FE
         float           _elevation  =   10.0f;
         float           _azimuth    =   180.0f;
         float           _elevSpeed  =   6.0f;
+        /// <summary>
         /// 云参数(默认值取 three.js webgpu_sky 示例面板值)
+        /// </summary>
         float           _cloudCoverage  =   0.4f;
         float           _cloudDensity   =   0.4f;
         float           _cloudElevation =   0.5f;
         float           _cloudSpeed     =   0.00002f;
+        /// <summary>
         /// 云动画累计时间(秒)
+        /// </summary>
         float           _timeAccum      =   0.0f;
     };
 }

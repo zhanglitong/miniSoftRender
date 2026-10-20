@@ -15,11 +15,13 @@ namespace   FE
 {
     namespace
     {
+        /// <summary>
         /// 显式目标格式 -> 解码所需通道数;0 表示不支持
         /// 支持三类逐通道格式(1/2/3/4 通道):
         ///   8bit  UNORM : R8  / R8G8  / R8G8B8  / R8G8B8A8
         ///   16bit half  : R16 / R16G16 / R16G16B16 / R16G16B16A16_FLOAT
         ///   32bit float : R32 / R32G32 / R32G32B32 / R32G32B32A32_FLOAT
+        /// </summary>
         inline  int     loadChannelCount(FEFormat fmt)
         {
             switch (fmt)
@@ -39,7 +41,9 @@ namespace   FE
             default:                            return  0;
             }
         }
+        /// <summary>
         /// 是否每通道4字节单精度浮点格式
+        /// </summary>
         inline  bool    isFloatFormat(FEFormat fmt)
         {
             switch (fmt)
@@ -51,7 +55,9 @@ namespace   FE
             default:                            return  false;
             }
         }
+        /// <summary>
         /// 是否每通道2字节半精度浮点格式(stb 无 half 输出,由 float 转换写入)
+        /// </summary>
         inline  bool    isHalfFormat(FEFormat fmt)
         {
             switch (fmt)
@@ -63,7 +69,9 @@ namespace   FE
             default:                            return  false;
             }
         }
+        /// <summary>
         /// 是否浮点系(半点 / 单精度),决定走 stbi_loadf 还是 stbi_load
+        /// </summary>
         inline  bool    isFloatFamily(FEFormat fmt)
         {
             return  isFloatFormat(fmt) || isHalfFormat(fmt);
@@ -243,11 +251,13 @@ namespace   FE
         return  result;
     }
 
+    /// <summary>
     /// =====================================================================
     /// saveKtxInternal:FEImage → libktx → ktx 或 ktx2 文件
     /// 支持 1/2/3/4 通道 8bit 格式 + mip 链逐层写入;
     /// ktx2 + quality>0 时经 ktxTexture2_CompressBasis 转 ETC1S
     /// =====================================================================
+    /// </summary>
     static  bool    saveKtxInternal(const FEImage& image,const char* fileName,bool isKtx2,int quality)
     {
         const auto&     cInfo   =   image.cInfo();

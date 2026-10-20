@@ -139,11 +139,17 @@ namespace   FE
             return  t;
         }
     protected:
+        /// <summary>
         /// 固定目标点(零初始化)
+        /// </summary>
         real3       _target         =   real3(0);
+        /// <summary>
         /// 绑定的目标节点；有效时优先于 _target
+        /// </summary>
         Node        _targetNode;
+        /// <summary>
         /// 附加时是否自动记录偏移
+        /// </summary>
         bool        _maintainOffset =   true;
     };
 

@@ -129,9 +129,13 @@ namespace   FE
         static  bool    copyFile(const char* existFileName, const char* newFileName, bool bFailIfExist)
         {
 #if 1
+            /// <summary>
             /// 源文件路径
+            /// </summary>
             fs::path source         =   existFileName;
+            /// <summary>
             /// 目标文件路径
+            /// </summary>
             fs::path destination    =   newFileName; 
             try
             {

@@ -36,16 +36,26 @@ namespace   FE
     public:
         IMPLEMENT_CLASS_REFLECT(FEFormatGLTFReader)
     protected:
+        /// <summary>
         /// glTF texture 索引 → 引擎纹理缓存(每次 readBuffers 清空)
+        /// </summary>
         TextureIndex    _texCache;
+        /// <summary>
         /// ===== KHR_materials_variants =====
         /// 变体名表(顺序即 glTF 扩展中 variants 数组顺序)
+        /// </summary>
         Strings                                         _variantNames;
+        /// <summary>
         /// glTF 材质索引 → (变体索引,目标材质索引) 列表
+        /// </summary>
         std::map<int,std::vector<std::pair<int,int>>>   _variantMappings;
+        /// <summary>
         /// 本次加载的全部材质(gltf 索引 → 引擎材质),变体切换时查询目标材质
+        /// </summary>
         MaterialIndex                                   _variantMaterials;
+        /// <summary>
         /// 引用了材质的节点及对应 glTF 材质索引(变体切换时更新)
+        /// </summary>
         std::vector<std::pair<Node,int>>                _variantNodes;
     public:
         FEFormatGLTFReader(FEContext& ctx)

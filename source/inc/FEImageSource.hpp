@@ -563,8 +563,10 @@ namespace   FE
             }
         }
     protected:
+        /// <summary>
         /// Tag: TypeOfFormat<FMT>标签,携带宿存储类型type与宿格式value(决定宿量化语义)
         /// 不支持的转换对直接返回*this,避免实例化产生编译错误
+        /// </summary>
         template<class TFrom,class Tag>
         inline  auto&   convert(const RectU32& rect,const TFrom& src)
         {

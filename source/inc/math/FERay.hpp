@@ -112,13 +112,17 @@ namespace   FE
         /// <returns>自己</returns>
         inline  auto&   transform(const tmat4<T>& m) 
         {
+            /// <summary>
             /// 1. 起点（点）：受平移、旋转、缩放影响
             /// 在齐次坐标中，w分量为1
+            /// </summary>
             tvec4<T>    worldOrigin =   tvec4<T>(this->_origin, T(1));
             _origin                 =   (m * worldOrigin);
 
+            /// <summary>
             /// 2. 方向（向量）：仅受旋转、缩放影响，不受平移影响
             /// 在齐次坐标中，w分量为0
+            /// </summary>
             tvec4<T>    worldDir    =   tvec4<T>(this->_direction, 0.0f);
             _direction              =   (m * worldDir);
             _dirInverse             =   inverse(_direction);
@@ -137,13 +141,17 @@ namespace   FE
         {
             tray<T>     result;
 
+            /// <summary>
             /// 1. 起点（点）：受平移、旋转、缩放影响
             /// 在齐次坐标中，w分量为1
+            /// </summary>
             tvec4<T>    worldOrigin =   tvec4<T>(this->_origin, T(1));
             result._origin          =   (m * worldOrigin);
 
+            /// <summary>
             /// 2. 方向（向量）：仅受旋转、缩放影响，不受平移影响
             /// 在齐次坐标中，w分量为0
+            /// </summary>
             tvec4<T> worldDir       =   tvec4<T>(this->_direction, T(0));
             result._direction       =   (m * worldDir);
             result._dirInverse      =   inverse(result._direction);

@@ -81,7 +81,9 @@ namespace   FE
             :FEObject(other)
         {}
 
+        /// <summary>
         /// C++20 下 std::variant 构造函数更严格,需把 int 显式映射到 int64
+        /// </summary>
         template<typename T>
         static  Value       to_value(T&& val)
         {

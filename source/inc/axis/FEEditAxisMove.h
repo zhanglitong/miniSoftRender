@@ -175,38 +175,64 @@ namespace   FE
         virtual bool touchUp(const int2& pos)           ;
         virtual bool touchMove(const int2& pos)         ;
     private:
+        /// <summary>
         ///轴顶点
+        /// </summary>
         float3s             _moveAxis;
+        /// <summary>
         ///箭头顶点
+        /// </summary>
         float3s             _axisAr;
         /// <summary>
         /// 索引数据
         /// </summary>
         uint16s             _indexs;
+        /// <summary>
         ///高亮的轴
+        /// </summary>
         AXIS                _hoveredAxis;
+        /// <summary>
         ///选择的轴
+        /// </summary>
         AXIS                _selectedAxis;
         ///
         real3               _offMove;
+        /// <summary>
         ///开始移动时轴的位置
+        /// </summary>
         real3               _downPosWorld;
+        /// <summary>
         ///鼠标按下的最后位置
+        /// </summary>
         int2                _downPos;
+        /// <summary>
         ///开始时的鼠标位置
+        /// </summary>
         int2                _startPos;
 
+        /// <summary>
         ///触屏按下的最后位置
+        /// </summary>
         int2                _touchDownPos;
+        /// <summary>
         ///触屏开始时按下的位置
+        /// </summary>
         int2                _touchStartPos;
+        /// <summary>
         ///移动通知
+        /// </summary>
         MDelegate           _delegate;
+        /// <summary>
         ///鼠标按钮按下
+        /// </summary>
         bool                _bMouseDown;
+        /// <summary>
         ///触屏按下
+        /// </summary>
         bool                _bTouchDown;
+        /// <summary>
         ///触屏拾取轴
+        /// </summary>
         bool                _bTouchPickup;
     };
 

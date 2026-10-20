@@ -68,7 +68,9 @@ namespace   FE
             std::vector<uint> sideBotIdx(segs + 1), sideTopIdx(segs + 1);
             std::vector<uint> capBotIdx(segs + 1), capTopIdx(segs + 1);
 
+            /// <summary>
             /// 侧面法线斜率: (bottomRadius - topRadius) / height
+            /// </summary>
             float   sideY   =   (params.bottomRadius - params.topRadius) / params.height;
 
             for (uint i = 0; i <= segs; ++i)
@@ -124,7 +126,9 @@ namespace   FE
                 ids.insert(ids.end(),{b1, t0, t1});
             }
 
+            /// <summary>
             /// 底面封口
+            /// </summary>
             uint    botCenter = index;
             vs.insert(vs.end(),{0, -halfH, 0});
             if constexpr (bNormal) ns.insert(ns.end(),{0, -1, 0});
@@ -135,7 +139,9 @@ namespace   FE
                 ids.insert(ids.end(),{botCenter, capBotIdx[i], capBotIdx[i+1]});
             }
 
+            /// <summary>
             /// 顶面封口
+            /// </summary>
             uint    topCenter = index;
             vs.insert(vs.end(),{params.xOffset, halfH, params.yOffset});
             if constexpr (bNormal) ns.insert(ns.end(),{0, 1, 0});

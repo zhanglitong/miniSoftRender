@@ -34,7 +34,9 @@ namespace   FE
             return  r;
         }
 
+        /// <summary>
         /// UTF-8 解码:返回当前码点并前移指针(非法字节按单字节处理)
+        /// </summary>
         inline  uint32  decodeUTF8(const char*& p,const char* end)
         {
             uint8_t c   =   (uint8_t)(*p++);
@@ -202,7 +204,9 @@ namespace   FE
         _lineHeight =   (float)face->size->metrics.height   / 64.0f;
         _ascent     =   (float)face->size->metrics.ascender / 64.0f;
 
+        /// <summary>
         /// ---- 第一遍:SDF 渲染取得每个字形的位图尺寸,并做货架式打包 ----
+        /// </summary>
         struct  GlyphBox
         {
             uint32  _code   =   0;
@@ -234,7 +238,9 @@ namespace   FE
         if (atlasW < 4)
             atlasW  =   4;
 
+        /// <summary>
         /// 按高度降序做货架打包,保证同一行内不会溢出
+        /// </summary>
         std::vector<uint>   order(boxes.size());
         for (uint i = 0; i < (uint)order.size(); ++i)
             order[i]    =   i;
@@ -242,7 +248,9 @@ namespace   FE
         {
             return  boxes[a]._advance < boxes[b]._advance;
         });
+        /// <summary>
         /// 用实际位图高度排序(需要重新渲染取高度,此处复用第一遍结果)
+        /// </summary>
         std::vector<uint>   heights(boxes.size(),0);
         for (size_t i = 0; i < boxes.size(); ++i)
         {
@@ -447,7 +455,9 @@ namespace   FE
     // ====================================================================
     namespace
     {
+        /// <summary>
         /// 轮廓提取回调上下文
+        /// </summary>
         struct  OutlineCtx
         {
             float3s*    _poss       =   nullptr;
@@ -464,13 +474,17 @@ namespace   FE
             bool        _hasStart   =   false;
         };
 
+        /// <summary>
         /// FT_Vector(26.6 定点)转烘焙像素
+        /// </summary>
         inline  float2  ftToPx(const FT_Vector* v)
         {
             return  float2(v->x / 64.0f,v->y / 64.0f);
         }
 
+        /// <summary>
         /// 发射一条线段(a->b,烘焙像素),换算到屏幕像素(y 向下)
+        /// </summary>
         inline  void    emitSeg(OutlineCtx& c,const float2& a,const float2& b)
         {
             c._poss->emplace_back(float3(c._penX + a.x * c._scale,

@@ -21,16 +21,22 @@ namespace   FE
             :FEMaterial(ctx)
         {
             setup("sky");
+            /// <summary>
             /// 自动关联内置 UBO(camera/engineState 等)
+            /// </summary>
             autoAttach();
 
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
             auto    skyUBO      =   ctx.device().queryCache(FEConstUuid::SkyUBOId);
+            /// <summary>
             /// 天空参数块名为 SkyBlock,autoAttach 覆盖不到,这里显式绑定
+            /// </summary>
             bind(0,SB_Camera,   {cameraUBO});
             bind(0,SB_Sky,      {skyUBO});
 
+            /// <summary>
             /// 同步数据到显卡
+            /// </summary>
             update();
         }
         FEMaterialSky(const FEMaterialSky& other)

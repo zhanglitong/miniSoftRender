@@ -19,7 +19,9 @@ namespace FE
     {
     protected:
         /// <summary>
+        /// <summary>
         /// 鍘熷鏁版嵁锛屼富瑕佺敤浣滀繚瀛樻暟鎹?        /// </summary>
+        /// </summary>
         std::vector<T>                  _data;
         /// <summary>
         /// 涓昏鐢ㄤ綔鏌ヨ浣跨敤,涓嶇洿鎺ヤ娇鐢紝瑙ｅ喅鏁版嵁绱㈠紩鍞竴鎬э紝渚嬪棰戠箒鐨勬彃鍏ュ垹闄わ紝鏁版嵁绱㈠紩浼氬彂鐢熷彉鍖?
@@ -32,12 +34,14 @@ namespace FE
                 _data.reserve(reserve);
         }
         /// <summary>
+        /// <summary>
         /// 褰撳悜绯荤粺涓鍔犱簡鏁版嵁鍚庯紝寤鸿鍦ㄦ坊鍔犲畬鎵€鏈夌殑Id鍚庯紝璋冪敤璇ュ嚱鏁板疄鐜板揩閫熺储寮曟暟鎹?        /// 鍏稿瀷鍦烘櫙:FEMappingTable<FEUuid> idMap;
         /// idMap.add(FEUuid);
         /// idMap.add(FEUuid)
         /// ...
         /// idMap.buidIndex()
         /// idMap.indexOf(CELLUuid) 杩斿洖id鐨勭储寮曟暟鎹?        /// </summary>
+        /// </summary>
         void    buidIndex()
         {
             for (size_t i = 0; i < _data.size(); i++)

@@ -18,38 +18,58 @@ namespace   FE
     /// </summary>
     struct  PBRTexParams
     {
+        /// <summary>
         /// 贴图存在标志位(见 PBRTexFlag)
+        /// </summary>
         uint    _flags;
+        /// <summary>
         /// 法线贴图强度
+        /// </summary>
         float   _normalScale;
+        /// <summary>
         /// AO 强度
+        /// </summary>
         float   _occlusionStrength;
+        /// <summary>
         /// 自发光强度
+        /// </summary>
         float   _emissiveStrength;
+        /// <summary>
         /// ===== KHR 材质扩展参数(尾部追加,前 4 字段偏移不变,兼容旧数据)=====
         /// KHR_materials_transmission 透射因子(>0 时材质走 blend 管线,shader 中漫反射衰减)
+        /// </summary>
         float   _transmissionFactor;
+        /// <summary>
         /// KHR_materials_clearcoat 清漆强度与粗糙度
+        /// </summary>
         float   _clearcoatStrength;
         float   _clearcoatRoughness;
+        /// <summary>
         /// KHR_materials_iridescence 虹彩参数(强度/IOR/薄膜厚度范围)
+        /// </summary>
         float   _iriFactor;
         float   _iriIor;
         float   _iriTmin;
         float   _iriTmax;
+        /// <summary>
         /// AO 采样所用 UV 集(>0.5 表示用 TEXCOORD_1,对应 glTF occlusionTexture.texCoord)
+        /// </summary>
         float   _aoTexCoord;
+        /// <summary>
         /// ===== KHR_texture_transform(UV 变换,尾部追加)=====
         /// 6 类贴图各一套 2x2 矩阵 + 平移,每槽 8 floats:
         /// [m00,m01,m10,m11,ox,oy,0,0],与 shader 侧 vec4 _pbrUvTr[12] 逐字节一致
         /// (std140 下 vec4 数组从偏移 48 开始、元素步长 16 字节;前 12 标量占 48 字节;
         /// 槽序 0~5 = baseColor/mr/normal/ao/emissive/iriThickness,同 PBRTexSlot)
+        /// </summary>
         float   _uvTransform[6 * 8];
+        /// <summary>
         /// ===== KHR_materials_volume(尾部追加;2 个 vec4,保持总尺寸为 16 字节
         /// 倍数——WGSL uniform 结构尺寸必须 16 对齐,std140 vec4 数组天然对齐)=====
         /// [0]: x=thickness 折射厚度(米,0=薄壁无偏移),yzw=attenuationColor 吸收色 RGB
         /// [1]: x=attenuationDistance 吸收距离(<=0 视为无穷大=不吸收),yzw 保留
         /// 与 shader 侧 vec4 _pbrVolume[2] 逐字节一致(偏移 240/256)
+        /// </summary>
         float   _volume[2 * 4];
         PBRTexParams()
             :_flags(0)
@@ -72,7 +92,9 @@ namespace   FE
             for (uint i = 0; i < 8; ++i)
                 _volume[i] = 0.0f;
         }
+        /// <summary>
         /// 把某贴图槽位的变换重置为单位矩阵
+        /// </summary>
         void    setUvIdentity(uint slot)
         {
             float*  p   =   _uvTransform + slot * 8;
@@ -227,7 +249,9 @@ namespace   FE
             _pbr._gpu   =   nullptr;
         }
 
+        /// <summary>
         /// ===== 贴图设置接口 =====
+        /// </summary>
         inline  void    setBaseColorMap(TexPtr tex)
         {
             _baseColorMap = (tex != nullptr) ? tex : createDefaultColor(float4(1,1,1,1));
@@ -279,19 +303,25 @@ namespace   FE
             bind(0,BIND_IRRADIANCE,{_irradianceMap.get()});
             _pbr.update(); _texParams.update(); update();
         }
+        /// <summary>
         /// 单独设置漫反射辐照度 cubemap(球谐预卷积结果)
+        /// </summary>
         inline  void    setIrradianceMap(TexPtr tex)
         {
             _irradianceMap  = (tex != nullptr) ? tex : _environmentMap;
             bind(0,BIND_IRRADIANCE,{_irradianceMap.get()});
             update();
         }
+        /// <summary>
         /// 获取当前环境贴图
+        /// </summary>
         inline  TexPtr  environmentMap() const
         {
             return  _environmentMap;
         }
+        /// <summary>
         /// 获取当前漫反射辐照度贴图
+        /// </summary>
         inline  TexPtr  irradianceMap() const
         {
             return  _irradianceMap;
@@ -319,7 +349,9 @@ namespace   FE
             _texParams.update(); update();
         }
 
+        /// <summary>
         /// ===== 标量参数 =====
+        /// </summary>
         inline  void    setNormalScale(float s)
         {
             _texParams._value._normalScale  =   s;
@@ -336,20 +368,26 @@ namespace   FE
             _texParams.update();
         }
 
+        /// <summary>
         /// ===== KHR 材质扩展参数(对应 shader.frag 的 PBRTexBlock 扩展字段)=====
         /// KHR_materials_clearcoat 清漆层
+        /// </summary>
         inline  void    setClearcoat(float strength,float roughness)
         {
             _texParams._value._clearcoatStrength    =   strength;
             _texParams._value._clearcoatRoughness   =   roughness;
             _texParams.update();
         }
+        /// <summary>
         /// KHR_materials_transmission 透射(>0 时建议配合 setAlphaBlend(true))
+        /// </summary>
         inline  void    setTransmission(float factor)
         {
             _texParams._value._transmissionFactor   =   factor;
             _texParams.update();
+            /// <summary>
             /// 透射因子跨 0 时切换 BIND_SCENE_TEX 绑定(真纹理↔占位白图)
+            /// </summary>
             bindSceneTex();
             updateSceneTexCount();
         }
@@ -370,7 +408,9 @@ namespace   FE
             update();
             updateSceneTexCount();
         }
+        /// <summary>
         /// 是否存在需要场景折射双趟渲染的透射材质(全局)
+        /// </summary>
         static  bool    anyTransmissionMaterial()
         {
             return  s_transmissionMats > 0;
@@ -390,17 +430,23 @@ namespace   FE
             v[4] = attDist;    v[5] = 0.0f; v[6] = 0.0f; v[7] = 0.0f;
             _texParams.update();
         }
+        /// <summary>
         /// 当前体积参数自检:返回 (thickness, attenuationDistance)
+        /// </summary>
         inline  float2  volume() const
         {
             return  float2(_texParams._value._volume[0],_texParams._value._volume[4]);
         }
+        /// <summary>
         /// 当前挂接的场景折射纹理(自动模式下即 device cache 中那份;未挂接时为 nullptr)
+        /// </summary>
         TexPtr  sceneTexture() const
         {
             return  _hasRealSceneTex ? _sceneTexMap : TexPtr(nullptr);
         }
+        /// <summary>
         /// KHR_materials_iridescence 虹彩(薄膜干涉)
+        /// </summary>
         inline  void    setIridescence(float factor,float ior = 1.3f,float tmin = 100.0f,float tmax = 400.0f)
         {
             _texParams._value._iriFactor    =   factor;
@@ -409,7 +455,9 @@ namespace   FE
             _texParams._value._iriTmax      =   tmax;
             _texParams.update();
         }
+        /// <summary>
         /// AO 贴图使用的 UV 集(glTF occlusionTexture.texCoord,0/1)
+        /// </summary>
         inline  void    setOcclusionTexCoord(uint idx)
         {
             _texParams._value._aoTexCoord   =   float(idx);
@@ -493,7 +541,9 @@ namespace   FE
             _texParams.checkDirty();
             FEMaterial::appDynamicState(cmd,pri);
         }
+        /// <summary>
         /// alpha 混合/transmission 材质为透明体,渲染排序时排到不透明几何之后
+        /// </summary>
         virtual bool        isTransparent() const override
         {
             return  _alphaBlend;
@@ -513,7 +563,9 @@ namespace   FE
             UNUSED(bModify);
         }
     protected:
+        /// <summary>
         /// 把 UBO 与全部贴图绑定到当前描述符集(setup/重 setup 后调用)
+        /// </summary>
         void    bindResources()
         {
             auto    cameraUBO   =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
@@ -526,13 +578,17 @@ namespace   FE
             bindAllTextures();
             update();
         }
+        /// <summary>
         /// 设置/清除贴图存在标志
+        /// </summary>
         inline  void    setTexFlag(PBRTexFlag flag,bool set)
         {
             if (set)    _texParams._value._flags |=  flag;
             else        _texParams._value._flags &= ~flag;
         }
+        /// <summary>
         /// 把当前 6 张贴图绑定到对应描述符槽位
+        /// </summary>
         inline  void    bindAllTextures()
         {
             bind(0,BIND_BASECOLOR,     {_baseColorMap.get()});
@@ -548,7 +604,9 @@ namespace   FE
         /// 占位绑定随后由 bindSceneTex 按 transmission 因子修正
             bindSceneTex();
         }
+        /// <summary>
         /// 创建 1x1 RGBA8 默认纹理
+        /// </summary>
         TexPtr  createDefaultColor(const float4& color)
         {
             auto    tex =   _ctx.device().createTexture();
@@ -568,7 +626,9 @@ namespace   FE
             tex->update(rgba,4);
             return  tex;
         }
+        /// <summary>
         /// 创建 1x1x6 默认 cubemap(六面同色,单 mip)
+        /// </summary>
         TexPtr  createDefaultCube(const float4& color)
         {
             auto    tex =   _ctx.device().createTexture();
@@ -594,45 +654,75 @@ namespace   FE
         }
     protected:
         TBlock<PBRData>         _pbr;
+        /// <summary>
         /// 贴图标志与强度参数 UBO(绑定 binding 11)
+        /// </summary>
         TBlock<PBRTexParams>    _texParams;
+        /// <summary>
         /// 管线 xml 前缀(默认 "pbr",变体为 "pbr2s"/"pbrBlend")
+        /// </summary>
         String              _pipelinePrefix =   "pbr";
+        /// <summary>
         /// 双面渲染(glTF doubleSided)→ 使用 pbr2s 管线
+        /// </summary>
         bool                _doubleSided    =   false;
+        /// <summary>
         /// alpha 混合(glTF BLEND/transmission)→ 使用 pbrBlend 管线
+        /// </summary>
         bool                _alphaBlend     =   false;
         TexPtr              _baseColorMap;
         TexPtr              _mrMap;
         TexPtr              _normalMap;
         TexPtr              _occlusionMap;
         TexPtr              _emissiveMap;
+        /// <summary>
         /// 环境贴图(cubemap,IBL 镜面预滤波用)
+        /// </summary>
         TexPtr              _environmentMap;
+        /// <summary>
         /// 漫反射辐照度 cubemap(球谐预卷积,IBL 漫反射用;缺省复用 _environmentMap)
+        /// </summary>
         TexPtr              _irradianceMap;
+        /// <summary>
         /// IBL split-sum BRDF 积分 LUT(RG float;缺省 (1,0) 常量,行为同旧版)
+        /// </summary>
         TexPtr              _brdfLUT;
+        /// <summary>
         /// 虹彩薄膜厚度贴图(G 通道;缺省 G=1 常量,标志位关闭时不参与采样)
+        /// </summary>
         TexPtr              _iriThicknessMap;
+        /// <summary>
         /// transmission 场景折射纹理(FEScene 挂接;缺省 1x1 白占位)
+        /// </summary>
         TexPtr              _sceneTexMap;
+        /// <summary>
         /// 占位白图:不透明材质的 BIND_SCENE_TEX 绑它而非真场景纹理——
         /// wgpu 禁止同一 render pass 内纹理既为 COLOR_TARGET 又为 RESOURCE,
         /// pass1(渲染到 sceneTex)会绘制不透明材质,故其不可绑真 sceneTex
+        /// </summary>
         TexPtr              _sceneTexWhite;
+        /// <summary>
         /// 是否已通过 setSceneTexture 挂接真场景纹理(区别于构造期占位)
+        /// </summary>
         bool                _hasRealSceneTex    =   false;
+        /// <summary>
         /// 自动模式(默认):渲染时从 device cache(SceneTexId)自取场景纹理,
         /// sceneTex 重建(resize)后下一帧自动重绑;外部 setSceneTexture 后转手动
+        /// </summary>
         bool                _autoSceneTex       =   true;
+        /// <summary>
         /// 本材质当前是否计入 s_transmissionMats(真纹理 + transmission>0)
+        /// </summary>
         bool                _sceneTexCounted    =   false;
+        /// <summary>
         /// 全局"已挂场景纹理且 transmission>0"材质计数(定义于 FEMaterialPBR.cpp)
+        /// </summary>
         static  int         s_transmissionMats;
+        /// <summary>
         /// 按 transmission 因子选择 BIND_SCENE_TEX 的绑定对象:
         /// transmission>0(仅 pass2 绘制)绑真场景纹理;否则绑占位白图
         /// (pass1 渲染到 sceneTex,wgpu 禁止该纹理同 pass 再作 RESOURCE)
+        /// </summary>
         inline  void        bindSceneTex()
         {
             if (_hasRealSceneTex && _texParams._value._transmissionFactor > 0.0f)
@@ -659,7 +749,9 @@ namespace   FE
             update();
             updateSceneTexCount();
         }
+        /// <summary>
         /// 按当前 纹理/透射因子 状态刷新全局计数
+        /// </summary>
         inline  void        updateSceneTexCount()
         {
             const bool  should  =   _hasRealSceneTex

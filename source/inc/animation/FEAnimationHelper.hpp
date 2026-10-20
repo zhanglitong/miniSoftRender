@@ -173,10 +173,14 @@ namespace FE
             auto    clip    =   anim->clip();
             if (clip == nullptr || clip->tracks().empty())
                 return  false;
+            /// <summary>
             /// 时间线时间转内部时间
+            /// </summary>
             real    internalTime    =   time - anim->offset();
 
+            /// <summary>
             /// 分解 node 的 transform
+            /// </summary>
             real3   pos         =   anim->transform().position();
             real3   scale       =   anim->transform().scale();
             quatr   rot         =   anim->transform().rotation();
@@ -216,7 +220,9 @@ namespace FE
                 }
             };
 
+            /// <summary>
             /// 标记是否有轨道已存在该时间点(用于决定返回值)
+            /// </summary>
             bool    bTimeExisted    =   false;
 
             for (auto track : clip->tracks())
@@ -343,7 +349,9 @@ namespace FE
             auto    clip    =   anim->clip();
             if (clip == nullptr)
                 return  false;
+            /// <summary>
             /// 时间线时间转内部时间
+            /// </summary>
             real    internalTime    =   time - anim->offset();
 
             bool    bRemoved    =   false;
@@ -399,10 +407,14 @@ namespace FE
             auto    clip    =   anim->clip();
             if (clip == nullptr || clip->tracks().empty())
                 return  false;
+            /// <summary>
             /// 时间线时间转内部时间
+            /// </summary>
             real    internalTime    =   time - anim->offset();
 
+            /// <summary>
             /// 分解 node 的 transform
+            /// </summary>
             real3   pos         =   anim->transform().position();
             real3   scale       =   anim->transform().scale();
             quatr   rot         =   anim->transform().rotation();

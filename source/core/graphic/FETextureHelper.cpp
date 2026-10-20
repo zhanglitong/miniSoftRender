@@ -11,7 +11,9 @@ namespace   FE
 {
     namespace
     {
+        /// <summary>
         /// cubemap 面内像素方向(面序 +X,-X,+Y,-Y,+Z,-Z,与 Vulkan/GL 规范一致)
+        /// </summary>
         inline  float3  cubeFaceDir(int face,float a,float b)
         {
             switch (face)
@@ -80,7 +82,9 @@ namespace   FE
             }
         };
 
+        /// <summary>
         /// 标准归一化实球谐基(9 项,y-up 约定),投影与求值共用同一实现
+        /// </summary>
         inline  void    shBasis(const float3& d,float outBasis[9])
         {
             const float x   =   d.x;
@@ -100,8 +104,10 @@ namespace   FE
             outBasis[8] =   0.546274f * (xx - yy);        /// Y2,2
         }
 
+        /// <summary>
         /// ===== BRDF LUT(split-sum 第二项,Karis 2013)数值积分辅助 =====
         /// RadicalInverse 位反转(Van der Corput),Hammersley 第二维
+        /// </summary>
         inline  float   radicalInverseVdC(uint32 bits)
         {
             bits    =   (bits << 16u) | (bits >> 16u);
@@ -115,7 +121,9 @@ namespace   FE
         {
             return  float2(float(i) / float(n),radicalInverseVdC(i));
         }
+        /// <summary>
         /// GGX 重要性采样半程向量(切线空间,N=(0,0,1),alpha=roughness^2 与 shader 一致)
+        /// </summary>
         inline  float3  importanceSampleGGX(const float2& xi,float roughness)
         {
             const float a       =   roughness * roughness;
@@ -124,14 +132,18 @@ namespace   FE
             const float sinT    =   sqrtf(1.0f - cosT * cosT);
             return  float3(sinT * cosf(phi),sinT * sinf(phi),cosT);
         }
+        /// <summary>
         /// IBL 版几何遮蔽:k = alpha/2(Epic 对 IBL 的重参数化,非 punctual 的 (r+1)^2/8)
+        /// </summary>
         inline  float   geometrySchlickIBL(float ndot,float roughness)
         {
             const float a   =   roughness * roughness;
             const float k   =   a * 0.5f;
             return  ndot / (ndot * (1.0f - k) + k + 1e-7f);
         }
+        /// <summary>
         /// 逐 texel 积分:scale = ∫(1-Fc)·G_Vis,offset = ∫Fc·G_Vis(Fc=(1-VdotH)^5)
+        /// </summary>
         inline  float2  integrateBRDF(float ndotv,float roughness,uint32 samples = 1024)
         {
             const float3    v(sqrtf(1.0f - ndotv * ndotv),0.0f,ndotv);
@@ -159,9 +171,11 @@ namespace   FE
             return  float2(a / float(samples),b / float(samples));
         }
 
+        /// <summary>
         /// ===== GGX 环境预滤波(split-sum 第一项)辅助 =====
         /// equirect 的紧凑 float mip 链(2x2 盒式下采样,u 环绕 v 钳制)。
         /// 预滤波按 Epic 的 saSample/saTexel 公式选 mip 做预积分,大幅降低收敛所需样本数
+        /// </summary>
         struct  EquirectMipChain
         {
             struct  Level
@@ -239,7 +253,9 @@ namespace   FE
                 return  true;
             }
 
+            /// <summary>
             /// 按方向采样指定 mip(双线性,u 环绕,v 钳制;约定与 EquirectSampler 一致)
+            /// </summary>
             float3  sample(const float3& dir,uint32 mip) const
             {
                 const Level&    l   =   levels[mip < levels.size() ? mip : uint32(levels.size()) - 1];
@@ -272,7 +288,9 @@ namespace   FE
             }
         };
 
+        /// <summary>
         /// 由法线方向构造正交切线基(GGX 采样从切线空间转世界空间用)
+        /// </summary>
         inline  void    tangentBasis(const float3& n,float3& t,float3& b)
         {
             const float3    up  =   fabsf(n.y) < 0.999f ? float3(0.0f,1.0f,0.0f) : float3(1.0f,0.0f,0.0f);
@@ -562,8 +580,10 @@ namespace   FE
             }
         }
 
+        /// <summary>
         /// 2. 余弦卷积解析求值:E(n) = Σ_k Ǎ_k · L_k · Y_k(n)
         ///    (Ramamoorthi 2001:Ǎ_0 = π,Ǎ_1 = 2π/3,Ǎ_2 = π/4)
+        /// </summary>
         static const float  kIrradCoeff[9]  =
         {
             float(PI),                          /// band 0

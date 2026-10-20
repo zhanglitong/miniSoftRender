@@ -14,9 +14,13 @@ namespace   FE
         {
             FEFormat    _colorFmt   =   FMT_R8G8B8A8_UNORM;
             FEFormat    _depthFmt   =   FMT_D32_S8_UNORM;
+            /// <summary>
             /// 是否包含 color attachment（OIT Geometry Pass 等无输出场景可置 false）
+            /// </summary>
             bool        _withColor  =   true;
+            /// <summary>
             /// 是否包含 depth/stencil attachment
+            /// </summary>
             bool        _withDepth  =   true;
         };
     protected:

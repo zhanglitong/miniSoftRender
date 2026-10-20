@@ -508,7 +508,9 @@ namespace   FE
     template<FEFormat fmt>
     struct  TypeOfFormat
     {
+        /// <summary>
         /// 标记自身格式,供switch调用点把FMT透传给转换内核
+        /// </summary>
         static  constexpr   FEFormat    value   =   fmt;
     };
 

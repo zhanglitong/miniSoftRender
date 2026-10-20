@@ -28,7 +28,9 @@ namespace   FE
         template<bool bNormal,bool bUV>
         static  void    build(const FEParamEllipsoidEGM& params,FEEllipsoidEGMImpl& result)
         {
+            /// <summary>
             /// 先生成立方体网格
+            /// </summary>
             FEParamBox  boxParam;
             boxParam._size  =   params._size;
             boxParam._segs  =   params._segs;

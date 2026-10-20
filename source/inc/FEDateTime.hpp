@@ -17,7 +17,9 @@ namespace   FE
         int16_t     _hour;
         int16_t     _minutes;
         int16_t     _second;
+        /// <summary>
         /// milliseconds
+        /// </summary>
         int16_t     _millis;
         int16_t     _micro;
     public:
@@ -207,7 +209,9 @@ namespace   FE
             time_info.tm_min    =   minute;
             time_info.tm_sec    =   second;
 
+            /// <summary>
             /// Convert to time_t and then to time_point
+            /// </summary>
             std::time_t tmValue =   std::mktime(&time_info);
             if (tmValue == -1)
                 return std::chrono::system_clock::from_time_t(0);

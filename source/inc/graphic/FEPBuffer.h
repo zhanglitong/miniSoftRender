@@ -67,7 +67,9 @@ namespace   FE
     static  constexpr   uint16  _TileW  =   32;
     static  constexpr   uint16  _TileH  =   32;
 
+    /// <summary>
     /// 瓦片存储类型必须随颜色类型变化(原硬编码float4导致瓦片元素类型与ColorT不匹配)
+    /// </summary>
     template<class T>
     using   PTileBuffer =   TPixelBuffer<T,_TileW,_TileH>;
     using   PB32x32     =   PTileBuffer<float4>;
@@ -75,7 +77,9 @@ namespace   FE
     class   FEPBuffer :public FEObject
     {
     public:
+        /// <summary>
         /// FEObject没有默认构造,派生类必须显式转发上下文
+        /// </summary>
         FEPBuffer(FEContext& ctx)
             :FEObject(ctx)
         {}

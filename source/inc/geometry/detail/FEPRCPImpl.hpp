@@ -40,13 +40,17 @@ namespace   FE
             const float R      =   params.radius;
             const float h      =   std::min(params.height, 2.0f * R);
 
+            /// <summary>
             /// 球冠从北极 (theta=0) 到 theta_max
             /// cos(theta_max) = (R - h) / R
+            /// </summary>
             float   cosThetaMax   =   (R - h) / R;
             cosThetaMax   =   std::max(-1.0f, std::min(1.0f, cosThetaMax));
             float   thetaMax     =   std::acos(cosThetaMax);
 
+            /// <summary>
             /// 球心位于 (0, -(R-h), 0), 球冠顶点在 (0, h, 0)
+            /// </summary>
             float   cy  =   -(R - h);
 
             uint    index   =   0;
@@ -101,7 +105,9 @@ namespace   FE
                 }
             }
 
+            /// <summary>
             /// 底面封口
+            /// </summary>
             uint    baseCenter  = index;
             float   baseY       =   R * cosThetaMax + cy;
             vs.insert(vs.end(),{0, baseY, 0});

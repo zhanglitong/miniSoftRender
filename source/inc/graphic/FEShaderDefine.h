@@ -119,12 +119,16 @@ const   int     LightTypeSpot   =   2;
     {
         return  (flag & RF_COLOR)  != 0;
     }
+    /// <summary>
     /// 是否被选中(需要高亮)
+    /// </summary>
     bool    isSelected(uint flag)
     {
         return  (flag & RF_SELECTED)  != 0;
     }
+    /// <summary>
     /// 解包 RGBA8 颜色(高字节在 R),与 C++ 端 selectColor/_color 打包一致
+    /// </summary>
     vec4    unpackColor(uint c)
     {
         return vec4(
@@ -133,18 +137,24 @@ const   int     LightTypeSpot   =   2;
         float((c >> 8 ) & 0xFFu) / 255.0,
         float((c >> 0 ) & 0xFFu) / 255.0);
     }
+    /// <summary>
     /// 打包 RGBA8 颜色(R 存高字节),与 unpackColor 互逆;超出 [0,1] 的分量会被截断
+    /// </summary>
     uint    packColor(vec4 c)
     {
         uvec4   v = uvec4(clamp(c, 0.0, 1.0) * 255.0 + 0.5);
         return (v.r << 24) | (v.g << 16) | (v.b << 8) | (v.a << 0);
     }
+    /// <summary>
     /// 打包 HDR 颜色到 2 个 uint(4 通道 half),支持 >1.0 的 HDR 值,与 unpackColorHDR 互逆
+    /// </summary>
     uint2   packColorHDR(vec4 c)
     {
         return uint2(packHalf2x16(c.rg), packHalf2x16(c.ba));
     }
+    /// <summary>
     /// 解包 HDR 颜色(packColorHDR 的逆操作)
+    /// </summary>
     vec4    unpackColorHDR(uint2 c)
     {
         return vec4(unpackHalf2x16(c.x), unpackHalf2x16(c.y));
@@ -190,18 +200,26 @@ struct  CullParam
     /// 最小可见像素
     /// </summary>
     float       _minVisiblePixels;
+    /// <summary>
     /// 在总数组上索引偏移量
+    /// </summary>
     uint        _offset;
+    /// <summary>
     /// 元素个数
+    /// </summary>
     uint        _count;
     mat4        _mvp;
 };
 
 struct  CullResult
 {
+    /// <summary>
     /// 输出个数,在计算前,确保原始数据是0
+    /// </summary>
     uint    clippedCount;
+    /// <summary>
     /// 保留,对齐
+    /// </summary>
     uint    reserver0;
     uint    reserver1;
     uint    reserver2;
@@ -424,22 +442,34 @@ struct  UBOSky
 /// </summary>
 struct  OITNode
 {
+    /// <summary>
     /// HDR 颜色 RG 通道(packHalf2x16)
+    /// </summary>
     uint    colorRG;
+    /// <summary>
     /// HDR 颜色 BA 通道(packHalf2x16)
+    /// </summary>
     uint    colorBA;
+    /// <summary>
     /// fragment 深度(gl_FragCoord.z)
+    /// </summary>
     float   depth;
+    /// <summary>
     /// 下一节点索引,0xFFFFFFFF 表示链表尾
+    /// </summary>
     uint    next;
 };
 
 struct  PointData
 {
     mat4        _mvp;
+    /// <summary>
     /// point range,min value~ max value
+    /// </summary>
     uint        _point;
+    /// <summary>
     /// 颜色
+    /// </summary>
     uint        _color;
 #ifdef __cplusplus
     PointData()
