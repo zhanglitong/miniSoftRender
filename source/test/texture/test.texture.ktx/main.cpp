@@ -277,6 +277,13 @@ int     main(int argc, char** argv)
     }
     std::cout << "ktx texture box ok, entering render loop..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的 ktx 纹理
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        texture     =   nullptr;
+    });
     app->run();
 
     scene   = nullptr;

@@ -146,6 +146,15 @@ int     main(int argc, char** argv)
 
     std::cout << "path constraint running: red box moves along the diamond path (green markers)..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的节点
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        allNodes.clear();
+        markerNodes.clear();
+        targetNode  =   nullptr;
+    });
     /// 7. 进入渲染循环
     app->run();
 

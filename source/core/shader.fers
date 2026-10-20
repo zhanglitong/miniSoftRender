@@ -90,8 +90,10 @@
 			</folder>
 			<folder path="sky">
 				<file name="shader/source/sky/shader.frag" input="shader.frag"/>
+				<file name="shader/source/sky/shader.frag.softened.bak" input="shader.frag.softened.bak"/>
 				<file name="shader/source/sky/shader.vert" input="shader.vert"/>
 				<file name="shader/source/sky/shader.wgls" input="shader.wgls"/>
+				<file name="shader/source/sky/shader.wgls.softened.bak" input="shader.wgls.softened.bak"/>
 			</folder>
 			<folder path="text">
 				<file name="shader/source/text/shader.frag" input="shader.frag"/>

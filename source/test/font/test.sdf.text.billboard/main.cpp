@@ -401,6 +401,14 @@ int     main(int argc, char** argv)
                  "始终正面朝向相机,十字线标示锚点;"
                  "前方几何体遮住的部分文字应消失,露出部分完整" << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
+    /// 字体对象(其 SDF 图集纹理持有 GPU 资源)
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        font        =   nullptr;
+    });
     /// 10. 进入渲染循环
     app->run();
 

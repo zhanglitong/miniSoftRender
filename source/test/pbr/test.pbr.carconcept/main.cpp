@@ -287,6 +287,20 @@ int main(int argc, char** argv)
         std::cout << "press C to cycle paint variants, 0~" << (names.size() - 1)
                   << " to select directly, E to cycle environments\n";
     }
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
+    /// 场景外 GPU 资源——全局 IBL cubemap 缓存、gltf 节点(rootNodes/objects
+    /// 共同引用)与 reader(_variantNodes 持节点引用)
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        g_envCube   =   nullptr;
+        g_irrCube   =   nullptr;
+        g_brdfLUT   =   nullptr;
+        rootNodes.clear();
+        objects.clear();
+        reader      =   nullptr;
+    });
     app->run();
 
     scene = nullptr;

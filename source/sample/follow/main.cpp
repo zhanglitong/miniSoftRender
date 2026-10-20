@@ -207,6 +207,18 @@ int     main(int argc, char** argv)
     std::cout << "  - Follower's nose always points same direction as Leader's nose" << std::endl;
     std::cout << "  - Follow (EP_Second) sets rotation, Path (EP_Last) overrides position" << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的节点
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        allNodes.clear();
+        markerNodes.clear();
+        leaderNode      =   nullptr;
+        leaderNose      =   nullptr;
+        followerNode    =   nullptr;
+        followerNose    =   nullptr;
+    });
     /// 7. 进入渲染循环
     app->run();
 

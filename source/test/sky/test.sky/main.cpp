@@ -55,6 +55,8 @@ int     main(int argc, char** argv)
     /// 调试 GUI:仅 Vulkan 后端启用(--webgpu 时 createImGuiBackend 返回 nullptr)
     bool        wantImGui   =   (rendererId == RS_VULKAN);
     bool        imguiReady  =   false;
+    /// ImGui 渲染后端:内部持有 VKDevice 引用,必须在 device 销毁前释放
+    FEImGuiBackend*     imguiBackend    =   nullptr;
     FEApp::CreateInfo  info   =   {};
     info._width     =   1280;
     info._height    =   720;
@@ -161,6 +163,21 @@ int     main(int argc, char** argv)
     ctx.setWorkPath(app->path());
     ctx.setResourcePath(app->path() + "/../");
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前释放 ImGui 后端
+    /// (后端持有 VKDevice 引用,device 销毁后再 destroy 会访问悬空句柄)
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        if (imguiBackend != nullptr)
+        {
+            imguiBackend->destroy();
+            delete  imguiBackend;
+            imguiBackend    =   nullptr;
+            imguiReady  =   false;
+        }
+    });
+
     Scene   scene   =   new FEScene(ctx);
     pScene          =   scene.get();
     if (!scene->setup(app, rendererId))
@@ -223,7 +240,6 @@ int     main(int argc, char** argv)
     FEImGuiSkyPanel    panel;
     panel._autoSun  =   autoSun;
     panel._autoSpeed=   2.0f;
-    FEImGuiBackend*     imguiBackend    =   nullptr;
     if (wantImGui)
     {
         ImGui::CreateContext();
@@ -278,15 +294,19 @@ int     main(int argc, char** argv)
 
     app->run();
 
-    /// 先析构场景(含 GUI 工厂),再释放 ImGui 后端与上下文
-    scene   =   nullptr;
-    sky     =   nullptr;
+    /// <summary>
+    /// 正常关闭时后端已在 MSG_CLOSE 中先行释放(抢在场景销毁 device 之前);
+    /// 此处兜底:若循环因其它原因退出而未走 MSG_CLOSE,后端仍需在
+    /// 场景析构(销毁 device)之前释放
+    /// </summary>
     if (imguiBackend != nullptr)
     {
         imguiBackend->destroy();
         delete  imguiBackend;
         imguiBackend    =   nullptr;
     }
+    scene   =   nullptr;
+    sky     =   nullptr;
     if (wantImGui)
         ImGui::DestroyContext();
     app->destroy();

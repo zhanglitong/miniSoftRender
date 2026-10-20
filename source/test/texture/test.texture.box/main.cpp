@@ -200,6 +200,13 @@ int     main(int argc, char** argv)
     }
     std::cout << "texture box ok, entering render loop..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的棋盘格纹理
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        texture     =   nullptr;
+    });
     /// 5. 进入渲染循环显示带贴图的立方体
     app->run();
 

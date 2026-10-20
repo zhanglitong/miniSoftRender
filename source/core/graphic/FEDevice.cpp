@@ -29,10 +29,17 @@ namespace   FE
 
     void    FEDevice::destroy()
     {
+        /// 先等 GPU 空闲,确保后续销毁管线/命令池/缓存不会触发 "device is busy" 验证报错
+        waitIdle();
         _pipelineMgr.clear();
         _cacheObject.clear();
         _graphicPool    =   nullptr;
         _computePool    =   nullptr;
         _transferPool   =   nullptr;
+        if (_lightsMgr)
+        {
+            delete  _lightsMgr;
+            _lightsMgr  =   nullptr;
+        }
     }
 }

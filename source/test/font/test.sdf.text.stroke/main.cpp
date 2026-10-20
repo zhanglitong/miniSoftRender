@@ -277,6 +277,14 @@ int     main(int argc, char** argv)
     std::cout << "expected: 每行文字带不同宽度/颜色的描边;"
                  "stroke=0 行无描边,宽度越大描边越粗" << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
+    /// 字体对象(其 SDF 图集纹理持有 GPU 资源)
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        font        =   nullptr;
+    });
     /// 6. 进入渲染循环显示屏幕文字
     app->run();
 

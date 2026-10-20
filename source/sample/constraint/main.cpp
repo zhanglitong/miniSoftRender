@@ -138,6 +138,14 @@ int     main(int argc, char** argv)
 
     std::cout << "constraint running: blue box follows red box with offset (0,2,0)..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的节点
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        targetNode  =   nullptr;
+        followNode  =   nullptr;
+    });
     /// 7. 进入渲染循环
     app->run();
 
