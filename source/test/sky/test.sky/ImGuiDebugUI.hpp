@@ -47,12 +47,17 @@ namespace   FE
         float   _turbidity  =   10.0f;
         float   _rayleigh   =   3.0f;
         float   _mie        =   0.005f;
-        float   _mieG       =   0.8f;
+        float   _mieG       =   0.7f;
         float   _luminance  =   0.05f;
-        float   _elevation  =   45.0f;
-        float   _azimuth    =   180.0f;
+        float   _elevation  =   65.0f;
+        float   _azimuth    =   0.0f;
         float   _autoSpeed  =   2.0f;
         bool    _autoSun    =   false;
+        /// 云参数(命名与 three.js SkyMesh / webgpu_sky 面板一致;默认值取该示例面板值)
+        float   _cloudCoverage  =   0.4f;
+        float   _cloudDensity   =   0.4f;
+        float   _cloudElevation =   0.5f;
+        float   _cloudSpeed     =   0.00002f;
 
         void    draw(FESkyComponent* sky);
     };

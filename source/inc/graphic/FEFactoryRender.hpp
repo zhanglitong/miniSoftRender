@@ -451,7 +451,12 @@ namespace   FE
         /// </summary>
         VBO             _vboSphere;
         Counts          _counts;
-        ViewerUsages    _usages     =   ViewerUsage::USAGE_Classic;
+        /// 工厂默认归属的场景层。
+        /// 注意:不能默认为 USAGE_Classic —— 它是 Background|Scene|GUI|Overlay 的并集,
+        /// 是给 viewer 声明“启用哪些层”用的;工厂若继承它,会被每个启用层各绘制一遍
+        /// (单趟渲染下即 4× 过度绘制,且透明物体被重复混合)。
+        /// 需要其它图层的工厂(如 ImGui 工厂)应显式指定自己的 usages。
+        ViewerUsages    _usages     =   ViewerUsage::USAGE_Scene;
         bool            _gpuCull    =   true;
         bool            _resident   =   false;
         /// transmission 场景折射双趟过滤全局状态(定义于 FEFactoryRender.cpp)

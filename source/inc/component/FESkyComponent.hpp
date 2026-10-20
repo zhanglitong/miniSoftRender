@@ -47,6 +47,10 @@ namespace   FE
             _elevation  =   other._elevation;
             _azimuth    =   other._azimuth;
             _elevSpeed  =   other._elevSpeed;
+            _cloudCoverage  =   other._cloudCoverage;
+            _cloudDensity   =   other._cloudDensity;
+            _cloudElevation =   other._cloudElevation;
+            _cloudSpeed     =   other._cloudSpeed;
             _ubo        =   other._ubo;
         }
         virtual ~FESkyComponent()
@@ -99,6 +103,35 @@ namespace   FE
             _value._sunDirection.w  =   v;
             apply();
         }
+        /// ===== 云参数(对齐 three.js SkyMesh 的 uniforms)=====
+        /// 云量:0 表示无云(着色器内直接跳过云的计算)
+        void    setCloudCoverage(float v)
+        {
+            _cloudCoverage  =   v;
+            _value._cloud.x =   v;
+            apply();
+        }
+        /// 云密度:越大云越厚实、越不透明
+        void    setCloudDensity(float v)
+        {
+            _cloudDensity   =   v;
+            _value._cloud.y =   v;
+            apply();
+        }
+        /// 云层高度:越大云看起来越低、越靠近地平线
+        void    setCloudElevation(float v)
+        {
+            _cloudElevation =   v;
+            _value._cloud.z =   v;
+            apply();
+        }
+        /// 云速:驱动云流动与翻涌的速度(单位/秒)
+        void    setCloudSpeed(float v)
+        {
+            _cloudSpeed     =   v;
+            _value._anim.z  =   v;
+            apply();
+        }
         void    setUp(const float3& up)
         {
             _value._up  =   float4(up.x, up.y, up.z, 0.0f);
@@ -137,16 +170,24 @@ namespace   FE
         const   UBOSky& sky() const     {   return  _value;    }
         UBOSky&         sky()           {   return  _value;    }
         /// <summary>
-        /// 组件每一帧更新:自动推进太阳并写回 UBO
+        /// 组件每一帧更新:推进云动画时间并写回 UBO;自动模式下同时推进太阳
         /// </summary>
         virtual bool    update(const real& deltaTm) override
         {
+            /// 云动画:每帧累计时间(着色器用它驱动云流动与翻涌)
+            _timeAccum      +=  float(deltaTm);
+            _value._anim.x  =   _timeAccum;
             if  (_autoSun)
             {
                 _elevation  +=  _elevSpeed * float(deltaTm);
                 if  (_elevation > 90.0f)
                     _elevation  =   -10.0f;
+                /// 内部会 apply(),一并写入上面的云时间
                 setSunElevationAzimuth(_elevation, _azimuth);
+            }
+            else
+            {
+                apply();
             }
             return  false;
         }
@@ -164,5 +205,12 @@ namespace   FE
         float           _elevation  =   10.0f;
         float           _azimuth    =   180.0f;
         float           _elevSpeed  =   6.0f;
+        /// 云参数(默认值取 three.js webgpu_sky 示例面板值)
+        float           _cloudCoverage  =   0.4f;
+        float           _cloudDensity   =   0.4f;
+        float           _cloudElevation =   0.5f;
+        float           _cloudSpeed     =   0.00002f;
+        /// 云动画累计时间(秒)
+        float           _timeAccum      =   0.0f;
     };
 }

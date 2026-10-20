@@ -393,18 +393,26 @@ struct  ClipData
 ///   _sunDirection : xyz=归一化太阳方向, w=曝光(exposure,默认 0.05,对齐 three.js 示例)
 ///   _params       : x=turbidity, y=rayleigh, z=mieCoefficient, w=mieDirectionalG
 ///   _up           : xyz=世界上方向(引擎默认 Z 朝上,此处默认 (0,0,1)), w=保留
+///   _cloud        : x=coverage 云量(0=无云), y=density 云密度, z=elevation 云层高度, w=保留
+///   _anim         : x=累计时间(秒,驱动云流动), y=cloudScale 云层缩放, z=cloudSpeed 云速, w=保留
 /// </summary>
 struct  UBOSky
 {
     float4  _sunDirection;
     float4  _params;
     float4  _up;
+    float4  _cloud;
+    float4  _anim;
 #ifdef __cplusplus
     UBOSky()
     {
         _sunDirection   =   float4(0.0f,  0.0f,  1.0f,   0.05f);
         _params         =   float4(10.0f, 3.0f,  0.005f, 0.8f);
         _up             =   float4(0.0f,  0.0f,  1.0f,   0.0f);
+        /// 云参数默认值:类默认是 0.4/0.4/0.5,此处取 webgpu_sky 示例的面板值,
+        /// 视觉与参考截图一致
+        _cloud          =   float4(0.36f, 0.71f, 0.44f,  0.0f);
+        _anim           =   float4(0.0f,  0.0002f, 0.00002f, 0.0f);
     }
 #endif
 };

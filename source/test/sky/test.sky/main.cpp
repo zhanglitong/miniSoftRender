@@ -186,17 +186,23 @@ int     main(int argc, char** argv)
     sky =   new FESkyComponent(ctx);
     auto*   pSky    =   (FESkyComponent*)sky.get();
 
-    /// 大气参数(与 three.js Sky 默认值一致)
+    /// 大气参数(与 three.js webgpu_sky 示例面板值一致)
     pSky->setTurbidity(10.0f);
     pSky->setRayleigh(3.0f);
     pSky->setMieCoefficient(0.005f);
-    pSky->setMieDirectionalG(0.8f);
+    pSky->setMieDirectionalG(0.7f);
     /// 曝光:three.js 示例 GUI 默认 exposure=0.05(覆盖了 init 里的 0.5),必须一致否则严重过曝
     pSky->setLuminance(0.05f);
+    /// 云参数(移植 three.js SkyMesh;默认取 webgpu_sky 示例面板值)
+    /// 云量 0 即关闭云;云速驱动云随时间流动与翻涌
+    pSky->setCloudCoverage(0.4f);
+    pSky->setCloudDensity(0.4f);
+    pSky->setCloudElevation(0.5f);
+    pSky->setCloudSpeed(0.00002f);
     /// 太阳:高度角决定昼夜(>0 白天,<0 黄昏/夜;天顶为 +Z)。
-    /// 静态演示取 45° 高角、方位 180(太阳在相机后方 -Y),呈现"天顶蓝、地平线亮"的经典渐变;
+    /// 静态演示取 three.js webgpu_sky 示例的 65° 高角、方位 0,与该示例构图一致;
     /// 自动模式(setAutoSun)会从低角开始扫过完整日升日落。
-    pSky->setSunElevationAzimuth(45.0f, 180.0f);
+    pSky->setSunElevationAzimuth(65.0f, 0.0f);
     if (autoSun)
         pSky->setAutoSun(true, 5.0f, 2.0f);   // 5 度起,2 度/秒推进
 
@@ -242,6 +248,13 @@ int     main(int argc, char** argv)
         else
         {
             /// 上传字体图集(RGBA8);TexID 仅作占位,后端始终绑定该纹理
+            /// 先加载宋体(simsun.ttc)作为默认字体,使面板支持中文显示;
+            /// 若加载失败(文件不存在),io.FontDefault 保持 ImGui 内置字体,中文会显示为方块
+            ImFont* cnFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\simsun.ttc", 16.0f, nullptr,
+                                                          io.Fonts->GetGlyphRangesChineseFull());
+            if (cnFont)
+                io.FontDefault = cnFont;
+
             unsigned char*  pixels  =   nullptr;
             int             texW    =   0;
             int             texH    =   0;

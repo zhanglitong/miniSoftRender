@@ -129,50 +129,69 @@ namespace   FE
 
         /// 调试面板固定在画面右侧,避开控制台窗口
         ImGui::SetNextWindowPos(ImVec2(780.0f,100.0f),ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(320.0f,360.0f),ImGuiCond_Always);
-        ImGui::Begin("Sky (runtime)");
-        if (ImGui::SliderFloat("Turbidity",&_turbidity,1.0f,20.0f,"%.2f"))
+        ImGui::SetNextWindowSize(ImVec2(320.0f,470.0f),ImGuiCond_Always);
+        ImGui::Begin(u8"天空参数（运行时）");
+        if (ImGui::SliderFloat(u8"浑浊度##turbidity",&_turbidity,1.0f,20.0f,"%.2f"))
             sky->setTurbidity(_turbidity);
-        if (ImGui::SliderFloat("Rayleigh",&_rayleigh,0.0f,5.0f,"%.2f"))
+        if (ImGui::SliderFloat(u8"瑞利散射##rayleigh",&_rayleigh,0.0f,5.0f,"%.2f"))
             sky->setRayleigh(_rayleigh);
-        if (ImGui::SliderFloat("Mie",&_mie,0.0f,0.02f,"%.5f"))
+        if (ImGui::SliderFloat(u8"米氏系数##mie",&_mie,0.0f,0.02f,"%.5f"))
             sky->setMieCoefficient(_mie);
-        if (ImGui::SliderFloat("Mie G",&_mieG,0.0f,1.0f,"%.3f"))
+        if (ImGui::SliderFloat(u8"米氏方向 G##mieg",&_mieG,0.0f,1.0f,"%.3f"))
             sky->setMieDirectionalG(_mieG);
-        if (ImGui::SliderFloat("Exposure",&_luminance,0.0f,1.0f,"%.3f"))
+        if (ImGui::SliderFloat(u8"曝光##exposure",&_luminance,0.0f,1.0f,"%.3f"))
             sky->setLuminance(_luminance);
 
-        if (ImGui::Checkbox("Auto Sun",&_autoSun))
+        /// ---- 云(命名与 three.js webgpu_sky 示例面板一致)----
+        ImGui::Separator();
+        ImGui::Text(u8"云");
+        if (ImGui::SliderFloat(u8"云量##coverage",&_cloudCoverage,0.0f,1.0f,"%.2f"))
+            sky->setCloudCoverage(_cloudCoverage);
+        if (ImGui::SliderFloat(u8"云密度##density",&_cloudDensity,0.0f,1.0f,"%.2f"))
+            sky->setCloudDensity(_cloudDensity);
+        if (ImGui::SliderFloat(u8"云层高度##celev",&_cloudElevation,0.0f,1.0f,"%.2f"))
+            sky->setCloudElevation(_cloudElevation);
+        if (ImGui::SliderFloat(u8"云速##cspeed",&_cloudSpeed,0.0f,0.001f,"%.5f"))
+            sky->setCloudSpeed(_cloudSpeed);
+
+        ImGui::Separator();
+        if (ImGui::Checkbox(u8"自动太阳",&_autoSun))
             sky->setAutoSun(_autoSun,_elevation,_autoSpeed);
 
-        if (ImGui::SliderFloat("Sun Elevation",&_elevation,-10.0f,90.0f,"%.1f"))
+        if (ImGui::SliderFloat(u8"太阳高度角##elev",&_elevation,-10.0f,90.0f,"%.1f"))
         {
             _autoSun    =   false;
             sky->setAutoSun(false);
             sky->setSunElevationAzimuth(_elevation,_azimuth);
         }
-        if (ImGui::SliderFloat("Sun Azimuth",&_azimuth,0.0f,360.0f,"%.1f"))
+        if (ImGui::SliderFloat(u8"太阳方位角##azim",&_azimuth,0.0f,360.0f,"%.1f"))
             sky->setSunElevationAzimuth(_elevation,_azimuth);
-        if (ImGui::SliderFloat("Auto Speed",&_autoSpeed,0.5f,30.0f,"%.1f"))
+        if (ImGui::SliderFloat(u8"自动速度##speed",&_autoSpeed,0.5f,30.0f,"%.1f"))
         {
             if (_autoSun)
                 sky->setAutoSun(true,_elevation,_autoSpeed);
         }
 
-        if (ImGui::Button("Reset"))
+        if (ImGui::Button(u8"复位"))
         {
             _turbidity  =   10.0f;  _rayleigh   =   3.0f;  _mie    =   0.005f;
-            _mieG       =   0.8f;   _luminance  =   0.05f;
-            _elevation  =   45.0f;  _azimuth    =   180.0f;
+            _mieG       =   0.7f;   _luminance  =   0.05f;
+            _elevation  =   65.0f;  _azimuth    =   0.0f;
+            _cloudCoverage  =   0.4f;   _cloudDensity   =   0.4f;
+            _cloudElevation =   0.5f;   _cloudSpeed     =   0.00002f;
             sky->setTurbidity(_turbidity);
             sky->setRayleigh(_rayleigh);
             sky->setMieCoefficient(_mie);
             sky->setMieDirectionalG(_mieG);
             sky->setLuminance(_luminance);
             sky->setSunElevationAzimuth(_elevation,_azimuth);
+            sky->setCloudCoverage(_cloudCoverage);
+            sky->setCloudDensity(_cloudDensity);
+            sky->setCloudElevation(_cloudElevation);
+            sky->setCloudSpeed(_cloudSpeed);
         }
 
-        ImGui::Text("FPS %.1f",ImGui::GetIO().Framerate);
+        ImGui::Text(u8"帧率 %.1f",ImGui::GetIO().Framerate);
         ImGui::End();
     }
 }
