@@ -1580,8 +1580,12 @@ static  void    testKtxExpanded()
 
 /// =====================================================================
 /// compress / transcode(块编码 ↔ 解码)全矩阵测试
-/// 直编 10 种(常色往返精度)+ Basis 间接 10 种(常色往返精度)+
-/// sRGB 变体块字节一致性 + 边界块外推 + 不支持目标锁定 +
+/// 直编 10 种 + RGB8 3 通道源(常色往返精度,两级 mip 各验)+
+/// Basis 间接 10 种(常色往返精度,两级 mip 各验)+
+/// quality 分支(直编 HIGHQUAL / Basis qualityLevel 1~255 边界)+
+/// 显式单通道解码目标(BC4 → R8_UNORM)+
+/// sRGB 变体块字节一致性 + 边界块外推(含 mip1)+ 不支持目标锁定 +
+/// 多 layer(直编逐 layer 编解码 / Basis 拒绝)+
 /// loadKtx 块容器自动解码集成
 /// =====================================================================
 /// 常色图(w×h,levels 级 mip,每 level 全部像素同一颜色)
@@ -1607,11 +1611,11 @@ static  ImagePtr    makeConstantImage(FEContext& ctx,uint32 w,uint32 h,FEFormat 
     }
     return  img;
 }
-/// 校验图像 level0 全部像素为常色(按格式通道数比对前 comps 个通道,容差 tol)
-static  bool    isConstantLevel(const FEImage& img,const uint8_t c[4],int tol,uint32 level = 0)
+/// 校验图像指定 level 的 layer 全部像素为常色(按格式通道数比对,容差 tol)
+static  bool    isConstantLevel(const FEImage& img,const uint8_t c[4],int tol,uint32 level = 0,uint32 layer = 0)
 {
     const uint32    ch  =   FEFormatHelper::channelOf(img.cInfo()._format);
-    auto            sp  =   img.plane(level,0);
+    auto            sp  =   img.plane(level,layer);
     if  (sp._buffer == nullptr)
         return  false;
     for (uint32 y = 0; y < sp.height(); ++y)
@@ -1655,7 +1659,9 @@ static  void    testBlockCompressTranscode()
         ImagePtr    rgba    =   makeConstantImage(ctx,8,8,FMT_R8G8B8A8_UNORM,CLR,2);
         ImagePtr    r8      =   makeConstantImage(ctx,8,8,FMT_R8_UNORM,CLR,2);
         ImagePtr    rg8     =   makeConstantImage(ctx,8,8,FMT_R8G8_UNORM,CLR,2);
-        CHECK(rgba != nullptr && r8 != nullptr && rg8 != nullptr,  "compress sources created");
+        ImagePtr    rgb8    =   makeConstantImage(ctx,8,8,FMT_R8G8B8_UNORM,CLR,2);
+        CHECK(rgba != nullptr && r8 != nullptr && rg8 != nullptr && rgb8 != nullptr,
+                                                            "compress sources created");
 
         struct  DirectCase  {   FEFormat    dst;    FEImage*    src;    int tol;    bool rtDefault; const char* name;   };
         /// rtDefault=true:解码用 FMT_NONE(BC4→R8 / BC5→RG8 默认目标,
@@ -1672,6 +1678,8 @@ static  void    testBlockCompressTranscode()
             { FMT_BC1_RGBA_SRGB,    rgba.get(), 9,  false,  "BC1_RGBA_SRGB"    },
             { FMT_BC2_SRGB,         rgba.get(), 9,  false,  "BC2_SRGB"         },
             { FMT_BC3_SRGB,         rgba.get(), 9,  false,  "BC3_SRGB"         },
+            /// 3 通道源:compress 缺省 alpha 填 255,解码端 BC1_RGBA alpha 恒 255
+            { FMT_BC1_RGBA_UNORM,   rgb8.get(), 9,  false,  "BC1_RGBA_UNORM(RGB8 src)" },
         };
         for (const auto& tc : cases)
         {
@@ -1686,27 +1694,55 @@ static  void    testBlockCompressTranscode()
                   (std::string)"byteOfLevel(8x8) == 4 blocks * " + std::to_string(blkBytes) + " [" + tc.name + "]");
             CHECK(blk->byteOfLevel(1) == blkBytes,
                   (std::string)"byteOfLevel(4x4) == 1 block [" + tc.name + "]");
-            /// 解码回常色往返(容差:5/6bit 量化 + BC2 alpha 4bit)
+            /// 解码回常色往返,两级 mip 各验一次
+            /// (level1 为 4x4 单块,覆盖 mip 链上的单块 gather+外推路径;
+            ///  容差:5/6bit 量化 + BC2 alpha 4bit)
             ImagePtr    back    =   FEImageHelper::transcode(*blk,
                                     tc.rtDefault ? FMT_NONE : FMT_R8G8B8A8_UNORM);
             CHECK(back != nullptr,                      (std::string)"transcode back [" + tc.name + "]");
             if  (back != nullptr)
-                CHECK(isConstantLevel(*back,CLR,tc.tol),
-                      (std::string)"roundtrip constant within +-" + std::to_string(tc.tol) + " [" + tc.name + "]");
+                CHECK(isConstantLevel(*back,CLR,tc.tol) && isConstantLevel(*back,CLR,tc.tol,1),
+                      (std::string)"roundtrip constant within +-" + std::to_string(tc.tol)
+                      + " [levels 0/1] [" + tc.name + "]");
+        }
+
+        /// quality 分支:quality>=160 走 STB_DXT_HIGHQUAL(独立代码路径)
+        {
+            ImagePtr    blk200  =   rgba ? FEImageHelper::compress(*rgba,FMT_BC3_UNORM,200) : nullptr;
+            CHECK(blk200 != nullptr && blk200->byteOfLevel(0) == 64,
+                                                        "compress BC3 quality=200(HIGHQUAL) ok");
+            if  (blk200 != nullptr)
+            {
+                ImagePtr    back200 =   FEImageHelper::transcode(*blk200,FMT_R8G8B8A8_UNORM);
+                CHECK(back200 != nullptr && isConstantLevel(*back200,CLR,9)
+                      && isConstantLevel(*back200,CLR,9,1),
+                                                        "BC3 quality=200 roundtrip within +-9 [levels 0/1]");
+            }
+        }
+
+        /// 显式单通道解码目标:BC4 → FMT_R8_UNORM(isDecodeTarget 白名单路径)
+        {
+            ImagePtr    blk4    =   r8 ? FEImageHelper::compress(*r8,FMT_BC4_UNORM) : nullptr;
+            ImagePtr    backR8  =   blk4 ? FEImageHelper::transcode(*blk4,FMT_R8_UNORM) : nullptr;
+            CHECK(backR8 != nullptr && backR8->cInfo()._format == FMT_R8_UNORM
+                  && isConstantLevel(*backR8,CLR,3,0) && isConstantLevel(*backR8,CLR,3,1),
+                                                        "BC4 -> explicit R8_UNORM roundtrip [levels 0/1]");
         }
     }
 
     /// ===== 2) 直编:5x3 边界块(外推 gather)编码 → 解码有效区常色 =====
     {
-        ImagePtr    rgba    =   makeConstantImage(ctx,5,3,FMT_R8G8B8A8_UNORM,RED,1);
+        ImagePtr    rgba    =   makeConstantImage(ctx,5,3,FMT_R8G8B8A8_UNORM,RED,2);
         ImagePtr    bc3     =   rgba ? FEImageHelper::compress(*rgba,FMT_BC3_UNORM) : nullptr;
-        CHECK(bc3 != nullptr && bc3->byteOfLevel(0) == 32,
-                                                        "compress 5x3 edge blocks -> BC3 (2x1 blocks = 32B)");
+        /// level0:ceil(5/4)x ceil(3/4) = 2x1 块 = 32B;level1:2x1 → 1 块 = 16B
+        CHECK(bc3 != nullptr && bc3->byteOfLevel(0) == 32 && bc3->byteOfLevel(1) == 16,
+                                                        "compress 5x3 edge blocks -> BC3 (32B + 16B)");
         if  (bc3 != nullptr)
         {
             ImagePtr    back    =   FEImageHelper::transcode(*bc3,FMT_R8G8B8A8_UNORM);
-            CHECK(back != nullptr && isConstantLevel(*back,RED,9),
-                                                        "5x3 BC3 roundtrip valid area within +-9");
+            CHECK(back != nullptr && isConstantLevel(*back,RED,9)
+                  && isConstantLevel(*back,RED,9,1),
+                                                        "5x3 BC3 roundtrip valid area within +-9 [levels 0/1]");
         }
     }
 
@@ -1742,8 +1778,22 @@ static  void    testBlockCompressTranscode()
                                     tc.rtDefault ? FMT_NONE : FMT_R8G8B8A8_UNORM);
             CHECK(back != nullptr,                      (std::string)"transcode back [" + tc.name + "]");
             if  (back != nullptr)
-                CHECK(isConstantLevel(*back,CLR,tc.tol),
-                      (std::string)"roundtrip constant within +-" + std::to_string(tc.tol) + " [" + tc.name + "]");
+                CHECK(isConstantLevel(*back,CLR,tc.tol) && isConstantLevel(*back,CLR,tc.tol,1),
+                      (std::string)"roundtrip constant within +-" + std::to_string(tc.tol)
+                      + " [levels 0/1] [" + tc.name + "]");
+        }
+
+        /// quality 边界:qualityLevel clamp 到 [1,255],两个极值都要不崩溃且可往返
+        {
+            ImagePtr    q1  =   rgba ? FEImageHelper::compress(*rgba,FMT_BC7_UNORM,1)   : nullptr;
+            ImagePtr    q255    =   rgba ? FEImageHelper::compress(*rgba,FMT_BC7_UNORM,255) : nullptr;
+            CHECK(q1 != nullptr && q255 != nullptr,     "compress BC7 quality=1/255 ok");
+            ImagePtr    b1  =   q1  ? FEImageHelper::transcode(*q1,FMT_R8G8B8A8_UNORM)  : nullptr;
+            ImagePtr    b255    =   q255 ? FEImageHelper::transcode(*q255,FMT_R8G8B8A8_UNORM) : nullptr;
+            CHECK(b1 != nullptr && isConstantLevel(*b1,CLR,6) && isConstantLevel(*b1,CLR,6,1),
+                                                        "BC7 quality=1 roundtrip within +-6 [levels 0/1]");
+            CHECK(b255 != nullptr && isConstantLevel(*b255,CLR,6) && isConstantLevel(*b255,CLR,6,1),
+                                                        "BC7 quality=255 roundtrip within +-6 [levels 0/1]");
         }
     }
 
@@ -1807,6 +1857,44 @@ static  void    testBlockCompressTranscode()
         CHECK(passthru != nullptr && passthru->cInfo()._format == FMT_BC3_UNORM,
                                                         "loadKtx FMT_NONE passes block format through");
         std::remove(file);
+    }
+
+    /// ===== 7) 多 layer:直编逐 layer 编解码;Basis 间接路线拒绝多 layer =====
+    {
+        /// 2 layer 常色图:layer0 = CLR,layer1 = RED(8x8,单级 mip)
+        FEImage::CreateInfo ci2;
+        ci2._extent = uint3(8,8,1); ci2._format = FMT_R8G8B8A8_UNORM;
+        ci2._layers = 2; ci2._levels = 1;
+        ImagePtr    two =   new FEImage(ctx);
+        bool    ok  =   two != nullptr && two->create(ci2) && two->size() > 0;
+        if  (ok)
+        {
+            const uint8_t*  fillers[2]  =   { CLR,RED };
+            for (uint32 layer = 0; ok && layer < 2; ++layer)
+            {
+                auto    sp  =   two->plane(0,layer);
+                for (uint32 y = 0; ok && y < sp.height(); ++y)
+                    for (uint32 x = 0; x < sp.width(); ++x)
+                        std::memcpy(sp.dataOffset<uint8>(y,x),fillers[layer],4);
+            }
+        }
+        CHECK(ok,                                           "2-layer source image created");
+
+        /// 直编:逐 layer 编码 → 解码回 2 layer RGBA8,各 layer 各自常色
+        ImagePtr    blk2    =   ok ? FEImageHelper::compress(*two,FMT_BC3_UNORM) : nullptr;
+        CHECK(blk2 != nullptr && blk2->cInfo()._layers == 2,
+                                                        "compress 2-layer -> BC3 preserves layers");
+        if  (blk2 != nullptr)
+        {
+            ImagePtr    back2   =   FEImageHelper::transcode(*blk2,FMT_R8G8B8A8_UNORM);
+            CHECK(back2 != nullptr && back2->cInfo()._layers == 2
+                  && isConstantLevel(*back2,CLR,9) && isConstantLevel(*back2,RED,9,0,1),
+                                                        "2-layer BC3 roundtrip per-layer constant within +-9");
+        }
+
+        /// Basis 间接路线:layers > 1 必须拒绝(返回 nullptr)
+        ImagePtr    b2  =   ok ? FEImageHelper::compress(*two,FMT_BC7_UNORM) : nullptr;
+        CHECK(b2 == nullptr,                                "compress BC7 2-layer -> nullptr (Basis rejects)");
     }
 }
 

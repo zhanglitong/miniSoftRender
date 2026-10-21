@@ -145,11 +145,13 @@ namespace   FE
 
         /// staging buffer -> image
         /// 数据排布:面主序、面内 mip 顺序(与 FETexture::CreateInfo 注释一致);
-        /// 每像素字节数由格式决定(RGBA8=4,RGBA32F=16 等)。
+        /// 未压缩按每 mip 尺寸 * 像素字节紧排;
+        /// 块压缩按块列/块行数 * 块字节紧排(bufferRowLength=0 即按 extent 紧凑)
         std::vector<VkBufferImageCopy>  regions;
         if (layerCount > 1 || mipLevels > 1)
         {
             const uint  bpp     =   FEFormatHelper::sizeOf(_cInfo._format);
+            const uint2 be      =   FEFormatHelper::blockExtent(_cInfo._format);
             uint64  offset  =   0;
             for (uint layer = 0; layer < layerCount; ++layer)
             {
@@ -165,7 +167,10 @@ namespace   FE
                     region.imageSubresource.layerCount  =   1;
                     region.imageExtent                  =   { mipW,mipH,1 };
                     regions.push_back(region);
-                    offset  +=   uint64(mipW) * mipH * bpp;
+                    /// 块格式:按块列 x 块行 x 块字节;未压缩:be={1,1} 等价像素数
+                    const uint64    blocksX =   (uint64(mipW) + be.x - 1) / be.x;
+                    const uint64    blocksY =   (uint64(mipH) + be.y - 1) / be.y;
+                    offset  +=   blocksX * blocksY * bpp;
                     mipW    =   mipW > 1 ? mipW >> 1 : 1;
                     mipH    =   mipH > 1 ? mipH >> 1 : 1;
                 }

@@ -294,12 +294,17 @@ namespace   FE
         {
             switch (src)
             {
-            case FMT_BC4_UNORM: case FMT_EAC_R11_UNORM:     return  FMT_R8_UNORM;
-            case FMT_BC4_SNORM: case FMT_EAC_R11_SNORM:     return  FMT_R8_SNORM;
-            case FMT_BC5_UNORM: case FMT_EAC_R11G11_UNORM:  return  FMT_R8G8_UNORM;
-            case FMT_BC5_SNORM: case FMT_EAC_R11G11_SNORM:  return  FMT_R8G8_SNORM;
-            case FMT_BC6H_UFLOAT: case FMT_BC6H_SFLOAT:     return  FMT_R32G32B32A32_FLOAT;
-            default:                                        return  FMT_R8G8B8A8_UNORM;
+            case FMT_BC4_UNORM:
+            case FMT_EAC_R11_UNORM:             return  FMT_R8_UNORM;
+            case FMT_BC4_SNORM:
+            case FMT_EAC_R11_SNORM:             return  FMT_R8_SNORM;
+            case FMT_BC5_UNORM:
+            case FMT_EAC_R11G11_UNORM:          return  FMT_R8G8_UNORM;
+            case FMT_BC5_SNORM:
+            case FMT_EAC_R11G11_SNORM:          return  FMT_R8G8_SNORM;
+            case FMT_BC6H_UFLOAT:
+            case FMT_BC6H_SFLOAT:               return  FMT_R32G32B32A32_FLOAT;
+            default:                            return  FMT_R8G8B8A8_UNORM;
             }
         }
         /// <summary>
@@ -311,13 +316,20 @@ namespace   FE
                 return  false;
             switch (fmt)
             {
-            case FMT_R8_UNORM: case FMT_R8G8_UNORM:
-            case FMT_R8G8B8_UNORM: case FMT_R8G8B8A8_UNORM:
-            case FMT_R8_SNORM: case FMT_R8G8_SNORM:
-            case FMT_R16_FLOAT: case FMT_R16G16_FLOAT:
-            case FMT_R16G16B16_FLOAT: case FMT_R16G16B16A16_FLOAT:
-            case FMT_R32_FLOAT: case FMT_R32G32_FLOAT:
-            case FMT_R32G32B32_FLOAT: case FMT_R32G32B32A32_FLOAT:
+            case FMT_R8_UNORM:
+            case FMT_R8G8_UNORM:
+            case FMT_R8G8B8_UNORM:
+            case FMT_R8G8B8A8_UNORM:
+            case FMT_R8_SNORM:
+            case FMT_R8G8_SNORM:
+            case FMT_R16_FLOAT:
+            case FMT_R16G16_FLOAT:
+            case FMT_R16G16B16_FLOAT:
+            case FMT_R16G16B16A16_FLOAT:
+            case FMT_R32_FLOAT:
+            case FMT_R32G32_FLOAT:
+            case FMT_R32G32B32_FLOAT:
+            case FMT_R32G32B32A32_FLOAT:
                 return  true;
             default:
                 return  false;
@@ -333,11 +345,16 @@ namespace   FE
             const float     kInv255 =   1.0f / 255.0f;
             switch (srcFmt)
             {
-            case FMT_BC1_RGB_UNORM: case FMT_BC1_RGB_SRGB:
-            case FMT_BC1_RGBA_UNORM: case FMT_BC1_RGBA_SRGB:
-            case FMT_BC2_UNORM: case FMT_BC2_SRGB:
-            case FMT_BC3_UNORM: case FMT_BC3_SRGB:
-            case FMT_BC7_UNORM: case FMT_BC7_SRGB:
+            case FMT_BC1_RGB_UNORM:
+            case FMT_BC1_RGB_SRGB:
+            case FMT_BC1_RGBA_UNORM:
+            case FMT_BC1_RGBA_SRGB:
+            case FMT_BC2_UNORM:
+            case FMT_BC2_SRGB:
+            case FMT_BC3_UNORM:
+            case FMT_BC3_SRGB:
+            case FMT_BC7_UNORM:
+            case FMT_BC7_SRGB:
                 {
                     uint8_t     rgba[16 * 4];
                     decodeBC(srcFmt,blk,rgba,4 * 4);
@@ -345,7 +362,8 @@ namespace   FE
                         f[i]    =   rgba[i] * kInv255;
                 }
                 return  4;
-            case FMT_BC4_UNORM: case FMT_BC4_SNORM:
+            case FMT_BC4_UNORM:
+            case FMT_BC4_SNORM:
                 {
                     uint8_t     v[16];
                     const bool  bSigned    =   (srcFmt == FMT_BC4_SNORM);
@@ -355,7 +373,8 @@ namespace   FE
                                             : (v[i] * kInv255);
                 }
                 return  1;
-            case FMT_BC5_UNORM: case FMT_BC5_SNORM:
+            case FMT_BC5_UNORM:
+            case FMT_BC5_SNORM:
                 {
                     uint8_t     v[16 * 2];
                     const bool  bSigned    =   (srcFmt == FMT_BC5_SNORM);
@@ -369,7 +388,8 @@ namespace   FE
                     }
                 }
                 return  2;
-            case FMT_BC6H_UFLOAT: case FMT_BC6H_SFLOAT:
+            case FMT_BC6H_UFLOAT:
+            case FMT_BC6H_SFLOAT:
                 {
                     float   rgb[16 * 3];
                     decodeBC6H(srcFmt,blk,rgb,4);
@@ -382,7 +402,8 @@ namespace   FE
                     }
                 }
                 return  4;
-            case FMT_ETC2_R8G8B8_UNORM: case FMT_ETC2_R8G8B8_SRGB:
+            case FMT_ETC2_R8G8B8_UNORM:
+            case FMT_ETC2_R8G8B8_SRGB:
                 {
                     uint8_t     rgba[16 * 4];
                     etc2ColorDecode(blk,false,rgba);
@@ -390,7 +411,8 @@ namespace   FE
                         f[i]    =   rgba[i] * kInv255;
                 }
                 return  4;
-            case FMT_ETC2_R8G8B8A8_UNORM: case FMT_ETC2_R8G8B8A8_SRGB:
+            case FMT_ETC2_R8G8B8A8_UNORM:
+            case FMT_ETC2_R8G8B8A8_SRGB:
                 {
                     /// ETC2_RGBA8 块布局(GPU 硬件/basisu 一致):[8B EAC alpha][8B ETC2 color];
                     /// alpha 半块即 R11 EAC 语义(11bit 值域,8bit 输出经 [0,1] 缩放)
@@ -408,7 +430,8 @@ namespace   FE
                         f[i]    =   rgba[i] * kInv255;
                 }
                 return  4;
-            case FMT_EAC_R11_UNORM: case FMT_EAC_R11_SNORM:
+            case FMT_EAC_R11_UNORM:
+            case FMT_EAC_R11_SNORM:
                 {
                     float   v[16];
                     eacDecode(blk,srcFmt == FMT_EAC_R11_SNORM,v);
@@ -418,7 +441,8 @@ namespace   FE
                             f[ty*4+tx]  =   v[tx*4+ty];
                 }
                 return  1;
-            case FMT_EAC_R11G11_UNORM: case FMT_EAC_R11G11_SNORM:
+            case FMT_EAC_R11G11_UNORM:
+            case FMT_EAC_R11G11_SNORM:
                 {
                     float   r[16],g[16];
                     const bool  bSigned    =   (srcFmt == FMT_EAC_R11G11_SNORM);
@@ -775,8 +799,10 @@ namespace   FE
         ktx_basis_codec         codec   =   KTX_BASIS_CODEC_ETC1S;
         switch (dstFmt)
         {
-        case FMT_BC7_UNORM: case FMT_BC7_SRGB:
-        case FMT_ASTC_4x4_UNORM: case FMT_ASTC_4x4_SRGB:
+        case FMT_BC7_UNORM:
+        case FMT_BC7_SRGB:
+        case FMT_ASTC_4x4_UNORM:
+        case FMT_ASTC_4x4_SRGB:
             codec    =   KTX_BASIS_CODEC_UASTC_LDR_4x4;
             break;
         default:

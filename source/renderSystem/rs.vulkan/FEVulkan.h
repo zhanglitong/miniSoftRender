@@ -111,6 +111,39 @@ namespace   FE
         case FMT_D32_UNORM          :   return  VK_FORMAT_D32_SFLOAT;
         case FMT_D32_S8_UNORM       :   return  VK_FORMAT_D32_SFLOAT_S8_UINT;
 
+        /// 块压缩格式(实际可用性取决于设备特性,由 vkCreateImage 时的校验兜底):
+        /// 桌面 BC 系列通用;ETC2/EAC/ASTC 需对应特性支持
+        case FMT_BC1_RGB_UNORM      :   return  VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+        case FMT_BC1_RGB_SRGB       :   return  VK_FORMAT_BC1_RGB_SRGB_BLOCK;
+        case FMT_BC1_RGBA_UNORM     :   return  VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+        case FMT_BC1_RGBA_SRGB      :   return  VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+        case FMT_BC2_UNORM          :   return  VK_FORMAT_BC2_UNORM_BLOCK;
+        case FMT_BC2_SRGB           :   return  VK_FORMAT_BC2_SRGB_BLOCK;
+        case FMT_BC3_UNORM          :   return  VK_FORMAT_BC3_UNORM_BLOCK;
+        case FMT_BC3_SRGB           :   return  VK_FORMAT_BC3_SRGB_BLOCK;
+        case FMT_BC4_UNORM          :   return  VK_FORMAT_BC4_UNORM_BLOCK;
+        case FMT_BC4_SNORM          :   return  VK_FORMAT_BC4_SNORM_BLOCK;
+        case FMT_BC5_UNORM          :   return  VK_FORMAT_BC5_UNORM_BLOCK;
+        case FMT_BC5_SNORM          :   return  VK_FORMAT_BC5_SNORM_BLOCK;
+        case FMT_BC6H_UFLOAT        :   return  VK_FORMAT_BC6H_UFLOAT_BLOCK;
+        case FMT_BC6H_SFLOAT        :   return  VK_FORMAT_BC6H_SFLOAT_BLOCK;
+        case FMT_BC7_UNORM          :   return  VK_FORMAT_BC7_UNORM_BLOCK;
+        case FMT_BC7_SRGB           :   return  VK_FORMAT_BC7_SRGB_BLOCK;
+        case FMT_ETC2_R8G8B8_UNORM  :   return  VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+        case FMT_ETC2_R8G8B8_SRGB   :   return  VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
+        case FMT_ETC2_R8G8B8A8_UNORM:   return  VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+        case FMT_ETC2_R8G8B8A8_SRGB :   return  VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK;
+        case FMT_EAC_R11_UNORM      :   return  VK_FORMAT_EAC_R11_UNORM_BLOCK;
+        case FMT_EAC_R11_SNORM      :   return  VK_FORMAT_EAC_R11_SNORM_BLOCK;
+        case FMT_EAC_R11G11_UNORM   :   return  VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+        case FMT_EAC_R11G11_SNORM   :   return  VK_FORMAT_EAC_R11G11_SNORM_BLOCK;
+        case FMT_ASTC_4x4_UNORM     :   return  VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+        case FMT_ASTC_4x4_SRGB      :   return  VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+        case FMT_ASTC_6x6_UNORM     :   return  VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
+        case FMT_ASTC_6x6_SRGB      :   return  VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
+        case FMT_ASTC_8x8_UNORM     :   return  VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+        case FMT_ASTC_8x8_SRGB      :   return  VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
+
         default:
             assert(0!=0);
             return  VK_FORMAT_R8G8B8A8_UNORM;
