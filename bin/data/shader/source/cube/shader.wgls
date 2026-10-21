@@ -1,0 +1,83 @@
+// ============ cube 材质 Shader (WGSL) ============
+// 立方体贴图(cubemap)采样测试,与 cube/shader.vert / shader.frag 的 GLSL 约定一致:
+//   binding 0: 相机 UBO(SB_Camera, 块名 _camera, 供 autoAttach 名称匹配)
+//   binding 4: cubemap 纹理(SB_Material)——GLSL 的 combined samplerCube 在 WGSL 中
+//              必须拆成 纹理(4) + 采样器(5);材质只绑定 4,采样器由描述符集从该纹理合成
+//   顶点属性: 0=pos 1=uv,实例属性: 2=intPart 3=trans 4=scale 5=rot 6=nodeColor 7=flagBits
+//   顶点输出: 0=dir(物体空间位置,作为 cubemap 采样方向)
+// 入口点名 vs_main/fs_main(WGSL 要求同一模块内函数名唯一)
+
+struct  CameraData
+{
+    _v          : mat4x4f,
+    _p          : mat4x4f,
+    _vp         : mat4x4f,
+    _offsetVp   : mat4x4f,
+    _decimal    : vec4f,
+    _offset     : vec4i,
+    _upDir      : vec4f,
+    _rightDir   : vec4f,
+}
+
+@group(0) @binding(0) var<uniform> _camera    : CameraData;
+@group(0) @binding(4) var uCube               : texture_cube<f32>;
+@group(0) @binding(5) var uCubeSampler        : sampler;
+
+/// 由平移/缩放/旋转(四元数)构造 local 矩阵(真实世界坐标)
+fn  makeTransform(t : vec3f, s : vec3f, q : vec4f) -> mat4x4f
+{
+    let pp  = 2.0 * q.xyz * q.yzx;      // 2xy, 2yz, 2zx
+    let pw  = 2.0 * q.w   * q.zyx;      // 2wz, 2wy, 2wx
+    let dd  = q.xyz * q.xyz;            // xx, yy, zz
+    let sum = pp + pw.xzy;              // 2(xy+wz), 2(yz+wx), 2(xz+wy)
+    let dif = pp - pw.xzy;              // 2(xy-wz), 2(yz-wx), 2(xz-wy)
+    let dg  = vec3f(1.0) - 2.0 * (dd.yzx + dd.zxy);
+    return mat4x4f(
+        vec4f(vec3f(dg.x, sum.x, dif.z) * s.x, 0.0),
+        vec4f(vec3f(dif.x, dg.y, sum.y) * s.y, 0.0),
+        vec4f(vec3f(sum.z, dif.y, dg.z) * s.z, 0.0),
+        vec4f(t, 1.0));
+}
+
+/// 大坐标处理:用 (intPart - cameraOffset) 抵消相机整数偏移
+fn  makeOffsetLocalMatrix(t : vec3f, s : vec3f, q : vec4f, intPart : vec3i, cameraOffset : vec3i) -> mat4x4f
+{
+    return makeTransform(t + vec3f(intPart - cameraOffset), s, q);
+}
+
+struct  VertexInput
+{
+    @location(0) position   : vec3f,
+    @location(1) uv         : vec2f,
+    /// 实例平移(整数/小数拆分,与 pbr 大坐标方案一致)
+    @location(2) intPart    : vec3i,
+    @location(3) trans      : vec3f,
+    @location(4) scale      : vec3f,
+    @location(5) rot        : vec4f,
+    /// 节点颜色(cube 材质当前不使用,保持与 pbr 实例布局一致)
+    @location(6) nodeColor  : vec4f,
+    @location(7) flagBits   : u32,
+};
+
+struct  VertexOutput
+{
+    @location(0) dir                    : vec3f,
+    @builtin(position) pos              : vec4f,
+}
+
+@vertex
+fn  vs_main(input : VertexInput) -> VertexOutput
+{
+    var out : VertexOutput;
+    let localOffset = makeOffsetLocalMatrix(input.trans, input.scale, input.rot,
+                                           input.intPart, _camera._offset.xyz);
+    out.pos         = _camera._offsetVp * localOffset * vec4f(input.position.xyz, 1.0);
+    out.dir         = input.position.xyz;
+    return out;
+}
+
+@fragment
+fn  fs_main(input : VertexOutput) -> @location(0) vec4f
+{
+    return textureSample(uCube, uCubeSampler, normalize(input.dir));
+}
