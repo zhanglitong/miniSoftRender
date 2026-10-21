@@ -138,8 +138,110 @@ namespace   FE
             /// 按32位深度 + 8位模板，按8字节对齐
             case FMT_D32_S8_UNORM :
                 return  2 * sizeof(float32);
+
+            /// =====================================================================
+            /// 块压缩格式:一个"元素"是一个 4x4 像素块,返回每块字节数
+            /// 64bit 块(8字节):BC1/BC4/ETC2_RGB/EAC_R11
+            /// =====================================================================
+            case FMT_BC1_RGB_UNORM       :
+            case FMT_BC1_RGB_SRGB        :
+            case FMT_BC1_RGBA_UNORM      :
+            case FMT_BC1_RGBA_SRGB       :
+            case FMT_BC4_UNORM           :
+            case FMT_BC4_SNORM           :
+            case FMT_ETC2_R8G8B8_UNORM   :
+            case FMT_ETC2_R8G8B8_SRGB    :
+            case FMT_EAC_R11_UNORM       :
+            case FMT_EAC_R11_SNORM       :
+                return  8;
+            /// 128bit 块(16字节):BC2/BC3/BC5/BC6H/BC7/ETC2_ALPHA/EAC_R11G11/ASTC
+            case FMT_BC2_UNORM           :
+            case FMT_BC2_SRGB            :
+            case FMT_BC3_UNORM           :
+            case FMT_BC3_SRGB            :
+            case FMT_BC5_UNORM           :
+            case FMT_BC5_SNORM           :
+            case FMT_BC6H_UFLOAT         :
+            case FMT_BC6H_SFLOAT         :
+            case FMT_BC7_UNORM           :
+            case FMT_BC7_SRGB            :
+            case FMT_ETC2_R8G8B8A8_UNORM :
+            case FMT_ETC2_R8G8B8A8_SRGB  :
+            case FMT_EAC_R11G11_UNORM    :
+            case FMT_EAC_R11G11_SNORM    :
+            case FMT_ASTC_4x4_UNORM      :
+            case FMT_ASTC_4x4_SRGB       :
+            case FMT_ASTC_6x6_UNORM      :
+            case FMT_ASTC_6x6_SRGB       :
+            case FMT_ASTC_8x8_UNORM      :
+            case FMT_ASTC_8x8_SRGB       :
+                return  16;
             }
             return  1;
+        }
+        /// <summary>
+        /// 是否块压缩格式(4x4 像素块,KTX/DDS 家族;数据为整块字节,无逐像素语义)
+        /// </summary>
+        /// <param name="fmt"></param>
+        /// <returns></returns>
+        static  bool    isBlockFormat(const FEFormat& fmt)
+        {
+            switch(fmt)
+            {
+            case FMT_BC1_RGB_UNORM       :
+            case FMT_BC1_RGB_SRGB        :
+            case FMT_BC1_RGBA_UNORM      :
+            case FMT_BC1_RGBA_SRGB       :
+            case FMT_BC2_UNORM           :
+            case FMT_BC2_SRGB            :
+            case FMT_BC3_UNORM           :
+            case FMT_BC3_SRGB            :
+            case FMT_BC4_UNORM           :
+            case FMT_BC4_SNORM           :
+            case FMT_BC5_UNORM           :
+            case FMT_BC5_SNORM           :
+            case FMT_BC6H_UFLOAT         :
+            case FMT_BC6H_SFLOAT         :
+            case FMT_BC7_UNORM           :
+            case FMT_BC7_SRGB            :
+            case FMT_ETC2_R8G8B8_UNORM   :
+            case FMT_ETC2_R8G8B8_SRGB    :
+            case FMT_ETC2_R8G8B8A8_UNORM :
+            case FMT_ETC2_R8G8B8A8_SRGB  :
+            case FMT_EAC_R11_UNORM       :
+            case FMT_EAC_R11_SNORM       :
+            case FMT_EAC_R11G11_UNORM    :
+            case FMT_EAC_R11G11_SNORM    :
+            case FMT_ASTC_4x4_UNORM      :
+            case FMT_ASTC_4x4_SRGB       :
+            case FMT_ASTC_6x6_UNORM      :
+            case FMT_ASTC_6x6_SRGB       :
+            case FMT_ASTC_8x8_UNORM      :
+            case FMT_ASTC_8x8_SRGB       :
+                return  true;
+            default:
+                return  false;
+            }
+        }
+        /// <summary>
+        /// 块压缩格式的块尺寸(像素):BC/ETC2/EAC 为 4x4,ASTC 按块型 4x4/6x6/8x8;
+        /// 其余格式 1x1
+        /// </summary>
+        /// <param name="fmt"></param>
+        /// <returns></returns>
+        static  uint2   blockExtent(const FEFormat& fmt)
+        {
+            switch(fmt)
+            {
+            case FMT_ASTC_6x6_UNORM     :
+            case FMT_ASTC_6x6_SRGB      :   return  uint2(6,6);
+            case FMT_ASTC_8x8_UNORM     :
+            case FMT_ASTC_8x8_SRGB      :   return  uint2(8,8);
+            default:                        break;
+            }
+            if (isBlockFormat(fmt))
+                return  uint2(4,4);
+            return  uint2(1,1);
         }
         /// <summary>
         /// 获取颜色的通道数，R:1,RG:2,RGB:3,RGBA:4;
@@ -261,6 +363,42 @@ namespace   FE
                 return  1;
             case FMT_D32_S8_UNORM:
                 return  2;
+
+            /// 块压缩格式:按语义通道数(GPU 解码前的整块数据无独立分量可寻址)
+            case FMT_BC4_UNORM           :
+            case FMT_BC4_SNORM           :
+            case FMT_EAC_R11_UNORM       :
+            case FMT_EAC_R11_SNORM       :
+                return  1;
+            case FMT_BC5_UNORM           :
+            case FMT_BC5_SNORM           :
+            case FMT_EAC_R11G11_UNORM    :
+            case FMT_EAC_R11G11_SNORM    :
+                return  2;
+            case FMT_BC1_RGB_UNORM       :
+            case FMT_BC1_RGB_SRGB        :
+            case FMT_BC6H_UFLOAT         :
+            case FMT_BC6H_SFLOAT         :
+            case FMT_ETC2_R8G8B8_UNORM   :
+            case FMT_ETC2_R8G8B8_SRGB    :
+                return  3;
+            case FMT_BC1_RGBA_UNORM      :
+            case FMT_BC1_RGBA_SRGB       :
+            case FMT_BC2_UNORM           :
+            case FMT_BC2_SRGB            :
+            case FMT_BC3_UNORM           :
+            case FMT_BC3_SRGB            :
+            case FMT_BC7_UNORM           :
+            case FMT_BC7_SRGB            :
+            case FMT_ETC2_R8G8B8A8_UNORM :
+            case FMT_ETC2_R8G8B8A8_SRGB  :
+            case FMT_ASTC_4x4_UNORM      :
+            case FMT_ASTC_4x4_SRGB       :
+            case FMT_ASTC_6x6_UNORM      :
+            case FMT_ASTC_6x6_SRGB       :
+            case FMT_ASTC_8x8_UNORM      :
+            case FMT_ASTC_8x8_SRGB       :
+                return  4;
             }
             return  1;
         }
@@ -370,6 +508,39 @@ namespace   FE
             case FMT_D16_UNORM              :  return  "D16_UNORM";
             case FMT_D32_UNORM              :  return  "D32_UNORM";
             case FMT_D32_S8_UNORM           :  return  "D32_S8_UNORM";
+
+            case FMT_BC1_RGB_UNORM          :  return  "BC1_RGB_UNORM";
+            case FMT_BC1_RGB_SRGB           :  return  "BC1_RGB_SRGB";
+            case FMT_BC1_RGBA_UNORM         :  return  "BC1_RGBA_UNORM";
+            case FMT_BC1_RGBA_SRGB          :  return  "BC1_RGBA_SRGB";
+            case FMT_BC2_UNORM              :  return  "BC2_UNORM";
+            case FMT_BC2_SRGB               :  return  "BC2_SRGB";
+            case FMT_BC3_UNORM              :  return  "BC3_UNORM";
+            case FMT_BC3_SRGB               :  return  "BC3_SRGB";
+            case FMT_BC4_UNORM              :  return  "BC4_UNORM";
+            case FMT_BC4_SNORM              :  return  "BC4_SNORM";
+            case FMT_BC5_UNORM              :  return  "BC5_UNORM";
+            case FMT_BC5_SNORM              :  return  "BC5_SNORM";
+            case FMT_BC6H_UFLOAT            :  return  "BC6H_UFLOAT";
+            case FMT_BC6H_SFLOAT            :  return  "BC6H_SFLOAT";
+            case FMT_BC7_UNORM              :  return  "BC7_UNORM";
+            case FMT_BC7_SRGB               :  return  "BC7_SRGB";
+
+            case FMT_ETC2_R8G8B8_UNORM      :  return  "ETC2_R8G8B8_UNORM";
+            case FMT_ETC2_R8G8B8_SRGB       :  return  "ETC2_R8G8B8_SRGB";
+            case FMT_ETC2_R8G8B8A8_UNORM    :  return  "ETC2_R8G8B8A8_UNORM";
+            case FMT_ETC2_R8G8B8A8_SRGB     :  return  "ETC2_R8G8B8A8_SRGB";
+            case FMT_EAC_R11_UNORM          :  return  "EAC_R11_UNORM";
+            case FMT_EAC_R11_SNORM          :  return  "EAC_R11_SNORM";
+            case FMT_EAC_R11G11_UNORM       :  return  "EAC_R11G11_UNORM";
+            case FMT_EAC_R11G11_SNORM       :  return  "EAC_R11G11_SNORM";
+
+            case FMT_ASTC_4x4_UNORM         :  return  "ASTC_4x4_UNORM";
+            case FMT_ASTC_4x4_SRGB          :  return  "ASTC_4x4_SRGB";
+            case FMT_ASTC_6x6_UNORM         :  return  "ASTC_6x6_UNORM";
+            case FMT_ASTC_6x6_SRGB          :  return  "ASTC_6x6_SRGB";
+            case FMT_ASTC_8x8_UNORM         :  return  "ASTC_8x8_UNORM";
+            case FMT_ASTC_8x8_SRGB          :  return  "ASTC_8x8_SRGB";
             }
             assert(0!=0);
             return  "NONE";
@@ -462,6 +633,36 @@ namespace   FE
             else if (_stricmp(enumName( FMT_D16_UNORM           ),    name) == 0)   return  FMT_D16_UNORM           ;
             else if (_stricmp(enumName( FMT_D32_UNORM           ),    name) == 0)   return  FMT_D32_UNORM           ;
             else if (_stricmp(enumName( FMT_D32_S8_UNORM        ),    name) == 0)   return  FMT_D32_S8_UNORM        ;
+            else if (_stricmp(enumName( FMT_BC1_RGB_UNORM       ),    name) == 0)   return  FMT_BC1_RGB_UNORM       ;
+            else if (_stricmp(enumName( FMT_BC1_RGB_SRGB        ),    name) == 0)   return  FMT_BC1_RGB_SRGB        ;
+            else if (_stricmp(enumName( FMT_BC1_RGBA_UNORM      ),    name) == 0)   return  FMT_BC1_RGBA_UNORM      ;
+            else if (_stricmp(enumName( FMT_BC1_RGBA_SRGB       ),    name) == 0)   return  FMT_BC1_RGBA_SRGB       ;
+            else if (_stricmp(enumName( FMT_BC2_UNORM           ),    name) == 0)   return  FMT_BC2_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC2_SRGB            ),    name) == 0)   return  FMT_BC2_SRGB            ;
+            else if (_stricmp(enumName( FMT_BC3_UNORM           ),    name) == 0)   return  FMT_BC3_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC3_SRGB            ),    name) == 0)   return  FMT_BC3_SRGB            ;
+            else if (_stricmp(enumName( FMT_BC4_UNORM           ),    name) == 0)   return  FMT_BC4_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC4_SNORM           ),    name) == 0)   return  FMT_BC4_SNORM           ;
+            else if (_stricmp(enumName( FMT_BC5_UNORM           ),    name) == 0)   return  FMT_BC5_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC5_SNORM           ),    name) == 0)   return  FMT_BC5_SNORM           ;
+            else if (_stricmp(enumName( FMT_BC6H_UFLOAT         ),    name) == 0)   return  FMT_BC6H_UFLOAT         ;
+            else if (_stricmp(enumName( FMT_BC6H_SFLOAT         ),    name) == 0)   return  FMT_BC6H_SFLOAT         ;
+            else if (_stricmp(enumName( FMT_BC7_UNORM           ),    name) == 0)   return  FMT_BC7_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC7_SRGB            ),    name) == 0)   return  FMT_BC7_SRGB            ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8_UNORM   ),    name) == 0)   return  FMT_ETC2_R8G8B8_UNORM   ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8_SRGB    ),    name) == 0)   return  FMT_ETC2_R8G8B8_SRGB    ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8A8_UNORM ),    name) == 0)   return  FMT_ETC2_R8G8B8A8_UNORM ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8A8_SRGB  ),    name) == 0)   return  FMT_ETC2_R8G8B8A8_SRGB  ;
+            else if (_stricmp(enumName( FMT_EAC_R11_UNORM       ),    name) == 0)   return  FMT_EAC_R11_UNORM       ;
+            else if (_stricmp(enumName( FMT_EAC_R11_SNORM       ),    name) == 0)   return  FMT_EAC_R11_SNORM       ;
+            else if (_stricmp(enumName( FMT_EAC_R11G11_UNORM    ),    name) == 0)   return  FMT_EAC_R11G11_UNORM    ;
+            else if (_stricmp(enumName( FMT_EAC_R11G11_SNORM    ),    name) == 0)   return  FMT_EAC_R11G11_SNORM    ;
+            else if (_stricmp(enumName( FMT_ASTC_4x4_UNORM      ),    name) == 0)   return  FMT_ASTC_4x4_UNORM      ;
+            else if (_stricmp(enumName( FMT_ASTC_4x4_SRGB       ),    name) == 0)   return  FMT_ASTC_4x4_SRGB       ;
+            else if (_stricmp(enumName( FMT_ASTC_6x6_UNORM      ),    name) == 0)   return  FMT_ASTC_6x6_UNORM      ;
+            else if (_stricmp(enumName( FMT_ASTC_6x6_SRGB       ),    name) == 0)   return  FMT_ASTC_6x6_SRGB       ;
+            else if (_stricmp(enumName( FMT_ASTC_8x8_UNORM      ),    name) == 0)   return  FMT_ASTC_8x8_UNORM      ;
+            else if (_stricmp(enumName( FMT_ASTC_8x8_SRGB       ),    name) == 0)   return  FMT_ASTC_8x8_SRGB       ;
             assert(0!=0);
             return  FMT_NONE                ;
         }
@@ -563,6 +764,7 @@ namespace   FE
             return  int32_t(v + (v < 0.0f ? -0.5f : 0.5f));
         }
 
+    public:
         /// <summary>
         /// 打包内核:将 float 源数据按每元素 srcComponents 分量,以 dstChannels 个 S 标量
         /// 连续写入输出字节流(源分量不足补 0,超出截断)
@@ -749,6 +951,7 @@ namespace   FE
 
         /// <summary>
         /// 计算一行数据(w个像素)占用的内存空间大小(单位字节)
+        /// 块压缩格式:w 以像素计,一行 = ceil(w/块宽) 个块 × 每块字节
         /// </summary>
         /// <param name="w">宽度</param>
         /// <param name="align">对齐字节数1,2,4,8,16,32,64...</param>
@@ -756,6 +959,11 @@ namespace   FE
         /// <returns>所需空间大小，单位字节</returns>
         static  uint32_t    pitch(uint32_t w,uint16_t align,FEFormat fmt)
         {
+            if (isBlockFormat(fmt))
+            {
+                const uint2 be  =   blockExtent(fmt);
+                w               =   (w + be.x - 1) / be.x;
+            }
             return  (w * FEFormatHelper::sizeOf(fmt) + (align - 1)) / align * align;
         }
         /// <summary>
@@ -768,6 +976,25 @@ namespace   FE
         static  uint32_t    pitch(uint32_t w,uint16_t align,uint16_t pixelByte)
         {
             return  (w * pixelByte + (align - 1)) / align * align;
+        }
+        /// <summary>
+        /// 计算单层(w*h*d,像素单位)数据的大小(单位字节)
+        /// 块压缩格式:高(深)度按块行数 ceil(h/块高) 折算
+        /// </summary>
+        /// <param name="w">宽度(像素)</param>
+        /// <param name="h">高度(像素)</param>
+        /// <param name="d">深度(像素)</param>
+        /// <param name="align">对齐字节数1,2,4,8,16,32,64...</param>
+        /// <param name="fmt">像素格式</param>
+        /// <returns>所需空间大小，单位字节</returns>
+        static  uint32_t    bytesOfPlane(uint32_t w,uint32_t h,uint32_t d,uint32_t align,FEFormat fmt)
+        {
+            if (isBlockFormat(fmt))
+            {
+                const uint2 be  =   blockExtent(fmt);
+                h               =   (h + be.y - 1) / be.y;
+            }
+            return  pitch(w,align,fmt) * h * d;
         }
         /// <summary>
         /// 根据图像的大小,mipmap,对齐方式,数据格式,计算需要的空间字节数
@@ -786,7 +1013,7 @@ namespace   FE
                 const auto    w     =   (std::max<uint32_t>)(extent.x >> m,1);
                 const auto    h     =   (std::max<uint32_t>)(extent.y >> m,1);
                 const auto    d     =   (std::max<uint32_t>)(extent.z >> m,1);
-                nByte               +=   pitch(w,align,fmt) * h * d;
+                nByte               +=   bytesOfPlane(w,h,d,align,fmt);
             }
             return  nByte;
         }

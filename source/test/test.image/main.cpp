@@ -1306,7 +1306,7 @@ static  void    testKtxLoad()
             std::remove(file);
         }
 
-        /// R8G8(2 通道) save ktx —— 覆盖通道映射 switch(loadKtx 暂只开 RGBA8)
+        /// R8G8(2 通道) save ktx1 → loadKtx 扩通道逐像素往返(GL_RG8 通道映射)
         {
             FEImage::CreateInfo c2;
             c2._extent = uint3(6,4,1); c2._format = FMT_R8G8_UNORM; c2._levels = 1; c2._layers = 1;
@@ -1322,11 +1322,491 @@ static  void    testKtxLoad()
                 }
             const char* file    =   "./rt_rg8.ktx";
             CHECK(FEImageHelper::save(*i2,file),                            "save R8G8 -> ktx ok (channel mapping works)");
-            /// loadKtx 目前只接受 RGBA8 —— R8G8 格式会被拒绝,这是预期行为;
-            /// 将来如果 loadKtx 扩通道覆盖,此断言应同步改为逐像素比对
-            CHECK(FEImageHelper::load(ctx,file) == nullptr,                 "loadKtx rejects R8G8 ktx (RGBA8 only for now)");
+            ImagePtr    back    =   FEImageHelper::load(ctx,file);
+            CHECK(back != nullptr && back->cInfo()._format == FMT_R8G8_UNORM,
+                                                                            "loadKtx R8G8 ktx -> R8G8 (expanded channels)");
+            if (back != nullptr)
+            {
+                auto    pb  =   back->plane(0,0);
+                bool    same=   pb.width() == 6 && pb.height() == 4;
+                for (uint32 y = 0; same && y < 4; ++y)
+                    for (uint32 x = 0; same && x < 6; ++x)
+                    {
+                        const uint8*    a   =   p.dataOffset<uint8>(y,x);
+                        const uint8*    b   =   pb.dataOffset<uint8>(y,x);
+                        same    =   same && a[0] == b[0] && a[1] == b[1];
+                    }
+                CHECK(same,                                                 "R8G8 ktx roundtrip pixel-identical");
+            }
             std::remove(file);
         }
+    }
+}
+
+/// =====================================================================
+/// KTX 扩展覆盖:未压缩扩通道(R8/RGB8/RGBA16 ktx2)、未知 vkFormat 拒绝、
+/// 全部 30 个块压缩格式 ktx2 逐字节往返、BasisU 转码目标(BC7/BC1)
+/// =====================================================================
+static  void    testKtxExpanded()
+{
+    std::cout << "---- testKtxExpanded ----\n";
+    FEContext&  ctx =   FEContext::instance();
+
+    /// 1) 未压缩扩通道 ktx2 往返:R8(1ch,2级 mip)
+    {
+        FEImage::CreateInfo c1;
+        c1._extent = uint3(8,8,1); c1._format = FMT_R8_UNORM; c1._levels = 2; c1._layers = 1;
+        ImagePtr    i1  =   new FEImage(ctx);
+        CHECK(i1->create(c1) && i1->size() > 0,                             "save-rt create R8 mip image");
+        for (uint32 l = 0; l < 2; ++l)
+        {
+            auto    pl  =   i1->plane(l,0);
+            for (uint32 y = 0; y < pl.height(); ++y)
+                for (uint32 x = 0; x < pl.width(); ++x)
+                    *pl.dataOffset<uint8>(y,x)  =   uint8(x * 16 + y * 8 + l * 64);
+        }
+        const char* file    =   "./rt_r8.ktx2";
+        CHECK(FEImageHelper::save(*i1,file,0),                              "save R8 mip -> ktx2 ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file);
+        CHECK(back != nullptr && back->cInfo()._format == FMT_R8_UNORM
+              && back->cInfo()._levels == 2,                                "load R8 ktx2 -> R8 with 2 levels");
+        bool    ok  =   back != nullptr;
+        for (uint32 l = 0; ok && l < 2; ++l)
+        {
+            auto    pa  =   i1->plane(l,0);
+            auto    pb  =   back->plane(l,0);
+            for (uint32 y = 0; ok && y < pa.height(); ++y)
+                for (uint32 x = 0; ok && x < pa.width(); ++x)
+                    ok  =   *pa.dataOffset<uint8>(y,x) == *pb.dataOffset<uint8>(y,x);
+        }
+        CHECK(ok,                                                           "R8 ktx2 roundtrip pixel-identical");
+        std::remove(file);
+    }
+
+    /// 2) 未压缩扩通道 ktx2 往返:RGB8(3ch) + RGBA16(16bit UNORM)
+    {
+        /// RGB8:逐像素 3 通道比对(vkFormat=23)
+        FEImage::CreateInfo c3;
+        c3._extent = uint3(8,8,1); c3._format = FMT_R8G8B8_UNORM; c3._levels = 1; c3._layers = 1;
+        ImagePtr    i3  =   new FEImage(ctx);
+        CHECK(i3->create(c3) && i3->size() > 0,                             "save-rt create RGB8 image");
+        for (uint32 y = 0; y < 8; ++y)
+            for (uint32 x = 0; x < 8; ++x)
+            {
+                uint8*  px  =   i3->plane(0,0).dataOffset<uint8>(y,x);
+                px[0]   =   uint8(x * 31); px[1] = uint8(y * 17); px[2] = uint8((x + y) * 9);
+            }
+        const char* file    =   "./rt_rgb8.ktx2";
+        CHECK(FEImageHelper::save(*i3,file,0),                              "save RGB8 -> ktx2 ok");
+        ImagePtr    back    =   FEImageHelper::load(ctx,file);
+        CHECK(back != nullptr && back->cInfo()._format == FMT_R8G8B8_UNORM, "load RGB8 ktx2 -> RGB8");
+        bool    ok  =   back != nullptr;
+        if (ok)
+        {
+            auto    pa  =   i3->plane(0,0);
+            auto    pb  =   back->plane(0,0);
+            for (uint32 y = 0; ok && y < 8; ++y)
+                for (uint32 x = 0; ok && x < 8; ++x)
+                {
+                    const uint8*    a   =   pa.dataOffset<uint8>(y,x);
+                    const uint8*    b   =   pb.dataOffset<uint8>(y,x);
+                    ok  =   a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
+                }
+        }
+        CHECK(ok,                                                           "RGB8 ktx2 roundtrip pixel-identical");
+        std::remove(file);
+
+        /// RGBA16:16bit UNORM 逐像素比对(vkFormat=91,每像素 8 字节)
+        FEImage::CreateInfo c4;
+        c4._extent = uint3(8,8,1); c4._format = FMT_R16G16B16A16_UNORM; c4._levels = 1; c4._layers = 1;
+        ImagePtr    i4  =   new FEImage(ctx);
+        CHECK(i4->create(c4) && i4->size() > 0,                             "save-rt create RGBA16 image");
+        for (uint32 y = 0; y < 8; ++y)
+            for (uint32 x = 0; x < 8; ++x)
+            {
+                uint16* px  =   i4->plane(0,0).dataOffset<uint16>(y,x);
+                px[0]   =   uint16(x * 8000 + 1); px[1] = uint16(y * 500 + 2);
+                px[2]   =   uint16((x + y) * 300 + 3); px[3] = 0xFFFF;
+            }
+        const char* file16  =   "./rt_rgba16.ktx2";
+        CHECK(FEImageHelper::save(*i4,file16,0),                            "save RGBA16 -> ktx2 ok");
+        ImagePtr    back16  =   FEImageHelper::load(ctx,file16);
+        CHECK(back16 != nullptr && back16->cInfo()._format == FMT_R16G16B16A16_UNORM,
+                                                                            "load RGBA16 ktx2 -> RGBA16");
+        ok  =   back16 != nullptr;
+        if (ok)
+        {
+            auto    pa  =   i4->plane(0,0);
+            auto    pb  =   back16->plane(0,0);
+            for (uint32 y = 0; ok && y < 8; ++y)
+                for (uint32 x = 0; ok && x < 8; ++x)
+                {
+                    const uint16*   a   =   pa.dataOffset<uint16>(y,x);
+                    const uint16*   b   =   pb.dataOffset<uint16>(y,x);
+                    ok  =   a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
+                }
+        }
+        CHECK(ok,                                                           "RGBA16 ktx2 roundtrip pixel-identical");
+        std::remove(file16);
+    }
+
+    /// 3) 未知 vkFormat 拒绝:VK_FORMAT_R4G4B4A4_UNORM_PACK16(5)未映射 → nullptr
+    {
+        const char* file    =   "./rt_unknown_vkfmt.ktx2";
+        ktxTextureCreateInfo    ci  =   {};
+        ci.vkFormat         =   5;      /// 未映射的打包 16bit 格式
+        ci.baseWidth        =   8;
+        ci.baseHeight       =   8;
+        ci.baseDepth        =   1;
+        ci.numDimensions    =   2;
+        ci.numLevels        =   1;
+        ci.numLayers        =   1;
+        ci.numFaces         =   1;
+        ci.isArray          =   KTX_FALSE;
+        ci.generateMipmaps  =   KTX_FALSE;
+        ktxTexture2*    ktex2   =   nullptr;
+        bool    ok  =   ktxTexture2_Create(&ci,KTX_TEXTURE_CREATE_ALLOC_STORAGE,&ktex2) == KTX_SUCCESS;
+        if (ok)
+        {
+            std::vector<uint8>  pixels(size_t(8) * 8 * 2,0xAB);
+            ok  =   ktxTexture_SetImageFromMemory(ktxTexture(ktex2),0,0,0,pixels.data(),pixels.size()) == KTX_SUCCESS;
+        }
+        if (ok)
+            ok  =   ktxTexture_WriteToNamedFile(ktxTexture(ktex2),file) == KTX_SUCCESS;
+        if (ktex2 != nullptr)
+            ktxTexture_Destroy(ktxTexture(ktex2));
+        CHECK(ok,                                                           "unknown vkFormat ktx2 write ok");
+        CHECK(FEImageHelper::load(ctx,file) == nullptr,                     "loadKtx rejects unknown vkFormat(5)");
+        std::remove(file);
+    }
+
+    /// 4) 块压缩透传:全部 30 个块格式 ktx2 save→load 逐字节往返
+    ///    (只验证容器映射与块拷贝,不做 CPU 编解码;尺寸取 4 的倍数规避 floor/ceil 差异)
+    {
+        const FEFormat  blockFormats[]  =
+        {
+            FMT_BC1_RGB_UNORM, FMT_BC1_RGB_SRGB, FMT_BC1_RGBA_UNORM, FMT_BC1_RGBA_SRGB,
+            FMT_BC2_UNORM, FMT_BC2_SRGB, FMT_BC3_UNORM, FMT_BC3_SRGB,
+            FMT_BC4_UNORM, FMT_BC4_SNORM, FMT_BC5_UNORM, FMT_BC5_SNORM,
+            FMT_BC6H_UFLOAT, FMT_BC6H_SFLOAT, FMT_BC7_UNORM, FMT_BC7_SRGB,
+            FMT_ETC2_R8G8B8_UNORM, FMT_ETC2_R8G8B8_SRGB,
+            FMT_ETC2_R8G8B8A8_UNORM, FMT_ETC2_R8G8B8A8_SRGB,
+            FMT_EAC_R11_UNORM, FMT_EAC_R11_SNORM, FMT_EAC_R11G11_UNORM, FMT_EAC_R11G11_SNORM,
+            FMT_ASTC_4x4_UNORM, FMT_ASTC_4x4_SRGB, FMT_ASTC_6x6_UNORM, FMT_ASTC_6x6_SRGB,
+            FMT_ASTC_8x8_UNORM, FMT_ASTC_8x8_SRGB,
+        };
+        const char* file    =   "./rt_block.ktx2";
+        uint32  passCount   =   0;
+        for (FEFormat fmt : blockFormats)
+        {
+            FEImage::CreateInfo cb;
+            cb._extent = uint3(8,8,1); cb._format = fmt; cb._levels = 2; cb._layers = 1;
+            ImagePtr    ib  =   new FEImage(ctx);
+            bool    ok  =   ib->create(cb) && ib->size() > 0;
+            if (ok)
+            {
+                /// 确定性伪随机字节填满各级块数据(块数据无像素语义)
+                for (uint32 l = 0; l < 2; ++l)
+                {
+                    auto        pl      =   ib->plane(l,0);
+                    const auto  be      =   FEFormatHelper::blockExtent(fmt);
+                    const uint32    rows=   (pl.height() + be.y - 1) / be.y;
+                    uint8*      base    =   pl.rowAt<uint8>(0);
+                    const size_t    n   =   size_t(pl.pitch()) * rows;
+                    for (size_t i = 0; i < n; ++i)
+                        base[i] =   uint8(i * 31 + 7 + l * 101);
+                }
+                ok  =   FEImageHelper::save(*ib,file,0);
+                ImagePtr    back    =   ok ? FEImageHelper::load(ctx,file) : nullptr;
+                ok  =   back != nullptr && back->cInfo()._format == fmt && back->cInfo()._levels == 2;
+                if (ok)
+                {
+                    for (uint32 l = 0; ok && l < 2; ++l)
+                    {
+                        auto        pa      =   ib->plane(l,0);
+                        auto        pb      =   back->plane(l,0);
+                        /// 块格式按块行遍历(ceil(h/块高)),未压缩退化为像素行
+                        const auto  beB     =   FEFormatHelper::blockExtent(fmt);
+                        const uint32    rows=   (pa.height() + beB.y - 1) / beB.y;
+                        const uint64    rowByte =   pa.bytesOfRow();
+                        ok  =   pa.width() == pb.width() && pa.height() == pb.height();
+                        for (uint32 r = 0; ok && r < rows; ++r)
+                            ok  =   std::memcmp(pa.rowAt<uint8>(r),pb.rowAt<uint8>(r),size_t(rowByte)) == 0;
+                    }
+                }
+            }
+            if (ok)
+                ++passCount;
+            else
+                std::cout << "       block roundtrip FAILED at format #" << int(fmt) << "\n";
+        }
+        std::remove(file);
+        CHECK(passCount == 30,                                              "all 30 block formats ktx2 byte-identical roundtrip");
+    }
+
+    /// 5) BasisU 转码目标:ETC1S ktx2 → 指定 BC7 / BC1 目标转码
+    ///    (常色图,验证格式映射与块字节量;不解码块数据)
+    {
+        const uint8     kColor[4]   =   { 200,100,50,255 };
+        const char*     file    =   "./rt_transcode_bc.ktx2";
+        FEImage::CreateInfo ce;
+        ce._extent = uint3(8,8,1); ce._format = FMT_R8G8B8A8_UNORM; ce._levels = 2; ce._layers = 1;
+        ImagePtr    ic  =   new FEImage(ctx);
+        bool    ok  =   ic->create(ce) && ic->size() > 0;
+        if (ok)
+            for (uint32 l = 0; l < 2; ++l)
+            {
+                auto    pc  =   ic->plane(l,0);
+                for (uint32 y = 0; y < pc.height(); ++y)
+                    for (uint32 x = 0; x < pc.width(); ++x)
+                        std::memcpy(pc.dataOffset<uint8>(y,x),kColor,4);
+            }
+        ok  =   ok && FEImageHelper::save(*ic,file,128);
+        CHECK(ok,                                                           "ETC1S source ktx2 saved(q=128)");
+
+        /// BC7 目标:8x8 → 2x2 块 × 16B = 64B;4x4 → 16B
+        ImagePtr    bc7 =   ok ? FEImageHelper::load(ctx,file,FMT_BC7_UNORM) : nullptr;
+        CHECK(bc7 != nullptr && bc7->cInfo()._format == FMT_BC7_UNORM && bc7->cInfo()._levels == 2,
+                                                                            "ETC1S transcode to BC7_UNORM");
+        CHECK(ok && bc7 != nullptr && bc7->byteOfLevel(0) == 64,            "BC7 8x8 level0 bytes == 64");
+        /// BC1 目标:8x8 → 2x2 块 × 8B = 32B;4x4 → 8B
+        ImagePtr    bc1 =   ok ? FEImageHelper::load(ctx,file,FMT_BC1_RGB_UNORM) : nullptr;
+        CHECK(bc1 != nullptr && bc1->cInfo()._format == FMT_BC1_RGB_UNORM && bc1->cInfo()._levels == 2,
+                                                                            "ETC1S transcode to BC1_RGB_UNORM");
+        CHECK(ok && bc1 != nullptr && bc1->byteOfLevel(0) == 32,            "BC1 8x8 level0 bytes == 32");
+        std::remove(file);
+    }
+}
+
+/// =====================================================================
+/// compress / transcode(块编码 ↔ 解码)全矩阵测试
+/// 直编 10 种(常色往返精度)+ Basis 间接 10 种(常色往返精度)+
+/// sRGB 变体块字节一致性 + 边界块外推 + 不支持目标锁定 +
+/// loadKtx 块容器自动解码集成
+/// =====================================================================
+/// 常色图(w×h,levels 级 mip,每 level 全部像素同一颜色)
+static  ImagePtr    makeConstantImage(FEContext& ctx,uint32 w,uint32 h,FEFormat fmt,
+                                      const uint8_t c[4],uint32 levels = 1)
+{
+    ImagePtr    img =   new FEImage(ctx);
+    if  (!img->create({uint3(w,h,1),fmt,uint16_t(1),uint16_t(levels),uint16_t(4)}))
+        return  nullptr;
+    const uint32    ch  =   FEFormatHelper::channelOf(fmt);
+    for (uint32 l = 0; l < levels; ++l)
+    {
+        auto    sp  =   img->plane(l,0);
+        for (uint32 y = 0; y < sp.height(); ++y)
+        {
+            for (uint32 x = 0; x < sp.width(); ++x)
+            {
+                uint8_t*    p   =   sp.dataOffset<uint8>(y,x);
+                for (uint32 k = 0; k < ch; ++k)
+                    p[k]    =   c[k < 4 ? k : 3];
+            }
+        }
+    }
+    return  img;
+}
+/// 校验图像 level0 全部像素为常色(按格式通道数比对前 comps 个通道,容差 tol)
+static  bool    isConstantLevel(const FEImage& img,const uint8_t c[4],int tol,uint32 level = 0)
+{
+    const uint32    ch  =   FEFormatHelper::channelOf(img.cInfo()._format);
+    auto            sp  =   img.plane(level,0);
+    if  (sp._buffer == nullptr)
+        return  false;
+    for (uint32 y = 0; y < sp.height(); ++y)
+    {
+        for (uint32 x = 0; x < sp.width(); ++x)
+        {
+            const uint8_t*  p   =   sp.dataOffset<uint8>(y,x);
+            for (uint32 k = 0; k < ch; ++k)
+            {
+                const uint8_t   ref =   c[k < 4 ? k : 3];
+                const int       err =   std::abs(int(p[k]) - int(ref));
+                if (err > tol)
+                    return  false;
+            }
+        }
+    }
+    return  true;
+}
+/// 两图 level0 块数据逐字节一致(用于 sRGB 变体 == UNORM 验证)
+static  bool    sameBlockBytes(const FEImage& a,const FEImage& b)
+{
+    if  (a.cInfo()._format == b.cInfo()._format)
+        return  false;      /// 应为不同格式变体
+    if  (a.byteOfLevel(0) != b.byteOfLevel(0))
+        return  false;
+    auto    pa  =   a.plane(0,0);
+    auto    pb  =   b.plane(0,0);
+    return  std::memcmp(pa.dataOffset<uint8>(0,0),
+                        pb.dataOffset<uint8>(0,0),a.byteOfLevel(0)) == 0;
+}
+
+static  void    testBlockCompressTranscode()
+{
+    std::cout << "---- testBlockCompressTranscode ----\n";
+    FEContext&  ctx =   FEContext::instance();
+    const uint8_t   CLR[4]  =   {200,60,130,255};
+    const uint8_t   RED[4]  =   {180,30,40,200};
+
+    /// ===== 1) 直编 10 种:常色 8x8(2 级 mip)编码 → 解码回 RGBA8 往返 =====
+    {
+        ImagePtr    rgba    =   makeConstantImage(ctx,8,8,FMT_R8G8B8A8_UNORM,CLR,2);
+        ImagePtr    r8      =   makeConstantImage(ctx,8,8,FMT_R8_UNORM,CLR,2);
+        ImagePtr    rg8     =   makeConstantImage(ctx,8,8,FMT_R8G8_UNORM,CLR,2);
+        CHECK(rgba != nullptr && r8 != nullptr && rg8 != nullptr,  "compress sources created");
+
+        struct  DirectCase  {   FEFormat    dst;    FEImage*    src;    int tol;    bool rtDefault; const char* name;   };
+        /// rtDefault=true:解码用 FMT_NONE(BC4→R8 / BC5→RG8 默认目标,
+        /// 单/双通道解码回 RGBA8 时缺失通道为 0,不能按 4 通道常色比对)
+        const DirectCase    cases[] =
+        {
+            { FMT_BC1_RGB_UNORM,    rgba.get(), 9,  false,  "BC1_RGB_UNORM"    },
+            { FMT_BC1_RGBA_UNORM,   rgba.get(), 9,  false,  "BC1_RGBA_UNORM"   },
+            { FMT_BC2_UNORM,        rgba.get(), 9,  false,  "BC2_UNORM"        },
+            { FMT_BC3_UNORM,        rgba.get(), 9,  false,  "BC3_UNORM"        },
+            { FMT_BC4_UNORM,        r8.get(),   3,  true,   "BC4_UNORM(R8)"    },
+            { FMT_BC5_UNORM,        rg8.get(),  3,  true,   "BC5_UNORM(RG8)"   },
+            { FMT_BC1_RGB_SRGB,     rgba.get(), 9,  false,  "BC1_RGB_SRGB"     },
+            { FMT_BC1_RGBA_SRGB,    rgba.get(), 9,  false,  "BC1_RGBA_SRGB"    },
+            { FMT_BC2_SRGB,         rgba.get(), 9,  false,  "BC2_SRGB"         },
+            { FMT_BC3_SRGB,         rgba.get(), 9,  false,  "BC3_SRGB"         },
+        };
+        for (const auto& tc : cases)
+        {
+            ImagePtr    blk =   rgba ? FEImageHelper::compress(*tc.src,tc.dst) : nullptr;
+            CHECK(blk != nullptr && blk->cInfo()._format == tc.dst &&
+                  blk->cInfo()._levels == 2,        (std::string)"compress -> " + tc.name);
+            if  (blk == nullptr)
+                continue;
+            /// 8x8 → 2x2 块;BC1/BC4 8B/块,其余 16B/块
+            const uint32    blkBytes    =   FEFormatHelper::sizeOf(tc.dst);
+            CHECK(blk->byteOfLevel(0) == 4 * blkBytes,
+                  (std::string)"byteOfLevel(8x8) == 4 blocks * " + std::to_string(blkBytes) + " [" + tc.name + "]");
+            CHECK(blk->byteOfLevel(1) == blkBytes,
+                  (std::string)"byteOfLevel(4x4) == 1 block [" + tc.name + "]");
+            /// 解码回常色往返(容差:5/6bit 量化 + BC2 alpha 4bit)
+            ImagePtr    back    =   FEImageHelper::transcode(*blk,
+                                    tc.rtDefault ? FMT_NONE : FMT_R8G8B8A8_UNORM);
+            CHECK(back != nullptr,                      (std::string)"transcode back [" + tc.name + "]");
+            if  (back != nullptr)
+                CHECK(isConstantLevel(*back,CLR,tc.tol),
+                      (std::string)"roundtrip constant within +-" + std::to_string(tc.tol) + " [" + tc.name + "]");
+        }
+    }
+
+    /// ===== 2) 直编:5x3 边界块(外推 gather)编码 → 解码有效区常色 =====
+    {
+        ImagePtr    rgba    =   makeConstantImage(ctx,5,3,FMT_R8G8B8A8_UNORM,RED,1);
+        ImagePtr    bc3     =   rgba ? FEImageHelper::compress(*rgba,FMT_BC3_UNORM) : nullptr;
+        CHECK(bc3 != nullptr && bc3->byteOfLevel(0) == 32,
+                                                        "compress 5x3 edge blocks -> BC3 (2x1 blocks = 32B)");
+        if  (bc3 != nullptr)
+        {
+            ImagePtr    back    =   FEImageHelper::transcode(*bc3,FMT_R8G8B8A8_UNORM);
+            CHECK(back != nullptr && isConstantLevel(*back,RED,9),
+                                                        "5x3 BC3 roundtrip valid area within +-9");
+        }
+    }
+
+    /// ===== 3) Basis 间接 10 种:常色往返 =====
+    {
+        ImagePtr    rgba    =   makeConstantImage(ctx,8,8,FMT_R8G8B8A8_UNORM,CLR,2);
+        ImagePtr    r8      =   makeConstantImage(ctx,8,8,FMT_R8_UNORM,CLR,2);
+        ImagePtr    rg8     =   makeConstantImage(ctx,8,8,FMT_R8G8_UNORM,CLR,2);
+        struct  BasisCase   {   FEFormat    dst;    FEImage*    src;    int tol;    bool rtDefault; const char* name;   };
+        /// ETC1S 走全局端点/选择器码本,常色误差高于块内量化理论值,tol 12;
+        /// EAC 单/双通道解码用 FMT_NONE(默认 R8/RG8,同直编理由)
+        const BasisCase     cases[] =
+        {
+            { FMT_BC7_UNORM,            rgba.get(), 6,  false,  "BC7_UNORM(UASTC)"          },
+            { FMT_BC7_SRGB,             rgba.get(), 6,  false,  "BC7_SRGB(UASTC)"           },
+            { FMT_ASTC_4x4_UNORM,       rgba.get(), 6,  false,  "ASTC_4x4_UNORM(UASTC)"     },
+            { FMT_ASTC_4x4_SRGB,        rgba.get(), 6,  false,  "ASTC_4x4_SRGB(UASTC)"      },
+            { FMT_ETC2_R8G8B8_UNORM,    rgba.get(), 12, false,  "ETC2_RGB_UNORM(ETC1S)"     },
+            { FMT_ETC2_R8G8B8_SRGB,     rgba.get(), 12, false,  "ETC2_RGB_SRGB(ETC1S)"      },
+            { FMT_ETC2_R8G8B8A8_UNORM,  rgba.get(), 12, false,  "ETC2_RGBA_UNORM(ETC1S)"    },
+            { FMT_ETC2_R8G8B8A8_SRGB,   rgba.get(), 12, false,  "ETC2_RGBA_SRGB(ETC1S)"     },
+            { FMT_EAC_R11_UNORM,        r8.get(),   12, true,   "EAC_R11_UNORM(R8)"         },
+            { FMT_EAC_R11G11_UNORM,     rg8.get(),  12, true,   "EAC_R11G11_UNORM(RG8)"     },
+        };
+        for (const auto& tc : cases)
+        {
+            ImagePtr    blk =   rgba ? FEImageHelper::compress(*tc.src,tc.dst) : nullptr;
+            CHECK(blk != nullptr && blk->cInfo()._format == tc.dst,
+                                                        (std::string)"compress -> " + tc.name);
+            if  (blk == nullptr)
+                continue;
+            ImagePtr    back    =   FEImageHelper::transcode(*blk,
+                                    tc.rtDefault ? FMT_NONE : FMT_R8G8B8A8_UNORM);
+            CHECK(back != nullptr,                      (std::string)"transcode back [" + tc.name + "]");
+            if  (back != nullptr)
+                CHECK(isConstantLevel(*back,CLR,tc.tol),
+                      (std::string)"roundtrip constant within +-" + std::to_string(tc.tol) + " [" + tc.name + "]");
+        }
+    }
+
+    /// ===== 4) sRGB 变体与 UNORM 块字节一致(直编 BC1 + Basis BC7 各一对) =====
+    {
+        ImagePtr    rgba    =   makeConstantImage(ctx,8,8,FMT_R8G8B8A8_UNORM,CLR,1);
+        ImagePtr    u1  =   rgba ? FEImageHelper::compress(*rgba,FMT_BC1_RGB_UNORM) : nullptr;
+        ImagePtr    s1  =   rgba ? FEImageHelper::compress(*rgba,FMT_BC1_RGB_SRGB)  : nullptr;
+        CHECK(u1 != nullptr && s1 != nullptr && sameBlockBytes(*u1,*s1),
+                                                        "BC1_RGB sRGB bytes == UNORM bytes");
+        ImagePtr    u7  =   rgba ? FEImageHelper::compress(*rgba,FMT_BC7_UNORM) : nullptr;
+        ImagePtr    s7  =   rgba ? FEImageHelper::compress(*rgba,FMT_BC7_SRGB)  : nullptr;
+        CHECK(u7 != nullptr && s7 != nullptr && sameBlockBytes(*u7,*s7),
+                                                        "BC7 sRGB bytes == UNORM bytes");
+    }
+
+    /// ===== 5) 不支持目标锁定(返回 nullptr) =====
+    {
+        ImagePtr    rgba    =   makeConstantImage(ctx,8,8,FMT_R8G8B8A8_UNORM,CLR,1);
+        CHECK(rgba == nullptr ||
+              FEImageHelper::compress(*rgba,FMT_BC6H_UFLOAT)   == nullptr,   "compress BC6H -> nullptr");
+        CHECK(rgba == nullptr ||
+              FEImageHelper::compress(*rgba,FMT_BC4_SNORM)     == nullptr,   "compress BC4_SNORM -> nullptr");
+        CHECK(rgba == nullptr ||
+              FEImageHelper::compress(*rgba,FMT_BC5_SNORM)     == nullptr,   "compress BC5_SNORM -> nullptr");
+        CHECK(rgba == nullptr ||
+              FEImageHelper::compress(*rgba,FMT_ASTC_6x6_UNORM) == nullptr,  "compress ASTC_6x6 -> nullptr");
+        CHECK(rgba == nullptr ||
+              FEImageHelper::compress(*rgba,FMT_ASTC_8x8_UNORM) == nullptr,  "compress ASTC_8x8 -> nullptr");
+        CHECK(rgba == nullptr ||
+              FEImageHelper::compress(*rgba,FMT_R8G8B8A8_UNORM) == nullptr,  "compress non-block dst -> nullptr");
+        /// 源通道校验:EAC 单通道要求 R8 / 双通道要求 RG8
+        CHECK(rgba == nullptr ||
+              FEImageHelper::compress(*rgba,FMT_EAC_R11_UNORM)  == nullptr,
+                                                        "compress EAC_R11 from RGBA8 -> nullptr");
+        ImagePtr    r8  =   makeConstantImage(ctx,8,8,FMT_R8_UNORM,CLR,1);
+        CHECK(r8 == nullptr ||
+              FEImageHelper::compress(*r8,FMT_EAC_R11G11_UNORM) == nullptr,
+                                                        "compress EAC_R11G11 from R8 -> nullptr");
+        /// 源格式校验:浮点源拒绝
+        ImagePtr    f32    =   makeConstantImage(ctx,8,8,FMT_R32G32B32A32_FLOAT,CLR,1);
+        CHECK(f32 == nullptr ||
+              FEImageHelper::compress(*f32,FMT_BC1_RGB_UNORM)   == nullptr,
+                                                        "compress from float src -> nullptr");
+    }
+
+    /// ===== 6) loadKtx 集成:块容器 + 显式未压缩目标 → 自动解码;FMT_NONE 透传 =====
+    {
+        const char* file    =   "./rt_bc3.ktx2";
+        ImagePtr    rgba    =   makeConstantImage(ctx,8,8,FMT_R8G8B8A8_UNORM,CLR,2);
+        ImagePtr    bc3     =   rgba ? FEImageHelper::compress(*rgba,FMT_BC3_UNORM) : nullptr;
+        CHECK(bc3 != nullptr && FEImageHelper::save(*bc3,file),
+                                                        "save BC3 mip chain to ktx2");
+        ImagePtr    decoded =   FEImageHelper::load(ctx,file,FMT_R8G8B8A8_UNORM);
+        CHECK(decoded != nullptr && decoded->cInfo()._format == FMT_R8G8B8A8_UNORM &&
+              decoded->cInfo()._levels == 2,    "loadKtx block container + explicit RGBA8 -> auto decode");
+        if  (decoded != nullptr)
+            CHECK(isConstantLevel(*decoded,CLR,9) && isConstantLevel(*decoded,CLR,9,1),
+                                                        "auto decoded both levels constant within +-9");
+        ImagePtr    passthru=   FEImageHelper::load(ctx,file);
+        CHECK(passthru != nullptr && passthru->cInfo()._format == FMT_BC3_UNORM,
+                                                        "loadKtx FMT_NONE passes block format through");
+        std::remove(file);
     }
 }
 
@@ -1353,6 +1833,8 @@ int     main(int argc,char** argv)
     testHdrAndCubeImage(hdrFile.c_str());
     testExplicitFormat(hdrFile.c_str());
     testKtxLoad();
+    testKtxExpanded();
+    testBlockCompressTranscode();
 
     std::cout << "--------------------------------\n";
     if (g_failed == 0)

@@ -119,6 +119,45 @@ namespace   FE
         FMT_D16_UNORM           ,
         FMT_D32_UNORM           ,
         FMT_D32_S8_UNORM        ,
+
+        /// =====================================================================
+        /// 块压缩纹理格式(4x4 块,数据为整块字节,无逐像素访问语义)
+        /// 主要来源于 KTX/KTX2 容器透传:加载/保存时块数据原样拷贝,
+        /// 解码由 GPU 采样硬件完成,CPU 侧不做块解码
+        /// BC 系列只支持桌面端;ETC2/EAC 面向移动端;ASTC 全平台
+        /// =====================================================================
+        FMT_BC1_RGB_UNORM       ,
+        FMT_BC1_RGB_SRGB        ,
+        FMT_BC1_RGBA_UNORM      ,
+        FMT_BC1_RGBA_SRGB       ,
+        FMT_BC2_UNORM           ,
+        FMT_BC2_SRGB            ,
+        FMT_BC3_UNORM           ,
+        FMT_BC3_SRGB            ,
+        FMT_BC4_UNORM           ,
+        FMT_BC4_SNORM           ,
+        FMT_BC5_UNORM           ,
+        FMT_BC5_SNORM           ,
+        FMT_BC6H_UFLOAT         ,
+        FMT_BC6H_SFLOAT         ,
+        FMT_BC7_UNORM           ,
+        FMT_BC7_SRGB            ,
+
+        FMT_ETC2_R8G8B8_UNORM   ,
+        FMT_ETC2_R8G8B8_SRGB    ,
+        FMT_ETC2_R8G8B8A8_UNORM ,
+        FMT_ETC2_R8G8B8A8_SRGB  ,
+        FMT_EAC_R11_UNORM       ,
+        FMT_EAC_R11_SNORM       ,
+        FMT_EAC_R11G11_UNORM    ,
+        FMT_EAC_R11G11_SNORM    ,
+
+        FMT_ASTC_4x4_UNORM      ,
+        FMT_ASTC_4x4_SRGB       ,
+        FMT_ASTC_6x6_UNORM      ,
+        FMT_ASTC_6x6_SRGB       ,
+        FMT_ASTC_8x8_UNORM      ,
+        FMT_ASTC_8x8_SRGB       ,
         FMT_MAX                 ,
     };
 
