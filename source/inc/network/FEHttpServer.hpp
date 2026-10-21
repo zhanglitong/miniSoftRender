@@ -29,8 +29,11 @@ namespace   FE
     /// 请求处理回调:读 request,填 response
     using FEHttpHandler =   std::function<void(const FEHttpRequest&, FEHttpResponse&)>;
 
+    /// <summary>消息处理回调:与路由 handler 相同签名,每种消息注册一个专门处理函数</summary>
+    using FEMessageHandler  =   FEHttpHandler;
+
     /// 内嵌 HTTP 服务器(pimpl 隔离实现,不对外暴露任何第三方库类型)
-    /// 用法:先 route/get/post 注册 handler,再 start(非阻塞,内部工作线程);
+    /// 用法:先 route/get/post/onMessage 注册 handler,再 start(非阻塞,内部工作线程);
     /// handler 注册须在 start 之前;stop 后可重新 start;析构自动 stop
     class   FE_API  FEHttpServer
     {
@@ -42,6 +45,14 @@ namespace   FE
         void    route(const String& method, const String& pattern, FEHttpHandler handler);
         void    get(const String& pattern, FEHttpHandler handler);
         void    post(const String& pattern, FEHttpHandler handler);
+
+        /// <summary>
+        /// 注册消息处理函数(须在 start 前调用);消息名大小写敏感,同名消息后注册覆盖
+        /// </summary>
+        /// <param name="name">消息名;触发入口为任意 HTTP 方法访问 /message?name=&lt;消息名&gt;</param>
+        /// <param name="handler">该消息的专门处理函数</param>
+        /// <remarks>未注册消息回 404,缺 name 参数回 400</remarks>
+        void    onMessage(const String& name, FEMessageHandler handler);
 
         /// 非阻塞启动:绑定并监听后由内部线程服务;端口被占用返回 false
         bool    start(uint16 port, const String& host = "0.0.0.0");

@@ -62,6 +62,31 @@ int     main(int , char**)
         res.body    =   "route ok";
     });
 
+    // 7. 消息处理:每种消息注册一个专门处理函数(GET 带查询参数)
+    server.onMessage("add", [](const FEHttpRequest& req, FEHttpResponse& res)
+    {
+        assert(req.path == "/message");
+        int     a   =   atoi(req.params.at("a").c_str());
+        int     b   =   atoi(req.params.at("b").c_str());
+        res.body    =   std::to_string(a + b);
+    });
+
+    // 8. 消息处理:POST 请求体回显
+    server.onMessage("echo", [](const FEHttpRequest& req, FEHttpResponse& res)
+    {
+        res.body    =   req.body;
+    });
+
+    // 9. 同名消息重复注册 -> 后注册者生效
+    server.onMessage("dup", [](const FEHttpRequest&, FEHttpResponse& res)
+    {
+        res.body    =   "first";
+    });
+    server.onMessage("dup", [](const FEHttpRequest&, FEHttpResponse& res)
+    {
+        res.body    =   "second";
+    });
+
     // 启动:非阻塞,端口立即可连接
     assert(server.start(port));
     assert(server.isRunning());
@@ -119,14 +144,53 @@ int     main(int , char**)
         assert(res->body    ==  "route ok");
     }
 
-    // 7. 未注册路由 -> 404
+    // 7. 消息:GET 带查询参数
+    {
+        auto    res =   cli.Get("/message?name=add&a=3&b=4");
+        assert(res);
+        assert(res->status  ==  200);
+        assert(res->body    ==  "7");
+    }
+
+    // 8. 消息:POST 请求体
+    {
+        auto    res =   cli.Post("/message?name=echo", "msg-body", "text/plain");
+        assert(res);
+        assert(res->status  ==  200);
+        assert(res->body    ==  "msg-body");
+    }
+
+    // 9. 消息:同名重复注册,后注册者生效
+    {
+        auto    res =   cli.Get("/message?name=dup");
+        assert(res);
+        assert(res->status  ==  200);
+        assert(res->body    ==  "second");
+    }
+
+    // 10. 消息:未注册消息名 -> 404
+    {
+        auto    res =   cli.Get("/message?name=nothing");
+        assert(res);
+        assert(res->status  ==  404);
+        assert(res->body    ==  "unknown message: nothing");
+    }
+
+    // 11. 消息:缺 name 参数 -> 400
+    {
+        auto    res =   cli.Get("/message");
+        assert(res);
+        assert(res->status  ==  400);
+    }
+
+    // 12. 未注册路由 -> 404
     {
         auto    res =   cli.Get("/notfound");
         assert(res);
         assert(res->status  ==  404);
     }
 
-    // 8. 停止后请求失败,同端口可重启
+    // 13. 停止后请求失败,同端口可重启,消息注册保留
     server.stop();
     assert(!server.isRunning());
     {
@@ -140,6 +204,12 @@ int     main(int , char**)
         assert(res);
         assert(res->status  ==  200);
         assert(res->body    ==  "hello world");
+
+        // 重启后消息仍可用
+        res =   cli2.Get("/message?name=dup");
+        assert(res);
+        assert(res->status  ==  200);
+        assert(res->body    ==  "second");
     }
 
     server.stop();
