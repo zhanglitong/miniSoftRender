@@ -87,10 +87,12 @@ namespace   FE
             auto    itr =   std::find(_childs.begin(),_childs.end(),child);
             if (itr == _childs.end())
                 return  false;
+            /// 先保存引用再 erase:erase 后 itr 已失效(指向后一元素或 end()),
+            /// 解引用 *itr 属未定义行为,移除末尾孩子时会直接踩内存
+            Item    item    =   *itr;
             _childs.erase(itr);
-            (*itr)->setParent(nullptr);
-
-            onRemoveChild(child);
+            item->setParent(nullptr);
+            onRemoveChild(item);
             return  true;
         }
         /// <summary>
@@ -108,7 +110,7 @@ namespace   FE
                 return  false;
             Item    item    =   *itr;
             _childs.erase(itr);
-            (*itr)->setParent(nullptr);
+            item->setParent(nullptr);
             onRemoveChild(item);
             return  true;
         }
@@ -126,13 +128,13 @@ namespace   FE
                 if (itr == _childs.end())
                     continue;
                 _childs.erase(itr);
-                (*itr)->setParent(nullptr);
+                var->setParent(nullptr);
                 onRemoveChild(var);
                 ++result;
             }
             if (result)
             {
-                
+
             }
             return  result;
         }
