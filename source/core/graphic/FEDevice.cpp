@@ -36,10 +36,8 @@ namespace   FE
         _graphicPool    =   nullptr;
         _computePool    =   nullptr;
         _transferPool   =   nullptr;
-        if (_lightsMgr)
-        {
-            delete  _lightsMgr;
-            _lightsMgr  =   nullptr;
-        }
+        /// FELightMgr 由侵入式引用计数(FERef)管理,置空即 decRef 自动释放;
+        /// 手动 delete 会 double-free(隐式 operator T* 使 delete 可编译,故无告警)
+        _lightsMgr      =   nullptr;
     }
 }

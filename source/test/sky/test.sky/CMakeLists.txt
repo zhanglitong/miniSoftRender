@@ -25,5 +25,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "test/sky")
 # 静态库单独编入本可执行文件,避免与 core(SHARED) 产生两份 ImGui 全局状态。
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../../../external/imgui"
                  "${CMAKE_BINARY_DIR}/imgui")
+# imgui 自带 FOLDER "external",统一改归 3rdparty/imgui
+set_target_properties(imgui PROPERTIES FOLDER "3rdparty/imgui")
 
 target_link_libraries(${TARGET_NAME} core rs.vulkan rs.webgpu imgui)
