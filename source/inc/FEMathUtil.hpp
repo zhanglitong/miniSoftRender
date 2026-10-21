@@ -2,6 +2,7 @@
 
 
 #include    "FEMath.hpp"
+#include    <glm/gtc/packing.hpp>
 
 namespace   FE
 {
@@ -120,13 +121,33 @@ namespace   FE
         return  glm::packSnorm2x16(v);
     }
 
+    /// <summary>
+    /// packed A2B10G10R10:x/y/z → 10bit,w → 2bit(布局 R=bit0-9,G=bit10-19,B=bit20-29,A=bit30-31)
+    /// </summary>
+    inline  uint    packUnorm3x10_1x2(const float4& v)
+    {
+        return  glm::packUnorm3x10_1x2(v);
+    }
+    inline  uint    packSnorm3x10_1x2(const float4& v)
+    {
+        return  glm::packSnorm3x10_1x2(v);
+    }
+    inline  uint    packU3x10_1x2(const glm::uvec4& v)
+    {
+        return  glm::packU3x10_1x2(v);
+    }
+    inline  uint    packI3x10_1x2(const glm::ivec4& v)
+    {
+        return  glm::packI3x10_1x2(v);
+    }
+
     inline  float4    unpackUnorm4x8(uint value)
     {
-        return  glm::unpackSnorm4x8(value);
+        return  glm::unpackUnorm4x8(value);
     }
     inline  float4    unpackSnorm4x8(uint value)
     {
-        return  glm::unpackUnorm4x8(value);
+        return  glm::unpackSnorm4x8(value);
     }
     inline  float2    unpackUnorm2x16(uint value)
     {
