@@ -1,5 +1,6 @@
 add_subdirectory ("test.uuid")
 add_subdirectory ("test.http")
+add_subdirectory ("test.http.page")
 add_subdirectory ("test.format")
 add_subdirectory ("test.smallVector")
 add_subdirectory ("test.image")

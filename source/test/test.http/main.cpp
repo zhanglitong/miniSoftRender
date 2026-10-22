@@ -87,6 +87,21 @@ int     main(int , char**)
         res.body    =   "second";
     });
 
+    // 9.5 流式消息:请求体分块到达,拼装块数与内容
+    server.onStreamMessage("sstream", [](const FEHttpRequest& req, FEHttpResponse& res, FEStreamSource source)
+    {
+        assert(req.body.empty());                   /// 流式消息 body 恒为空
+        String  body;
+        int     chunks  =   0;
+        source([&](const char* data, size_t size)
+        {
+            body.append(data, size);
+            chunks++;
+            return  true;
+        });
+        res.body    =   std::to_string(chunks) + ":" + body;
+    });
+
     // 启动:非阻塞,端口立即可连接
     assert(server.start(port));
     assert(server.isRunning());
@@ -181,6 +196,27 @@ int     main(int , char**)
         auto    res =   cli.Get("/message");
         assert(res);
         assert(res->status  ==  400);
+    }
+
+    // 11.5 流式消息:100KB 请求体必分多块,拼装后与原文一致
+    {
+        String  big;
+        for (int i = 0; i < 10000; ++i)
+            big +=  "0123456789";
+        auto    res =   cli.Post("/stream?name=sstream", big, "application/octet-stream");
+        assert(res);
+        assert(res->status  ==  200);
+        auto    pos     =   res->body.find(':');
+        assert(pos != String::npos);
+        assert(atoi(res->body.substr(0, pos).c_str()) >  1);    /// 确认实际分了多块
+        assert(res->body.substr(pos + 1) == big);               /// 内容逐字节一致
+    }
+
+    // 11.6 流式消息:未注册消息名 -> 404
+    {
+        auto    res =   cli.Post("/stream?name=nothing", "x", "application/octet-stream");
+        assert(res);
+        assert(res->status  ==  404);
     }
 
     // 12. 未注册路由 -> 404

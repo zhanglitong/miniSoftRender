@@ -41,6 +41,8 @@ namespace   FE
         uint16              port    =   0;
         /// <summary>消息名 -> 专门处理函数(须在 start 前注册,与路由同一约束)</summary>
         std::map<String, FEMessageHandler>  messages;
+        /// <summary>消息名 -> 流式处理函数(与 messages 互相独立,触发入口 /stream)</summary>
+        std::map<String, FEStreamHandler>   streams;
     };
 
     FEHttpServer::FEHttpServer()
@@ -75,6 +77,38 @@ namespace   FE
         _impl->server.Delete("/message", entry);
         _impl->server.Patch("/message", entry);
         _impl->server.Options("/message", entry);
+
+        // 流式消息入口:/stream?name=<消息名>,请求体经 ContentReader 逐块推送,不整体进内存
+        auto    entryStream =   [this](const httplib::Request& req, httplib::Response& res,
+                                       const httplib::ContentReader& reader)
+        {
+            auto    nameIt  =   req.params.find("name");
+            if (nameIt == req.params.end())
+            {
+                res.status  =   400;
+                res.body    =   "missing message name";
+                return;
+            }
+            auto    streamIt    =   _impl->streams.find(nameIt->second);
+            if (streamIt == _impl->streams.end())
+            {
+                res.status  =   404;
+                res.body    =   "unknown message: " + nameIt->second;
+                return;
+            }
+
+            FEHttpRequest   request =   toRequest(req);
+            request.body.clear();
+            FEHttpResponse  response;
+            // sink 由 handler 提供,httplib 驱动推送;reader 返回即请求体接收完毕(或中止)
+            streamIt->second(request, response,
+                             [&reader](const FEStreamSink& sink) { reader(sink); });
+            applyResponse(res, response);
+        };
+
+        _impl->server.Post("/stream", entryStream);
+        _impl->server.Put("/stream", entryStream);
+        _impl->server.Patch("/stream", entryStream);
     }
 
     FEHttpServer::~FEHttpServer()
@@ -117,6 +151,11 @@ namespace   FE
     void    FEHttpServer::onMessage(const String& name, FEMessageHandler handler)
     {
         _impl->messages[name]   =   std::move(handler);
+    }
+
+    void    FEHttpServer::onStreamMessage(const String& name, FEStreamHandler handler)
+    {
+        _impl->streams[name]    =   std::move(handler);
     }
 
     bool    FEHttpServer::start(uint16 port, const String& host)
