@@ -1,5 +1,8 @@
 #pragma     once
 #include    <functional>
+#include    <map>
+#include    <vector>
+#include    <utility>
 #include    "FEMathUtil.hpp"
 #include    "FEFlags.hpp"
 #include    "FEKeyCode.hpp"
@@ -231,5 +234,101 @@ namespace   FE
 
 
 
-    using   MsgNotify   =   std::function<void(const FEMessage&)>;
+    using   MsgNotify           =   std::function<void(const FEMessage&)>;
+
+    /// <summary>
+    /// 按消息类型的多代理通知总线:
+    /// 订阅者只注册自己关心的 MessageId,同一类型可挂多个代理(按注册顺序派发)。
+    /// FEApp::onMessage 在默认处理(_notify / 场景)之前派发总线——
+    /// 订阅 MSG_CLOSE 可抢在 FEScene::destroy() 销毁 device 之前,释放
+    /// 场景之外持有的 GPU 资源(材质/纹理/缓冲等),避免悬空 device 访问。
+    /// 消息均在主线程派发;dispatch 时拷贝订阅列表,处理中增删订阅不影响本次派发。
+    /// </summary>
+    class   FEMessageBus
+    {
+    public:
+        using   Handler     =   std::function<void(const FEMessage&)>;
+        /// <summary>
+        /// 订阅 id:高 32 位为消息类型,低 32 位为该类型内的自增序号——
+        /// 取消订阅时先按消息类型定位分组,再在组内按序号查找
+        /// </summary>
+        using   HandlerId   =   uint64;
+        /// <summary>
+        /// 同一消息类型的订阅列表(按注册顺序)
+        /// </summary>
+        using   Handlers    =   std::vector<std::pair<HandlerId,Handler>>;
+        /// <summary>
+        /// 消息类型 -> 订阅列表
+        /// </summary>
+        using   HandlerMap  =   std::map<MessageId,Handlers>;
+        /// <summary>
+        /// 消息类型 -> 下一个自增序号
+        /// </summary>
+        using   SeqMap      =   std::map<MessageId,uint32>;
+    public:
+        /// <summary>
+        /// 合成订阅 id:高 32 位消息类型,低 32 位类型内自增序号
+        /// </summary>
+        static  constexpr   HandlerId   makeId(MessageId id,uint32 seq)
+        {
+            return  (static_cast<HandlerId>(id) << 32)  |   seq;
+        }
+        /// <summary>
+        /// 从订阅 id 解出消息类型
+        /// </summary>
+        static  constexpr   MessageId   msgIdOf(HandlerId id)
+        {
+            return  static_cast<MessageId>(id >> 32);
+        }
+    public:
+        /// <summary>
+        /// 订阅:同一消息类型可多次订阅(多代理),按注册顺序派发
+        /// </summary>
+        /// <param name="id">订阅的消息类型</param>
+        /// <param name="handler">消息处理代理</param>
+        /// <returns>订阅 id(消息类型+自增号合成),用于 unsubscribe</returns>
+        HandlerId   subscribe(MessageId id,Handler handler)
+        {
+            uint32& seq =   _nextSeq[id];
+            seq++;
+            _handlers[id].push_back({makeId(id,seq),std::move(handler)});
+            return  makeId(id,seq);
+        }
+        /// <summary>
+        /// 取消订阅:先按消息类型定位分组,再在组内按订阅 id 查找
+        /// </summary>
+        /// <param name="id">subscribe 返回的订阅 id</param>
+        /// <returns>是否成功取消订阅</returns>
+        bool    unsubscribe(HandlerId id)
+        {
+            auto    it  =   _handlers.find(msgIdOf(id));
+            if (it == _handlers.end())
+                return  false;
+            for (auto    i   =   it->second.begin();i != it->second.end();++i)
+            {
+                if (i->first == id)
+                {
+                    it->second.erase(i);
+                    return  true;
+                }
+            }
+            return  false;
+        }
+        /// <summary>
+        /// 派发:按注册顺序调用该消息类型的全部订阅者
+        /// </summary>
+        /// <param name="msg"></param>
+        void    dispatch(const FEMessage& msg)
+        {
+            auto    it  =   _handlers.find(msg.msgId());
+            if (it == _handlers.end() || it->second.empty())
+                return;
+            auto    handlers    =   it->second;     /// 拷贝,防处理中增删订阅
+            for (auto& h : handlers)
+                h.second(msg);
+        }
+    protected:
+        HandlerMap  _handlers;
+        SeqMap      _nextSeq;
+    };
 }

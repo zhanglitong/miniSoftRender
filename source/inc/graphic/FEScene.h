@@ -65,6 +65,13 @@ namespace   FE
         {
             return  _device;
         }
+        /// <summary>
+        /// 交换链颜色格式(调试 GUI 等需要与渲染目标一致的颜色格式时使用)
+        /// </summary>
+        inline  FEFormat swapchainColorFormat() const
+        {
+            return  _swapchain ? _swapchain->colorFormat() : FMT_R8G8B8A8_UNORM;
+        }
 
         inline  auto    camera() const
         {
@@ -226,7 +233,9 @@ namespace   FE
         /// 管理所有viewer
         /// </summary>
         FEViewerMgr         _viewerMgr;
+        /// <summary>
         /// 所有组件中计算出来需要更新的对象
+        /// </summary>
         ObjectList          _updateList;
         /// <summary>
         /// 管理所有系统，例如动画系统，物理系统，脚本系统,粒子系统
@@ -236,14 +245,22 @@ namespace   FE
         Camera              _camera;
         FrustumCull         _frustCull;
         RenderSys           _renderSys;
+        /// <summary>
+        /// 渲染后端 id(setup 传入;用于区分 Vulkan/WebGPU 的能力差异,
+        /// 如 transmission sceneTex 的 mip 链目前仅 Vulkan 端生成)
+        /// </summary>
+        FEUuid              _rendererId;
         Device              _device;
         Swapchain           _swapchain;
         CMDPool             _cmdPool;
         GImage              _imgDepth   =   nullptr;
         GImgView            _depthView  =   nullptr;
+        /// <summary>
         /// transmission 场景折射纹理(不透明场景预渲染,color attachment + sampled 双用途)
+        /// </summary>
         TexPtr              _sceneTex   =   nullptr;
-        GImgView            _sceneTexView = nullptr;
+        GImgView            _sceneTexView = nullptr;   ///< 完整 mip 链(shader 采样)
+        GImgView            _sceneTexColorView = nullptr;   ///< 仅 mip0(pass1 color attachment)
         Frame               _frame;
         Node                _mousePoint;
         aabb3dr             _aabb;
@@ -252,10 +269,14 @@ namespace   FE
         // ===== OIT: 可选的 Order-Independent Transparency 管理器 =====
         OITManager          _oitManager;
     public:
+        /// <summary>
         /// 设置 OIT 管理器（nullptr 关闭 OIT，默认 nullptr）
+        /// </summary>
         void            setOITManager(OITManager oit)   { _oitManager = std::move(oit); }
         OITManager      oitManager() const              { return _oitManager; }
+        /// <summary>
         /// transmission 场景折射纹理(resize 时创建;材质经 setSceneTexture 挂接)
+        /// </summary>
         TexPtr          sceneTexture() const            { return _sceneTex; }
         /// <summary>
         /// 实现组件到系统见系统的分发功能

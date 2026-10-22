@@ -22,6 +22,7 @@ namespace   FE
         tvec3<T>    _maximum;
         Extent      _extent;
     public:
+        /// <summary>
         /// 
         ///    1-----2
         ///   /|    /|
@@ -32,6 +33,7 @@ namespace   FE
         /// |/    |/
         /// 6-----7
         /// 
+        /// </summary>
         typedef enum :uint32_t
         {
             FAR_LEFT_BOTTOM     =   0,
@@ -760,7 +762,9 @@ namespace   FE
         /// <returns></returns>
         inline  T       distanceTo(const tvec3<T>& point) const
         {
+            /// <summary>
             /// tvec3<T>    clamped =   point.clamped(_minimum,_maximum);
+            /// </summary>
             tvec3<T>    clamped =   FE::clamp(point, _minimum, _maximum);
             return      length(clamped - point);
         }

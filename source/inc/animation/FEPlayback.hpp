@@ -8,12 +8,16 @@ namespace FE
 {
     DEFINE_CLASS_UUID(FEPlayback, "{0AFD2EDB-C83A-49F4-ACC6-52E6060D54E4}");
 
+    /// <summary>
     /// lambda,按照动画的在时间线上的偏移量,从小到大排序
+    /// </summary>
     constexpr   auto    AnimationLessFunc = [](const Animation& l, const Animation& r)
     {
         return  l->offset() < r->offset();
     };
+    /// <summary>
     /// 推导出来类型
+    /// </summary>
     using   AnimationLess   =   decltype(AnimationLessFunc);
 
     /// <summary>

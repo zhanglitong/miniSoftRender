@@ -74,6 +74,19 @@ namespace   FE
         GImgView                    view    =   new VKGImageView(_ctx);
         VKGImageView::CreateInfo    info    =   {};
         info._image         =   this;
+        /// _baseMip/_levelCount 默认 0/0 → VKGImageView::create 回退用 imgCInfo._mips
+        if (view->create(info))
+            return  view;
+        else
+            return  nullptr;
+    }
+    GImgView    VKGImage::createView(uint baseMip,uint levelCount)
+    {
+        GImgView                    view    =   new VKGImageView(_ctx);
+        VKGImageView::CreateInfo    info    =   {};
+        info._image         =   this;
+        info._baseMip       =   baseMip;
+        info._levelCount    =   levelCount;
         if (view->create(info))
             return  view;
         else

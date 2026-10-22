@@ -26,12 +26,13 @@ namespace   FE
         virtual bool    create(const CreateInfo& info)  override;
         virtual bool    update(const void* data,uint64 size)    override;
         virtual GImgView imageView() override { return _view; }
+        virtual GImage  image()    override { return _image; }
 
         inline  VkSampler   sampler() const
         {
             return  _sampler;
         }
-        inline  VkImage     image() const
+        inline  VkImage     vkImage() const
         {
             return  _image ? (VkImage)_image->native() : nullptr;
         }

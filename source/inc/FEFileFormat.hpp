@@ -67,11 +67,17 @@ namespace   FE
         ModeBits    _mode           =   SM_FILE;
         Type        _type           =   DT_Model;
         CLSId       _loaderId;
+        /// <summary>
         /// 格式字符串
+        /// </summary>
         char        _format[16]     =   {0};
+        /// <summary>
         /// 版本
+        /// </summary>
         char        _version[16]    =   {0};
+        /// <summary>
         /// 描述信息
+        /// </summary>
         char        _desc[64]       =   {0};
     public:
         /// <summary>

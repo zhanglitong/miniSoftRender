@@ -12,6 +12,10 @@ namespace   FE
         inline  static  FEUuid  ClipUBOId       =   FEUuid::from("{C0A5D268-6339-4CCF-9B36-2F32A48CF171}");
         inline  static  FEUuid  SkyUBOId        =   FEUuid::from("{BEAF0423-A4DF-461D-84DE-106C1B16AC5F}");
         inline  static  FEUuid  EngineStateUBOId =  FEUuid::from("{7E2C1B90-4F6A-4D2E-9A3B-5C8D1E6F0A42}");
+        /// <summary>
+        /// transmission 场景折射纹理(FEScene 注册,PBR 材质自取)
+        /// </summary>
+        inline  static  FEUuid  SceneTexId       =  FEUuid::from("{3F8A2C51-9E47-4B1D-A6C8-2D5F7B9E0C34}");
     };
 
 }

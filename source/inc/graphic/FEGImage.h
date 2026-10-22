@@ -52,6 +52,14 @@ namespace   FE
         virtual bool        create(const CreateInfo& info)    =   0;
         virtual void        destroy()       =   0;
         virtual GImgView    createView()    =   0;
+        /// <summary>
+        /// 创建指定 mip 范围的 imageView(用于 pass1 只渲 mip0,透明管线采样完整链)
+        /// 默认实现用 baseMip=0,levelCount=_cInfo._mips(等价无参版本)
+        /// </summary>
+        virtual GImgView    createView(uint baseMip,uint levelCount)
+        {   
+            return  createView();  
+        }
         virtual bool        resize(const uint3& dims,uint layer,uint mips) 
         {
             if (   dims.x == _cInfo._width 

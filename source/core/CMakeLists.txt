@@ -96,8 +96,50 @@ set(FT_DISABLE_PNG       TRUE)
 set(FT_DISABLE_HARFBUZZ  TRUE)
 set(FT_DISABLE_BROTLI    TRUE)
 set(SKIP_INSTALL_ALL     TRUE)
+set(_FE_SAVED_CMAKE_FOLDER "${CMAKE_FOLDER}")
+set(CMAKE_FOLDER "3rdparty/freetype")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype"
                  "${CMAKE_BINARY_DIR}/freetype")
+set(CMAKE_FOLDER "${_FE_SAVED_CMAKE_FOLDER}")
+unset(_FE_SAVED_CMAKE_FOLDER)
+
+# ===== libktx:源码内置(KTX/KTX2 纹理加载,KTX-Software v4.0,本地源码同步)=====
+# 静态库直接编入 core;关闭工具/测试/文档/JNI/Python/JS 等附属目标,
+# 只保留读写核心(含 BasisU/ETC1S/UASTC transcode 到 RGBA32 的能力)
+set(KTX_FEATURE_TESTS OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_DOC   OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JNI   OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_PY    OFF  CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JS    OFF  CACHE BOOL "" FORCE)
+set(KTX_WERROR        OFF  CACHE BOOL "" FORCE)
+# 只用完整版 ktx;关闭只读版 ktx_read(与 ktx 重复的第二个静态库,引擎不使用)
+set(LIBKTX_VERSION_READ_ONLY OFF CACHE BOOL "" FORCE)
+# ktx 主库及内部依赖目标(basisu encoder/obj_basisu_cbind/dfdutils/dfd2vk_inl/
+# vk2dfd_inl/astcenc-*/objUtil/ktx_version)统一归入解决方案文件夹
+# 3rdparty/ktx,避免 IDE 工程树被第三方目标刷屏
+set(_FE_SAVED_CMAKE_FOLDER "${CMAKE_FOLDER}")
+set(CMAKE_FOLDER "3rdparty/ktx")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/ktx"
+                 "${CMAKE_BINARY_DIR}/ktx")
+set(CMAKE_FOLDER "${_FE_SAVED_CMAKE_FOLDER}")
+unset(_FE_SAVED_CMAKE_FOLDER)
+
+# ===== Lua 5.4.7:源码内置(嵌入脚本,最小拷贝,排除 lua/luac 独立 CLI)=====
+set(_FE_SAVED_CMAKE_FOLDER "${CMAKE_FOLDER}")
+set(CMAKE_FOLDER "3rdparty/lua")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/lua"
+                 "${CMAKE_BINARY_DIR}/lua")
+set(CMAKE_FOLDER "${_FE_SAVED_CMAKE_FOLDER}")
+unset(_FE_SAVED_CMAKE_FOLDER)
+
+# ===== cpp-httplib 0.62.0:源码内置(header-only,单编译单元,自包含无外部依赖)=====
+set(_FE_SAVED_CMAKE_FOLDER "${CMAKE_FOLDER}")
+set(CMAKE_FOLDER "3rdparty/httplib")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/httplib"
+                 "${CMAKE_BINARY_DIR}/httplib")
+set(CMAKE_FOLDER "${_FE_SAVED_CMAKE_FOLDER}")
+unset(_FE_SAVED_CMAKE_FOLDER)
 
 add_library(${TARGET_NAME} SHARED
             ${HEADER_FILES}
@@ -110,6 +152,15 @@ target_compile_definitions(${TARGET_NAME} PRIVATE FE_EXPORTS)
 
 # FreeType 以源码形式链接进 core(PUBLIC include 目录提供 <ft2build.h>)
 target_link_libraries(${TARGET_NAME} PRIVATE freetype)
+
+# libktx 静态库编入 core(PUBLIC include 目录提供 <ktx.h>)
+target_link_libraries(${TARGET_NAME} PRIVATE ktx)
+
+# Lua 静态库编入 core(PUBLIC include 目录提供 <lua.hpp>)
+target_link_libraries(${TARGET_NAME} PRIVATE lua)
+
+# cpp-httplib 静态库编入 core(PUBLIC include 目录提供 <httplib.h>)
+target_link_libraries(${TARGET_NAME} PRIVATE httplib)
 
 
 add_dependencies(${TARGET_NAME} tool.resource.cc)

@@ -36,16 +36,26 @@ namespace   FE
     public:
         IMPLEMENT_CLASS_REFLECT(FEFormatGLTFReader)
     protected:
+        /// <summary>
         /// glTF texture 索引 → 引擎纹理缓存(每次 readBuffers 清空)
+        /// </summary>
         TextureIndex    _texCache;
+        /// <summary>
         /// ===== KHR_materials_variants =====
         /// 变体名表(顺序即 glTF 扩展中 variants 数组顺序)
+        /// </summary>
         Strings                                         _variantNames;
+        /// <summary>
         /// glTF 材质索引 → (变体索引,目标材质索引) 列表
+        /// </summary>
         std::map<int,std::vector<std::pair<int,int>>>   _variantMappings;
+        /// <summary>
         /// 本次加载的全部材质(gltf 索引 → 引擎材质),变体切换时查询目标材质
+        /// </summary>
         MaterialIndex                                   _variantMaterials;
+        /// <summary>
         /// 引用了材质的节点及对应 glTF 材质索引(变体切换时更新)
+        /// </summary>
         std::vector<std::pair<Node,int>>                _variantNodes;
     public:
         FEFormatGLTFReader(FEContext& ctx)
@@ -1258,6 +1268,29 @@ namespace   FE
             float   transmission    =   getExtFloat(material.extensions,"KHR_materials_transmission","transmissionFactor",0.0f);
             if (transmission > 0.0f)
                 pbrMat->setTransmission(transmission);
+            /// KHR_materials_volume 体积(厚度/Beer-Lambert 吸收;配合 transmission)
+            /// thicknessFactor>0 才有视觉效果;attenuationColor 默认白(不吸收),
+            /// attenuationDistance 规范默认 +∞,这里以 0 表示"无穷大=不吸收"
+            auto    volExtItr   =   material.extensions.find("KHR_materials_volume");
+            if (volExtItr != material.extensions.end() && volExtItr->second.IsObject())
+            {
+                const auto& volObj  =   volExtItr->second.Get<tinygltf::Value::Object>();
+                float   volThickness=   getExtFloat(material.extensions,"KHR_materials_volume","thicknessFactor",0.0f);
+                float   volAttDist  =   getExtFloat(material.extensions,"KHR_materials_volume","attenuationDistance",0.0f);
+                float3  volAttColor(1.0f,1.0f,1.0f);
+                auto    colItr      =   volObj.find("attenuationColor");
+                if (colItr != volObj.end() && colItr->second.IsArray())
+                {
+                    const auto& arr =   colItr->second.Get<tinygltf::Value::Array>();
+                    for (int c = 0; c < 3 && c < (int)arr.size(); ++c)
+                    {
+                        if (arr[c].IsNumber())
+                            volAttColor[c]  =   float(arr[c].GetNumberAsDouble());
+                    }
+                }
+                if (volThickness > 0.0f)
+                    pbrMat->setVolume(volThickness,volAttColor,volAttDist);
+            }
             /// KHR_materials_iridescence 虹彩(薄膜干涉)
             float   iriFactor   =   getExtFloat(material.extensions,"KHR_materials_iridescence","iridescenceFactor",0.0f);
             if (iriFactor > 0.0f)

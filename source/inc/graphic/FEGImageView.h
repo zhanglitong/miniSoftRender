@@ -13,6 +13,12 @@ namespace   FE
         struct  CreateInfo
         {
             GImage  _image;
+            /// <summary>
+            /// imageView 覆盖的 mip 范围(默认 0 和 image 的完整 mip 数)
+            /// 用于 pass1 只渲 mip0(levelCount=1)、透明管线采样完整链
+            /// </summary>
+            uint    _baseMip    =   0;
+            uint    _levelCount =   0;   /// 0 = 用 image._cInfo._mips
         };
     public:
         FEGImageView(FEContext& ctx)

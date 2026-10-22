@@ -5,7 +5,9 @@
 #include    "FEObjectsTemplate.hpp"
 namespace   FE
 {
+    /// <summary>
     /// 按照优先级排序,优先级相同的按照order排序
+    /// </summary>
     constexpr   auto    InputComLessFunc = [](const InputCom& l, const InputCom& r)
     {
         if( l->priority().priority() == r->priority().priority())
@@ -13,7 +15,9 @@ namespace   FE
         else
             return  l->priority().priority() < r->priority().priority();
     };
+    /// <summary>
     /// 推导出来类型
+    /// </summary>
     using   InputComLess    =   decltype(InputComLessFunc);
 
     DEFINE_CLASS_UUID(FEInputSystem, "{FB707EC2-26C6-4C33-9CBC-825389F650FB}");

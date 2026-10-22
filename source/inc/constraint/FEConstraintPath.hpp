@@ -150,13 +150,21 @@ namespace FE
             _dirty  =   false;
         }
     protected:
+        /// <summary>
         /// 路径点序列(世界坐标)
+        /// </summary>
         std::vector<real3>     _points;
+        /// <summary>
         /// 移动速度(单位/秒)
+        /// </summary>
         real                    _speed          =   1.0f;
+        /// <summary>
         /// 是否循环
+        /// </summary>
         bool                    _loop           =   true;
+        /// <summary>
         /// 起点偏移(沿路径距离)
+        /// </summary>
         real                    _startOffset    =   0;
         /// 缓存: 各段长度
         mutable std::vector<real>   _segLengths;

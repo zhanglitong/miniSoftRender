@@ -5,12 +5,16 @@
 
 namespace   FE
 {
+    /// <summary>
     /// lambda 表达式作为类型别名，确保RFactoryLess是类型名
+    /// </summary>
     constexpr auto    ComSysLessLambda = [](const ComponentSys& l, const ComponentSys& r)
     {
         return  l->classId() < r->classId();
     };
+    /// <summary>
     /// 先定义类型别名，确保RFactoryLess是类型名
+    /// </summary>
     using   ComSysLessFunc    =   decltype(ComSysLessLambda);
 
     class   FE_API  FEComponentSysMgr :public FEFactoryTemplate<ComponentSys, ComSysLessFunc>

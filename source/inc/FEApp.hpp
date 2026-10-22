@@ -20,7 +20,8 @@ namespace   FE
             MsgNotify   _notify     =   {};
         };
     protected:
-        CreateInfo  _cInfo;
+        CreateInfo      _cInfo;
+        FEMessageBus    _messageBus;
     public:
         FEApp(FEContext& ctx)
             :FEWindow(ctx)
@@ -34,6 +35,14 @@ namespace   FE
         const   auto&   cInfo() const
         {
             return  _cInfo;
+        }
+        /// <summary>
+        /// 消息总线:按 MessageId 订阅通知(多代理),
+        /// 订阅者先于 _notify/场景默认处理被派发(见 FEMessageBus 说明)
+        /// </summary>
+        inline  auto&   messageBus()
+        {
+            return  _messageBus;
         }
         virtual RectU32 rect() const override   =   0;
         /// <summary>
@@ -59,8 +68,11 @@ namespace   FE
         /// 绘制一帧
         /// </summary>
         virtual void    renderOneFrame()    =   0;
-        virtual void    onMessage(const FEMessage& msg) override 
+        virtual void    onMessage(const FEMessage& msg) override
         {
+            /// 先派发消息总线(订阅者先于默认处理,
+            /// 如 MSG_CLOSE 时抢在场景销毁 device 之前释放资源)
+            _messageBus.dispatch(msg);
             if (_cInfo._notify)
             {
                 switch(msg.msgId())
@@ -74,7 +86,7 @@ namespace   FE
                 }
                 _cInfo._notify(msg);
             }
-                
+
         }
     };
     using   App      =   SharedPtr<FEApp>;

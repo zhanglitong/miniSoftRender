@@ -67,4 +67,18 @@ namespace   FE
         }
         return view;
     }
+    GImgView WGGImage::createView(uint baseMip,uint levelCount)
+    {
+        auto view = new WGGImageView(_ctx);
+        FEGImageView::CreateInfo info;
+        info._image         =   this;
+        info._baseMip       =   baseMip;
+        info._levelCount    =   levelCount;
+        if (!view->create(info))
+        {
+            delete view;
+            return nullptr;
+        }
+        return view;
+    }
 }

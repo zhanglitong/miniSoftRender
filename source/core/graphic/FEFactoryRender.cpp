@@ -11,6 +11,10 @@
 
 namespace   FE
 {
+    /// DEBUG: 帧采样全局标志(由 rs.webgpu 的 WGCmdBuffer.beginRender 每帧维护,
+    /// core 端组级打点据此与 WGCMD.bind 采样帧对齐)
+    FE_API bool g_dbgFrameSampled   =   false;
+
     using   GroupNode   =   FEFactoryRender::GroupNode;
     using   VBinds      =   FEFactoryRender::VBinds;
 
@@ -62,8 +66,10 @@ namespace   FE
         auto    oldEnd  =   _objects.begin() + oldSize;
         std::sort(oldEnd, _objects.end());
 
+        /// <summary>
         /// 4. 原地归并两个有序段：[begin, old_end) 和 [old_end, end)
         ///    这是关键，直接利用原数组空间，不额外创建新 vector
+        /// </summary>
         std::inplace_merge(_objects.begin(), oldEnd, _objects.end());
         for (auto itr = nBegin; itr != eEnd; ++ itr )
         {
@@ -108,7 +114,9 @@ namespace   FE
     size_t  GroupNode::removeNodes(Nodes& deletes)
     {
         size_t  nOld    =   _objects.size();
+        /// <summary>
         /// 先排序，后续查找速度快
+        /// </summary>
         std::sort(deletes.begin(),deletes.end());
         /// 删除逻辑：如果当前值在 deletes 里能找到，就删除(返回 true)
         auto    newEnd  =   std::remove_if(_objects.begin(), _objects.end(), [&](const Node& object) 
@@ -333,9 +341,11 @@ namespace   FE
     size_t  FEFactoryRender::addNodesImpl(Nodes& nodes)
     {
         size_t  result  =   0;
+        /// <summary>
         /// 按照材质排序
         /// 同一个材质的节点可以按照批次直接加入到对相应的节点组中
         /// 性能比单个插入好很多
+        /// </summary>
         std::sort(nodes.begin(),nodes.end(),[](const Node& left,const Node& right)
         {
             return  left->material().get() < right->material().get();
@@ -490,6 +500,9 @@ namespace   FE
         /// 两遍循环:pass=0 不透明组,pass=1 透明组。
         auto    drawGroups  =   [&](bool transparentPass)
         {
+        /// DEBUG: 组级审计——帧采样帧内逐组记录(标志由 WGCmdBuffer.beginRender 维护),
+        /// 捕获空 _dsets / null pipeline 的材质,并把 mat 指针与同帧 WGCMD.bind 按序关联
+        bool    dbgGrpSampled   =   g_dbgFrameSampled;
         for (auto& grp : _groupNode)
         {
             const bool  grpTransparent  =   grp->_mat && grp->_mat->isTransparent();
@@ -511,6 +524,12 @@ namespace   FE
             binds.offsets       =   nullptr;
             binds.plBindPoint   =   PL_GRAPIC;
             binds.plLayout      =   pl->nativeLayout();
+            if (dbgGrpSampled)
+            {
+                LOG_ERR("WGGRP: mat=%p pl=%p ndsets=%zu transp=%d",
+                        (void*)grp->_mat.get(),(void*)pl,
+                        binds.dSets.size(),(int)transparentPass);
+            }
             cmd->bindDescriptors(binds);
             uint64  offset      =   grp->cmdOffset() * sizeof(FECmdIndex);
             uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
@@ -518,31 +537,17 @@ namespace   FE
                 continue;
             if (_device.supportWGSLShaders())
             {
-                /// WebGPU: 用 VBO offset 替代 firstInstance,
-                /// 每个 instance binding 有各自的 stride, 必须分别计算 offset。
-                /// pipeline layout 中 binding 1 stride=64(matrix), binding 2 stride=4(color), binding 3 stride=4(flag)
+                /// WebGPU: 直接使用 firstInstance 索引实例属性。
+                /// 实例 VBO 已在 render() 开头以 offset=0 整体绑定,drawIndex 的
+                /// firstInstance 由 wgpuRenderPassEncoderDrawIndexed 原生支持,
+                /// 实例范围覆盖校验由 ensureVertexSlots 完成。
+                /// (原先"每对象按 stride 重算 VBO offset"的路径废弃)
                 uint    start   =   grp ? grp->start() : 0u;
                 for (size_t k = 0; k < grp->_objects.size(); ++k)
                 {
                     auto    node    =   grp->_objects[k];
                     if (!node || !node->mesh()) continue;
                     uint    instIdx =   start + (uint)k;
-                    /// 为每个 instance VBO binding 按其自身 stride 计算 offset
-                    for (auto& var : _vboInstances)
-                    {
-                        uint32  stride  =   0;
-                        for (const auto& bind : pl->cInfo()._binds)
-                        {
-                            if (bind.binding == var._binding)
-                            {
-                                stride  =   bind.stride;
-                                break;
-                            }
-                        }
-                        uint64  instOff =   (uint64)instIdx * stride;
-                        uint64s offsets(var._vbos.size(), instOff);
-                        cmd->bindVBO(var._binding, uint(var._vbos.size()), var._vbos, offsets);
-                    }
                     auto&   pris    =   node->mesh()->primitives();
                     for (size_t i = 0; i < pris.size(); ++i)
                     {
@@ -562,11 +567,11 @@ namespace   FE
                         switch(_key._drawType)
                         {
                         case EDrawType::DRAW_ARRAY:
-                            cmd->draw(ci.firstIndex,ci.count,0,ci.primCount);
+                            cmd->draw(ci.firstIndex,ci.count,instIdx,ci.primCount);
                             break;
                         default:
                             cmd->drawIndex(ci.firstIndex,ci.count,ci.baseVertex,
-                                           0,ci.primCount);
+                                           instIdx,ci.primCount);
                             break;
                         }
                     }
@@ -1479,10 +1484,12 @@ namespace   FE
     {
         if (meshSet.empty())
             return  nullptr;
+        /// <summary>
         /// 交错布局必须按管线声明顺序驱动(与 xml offsets/stride 一致):
         /// 1. 组内各 mesh 属性集合可能不同(如 glTF 部分图元无 TANGENT),按 slot 逐 mesh 匹配;
         /// 2. mesh 缺失的声明属性(如 helmet 无 TEXCOORD1)交错时写 0 填充,
         ///    保证大缓冲区记录跨度与管线声明的 stride 一致,否则顶点属性整体错位。
+        /// </summary>
         struct  DataStride
         {
             uint8*  source  =   nullptr;

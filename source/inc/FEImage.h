@@ -139,7 +139,7 @@ namespace   FE
             return  bytesOfLayer(_cInfo._extent,_cInfo._levels,_cInfo._align,_cInfo._format);
         }
         /// <summary>
-        /// 计算指定级别数据的大小(单位字节)
+        /// 计算指定级别数据的大小(单位字节);块压缩格式按块行数折算
         /// </summary>
         /// <param name="level"></param>
         /// <returns></returns>
@@ -148,7 +148,7 @@ namespace   FE
             const auto    w     =   (std::max<uint32>)(_cInfo._extent.x >> level,1);
             const auto    h     =   (std::max<uint32>)(_cInfo._extent.y >> level,1);
             const auto    d     =   (std::max<uint32>)(_cInfo._extent.z >> level,1);
-            return  pitch(w,_cInfo._align,_cInfo._format) * h * d;
+            return  FEFormatHelper::bytesOfPlane(w,h,d,_cInfo._align,_cInfo._format);
         }
         /// <summary>
         /// 返回指定级别数据在整个layer中的偏移量

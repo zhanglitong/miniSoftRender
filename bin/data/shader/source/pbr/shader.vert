@@ -51,6 +51,10 @@ void main()
     outColor         =   nodeColor;
     outFlagBits      =   flagBits;
 
+    /// 点图元变体(using_defult 会为该管线生成 POINT_LIST):显式写 gl_PointSize,
+    /// 否则 Vulkan 校验层报 "PointSize is not written but topology is POINT_LIST"
+    gl_PointSize     =   1.0;
+
     /// 投影:使用 VP 矩阵
     gl_Position      =   _camera._vp * vec4(tPos, 1.0);
 }

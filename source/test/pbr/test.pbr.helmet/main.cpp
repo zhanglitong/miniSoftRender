@@ -146,6 +146,16 @@ int main(int argc, char** argv)
         applyEnvMap(node, envCube);
 
     std::cout << "pbr helmet test ready, entering render loop...\n";
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
+    /// 场景外 GPU 资源——gltf 节点(objects/nodes 共同引用)与环境 cubemap
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        nodes.clear();
+        objects.clear();
+        envCube     =   nullptr;
+    });
     app->run();
 
     scene = nullptr;

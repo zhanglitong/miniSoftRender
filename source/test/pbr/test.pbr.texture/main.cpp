@@ -311,6 +311,22 @@ int main(int argc, char** argv)
     pMat->setEnvironmentMap(envCube);
 
     std::cout << "pbr texture test ready, entering render loop...\n";
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
+    /// 场景外 GPU 资源——node→材质→纹理(与 main 局部 TexPtr 共同持有)、
+    /// mesh、envCube;否则它们在 run() 返回后才析构,会访问已销毁的 device
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        node        =   nullptr;
+        mesh        =   nullptr;
+        envCube     =   nullptr;
+        baseColor   =   nullptr;
+        mr          =   nullptr;
+        normal      =   nullptr;
+        ao          =   nullptr;
+        emissive    =   nullptr;
+    });
     app->run();
 
     scene = nullptr;

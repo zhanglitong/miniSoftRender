@@ -29,6 +29,9 @@ layout  (push_constant) uniform TextPush
     /// x = 每个烘焙像素对应的 SDF 编码增量 = 1/(2*spread)(片元着色器使用)
     /// z = 绘制模式(0=屏幕叠加,1=三维布告板)
     vec4    _sdf;
+    /// x = 描边宽度(屏幕像素,0=无描边); yzw = 描边颜色 RGB(归一化 0~1)
+    /// 顶点阶段不使用,仅为与片元着色器保持 push constant 布局一致
+    vec4    _stroke;
 }   pc;
 
 layout  (location = 0)  out vec2    outUV;
@@ -53,6 +56,10 @@ void main()
         vec2    ndc =   inPos.xy * pc._screen.zw;
         gl_Position =   vec4(ndc.x * 2.0 - 1.0,1.0 - ndc.y * 2.0,0.0,1.0);
     }
+    /// 点图元变体(using_defult 会为该管线生成 POINT_LIST):显式写 gl_PointSize,
+    /// 否则 Vulkan 校验层报 "PointSize is not written but topology is POINT_LIST"
+    gl_PointSize    =   1.0;
+
     outUV       =   inUV;
     outColor    =   nodeColor;
 }

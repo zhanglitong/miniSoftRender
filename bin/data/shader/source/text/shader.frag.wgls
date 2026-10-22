@@ -8,8 +8,11 @@ struct  TextPush
 {
     /// xy = 视口像素尺寸, zw = 1/视口尺寸
     _screen     : vec4f,
-    /// x = SDF 编码增量 = 1/(2*spread); y = 渲染模式(0=SDF,1=位图)
+    /// x = SDF 编码增量 = 1/(2*spread); y = 渲染模式(0=SDF,1=位图);
+    /// z = 绘制模式(0=屏幕叠加,1=三维布告板)
     _sdf        : vec4f,
+    /// x = 描边宽度(屏幕像素,0=无描边); yzw = 描边颜色 RGB(归一化 0~1)
+    _stroke     : vec4f,
 }
 
 @group(0) @binding(4) var uFontAtlas        : texture_2d<f32>;
@@ -31,32 +34,45 @@ fn  main(in : FsIn) -> @location(0) vec4f
     let texels  = max(fwidth(in.inUV.x) * texSize.x, fwidth(in.inUV.y) * texSize.y);
     let r       = textureSample(uFontAtlas, uFontAtlasSampler, in.inUV).r;
     var alpha   : f32;
+    var color   = in.inColor.rgb;
 
     if (pc._sdf.y > 0.5)
     {
-        /// 位图模式(hinting 灰度):R 通道直接是覆盖率,不做阈值化
-        alpha   = r;
+        /// 位图模式(hinting 灰度):R 通道直接是覆盖率,不做阈值化,
+        /// 描边在位图模式下为 no-op(距离场算法不适用)
+        alpha = r;
     }
     else
     {
         /// SDF 模式 3x3 超采样:邻域内取 9 个 SDF 样本,
-        /// 各自阈值化后取平均,得到亚像素级覆盖率
-        let w   = 0.5 * max(fwidth(r), texels * pc._sdf.x);
-        let stepv = vec2f(fwidth(in.inUV.x), fwidth(in.inUV.y)) / 5.0;
-        alpha   = 0.0;
+        /// 同时计算填充与描边两条覆盖率曲线
+        let sdfPerPx   = texels * pc._sdf.x;             /// 每屏幕像素的 SDF 变化量
+        let strokeEdge = 0.5 - pc._stroke.x * sdfPerPx;  /// 描边外缘对应的 SDF 值
+        let w          = 0.5 * max(fwidth(r), sdfPerPx); /// 抗锯齿半宽(SDF 单位)
+        let stepv      = vec2f(fwidth(in.inUV.x), fwidth(in.inUV.y)) / 5.0;
+        var fill       = 0.0;
+        var stroke     = 0.0;
         for (var y = -1; y <= 1; y = y + 1)
         {
             for (var x = -1; x <= 1; x = x + 1)
             {
                 let d = textureSample(uFontAtlas, uFontAtlasSampler,
                                       in.inUV + vec2f(f32(x) * stepv.x, f32(y) * stepv.y)).r;
-                alpha = alpha + smoothstep(0.5 - w, 0.5 + w, d);
+                fill   = fill + smoothstep(0.5 - w, 0.5 + w, d);
+                stroke = stroke + smoothstep(strokeEdge - w, strokeEdge + w, d);
             }
         }
-        alpha   = alpha / 9.0;
+        fill   = fill / 9.0;
+        stroke = stroke / 9.0;
+
+        /// 最终覆盖率 = max(填充,描边);颜色按填充占比在描边色与填充色之间插值
+        alpha = max(fill, stroke);
+        let t = fill / max(alpha, 1e-5);
+        color = mix(pc._stroke.yzw, in.inColor.rgb, t);
+
         /// 强化有覆盖率的区域:gamma < 1 把中低 alpha 拉高
-        alpha   = pow(alpha, 0.5);
+        alpha = pow(alpha, 0.5);
     }
 
-    return vec4f(in.inColor.rgb, in.inColor.a * alpha);
+    return vec4f(color, in.inColor.a * alpha);
 }

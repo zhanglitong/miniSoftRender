@@ -146,6 +146,19 @@ int     main(int argc, char** argv)
 
     std::cout << "sample.oit running (" << (oit ? "OIT PPLL" : "alpha blending") << ")..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
+    /// 场景外 GPU 资源——五个球节点与 OITManager(持有 PPLL SSBO)
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        center      =   nullptr;
+        left        =   nullptr;
+        right       =   nullptr;
+        front       =   nullptr;
+        back        =   nullptr;
+        oit         =   nullptr;
+    });
     app->run();
 
     scene = nullptr;

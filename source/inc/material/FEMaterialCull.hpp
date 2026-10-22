@@ -26,9 +26,13 @@ namespace   FE
                 }
                 _dsets  =   result->createDSets();
             }
+            /// <summary>
             /// 自动将系统数据与材质所需数据关联起来
+            /// </summary>
             autoAttach();
+            /// <summary>
             /// 更新数据
+            /// </summary>
             update();
         }
         FEMaterialCull(const FEMaterialCull& other)
@@ -39,9 +43,13 @@ namespace   FE
             _cullParam._value   =   other._cullParam._value;
             _cullParam.update();
             setup("computeCull/default");
+            /// <summary>
             /// 自动将系统数据与材质所需数据关联起来
+            /// </summary>
             autoAttach();
+            /// <summary>
             /// 更新数据
+            /// </summary>
             update();
         }
         virtual ~FEMaterialCull()

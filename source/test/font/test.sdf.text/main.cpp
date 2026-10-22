@@ -241,11 +241,10 @@ int     main(int argc, char** argv)
             pMat->setFont(font);
             if (pMat->pipeline(PRI_TRIANGLES) == nullptr)
             {
-                std::cerr << "pipeline text/TRIANGLES not found" << std::endl;
+                std::cout << "pipeline text/TRIANGLES not found" << std::endl;
                 passed  =   false;
             }
             node->setMaterial(pMat);
-            /// 白色文字,便于观察 SDF 抗锯齿效果
             node->setColor(Rgba8(255,255,255,255));
             node->makeDirty();
             node->update();
@@ -262,6 +261,14 @@ int     main(int argc, char** argv)
     }
     std::cout << "sdf text ok, entering render loop..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
+    /// 字体对象(其 SDF 图集纹理持有 GPU 资源)
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        font        =   nullptr;
+    });
     /// 6. 进入渲染循环显示屏幕文字
     app->run();
 

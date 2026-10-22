@@ -86,6 +86,14 @@ namespace   FE
         if (!_native || !pData)
             return FEResult::ER_FAILED;
 
+        /// DEBUG: 追踪 PBRData(128B) 的 UBO 写入,验证 wgpuQueueWriteBuffer 链路
+        if (length == 128 && offset == 0)
+        {
+            const uint32_t* w   =   (const uint32_t*)pData;
+            LOG_ERR("WGBUF.update: native=%p data[0..3]=%08x %08x %08x %08x data[4..7]=%08x %08x %08x %08x",
+                    _native,w[0],w[1],w[2],w[3],w[4],w[5],w[6],w[7]);
+        }
+
         auto&   wgDevice    =   const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
         auto    queue       =   wgDevice.queue();
         wgpuQueueWriteBuffer(queue,_native,offset,pData,length);

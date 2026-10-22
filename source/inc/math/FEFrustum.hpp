@@ -165,8 +165,10 @@ namespace   FE
         /// <param name="outCorners">输出的世界空间 8 个顶点</param>
         inline  void    extractCorners(const tmat4<T>& invVP, tvec3<T> outCorners[8]) const
         {
+            /// <summary>
             /// 1. 定义 NDC 空间中的 8 个立方体顶点 (注意 Z 的范围)
             /// 顺序通常为：近平面 4 点 -> 远平面 4 点
+            /// </summary>
             tvec4<T> ndcCorners[8] =
             {
                 {-1, -1, -1, 1}, { 1, -1, -1, 1}, { 1,  1, -1, 1}, {-1,  1, -1, 1}, /// 近平面 (Z = -1)

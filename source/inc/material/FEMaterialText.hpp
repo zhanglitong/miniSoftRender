@@ -22,15 +22,26 @@ namespace   FE
     public:
         IMPLEMENT_CLASS_REFLECT_MINI(FEMaterialText)
     public:
-        /// push constant 布局,须与 text/shader.vert 中的 TextPush 一致
+        /// <summary>
+        /// push constant 布局,须与 text/shader.vert/.frag(及 .wgls)中的 TextPush 一致
+        /// </summary>
         struct  TextData
         {
+            /// <summary>
             /// xy = 视口像素尺寸, zw = 1/视口尺寸
+            /// </summary>
             float4  _screen =   float4(1280.0f,720.0f,1.0f / 1280.0f,1.0f / 720.0f);
+            /// <summary>
             /// x = 每个烘焙像素对应的 SDF 编码增量 = 1/(2*spread),
             /// 片元着色器据此换算恒定的抗锯齿宽度(须与字体实际 spread 一致)
+            /// y = 渲染模式(0=SDF,1=位图)
             /// z = 绘制模式(0=屏幕叠加,1=三维布告板)
+            /// </summary>
             float4  _sdf    =   float4(1.0f / 16.0f,0.0f,0.0f,0.0f);
+            /// <summary>
+            /// x = 描边宽度(屏幕像素,0=无描边); yzw = 描边颜色 RGB(归一化 0~1)
+            /// </summary>
+            float4  _stroke =   float4(0.0f,0.0f,0.0f,1.0f);
         };
     public:
         FEMaterialText(FEContext& ctx)
@@ -53,9 +64,11 @@ namespace   FE
         FEMaterialText(const FEMaterialText& other)
             :FEMaterial(other)
         {
-            _font      =   other._font;
-            _texture   =   other._texture;
-            _data      =   other._data;
+            _font          =   other._font;
+            _texture       =   other._texture;
+            _strokeWidth   =   other._strokeWidth;
+            _strokeColor   =   other._strokeColor;
+            _data          =   other._data;
             if (_texture != nullptr)
             {
                 bind(0,SB_Material,{_texture.get()});
@@ -108,6 +121,52 @@ namespace   FE
         {
             return  _data._sdf.z > 0.5f;
         }
+        /// <summary>
+        /// 设置描边宽度(屏幕像素)。
+        /// 0 表示无描边(默认),此时渲染与未开启描边完全一致。
+        /// 描边位于字形轮廓外侧,宽度在屏幕空间恒定(缩放/布告板下粗细不变)。
+        /// 仅 SDF 模式生效;位图模式(hinting 灰度)下描边为 no-op。
+        /// </summary>
+        inline  void    setStrokeWidth(float widthPx)
+        {
+            _strokeWidth    =   widthPx > 0.0f ? widthPx : 0.0f;
+            _data._stroke.x =   _strokeWidth;
+        }
+        /// <summary>
+        /// 当前描边宽度(屏幕像素)
+        /// </summary>
+        inline  float   strokeWidth() const
+        {
+            return  _strokeWidth;
+        }
+        /// <summary>
+        /// 设置描边颜色(RGB,alpha 复用节点颜色的 alpha)。
+        /// </summary>
+        inline  void    setStrokeColor(const Rgba8& color)
+        {
+            _strokeColor    =   color;
+            const   auto&   v   =   color.value();
+            _data._stroke.y =   (float)v.x / 255.0f;
+            _data._stroke.z =   (float)v.y / 255.0f;
+            _data._stroke.w =   (float)v.z / 255.0f;
+        }
+        /// <summary>
+        /// 当前描边颜色
+        /// </summary>
+        inline  Rgba8   strokeColor() const
+        {
+            return  _strokeColor;
+        }
+        /// <summary>
+        /// text 管线开启了 alpha 混合(enableColorBlend=1),属于透明材质。
+        /// 必须返回 true,否则工厂的不透明/透明两遍分组与渲染层排序会把文本
+        /// 当作不透明物体先画,被后续不透明几何整体覆盖(commit 18c5b40 引入
+        /// isTransparent 排序后暴露的问题)。
+        /// </summary>
+        virtual bool        isTransparent() const override
+        {
+            return  true;
+        }
         virtual uint    pushConstantSize() const override
         {
             return  (uint)sizeof(TextData);
@@ -138,8 +197,18 @@ namespace   FE
         }
     protected:
         Font        _font      =   nullptr;
+        /// <summary>
         /// SDF 图集(与 _font 同步,单独持有便于绑定描述符)
+        /// </summary>
         TexPtr      _texture   =   nullptr;
+        /// <summary>
+        /// 描边宽度(屏幕像素),0=无描边;与 _data._stroke.x 同步
+        /// </summary>
+        float       _strokeWidth  =   0.0f;
+        /// <summary>
+        /// 描边颜色;与 _data._stroke.yzw 同步
+        /// </summary>
+        Rgba8       _strokeColor  =   Rgba8(0,0,0,255);
         mutable TextData    _data;
     };
 }

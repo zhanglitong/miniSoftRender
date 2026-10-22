@@ -5,7 +5,9 @@
 
 namespace   FE
 {
+    /// <summary>
     ///计算射线是否与某个四边形面有交点
+    /// </summary>
     bool GetRayRectaceInsPt(const Ray &ray, FE::real3 rect[4], FE::real3 &retPt)
     {
         real t, u, v;

@@ -30,7 +30,9 @@ namespace   FE
         /// <returns></returns>
         inline  bool    open(const char* relPath)
         {
+            /// <summary>
             /// 关闭已经打开的文件或者内存对象
+            /// </summary>
             close();
             /// 优先读取磁盘文件
             /// 方便外部排查问题，以及本地更新

@@ -24,17 +24,17 @@ namespace   FE
         template<class T>
         static  Primitive   createIndex8(FEContext& ctx,const std::vector<T>& data)
         {
-            static_assert(is_any_type<T, uint8,  int8x2,  uint8x3, uint8x4
+            static_assert(is_any_type<T, uint8,  int8,   int8x2, uint8x3, uint8x4
                                         ,uint16, uint16x2,uint16x3,uint16x4
                                         ,int16,  int16x2, int16x3, int16x4
                                         ,uint32, uint32x2,uint32x3,uint32x4
-                                        ,int32,  int32x2, int32x3, uint32x4>);
+                                        ,int32,  int32x2, int32x3, int32x4, uint32x4>);
             auto    pri     =   new FEDrawElementUint8(ctx);
             if constexpr(std::is_same_v<T,uint8>)
             {
                 pri->index().resize(data.size());
                 auto    pData   =   pri->index().data();
-                memcpy(pData,data.data(),data.size());
+                memcpy(pData,data.data(),data.size() * sizeof(uint8));
             }
             else if constexpr(std::is_same_v<T,uint8x2>)
             {
@@ -54,7 +54,7 @@ namespace   FE
                 auto    pData   =   pri->index().data();
                 memcpy(pData,data.data(),data.size() * sizeof(uint8x4));
             }
-            else if constexpr(is_any_type<T,uint16,int16,int32,uint32>)
+            else if constexpr(is_any_type<T,int8,uint16,int16,int32,uint32>)
             {
                 pri->index().resize(data.size());
                 auto    pData   =   pri->index().data();
@@ -63,7 +63,7 @@ namespace   FE
                     pData[i]    =   uint8(data[i]);
                 }
             }
-            else if constexpr(is_any_type<T,uint16x2,int16x2,int32x2,uint32x2>)
+            else if constexpr(is_any_type<T,int8x2,uint16x2,int16x2,int32x2,uint32x2>)
             {
                 pri->index().resize(data.size() * 2);
                 auto    pData   =   pri->index().data();
@@ -73,27 +73,27 @@ namespace   FE
                     pData[i * 2 + 1]    =   uint8(data[i][1]);
                 }
             }
-            else if constexpr(is_any_type<T,uint16x3,int16x3,int32x3,uint32x3>)
+            else if constexpr(is_any_type<T,int8x3,uint16x3,int16x3,int32x3,uint32x3>)
             {
                 pri->index().resize(data.size() * 3);
                 auto    pData   =   pri->index().data();
                 for (size_t i = 0; i < data.size(); i++)
                 {
-                    pData[i * 2 + 0]    =   uint8(data[i][0]);
-                    pData[i * 2 + 1]    =   uint8(data[i][1]);
+                    pData[i * 3 + 0]    =   uint8(data[i][0]);
+                    pData[i * 3 + 1]    =   uint8(data[i][1]);
                     pData[i * 3 + 2]    =   uint8(data[i][2]);
                 }
             }
-            else if constexpr(is_any_type<T,uint16x4,int16x4,int32x4,uint32x4>)
+            else if constexpr(is_any_type<T,int8x4,uint16x4,int16x4,int32x4,uint32x4>)
             {
-                pri->index().resize(data.size() * 3);
+                pri->index().resize(data.size() * 4);
                 auto    pData   =   pri->index().data();
                 for (size_t i = 0; i < data.size(); i++)
                 {
-                    pData[i * 2 + 0]    =   uint8(data[i][0]);
-                    pData[i * 2 + 1]    =   uint8(data[i][1]);
-                    pData[i * 3 + 2]    =   uint8(data[i][2]);
-                    pData[i * 3 + 3]    =   uint8(data[i][3]);
+                    pData[i * 4 + 0]    =   uint8(data[i][0]);
+                    pData[i * 4 + 1]    =   uint8(data[i][1]);
+                    pData[i * 4 + 2]    =   uint8(data[i][2]);
+                    pData[i * 4 + 3]    =   uint8(data[i][3]);
                 }
             }
             return  pri;
@@ -101,17 +101,17 @@ namespace   FE
         template<class T>
         static  Primitive   createIndex16(FEContext& ctx,const std::vector<T>& data)
         {
-            static_assert(is_any_type<T, uint8,  int8x2,  uint8x3, uint8x4
+            static_assert(is_any_type<T, uint8,  int8,   int8x2, uint8x3, uint8x4
                                         ,uint16, uint16x2,uint16x3,uint16x4
                                         ,int16,  int16x2, int16x3, int16x4
                                         ,uint32, uint32x2,uint32x3,uint32x4
-                                        ,int32,  int32x2, int32x3, uint32x4>);
+                                        ,int32,  int32x2, int32x3, int32x4, uint32x4>);
             auto    pri     =   new FEDrawElementUint16(ctx);
             if constexpr(std::is_same_v<T,uint16>)
             {
                 pri->index().resize(data.size());
                 auto    pData   =   pri->index().data();
-                memcpy(pData,data.data(),data.size());
+                memcpy(pData,data.data(),data.size() * sizeof(uint16));
             }
             else if constexpr(std::is_same_v<T,uint16x2>)
             {
@@ -131,7 +131,7 @@ namespace   FE
                 auto    pData   =   pri->index().data();
                 memcpy(pData,data.data(),data.size() * sizeof(uint16x4));
             }
-            else if constexpr(is_any_type<T,uint8,int16,int32,uint32>)
+            else if constexpr(is_any_type<T,int8,uint8,int16,int32,uint32>)
             {
                 pri->index().resize(data.size());
                 auto    pData   =   pri->index().data();
@@ -140,7 +140,7 @@ namespace   FE
                     pData[i]    =   uint16(data[i]);
                 }
             }
-            else if constexpr(is_any_type<T,uint16x2,int16x2,int32x2,uint32x2>)
+            else if constexpr(is_any_type<T,uint8x2,int8x2,int16x2,int32x2,uint32x2>)
             {
                 pri->index().resize(data.size() * 2);
                 auto    pData   =   pri->index().data();
@@ -150,27 +150,27 @@ namespace   FE
                     pData[i * 2 + 1]    =   uint16(data[i][1]);
                 }
             }
-            else if constexpr(is_any_type<T,uint16x3,int16x3,int32x3,uint32x3>)
+            else if constexpr(is_any_type<T,uint8x3,int8x3,int16x3,int32x3,uint32x3>)
             {
                 pri->index().resize(data.size() * 3);
                 auto    pData   =   pri->index().data();
                 for (size_t i = 0; i < data.size(); i++)
                 {
-                    pData[i * 2 + 0]    =   uint16(data[i][0]);
-                    pData[i * 2 + 1]    =   uint16(data[i][1]);
+                    pData[i * 3 + 0]    =   uint16(data[i][0]);
+                    pData[i * 3 + 1]    =   uint16(data[i][1]);
                     pData[i * 3 + 2]    =   uint16(data[i][2]);
                 }
             }
-            else if constexpr(is_any_type<T,uint16x4,int16x4,int32x4,uint32x4>)
+            else if constexpr(is_any_type<T,uint8x4,int8x4,int16x4,int32x4,uint32x4>)
             {
-                pri->index().resize(data.size() * 3);
+                pri->index().resize(data.size() * 4);
                 auto    pData   =   pri->index().data();
                 for (size_t i = 0; i < data.size(); i++)
                 {
-                    pData[i * 2 + 0]    =   uint16(data[i][0]);
-                    pData[i * 2 + 1]    =   uint16(data[i][1]);
-                    pData[i * 3 + 2]    =   uint16(data[i][2]);
-                    pData[i * 3 + 3]    =   uint16(data[i][3]);
+                    pData[i * 4 + 0]    =   uint16(data[i][0]);
+                    pData[i * 4 + 1]    =   uint16(data[i][1]);
+                    pData[i * 4 + 2]    =   uint16(data[i][2]);
+                    pData[i * 4 + 3]    =   uint16(data[i][3]);
                 }
             }
             return  pri;
@@ -178,17 +178,17 @@ namespace   FE
         template<class T>
         static  Primitive   createIndex32(FEContext& ctx,const std::vector<T>& data)
         {
-            static_assert(is_any_type<T, uint8,  int8x2,  uint8x3, uint8x4
+            static_assert(is_any_type<T, uint8,  int8,   int8x2, uint8x3, uint8x4
                                         ,uint16, uint16x2,uint16x3,uint16x4
                                         ,int16,  int16x2, int16x3, int16x4
                                         ,uint32, uint32x2,uint32x3,uint32x4
-                                        ,int32,  int32x2, int32x3, uint32x4>);
+                                        ,int32,  int32x2, int32x3, int32x4, uint32x4>);
             auto    pri     =   new FEDrawElementUint32(ctx);
             if constexpr(std::is_same_v<T,uint32>)
             {
                 pri->index().resize(data.size());
                 auto    pData   =   pri->index().data();
-                memcpy(pData,data.data(),data.size());
+                memcpy(pData,data.data(),data.size() * sizeof(uint32));
             }
             else if constexpr(std::is_same_v<T,uint32x2>)
             {
@@ -208,7 +208,7 @@ namespace   FE
                 auto    pData   =   pri->index().data();
                 memcpy(pData,data.data(),data.size() * sizeof(uint32x4));
             }
-            else if constexpr(is_any_type<T,uint8,uint16,int16,int32>)
+            else if constexpr(is_any_type<T,int8,uint8,uint16,int16,int32>)
             {
                 pri->index().resize(data.size());
                 auto    pData   =   pri->index().data();
@@ -217,7 +217,7 @@ namespace   FE
                     pData[i]    =   uint32(data[i]);
                 }
             }
-            else if constexpr(is_any_type<T,uint8x2,int16x2,uint16x2,int16x2>)
+            else if constexpr(is_any_type<T,uint8x2,int8x2,uint16x2,int16x2,int32x2>)
             {
                 pri->index().resize(data.size() * 2);
                 auto    pData   =   pri->index().data();
@@ -227,27 +227,27 @@ namespace   FE
                     pData[i * 2 + 1]    =   uint32(data[i][1]);
                 }
             }
-            else if constexpr(is_any_type<T,uint8x3,uint16x3,int16x3,int32x3>)
+            else if constexpr(is_any_type<T,uint8x3,int8x3,uint16x3,int16x3,int32x3>)
             {
                 pri->index().resize(data.size() * 3);
                 auto    pData   =   pri->index().data();
                 for (size_t i = 0; i < data.size(); i++)
                 {
-                    pData[i * 2 + 0]    =   uint32(data[i][0]);
-                    pData[i * 2 + 1]    =   uint32(data[i][1]);
+                    pData[i * 3 + 0]    =   uint32(data[i][0]);
+                    pData[i * 3 + 1]    =   uint32(data[i][1]);
                     pData[i * 3 + 2]    =   uint32(data[i][2]);
                 }
             }
-            else if constexpr(is_any_type<T,uint8x4,int16x4,uint16x4,int16x4>)
+            else if constexpr(is_any_type<T,uint8x4,int8x4,uint16x4,int16x4,int32x4>)
             {
-                pri->index().resize(data.size() * 3);
+                pri->index().resize(data.size() * 4);
                 auto    pData   =   pri->index().data();
                 for (size_t i = 0; i < data.size(); i++)
                 {
-                    pData[i * 2 + 0]    =   uint32(data[i][0]);
-                    pData[i * 2 + 1]    =   uint32(data[i][1]);
-                    pData[i * 3 + 2]    =   uint32(data[i][2]);
-                    pData[i * 3 + 3]    =   uint32(data[i][3]);
+                    pData[i * 4 + 0]    =   uint32(data[i][0]);
+                    pData[i * 4 + 1]    =   uint32(data[i][1]);
+                    pData[i * 4 + 2]    =   uint32(data[i][2]);
+                    pData[i * 4 + 3]    =   uint32(data[i][3]);
                 }
             }
             return  pri;
@@ -258,11 +258,11 @@ namespace   FE
         {
             if (data.empty())
                 return  0;
-            static_assert(is_any_type<T, uint8,  int8x2,  uint8x3, uint8x4
+            static_assert(is_any_type<T, uint8,  int8,   int8x2, uint8x3, uint8x4
                                         ,uint16, uint16x2,uint16x3,uint16x4
                                         ,int16,  int16x2, int16x3, int16x4
                                         ,uint32, uint32x2,uint32x3,uint32x4
-                                        ,int32,  int32x2, int32x3, uint32x4>);
+                                        ,int32,  int32x2, int32x3, int32x4, uint32x4>);
             if constexpr(is_any_type<T,uint8,uint16,int16,uint32,int32>)
             {
                 return  *std::max_element(data.begin(),data.end());

@@ -15,7 +15,9 @@ namespace   FE
             :FEMaterial(ctx)
         {
             setup("v3c4");
+            /// <summary>
             /// 自动将系统数据与材质所需数据关联起来
+            /// </summary>
             autoAttach();
             /// 显式绑定相机 UBO:v3c4 着色器的 CameraBlock 经反射得到的块名为
             /// "CameraBlock" 而非 "_camera",autoAttach 的名称匹配覆盖不到,
@@ -23,7 +25,9 @@ namespace   FE
             /// VP 矩阵未定义而整体不可见
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
             bind(0,SB_Camera,   {cameraUBO});
+            /// <summary>
             /// 更新数据
+            /// </summary>
             update();
         }
         FEMaterialV3C4(const FEMaterialV3C4& other)

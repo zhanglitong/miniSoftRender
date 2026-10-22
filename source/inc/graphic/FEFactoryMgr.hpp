@@ -5,12 +5,16 @@
 
 namespace   FE
 {
+    /// <summary>
     /// lambda 表达式作为类型别名，确保RFactoryLess是类型名
+    /// </summary>
     constexpr auto    RFactoryLessLambda = [](const RFactory& l, const RFactory& r)
     {
         return  l->key().value() < r->key().value();
     };
+    /// <summary>
     /// 先定义类型别名，确保RFactoryLess是类型名
+    /// </summary>
     using   RFactoryLess    =   decltype(RFactoryLessLambda);
 
     class   FEFactoryMgr :public FEFactoryTemplate<RFactory, RFactoryLess>

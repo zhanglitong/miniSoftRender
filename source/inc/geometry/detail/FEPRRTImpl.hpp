@@ -55,11 +55,13 @@ namespace   FE
                 return  index++;
             };
 
+            /// <summary>
             /// 每个角度位置生成 8 个顶点 (4面各2顶点, 法线独立)
             /// 外壁: 下/上, 法线 (ct,0,st)
             /// 内壁: 下/上, 法线 (-ct,0,-st)
             /// 顶面: 内/外, 法线 (0,1,0)
             /// 底面: 内/外, 法线 (0,-1,0)
+            /// </summary>
             struct  PrevIdx
             {
                 uint    ob, ot;     /// 外壁

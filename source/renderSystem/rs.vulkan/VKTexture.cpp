@@ -37,6 +37,10 @@ namespace   FE
         imgInfo._usage                      =   info._renderTarget
                                                 ? (USAGE_COLOR_ATTACHMENT | USAGE_SAMPLED)
                                                 : (USAGE_TRANSFER_DST | USAGE_SAMPLED);
+        /// 多 mip 渲染目标:pass1 渲 mip0 后逐级 blit downsample 生成 mip 链
+        /// (VKCmdBuffer::generateMips),需传输源/目标用法
+        if (info._renderTarget && info._mips > 1)
+            imgInfo._usage                  |=  (USAGE_TRANSFER_SRC | USAGE_TRANSFER_DST);
         imgInfo._width                      =   info._width;
         imgInfo._height                     =   info._height;
         imgInfo._depth                      =   1;
@@ -73,6 +77,11 @@ namespace   FE
         samplerCI.maxLod                =   maxLod;
         samplerCI.borderColor           =   VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
         VK_CHECK_RESULT(vkCreateSampler(device,&samplerCI,nullptr,&_sampler));
+
+        /// 4. renderTarget 且多 mip:立即把 image 全链从 UNDEFINED barrier 到 SHADER_READ_ONLY
+        /// (否则第 1 帧 pass1 分支若未进,透明管线 descriptor 期望 SHADER_READ 但 image 仍 UNDEFINED 炸验证层)
+        if (info._renderTarget && imgInfo._mips > 1)
+            vkDevice.initializeImageToShaderReadable(_image);
 
         LOG_DBG("VKTexture.create %ux%u ok",info._width,info._height);
         return  true;
@@ -124,7 +133,7 @@ namespace   FE
         barrier.newLayout                       =   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         barrier.srcQueueFamilyIndex             =   VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex             =   VK_QUEUE_FAMILY_IGNORED;
-        barrier.image                           =   image();
+        barrier.image                           =   vkImage();
         barrier.subresourceRange                =   range;
         barrier.srcAccessMask                   =   0;
         barrier.dstAccessMask                   =   VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -136,11 +145,13 @@ namespace   FE
 
         /// staging buffer -> image
         /// 数据排布:面主序、面内 mip 顺序(与 FETexture::CreateInfo 注释一致);
-        /// 每像素字节数由格式决定(RGBA8=4,RGBA32F=16 等)。
+        /// 未压缩按每 mip 尺寸 * 像素字节紧排;
+        /// 块压缩按块列/块行数 * 块字节紧排(bufferRowLength=0 即按 extent 紧凑)
         std::vector<VkBufferImageCopy>  regions;
         if (layerCount > 1 || mipLevels > 1)
         {
             const uint  bpp     =   FEFormatHelper::sizeOf(_cInfo._format);
+            const uint2 be      =   FEFormatHelper::blockExtent(_cInfo._format);
             uint64  offset  =   0;
             for (uint layer = 0; layer < layerCount; ++layer)
             {
@@ -156,7 +167,10 @@ namespace   FE
                     region.imageSubresource.layerCount  =   1;
                     region.imageExtent                  =   { mipW,mipH,1 };
                     regions.push_back(region);
-                    offset  +=   uint64(mipW) * mipH * bpp;
+                    /// 块格式:按块列 x 块行 x 块字节;未压缩:be={1,1} 等价像素数
+                    const uint64    blocksX =   (uint64(mipW) + be.x - 1) / be.x;
+                    const uint64    blocksY =   (uint64(mipH) + be.y - 1) / be.y;
+                    offset  +=   blocksX * blocksY * bpp;
                     mipW    =   mipW > 1 ? mipW >> 1 : 1;
                     mipH    =   mipH > 1 ? mipH >> 1 : 1;
                 }
@@ -180,7 +194,7 @@ namespace   FE
         }
         vkCmdCopyBufferToImage(cmd
                             ,(VkBuffer)staging->native()
-                            ,image()
+                            ,vkImage()
                             ,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                             ,(uint32_t)regions.size(),regions.data());
 

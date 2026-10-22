@@ -78,11 +78,17 @@ namespace   FE
         /// </summary>
         /// <param name="camera"></param>
         void    update(FECamera& camera);
+        /// <summary>
         ///缩放轴顶点(16个)
+        /// </summary>
         const   float3 (&scaleAxis())[16];
+        /// <summary>
         ///箭头顶点(15个)
+        /// </summary>
         const   float3 (&scaleAxisArr())[15];
+        /// <summary>
         ///是否正在进行缩放
+        /// </summary>
         inline  bool    isScaleing() const
         {
             return  _bScaleing;
@@ -139,17 +145,29 @@ namespace   FE
         /// <param name=""></param>
         virtual void    onMessage(const FEMessage& ) override;
     private:
+        /// <summary>
         ///高亮轴
+        /// </summary>
         AXIS    hoverAxis(const int2& pos);
+        /// <summary>
         ///缩放计算
+        /// </summary>
         real3   calcScale(const int2& start, const int2& end);
+        /// <summary>
         ///计算轴朝向
+        /// </summary>
         real3   calcAxisDir(FECamera& camera);
+        /// <summary>
         ///拾取三轴汇聚三角面
+        /// </summary>
         AXIS    pickTriMin(const int2& screen);
+        /// <summary>
         ///拾取三轴外三角面
+        /// </summary>
         AXIS    pickTriMax(const int2& screen);
+        /// <summary>
         ///拾取坐标轴
+        /// </summary>
         AXIS    pickAxis(const int2& screen);
         real    scaleX(const int2& start, const int2& end);
         real    scaleY(const int2& start, const int2& end);
@@ -169,43 +187,75 @@ namespace   FE
         virtual bool touchUp(const int2& pos)           ;
         virtual bool touchMove(const int2& pos)         ;
     private:
+        /// <summary>
         ///缩放轴
+        /// </summary>
         float3      _scaleAxis[16];
+        /// <summary>
         ///箭头
+        /// </summary>
         float3      _scaleAxisArr[15];
+        /// <summary>
         ///当前选中轴
+        /// </summary>
         AXIS        _selectedAxis;
+        /// <summary>
         ///当前高亮的轴
+        /// </summary>
         AXIS        _hoveredAxis;
 
+        /// <summary>
         ///是否正在进行缩放
+        /// </summary>
         bool        _bScaleing;
+        /// <summary>
         ///缩放偏移
+        /// </summary>
         real3       _offScale;
 
+        /// <summary>
         ///保持把坐标轴的屁股不朝向屏幕
+        /// </summary>
         real3       _dir;
 
+        /// <summary>
         ///轴长度
+        /// </summary>
         real        _axisSize;
 
+        /// <summary>
         ///鼠标按钮按下
+        /// </summary>
         bool        _bMouseDown;
+        /// <summary>
         ///鼠标按下的最后位置
+        /// </summary>
         int2        _downPos;
+        /// <summary>
         ///开始时的鼠标位置
+        /// </summary>
         int2        _startPos;
 
+        /// <summary>
         ///触屏按下
+        /// </summary>
         bool        _bTouchDown;
+        /// <summary>
         ///触屏拾取轴
+        /// </summary>
         bool        _bTouchPickup;
+        /// <summary>
         ///触屏按下的最后位置
+        /// </summary>
         int2        _touchDownPos;
+        /// <summary>
         ///触屏开始时按下的位置
+        /// </summary>
         int2        _touchStartPos;
 
+        /// <summary>
         ///回调
+        /// </summary>
         MDelegate   _delegate;
     };
 

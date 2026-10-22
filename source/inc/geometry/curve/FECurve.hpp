@@ -292,10 +292,14 @@ namespace   FE
         mutable bool                _needsUpdate    =   false;
     };
 
+    /// <summary>
     /// 单精度别名 (向后兼容)
+    /// </summary>
     using   FEFrenetFrames  =   FEFrenetFramesT<float>;
     using   FECurve         =   FECurveT<float>;
+    /// <summary>
     /// 双精度别名
+    /// </summary>
     using   FEFrenetFramesD =   FEFrenetFramesT<double>;
     using   FECurveD        =   FECurveT<double>;
 }

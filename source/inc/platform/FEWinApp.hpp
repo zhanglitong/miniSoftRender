@@ -380,22 +380,11 @@ namespace   FE
             return  DefWindowProcA(pMsg->hwnd, pMsg->message, pMsg->wParam, pMsg->lParam);
         }
 
-        virtual void    onMessage(const FEMessage& msg) override 
-        {
-            if (_cInfo._notify)
-            {
-                switch(msg.msgId())
-                {
-                case MSG_RESIZE:
-                    {
-                        _cInfo._width   =   ((const MsgResize&)msg)._info._size.x;
-                        _cInfo._height  =   ((const MsgResize&)msg)._info._size.y;
-                    }
-                    break;
-                }
-                _cInfo._notify(msg);
-            }
-        }
+        /// <summary>
+        /// onMessage 继承 FEApp 基类实现:先派发消息总线,再调 _notify
+        /// using 声明:取消 onMessage(MSG*) 对基类 onMessage(const FEMessage&) 的名字隐藏
+        /// </summary>
+        using   FEApp::onMessage;
     public:
         static LRESULT CALLBACK  wndProcEx(HWND hWnd, UINT msgId, WPARAM wParam, LPARAM lParam)
         {

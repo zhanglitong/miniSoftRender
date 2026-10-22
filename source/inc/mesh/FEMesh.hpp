@@ -127,14 +127,14 @@ namespace   FE
         /// </summary>
         /// <param name="attrId"></param>
         /// <returns></returns>
-        inline  auto    get(FEAttribute attr)
+        inline  FEAttribyteBuffer*  get(FEAttribute attr)
         {
             for (auto& var : _buffers)
             {
                 if (var.attr().slot() == attr.slot())
                     return  &var;
             }
-            return  (FEAttribyteBuffer*)nullptr;
+            return  nullptr;
         }
         /// <summary>
         /// 设置mesh属性 数据
@@ -145,15 +145,7 @@ namespace   FE
         template<class T>
         inline  void    setAttribute(FEAttribute attr,const std::vector<T>& buffer)
         {
-            auto    result  =   get(attr);
-            if (result)
-            {
-                FEAttribyteBuffer    newBuf  =  {_ctx,nullptr,attr};
-                _buffers.emplace_back(newBuf);
-                result  =   &_buffers.back();
-            }
-            result->setAttr(attr);
-            result->setBuffer(buffer.data(),buffer.size());   
+            getOrCreate(attr).setAttr(attr).setBuffer(buffer.data(),buffer.size()*sizeof(T));
         }
         /// <summary>
         /// 获取或者插入
@@ -220,19 +212,7 @@ namespace   FE
             MeshKey key     =   {};
             key._drawType   =   pri ? pri->type()     :   DRAW_ARRAY;
             key._primitive  =   pri ? pri->primitive():   PRI_TRIANGLES;
-            key._slotBits   =   0;
-            for (auto& var: _buffers)
-                key._slotBits.addFlag(var.attr().slot());
-            return  key;
-        }
-        inline  auto    key(Primitive pri)
-        {
-            MeshKey key     =   {};
-            key._drawType   =   pri ? pri->type()     :   DRAW_ARRAY;
-            key._primitive  =   pri ? pri->primitive():   PRI_TRIANGLES;
-            key._slotBits   =   0;
-            for (auto& var: _buffers)
-                key._slotBits.addFlag(var.attr().slot());
+            key._slotBits   =   slotBits();
             return  key;
         }
         /// <summary>

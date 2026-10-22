@@ -16,7 +16,9 @@ namespace   FE
         {
             T   c0 = T(0), c1 = T(0), c2 = T(0), c3 = T(0);
 
+            /// <summary>
             /// p(0)=x0, p(1)=x1, p'(0)=t0, p'(1)=t1
+            /// </summary>
             void    init(T x0, T x1, T t0, T t1)
             {
                 c0  =   x0;
@@ -33,7 +35,9 @@ namespace   FE
             void    initNonuniformCatmullRom(T x0, T x1, T x2, T x3,
                                              T dt0, T dt1, T dt2)
             {
+                /// <summary>
                 /// [t1,t2] 参数化下的端点切线
+                /// </summary>
                 T   t1  =   (x1 - x0) / dt0 - (x2 - x0) / (dt0 + dt1) + (x2 - x1) / dt1;
                 T   t2  =   (x2 - x1) / dt1 - (x3 - x1) / (dt1 + dt2) + (x3 - x2) / dt2;
                 /// 缩放回 [0,1] 参数域
@@ -150,8 +154,12 @@ namespace   FE
         }
     };
 
+    /// <summary>
     /// 单精度别名 (向后兼容)
+    /// </summary>
     using   FECatmullRomCurve3   =   FECatmullRomCurve3T<float>;
+    /// <summary>
     /// 双精度别名
+    /// </summary>
     using   FECatmullRomCurve3D  =   FECatmullRomCurve3T<double>;
 }

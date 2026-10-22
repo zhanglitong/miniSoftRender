@@ -14,7 +14,9 @@ namespace   FE
         {
             _data   =   val;
         }
+        /// <summary>
         /// 仅接受算术类型,避免对向量等类型误判可转换(转换语义为取整,非half编码)
+        /// </summary>
         template<class U,std::enable_if_t<std::is_arithmetic_v<U>,int> = 0>
         float16(U val)
         {

@@ -87,7 +87,9 @@ namespace   FE
             const float radius          =   params.radius;
             const bool  closed          =   params.closed;
 
+            /// <summary>
             /// Frenet 标架
+            /// </summary>
             FEFrenetFrames frames   =   path->computeFrenetFrames(tubularSegments, closed);
 
             /// 生成第 i 个截面环 (移植自 three.js TubeGeometry.generateSegment)
@@ -120,7 +122,9 @@ namespace   FE
             /// 截面环
             for (uint i = 0; i < tubularSegments; ++i)
                 generateSegment(i);
+            /// <summary>
             /// 非闭合: 末端常规环; 闭合: 复制首环(uv 不同)
+            /// </summary>
             generateSegment(closed ? 0 : tubularSegments);
 
             /// UV

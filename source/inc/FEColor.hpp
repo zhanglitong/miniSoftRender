@@ -376,7 +376,9 @@ namespace   FE
     template<class T,class = void>
     struct  FEVecTraits
     {};
+    /// <summary>
     /// 算术标量: 1分量
+    /// </summary>
     template<class T>
     struct  FEVecTraits<T,std::enable_if_t<std::is_arithmetic_v<T>>>
     {
@@ -384,7 +386,9 @@ namespace   FE
         static  constexpr uint32    Count   =   1;
         static  const T&            get(const T& v,uint32)  {   return  v;  }
     };
+    /// <summary>
     /// float16标量(非算术类型,单独列出)
+    /// </summary>
     template<>
     struct  FEVecTraits<float16,void>
     {
@@ -392,7 +396,9 @@ namespace   FE
         static  constexpr uint32    Count   =   1;
         static  const float16&      get(const float16& v,uint32)    {   return  v;  }
     };
+    /// <summary>
     /// glm向量: N分量
+    /// </summary>
     template<glm::length_t N,class T>
     struct  FEVecTraits<glm::vec<N,T,glm::defaultp>,void>
     {
@@ -549,7 +555,9 @@ namespace   FE
             else                        return  TTo(c[0],c[1],c[2],c[3]);
         }
     private:
+        /// <summary>
         /// 宿表示下的 alpha=1: Unorm取满量程,其余取整型1
+        /// </summary>
         static  TS      alphaOne()
         {
             if constexpr (ToCat == FEQuantCat::Unorm)   return  (std::numeric_limits<TS>::max)();
@@ -596,10 +604,12 @@ namespace   FE
     template<class TFrom,class TTo,FEFormat ToFMT = FMT_NONE,FEFormat FromFMT = FMT_NONE>
     struct  TConvert 
     {
+        /// <summary>
         /// 成员模板使enable_if依赖函数模板参数,不支持的转换对走SFINAE替换失败,
         /// 配合IsTConvertible探测,避免类实例化时产生硬错误
         /// ToFMT: 宿格式(决定宿量化语义,如uint8x4在UNORM下按[0,1]缩放,在UINT下按原值取整钳制)
         /// FromFMT: 源格式(TColor源自动携带;裸类型源按QuantOfScalar默认约定)
+        /// </summary>
         template<class F = TFrom,class T = TTo>
         static  auto    convert(const TFrom& data)
             ->  std::enable_if_t<IsConvertPair<F,T,ToFMT,FromFMT>::value,TTo>
@@ -630,7 +640,9 @@ namespace   FE
     struct  IsTConvertible<TFrom,TTo,ToFMT,FromFMT,std::void_t<decltype(TConvert<TFrom,TTo,ToFMT,FromFMT>::convert(std::declval<const TFrom&>()))>>   :   std::true_type
     {};
 
+    /// <summary>
     /// 既有A2B10G10R10_SNORM打包结构的手工转换,任意格式参数下保持既有行为
+    /// </summary>
     template<FEFormat ToFMT,FEFormat FromFMT>
     struct  TConvert<float4,FEA2b10g10r10Snorm,ToFMT,FromFMT>
     {
@@ -707,7 +719,9 @@ namespace   FE
     {
         using   VFrom   =   ExtractColorValueType<From>;
         using   VTo     =   ExtractColorValueType<To>;
+        /// <summary>
         /// 宿格式: 显式参数优先,其次取宿颜色对象自身格式; 源格式取源颜色对象自身格式
+        /// </summary>
         constexpr FEFormat    toFMT   =   (FMT != FMT_NONE) ? FMT : ColorFormatOf<To>::value;
         return  TConvert<VFrom,VTo,toFMT,ColorFormatOf<From>::value>::convert(data);
     }

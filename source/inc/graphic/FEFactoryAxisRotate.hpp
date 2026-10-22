@@ -407,7 +407,9 @@ namespace   FE
         NodeRotateEditor    _rotate         =   nullptr;
         MaterialV3          _mat            =   nullptr;
     private:
+        /// <summary>
         /// 圆弧顶点缓存 (供 render 使用)
+        /// </summary>
         size_t              _arcVertTotal       =   0;
         size_t              _arcVertCount[3]    =   {0,0,0};
         size_t              _arcVertOffset[3]   =   {0,0,0};

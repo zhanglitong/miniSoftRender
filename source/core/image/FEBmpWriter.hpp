@@ -21,7 +21,9 @@ namespace   FE
         uint32_t bfOffBits;         /// 从文件头到像素数据的偏移量
     };
 
+    /// <summary>
     /// BMP 信息头 (40 字节)
+    /// </summary>
     struct  BmpInfoHeader 
     {
         uint32_t biSize;            /// 本结构大小，固定为 40
@@ -78,7 +80,9 @@ namespace   FE
             }
 
             uint32_t    paSize          =   (nMul == 1) ? sizeof(palette) : 0;
+            /// <summary>
             /// 填充文件头
+            /// </summary>
             BmpFileHeader fileHeader;
             fileHeader.bfType           =   0x4D42;  // 'BM'
             fileHeader.bfSize           =   sizeof(BmpFileHeader) + sizeof(BmpInfoHeader) +  paSize + dataSize;
@@ -86,7 +90,9 @@ namespace   FE
             fileHeader.bfReserved2      =   0;
             fileHeader.bfOffBits        =   sizeof(BmpFileHeader) + sizeof(BmpInfoHeader) +  paSize;
 
+            /// <summary>
             /// 填充信息头
+            /// </summary>
             BmpInfoHeader infoHeader;
             infoHeader.biSize           =   sizeof(BmpInfoHeader);
             infoHeader.biWidth          =   width;
@@ -100,7 +106,9 @@ namespace   FE
             infoHeader.biClrUsed        =   nMul == 1 ? 256:0;
             infoHeader.biClrImportant   =   0;
 
+            /// <summary>
             /// 打开文件 (二进制模式)
+            /// </summary>
             std::ofstream file(fileName, std::ios::binary);
             if (!file) 
             {

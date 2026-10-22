@@ -35,8 +35,12 @@ namespace   FE
         }
     };
 
+    /// <summary>
     /// 单精度别名 (向后兼容)
+    /// </summary>
     using   FECubicBezierCurve3   =   FECubicBezierCurve3T<float>;
+    /// <summary>
     /// 双精度别名
+    /// </summary>
     using   FECubicBezierCurve3D  =   FECubicBezierCurve3T<double>;
 }

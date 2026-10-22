@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 天空盒(大气散射)管线:
+     cullMode=0(NONE):相机位于立方体内部,关闭面剔除;因盒体恒以相机为中心,
+       近/远两个面的交点在同一条视线上(normalize 后方向相同),重叠绘制无副作用;
+     enableDepthWrite=0:天空不写深度;
+     顶点着色器把裁剪空间 z 强制到远平面(z=w),配合 LESS_OR_EQUAL 恒被几何遮挡 -->
+<root using_defult="1" type="graphic" cullMode="0" enableDepthTest="1" enableDepthWrite="0">
+  <shaders>
+    <shader url =":/data/shader/cache/sky/shader.frag.spv"/>
+    <shader url =":/data/shader/cache/sky/shader.vert.spv"/>
+  </shaders>
+  <dynamicStates>
+    <VIEWPORT/>
+    <SCISSOR/>
+    <PRIMITIVE_TOPOLOGY/>
+  </dynamicStates>
+  <!--顶点定义: 与 texture/cube 约定一致(天空盒不使用变换,仅为复用工厂实例路径)-->
+  <bindings>
+    <binding binding="0" inputRate="0">
+      <input
+          name      = ""
+          location  = "0"
+          slots     = "IS_VERTEX_POS"
+          formats   = "R32G32B32_FLOAT"
+          offsets   = "0"/>
+      <input
+          name      = ""
+          location  = "1"
+          slots     = "IS_VERTEX_TEXCOORD0"
+          formats   = "R32G32_FLOAT"
+          offsets   = "12"/>
+    </binding>
+    <binding binding="1" inputRate="1">
+      <input
+           name      = "intPart"
+           location  = "2"
+           slots     = "IS_INSTANCE_ITRANSLATE"
+           formats   = "R32G32B32_SINT"
+           offsets   = "0"/>
+      <input
+           name      = "trans"
+           location  = "3"
+           slots     = "IS_INSTANCE_TRANSLATE"
+           formats   = "R32G32B32_FLOAT"
+           offsets   = "12"/>
+      <input
+           name      = "scale"
+           location  = "4"
+           slots     = "IS_INSTANCE_SCALE"
+           formats   = "R32G32B32_FLOAT"
+           offsets   = "24"/>
+      <input
+           name      = "rot"
+           location  = "5"
+           slots     = "IS_INSTANCE_ROTATE"
+           formats   = "R32G32B32A32_FLOAT"
+           offsets   = "36"/>
+    </binding>
+    <binding binding="2" inputRate="1">
+      <input
+           name      = "nodeColor"
+           location  = "6"
+           slots     = "IS_INSTANCE_COLOR"
+           formats   = "R8G8B8A8_UNORM"
+           offsets   = "0"/>
+    </binding>
+    <binding binding="3" inputRate="1">
+      <input
+           name      = "flagBits"
+           location  = "7"
+           slots     = "IS_INSTANCE_FLAG"
+           formats   = "R32_UINT"
+           offsets   = "0"/>
+    </binding>
+  </bindings>
+  <!--支持的特性-->
+  <features></features>
+  <!--支持的扩展-->
+  <extensions></extensions>
+  <!--动态状态-->
+  <states></states>
+</root>

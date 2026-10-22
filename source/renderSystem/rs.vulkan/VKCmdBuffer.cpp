@@ -544,6 +544,104 @@ namespace   FE
                              0, nullptr);
         return  FEResult::ER_SUCCESS;
     }
+    FEResult    VKCmdBuffer::generateMips(GImgView view)
+    {
+        if (!isValid() || view == nullptr)
+            return  FEResult::ER_FAILED;
+        auto    image   =   view->cInfo()._image;
+        if (image == nullptr || image->native() == nullptr)
+            return  FEResult::ER_FAILED;
+        const auto& imgInfo =   image->cInfo();
+        const uint  mipLevels   =   imgInfo._mips;
+        if (mipLevels < 2)
+            return  FEResult::ER_SUCCESS;
+
+        auto    vkImage =   (VkImage)image->native();
+
+        /// 进入时状态(pass1 endRender 之后):mip0 = SHADER_READ_ONLY,
+        /// 其余 mip 尚未触碰过(UNDEFINED)。流程:
+        ///   0. mip0 SHADER_READ_ONLY -> TRANSFER_SRC(为第 1 轮 blit 准备 src)
+        ///   1. 对每级 mip i=1..N:
+        ///      a) 若 i>1,上轮已把 mip i-1 恢复到 SHADER_READ,这里再切回 TRANSFER_SRC
+        ///      b) mip i UNDEFINED -> TRANSFER_DST
+        ///      c) blit(mip i-1 -> mip i,线性过滤)
+        ///      d) mip i-1 TRANSFER_SRC -> SHADER_READ(src 用完立刻恢复)
+        ///      e) mip i   TRANSFER_DST -> SHADER_READ
+        ///   循环结束后 mip 0..N 全部 SHADER_READ_ONLY
+        insertImageMemoryBarrier(
+            _native, vkImage,
+            VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+        uint    srcW    =   imgInfo._width;
+        uint    srcH    =   imgInfo._height;
+        for (uint mip = 1; mip < mipLevels; ++mip)
+        {
+            const uint  dstW    =   srcW > 1 ? srcW >> 1 : 1;
+            const uint  dstH    =   srcH > 1 ? srcH >> 1 : 1;
+
+            /// i>1 时上轮末尾已把 src(mip i-1) 恢复到 SHADER_READ,这里再切回 TRANSFER_SRC
+            if (mip > 1)
+            {
+                insertImageMemoryBarrier(
+                    _native, vkImage,
+                    VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip - 1, 1, 0, 1 });
+            }
+
+            /// dst(mip i) UNDEFINED -> TRANSFER_DST
+            insertImageMemoryBarrier(
+                _native, vkImage,
+                0, VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip, 1, 0, 1 });
+
+            VkImageBlit blit                =   {};
+            blit.srcSubresource.aspectMask  =   VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.srcSubresource.mipLevel    =   mip - 1;
+            blit.srcSubresource.layerCount  =   1;
+            blit.srcOffsets[0]              =   { 0, 0, 0 };
+            blit.srcOffsets[1]              =   { (int32_t)srcW, (int32_t)srcH, 1 };
+            blit.dstSubresource.aspectMask  =   VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.dstSubresource.mipLevel    =   mip;
+            blit.dstSubresource.layerCount  =   1;
+            blit.dstOffsets[0]              =   { 0, 0, 0 };
+            blit.dstOffsets[1]              =   { (int32_t)dstW, (int32_t)dstH, 1 };
+            vkCmdBlitImage(_native,
+                           vkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1, &blit, VK_FILTER_LINEAR);
+
+            /// blit 完成:src 和 dst 都用完了,各自恢复 SHADER_READ
+            /// src(mip i-1):TRANSFER_SRC -> SHADER_READ
+            insertImageMemoryBarrier(
+                _native, vkImage,
+                VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip - 1, 1, 0, 1 });
+
+            /// dst(mip i):TRANSFER_DST -> SHADER_READ
+            insertImageMemoryBarrier(
+                _native, vkImage,
+                VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, mip, 1, 0, 1 });
+
+            srcW    =   dstW;
+            srcH    =   dstH;
+        }
+
+        /// 循环结束后 mip 0..N 全部 SHADER_READ_ONLY,同步引擎侧状态
+        image->setLayout(IL_SHADER_READ_ONLY_OPTIMAL);
+        return  FEResult::ER_SUCCESS;
+    }
 
 
     FEResult    VKCmdBuffer::draw  (   uint32_t firstVertex  

@@ -119,12 +119,16 @@ const   int     LightTypeSpot   =   2;
     {
         return  (flag & RF_COLOR)  != 0;
     }
+    /// <summary>
     /// 是否被选中(需要高亮)
+    /// </summary>
     bool    isSelected(uint flag)
     {
         return  (flag & RF_SELECTED)  != 0;
     }
+    /// <summary>
     /// 解包 RGBA8 颜色(高字节在 R),与 C++ 端 selectColor/_color 打包一致
+    /// </summary>
     vec4    unpackColor(uint c)
     {
         return vec4(
@@ -133,18 +137,24 @@ const   int     LightTypeSpot   =   2;
         float((c >> 8 ) & 0xFFu) / 255.0,
         float((c >> 0 ) & 0xFFu) / 255.0);
     }
+    /// <summary>
     /// 打包 RGBA8 颜色(R 存高字节),与 unpackColor 互逆;超出 [0,1] 的分量会被截断
+    /// </summary>
     uint    packColor(vec4 c)
     {
         uvec4   v = uvec4(clamp(c, 0.0, 1.0) * 255.0 + 0.5);
         return (v.r << 24) | (v.g << 16) | (v.b << 8) | (v.a << 0);
     }
+    /// <summary>
     /// 打包 HDR 颜色到 2 个 uint(4 通道 half),支持 >1.0 的 HDR 值,与 unpackColorHDR 互逆
+    /// </summary>
     uint2   packColorHDR(vec4 c)
     {
         return uint2(packHalf2x16(c.rg), packHalf2x16(c.ba));
     }
+    /// <summary>
     /// 解包 HDR 颜色(packColorHDR 的逆操作)
+    /// </summary>
     vec4    unpackColorHDR(uint2 c)
     {
         return vec4(unpackHalf2x16(c.x), unpackHalf2x16(c.y));
@@ -190,18 +200,26 @@ struct  CullParam
     /// 最小可见像素
     /// </summary>
     float       _minVisiblePixels;
+    /// <summary>
     /// 在总数组上索引偏移量
+    /// </summary>
     uint        _offset;
+    /// <summary>
     /// 元素个数
+    /// </summary>
     uint        _count;
     mat4        _mvp;
 };
 
 struct  CullResult
 {
+    /// <summary>
     /// 输出个数,在计算前,确保原始数据是0
+    /// </summary>
     uint    clippedCount;
+    /// <summary>
     /// 保留,对齐
+    /// </summary>
     uint    reserver0;
     uint    reserver1;
     uint    reserver2;
@@ -387,9 +405,34 @@ struct  ClipData
     float3  pos;
     float3  color;
 };
+/// <summary>
+/// 天空盒(大气散射)参数 UBO:std140 布局,C++ 与 GLSL/WGSL 两侧结构体完全一致。
+/// 全部字段用 vec4 承载,规避 vec3 在 std140 下 16 字节对齐产生的隐式填充歧义。
+///   _sunDirection : xyz=归一化太阳方向, w=曝光(exposure,默认 0.05,对齐 three.js 示例)
+///   _params       : x=turbidity, y=rayleigh, z=mieCoefficient, w=mieDirectionalG
+///   _up           : xyz=世界上方向(引擎默认 Z 朝上,此处默认 (0,0,1)), w=保留
+///   _cloud        : x=coverage 云量(0=无云), y=density 云密度, z=elevation 云层高度, w=保留
+///   _anim         : x=累计时间(秒,驱动云流动), y=cloudScale 云层缩放, z=cloudSpeed 云速, w=保留
+/// </summary>
 struct  UBOSky
 {
-    float _dummy;
+    float4  _sunDirection;
+    float4  _params;
+    float4  _up;
+    float4  _cloud;
+    float4  _anim;
+#ifdef __cplusplus
+    UBOSky()
+    {
+        _sunDirection   =   float4(0.0f,  0.0f,  1.0f,   0.05f);
+        _params         =   float4(10.0f, 3.0f,  0.005f, 0.8f);
+        _up             =   float4(0.0f,  0.0f,  1.0f,   0.0f);
+        /// 云参数默认值:类默认是 0.4/0.4/0.5,此处取 webgpu_sky 示例的面板值,
+        /// 视觉与参考截图一致
+        _cloud          =   float4(0.36f, 0.71f, 0.44f,  0.0f);
+        _anim           =   float4(0.0f,  0.0002f, 0.00002f, 0.0f);
+    }
+#endif
 };
 
 /// <summary>
@@ -399,22 +442,34 @@ struct  UBOSky
 /// </summary>
 struct  OITNode
 {
+    /// <summary>
     /// HDR 颜色 RG 通道(packHalf2x16)
+    /// </summary>
     uint    colorRG;
+    /// <summary>
     /// HDR 颜色 BA 通道(packHalf2x16)
+    /// </summary>
     uint    colorBA;
+    /// <summary>
     /// fragment 深度(gl_FragCoord.z)
+    /// </summary>
     float   depth;
+    /// <summary>
     /// 下一节点索引,0xFFFFFFFF 表示链表尾
+    /// </summary>
     uint    next;
 };
 
 struct  PointData
 {
     mat4        _mvp;
+    /// <summary>
     /// point range,min value~ max value
+    /// </summary>
     uint        _point;
+    /// <summary>
     /// 颜色
+    /// </summary>
     uint        _color;
 #ifdef __cplusplus
     PointData()

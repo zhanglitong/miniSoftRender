@@ -64,6 +64,7 @@ namespace   FE
         virtual FEResult    fillBuffer(GPUBuffer buf, uint64 dstOff, uint64 size, uint32 value) override;
         virtual FEResult    pipelineBarrier(uint32 srcStageMask, uint32 dstStageMask,
                                              uint32 srcAccessMask, uint32 dstAccessMask) override;
+        virtual FEResult    generateMips(GImgView view) override;
        
         virtual FEResult    draw  (   uint32_t firstVertex  
                                     , uint32_t vertexCount

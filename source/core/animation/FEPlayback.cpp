@@ -219,8 +219,10 @@ namespace FE
                 _cache.emplace_back(obj);
             }
         }
+        /// <summary>
         ///  Ȱ   ʱ      
         ///  ڰ   ʱ   ߶       ,    ͬһʱ   .  ͬtimeLine   󶼼     һ    , ڰ  ն       
+        /// </summary>
         std::sort(_cache.begin(),_cache.end(),[](const TrackObject& l,const TrackObject& r)
         {
             if (l._offTime != r._offTime)

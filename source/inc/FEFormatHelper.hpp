@@ -1,6 +1,11 @@
 #pragma     once
+#include    <cassert>
+#include    <cstring>
 #include    "FEFlags.hpp"
 #include    "FEFormat.hpp"
+#include    "FEMath.hpp"
+#include    "FEMathUtil.hpp"
+#include    "FEColor.hpp"
 
 namespace   FE
 {
@@ -133,8 +138,110 @@ namespace   FE
             /// 按32位深度 + 8位模板，按8字节对齐
             case FMT_D32_S8_UNORM :
                 return  2 * sizeof(float32);
+
+            /// =====================================================================
+            /// 块压缩格式:一个"元素"是一个 4x4 像素块,返回每块字节数
+            /// 64bit 块(8字节):BC1/BC4/ETC2_RGB/EAC_R11
+            /// =====================================================================
+            case FMT_BC1_RGB_UNORM       :
+            case FMT_BC1_RGB_SRGB        :
+            case FMT_BC1_RGBA_UNORM      :
+            case FMT_BC1_RGBA_SRGB       :
+            case FMT_BC4_UNORM           :
+            case FMT_BC4_SNORM           :
+            case FMT_ETC2_R8G8B8_UNORM   :
+            case FMT_ETC2_R8G8B8_SRGB    :
+            case FMT_EAC_R11_UNORM       :
+            case FMT_EAC_R11_SNORM       :
+                return  8;
+            /// 128bit 块(16字节):BC2/BC3/BC5/BC6H/BC7/ETC2_ALPHA/EAC_R11G11/ASTC
+            case FMT_BC2_UNORM           :
+            case FMT_BC2_SRGB            :
+            case FMT_BC3_UNORM           :
+            case FMT_BC3_SRGB            :
+            case FMT_BC5_UNORM           :
+            case FMT_BC5_SNORM           :
+            case FMT_BC6H_UFLOAT         :
+            case FMT_BC6H_SFLOAT         :
+            case FMT_BC7_UNORM           :
+            case FMT_BC7_SRGB            :
+            case FMT_ETC2_R8G8B8A8_UNORM :
+            case FMT_ETC2_R8G8B8A8_SRGB  :
+            case FMT_EAC_R11G11_UNORM    :
+            case FMT_EAC_R11G11_SNORM    :
+            case FMT_ASTC_4x4_UNORM      :
+            case FMT_ASTC_4x4_SRGB       :
+            case FMT_ASTC_6x6_UNORM      :
+            case FMT_ASTC_6x6_SRGB       :
+            case FMT_ASTC_8x8_UNORM      :
+            case FMT_ASTC_8x8_SRGB       :
+                return  16;
             }
             return  1;
+        }
+        /// <summary>
+        /// 是否块压缩格式(4x4 像素块,KTX/DDS 家族;数据为整块字节,无逐像素语义)
+        /// </summary>
+        /// <param name="fmt"></param>
+        /// <returns></returns>
+        static  bool    isBlockFormat(const FEFormat& fmt)
+        {
+            switch(fmt)
+            {
+            case FMT_BC1_RGB_UNORM       :
+            case FMT_BC1_RGB_SRGB        :
+            case FMT_BC1_RGBA_UNORM      :
+            case FMT_BC1_RGBA_SRGB       :
+            case FMT_BC2_UNORM           :
+            case FMT_BC2_SRGB            :
+            case FMT_BC3_UNORM           :
+            case FMT_BC3_SRGB            :
+            case FMT_BC4_UNORM           :
+            case FMT_BC4_SNORM           :
+            case FMT_BC5_UNORM           :
+            case FMT_BC5_SNORM           :
+            case FMT_BC6H_UFLOAT         :
+            case FMT_BC6H_SFLOAT         :
+            case FMT_BC7_UNORM           :
+            case FMT_BC7_SRGB            :
+            case FMT_ETC2_R8G8B8_UNORM   :
+            case FMT_ETC2_R8G8B8_SRGB    :
+            case FMT_ETC2_R8G8B8A8_UNORM :
+            case FMT_ETC2_R8G8B8A8_SRGB  :
+            case FMT_EAC_R11_UNORM       :
+            case FMT_EAC_R11_SNORM       :
+            case FMT_EAC_R11G11_UNORM    :
+            case FMT_EAC_R11G11_SNORM    :
+            case FMT_ASTC_4x4_UNORM      :
+            case FMT_ASTC_4x4_SRGB       :
+            case FMT_ASTC_6x6_UNORM      :
+            case FMT_ASTC_6x6_SRGB       :
+            case FMT_ASTC_8x8_UNORM      :
+            case FMT_ASTC_8x8_SRGB       :
+                return  true;
+            default:
+                return  false;
+            }
+        }
+        /// <summary>
+        /// 块压缩格式的块尺寸(像素):BC/ETC2/EAC 为 4x4,ASTC 按块型 4x4/6x6/8x8;
+        /// 其余格式 1x1
+        /// </summary>
+        /// <param name="fmt"></param>
+        /// <returns></returns>
+        static  uint2   blockExtent(const FEFormat& fmt)
+        {
+            switch(fmt)
+            {
+            case FMT_ASTC_6x6_UNORM     :
+            case FMT_ASTC_6x6_SRGB      :   return  uint2(6,6);
+            case FMT_ASTC_8x8_UNORM     :
+            case FMT_ASTC_8x8_SRGB      :   return  uint2(8,8);
+            default:                        break;
+            }
+            if (isBlockFormat(fmt))
+                return  uint2(4,4);
+            return  uint2(1,1);
         }
         /// <summary>
         /// 获取颜色的通道数，R:1,RG:2,RGB:3,RGBA:4;
@@ -256,6 +363,42 @@ namespace   FE
                 return  1;
             case FMT_D32_S8_UNORM:
                 return  2;
+
+            /// 块压缩格式:按语义通道数(GPU 解码前的整块数据无独立分量可寻址)
+            case FMT_BC4_UNORM           :
+            case FMT_BC4_SNORM           :
+            case FMT_EAC_R11_UNORM       :
+            case FMT_EAC_R11_SNORM       :
+                return  1;
+            case FMT_BC5_UNORM           :
+            case FMT_BC5_SNORM           :
+            case FMT_EAC_R11G11_UNORM    :
+            case FMT_EAC_R11G11_SNORM    :
+                return  2;
+            case FMT_BC1_RGB_UNORM       :
+            case FMT_BC1_RGB_SRGB        :
+            case FMT_BC6H_UFLOAT         :
+            case FMT_BC6H_SFLOAT         :
+            case FMT_ETC2_R8G8B8_UNORM   :
+            case FMT_ETC2_R8G8B8_SRGB    :
+                return  3;
+            case FMT_BC1_RGBA_UNORM      :
+            case FMT_BC1_RGBA_SRGB       :
+            case FMT_BC2_UNORM           :
+            case FMT_BC2_SRGB            :
+            case FMT_BC3_UNORM           :
+            case FMT_BC3_SRGB            :
+            case FMT_BC7_UNORM           :
+            case FMT_BC7_SRGB            :
+            case FMT_ETC2_R8G8B8A8_UNORM :
+            case FMT_ETC2_R8G8B8A8_SRGB  :
+            case FMT_ASTC_4x4_UNORM      :
+            case FMT_ASTC_4x4_SRGB       :
+            case FMT_ASTC_6x6_UNORM      :
+            case FMT_ASTC_6x6_SRGB       :
+            case FMT_ASTC_8x8_UNORM      :
+            case FMT_ASTC_8x8_SRGB       :
+                return  4;
             }
             return  1;
         }
@@ -365,6 +508,39 @@ namespace   FE
             case FMT_D16_UNORM              :  return  "D16_UNORM";
             case FMT_D32_UNORM              :  return  "D32_UNORM";
             case FMT_D32_S8_UNORM           :  return  "D32_S8_UNORM";
+
+            case FMT_BC1_RGB_UNORM          :  return  "BC1_RGB_UNORM";
+            case FMT_BC1_RGB_SRGB           :  return  "BC1_RGB_SRGB";
+            case FMT_BC1_RGBA_UNORM         :  return  "BC1_RGBA_UNORM";
+            case FMT_BC1_RGBA_SRGB          :  return  "BC1_RGBA_SRGB";
+            case FMT_BC2_UNORM              :  return  "BC2_UNORM";
+            case FMT_BC2_SRGB               :  return  "BC2_SRGB";
+            case FMT_BC3_UNORM              :  return  "BC3_UNORM";
+            case FMT_BC3_SRGB               :  return  "BC3_SRGB";
+            case FMT_BC4_UNORM              :  return  "BC4_UNORM";
+            case FMT_BC4_SNORM              :  return  "BC4_SNORM";
+            case FMT_BC5_UNORM              :  return  "BC5_UNORM";
+            case FMT_BC5_SNORM              :  return  "BC5_SNORM";
+            case FMT_BC6H_UFLOAT            :  return  "BC6H_UFLOAT";
+            case FMT_BC6H_SFLOAT            :  return  "BC6H_SFLOAT";
+            case FMT_BC7_UNORM              :  return  "BC7_UNORM";
+            case FMT_BC7_SRGB               :  return  "BC7_SRGB";
+
+            case FMT_ETC2_R8G8B8_UNORM      :  return  "ETC2_R8G8B8_UNORM";
+            case FMT_ETC2_R8G8B8_SRGB       :  return  "ETC2_R8G8B8_SRGB";
+            case FMT_ETC2_R8G8B8A8_UNORM    :  return  "ETC2_R8G8B8A8_UNORM";
+            case FMT_ETC2_R8G8B8A8_SRGB     :  return  "ETC2_R8G8B8A8_SRGB";
+            case FMT_EAC_R11_UNORM          :  return  "EAC_R11_UNORM";
+            case FMT_EAC_R11_SNORM          :  return  "EAC_R11_SNORM";
+            case FMT_EAC_R11G11_UNORM       :  return  "EAC_R11G11_UNORM";
+            case FMT_EAC_R11G11_SNORM       :  return  "EAC_R11G11_SNORM";
+
+            case FMT_ASTC_4x4_UNORM         :  return  "ASTC_4x4_UNORM";
+            case FMT_ASTC_4x4_SRGB          :  return  "ASTC_4x4_SRGB";
+            case FMT_ASTC_6x6_UNORM         :  return  "ASTC_6x6_UNORM";
+            case FMT_ASTC_6x6_SRGB          :  return  "ASTC_6x6_SRGB";
+            case FMT_ASTC_8x8_UNORM         :  return  "ASTC_8x8_UNORM";
+            case FMT_ASTC_8x8_SRGB          :  return  "ASTC_8x8_SRGB";
             }
             assert(0!=0);
             return  "NONE";
@@ -457,12 +633,325 @@ namespace   FE
             else if (_stricmp(enumName( FMT_D16_UNORM           ),    name) == 0)   return  FMT_D16_UNORM           ;
             else if (_stricmp(enumName( FMT_D32_UNORM           ),    name) == 0)   return  FMT_D32_UNORM           ;
             else if (_stricmp(enumName( FMT_D32_S8_UNORM        ),    name) == 0)   return  FMT_D32_S8_UNORM        ;
+            else if (_stricmp(enumName( FMT_BC1_RGB_UNORM       ),    name) == 0)   return  FMT_BC1_RGB_UNORM       ;
+            else if (_stricmp(enumName( FMT_BC1_RGB_SRGB        ),    name) == 0)   return  FMT_BC1_RGB_SRGB        ;
+            else if (_stricmp(enumName( FMT_BC1_RGBA_UNORM      ),    name) == 0)   return  FMT_BC1_RGBA_UNORM      ;
+            else if (_stricmp(enumName( FMT_BC1_RGBA_SRGB       ),    name) == 0)   return  FMT_BC1_RGBA_SRGB       ;
+            else if (_stricmp(enumName( FMT_BC2_UNORM           ),    name) == 0)   return  FMT_BC2_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC2_SRGB            ),    name) == 0)   return  FMT_BC2_SRGB            ;
+            else if (_stricmp(enumName( FMT_BC3_UNORM           ),    name) == 0)   return  FMT_BC3_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC3_SRGB            ),    name) == 0)   return  FMT_BC3_SRGB            ;
+            else if (_stricmp(enumName( FMT_BC4_UNORM           ),    name) == 0)   return  FMT_BC4_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC4_SNORM           ),    name) == 0)   return  FMT_BC4_SNORM           ;
+            else if (_stricmp(enumName( FMT_BC5_UNORM           ),    name) == 0)   return  FMT_BC5_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC5_SNORM           ),    name) == 0)   return  FMT_BC5_SNORM           ;
+            else if (_stricmp(enumName( FMT_BC6H_UFLOAT         ),    name) == 0)   return  FMT_BC6H_UFLOAT         ;
+            else if (_stricmp(enumName( FMT_BC6H_SFLOAT         ),    name) == 0)   return  FMT_BC6H_SFLOAT         ;
+            else if (_stricmp(enumName( FMT_BC7_UNORM           ),    name) == 0)   return  FMT_BC7_UNORM           ;
+            else if (_stricmp(enumName( FMT_BC7_SRGB            ),    name) == 0)   return  FMT_BC7_SRGB            ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8_UNORM   ),    name) == 0)   return  FMT_ETC2_R8G8B8_UNORM   ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8_SRGB    ),    name) == 0)   return  FMT_ETC2_R8G8B8_SRGB    ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8A8_UNORM ),    name) == 0)   return  FMT_ETC2_R8G8B8A8_UNORM ;
+            else if (_stricmp(enumName( FMT_ETC2_R8G8B8A8_SRGB  ),    name) == 0)   return  FMT_ETC2_R8G8B8A8_SRGB  ;
+            else if (_stricmp(enumName( FMT_EAC_R11_UNORM       ),    name) == 0)   return  FMT_EAC_R11_UNORM       ;
+            else if (_stricmp(enumName( FMT_EAC_R11_SNORM       ),    name) == 0)   return  FMT_EAC_R11_SNORM       ;
+            else if (_stricmp(enumName( FMT_EAC_R11G11_UNORM    ),    name) == 0)   return  FMT_EAC_R11G11_UNORM    ;
+            else if (_stricmp(enumName( FMT_EAC_R11G11_SNORM    ),    name) == 0)   return  FMT_EAC_R11G11_SNORM    ;
+            else if (_stricmp(enumName( FMT_ASTC_4x4_UNORM      ),    name) == 0)   return  FMT_ASTC_4x4_UNORM      ;
+            else if (_stricmp(enumName( FMT_ASTC_4x4_SRGB       ),    name) == 0)   return  FMT_ASTC_4x4_SRGB       ;
+            else if (_stricmp(enumName( FMT_ASTC_6x6_UNORM      ),    name) == 0)   return  FMT_ASTC_6x6_UNORM      ;
+            else if (_stricmp(enumName( FMT_ASTC_6x6_SRGB       ),    name) == 0)   return  FMT_ASTC_6x6_SRGB       ;
+            else if (_stricmp(enumName( FMT_ASTC_8x8_UNORM      ),    name) == 0)   return  FMT_ASTC_8x8_UNORM      ;
+            else if (_stricmp(enumName( FMT_ASTC_8x8_SRGB       ),    name) == 0)   return  FMT_ASTC_8x8_SRGB       ;
             assert(0!=0);
             return  FMT_NONE                ;
         }
-        
+
+        /// <summary>
+        /// float 分量 → 8bit 无符号归一化分量:clamp 到[0,1]后线性映射到[0,255]
+        /// </summary>
+        static  inline  uint8_t     f2unorm8(float v)
+        {
+            v   =   v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v);
+            return  uint8_t(v * 255.0f + 0.5f);
+        }
+        /// <summary>
+        /// float 分量 → 8bit 有符号归一化分量:clamp 到[-1,1]后线性映射到[-127,127]
+        /// </summary>
+        static  inline  int8_t      f2snorm8(float v)
+        {
+            v   =   v < -1.0f ? -1.0f : (v > 1.0f ? 1.0f : v);
+            return  int8_t(v * 127.0f + (v < 0.0f ? -0.5f : 0.5f));
+        }
+        /// <summary>
+        /// float 分量 → 16bit 无符号归一化分量:clamp 到[0,1]后线性映射到[0,65535]
+        /// </summary>
+        static  inline  uint16_t    f2unorm16(float v)
+        {
+            v   =   v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v);
+            return  uint16_t(v * 65535.0f + 0.5f);
+        }
+        /// <summary>
+        /// float 分量 → 16bit 有符号归一化分量:clamp 到[-1,1]后线性映射到[-32767,32767]
+        /// </summary>
+        static  inline  int16_t     f2snorm16(float v)
+        {
+            v   =   v < -1.0f ? -1.0f : (v > 1.0f ? 1.0f : v);
+            return  int16_t(v * 32767.0f + (v < 0.0f ? -0.5f : 0.5f));
+        }
+        /// <summary>
+        /// float 分量 → 8bit 无符号整数分量(USCALED/UINT):四舍五入并 clamp 到[0,255]
+        /// </summary>
+        static  inline  uint8_t     f2u8(float v)
+        {
+            v   =   v < 0.0f ? 0.0f : (v > 255.0f ? 255.0f : v);
+            return  uint8_t(v + 0.5f);
+        }
+        /// <summary>
+        /// float 分量 → 8bit 有符号整数分量(SSCALED/SINT):四舍五入并 clamp 到[-128,127]
+        /// </summary>
+        static  inline  int8_t      f2s8(float v)
+        {
+            v   =   v < -128.0f ? -128.0f : (v > 127.0f ? 127.0f : v);
+            return  int8_t(v + (v < 0.0f ? -0.5f : 0.5f));
+        }
+        /// <summary>
+        /// float 分量 → 16bit 无符号整数分量(USCALED/UINT):四舍五入并 clamp 到[0,65535]
+        /// </summary>
+        static  inline  uint16_t    f2u16(float v)
+        {
+            v   =   v < 0.0f ? 0.0f : (v > 65535.0f ? 65535.0f : v);
+            return  uint16_t(v + 0.5f);
+        }
+        /// <summary>
+        /// float 分量 → 16bit 有符号整数分量(SSCALED/SINT):四舍五入并 clamp 到[-32768,32767]
+        /// </summary>
+        static  inline  int16_t     f2s16(float v)
+        {
+            v   =   v < -32768.0f ? -32768.0f : (v > 32767.0f ? 32767.0f : v);
+            return  int16_t(v + (v < 0.0f ? -0.5f : 0.5f));
+        }
+        /// <summary>
+        /// float 分量 → 10bit 无符号整数分量(USCALED/UINT):四舍五入并 clamp 到[0,1023]
+        /// </summary>
+        static  inline  uint32_t    f2u10(float v)
+        {
+            v   =   v < 0.0f ? 0.0f : (v > 1023.0f ? 1023.0f : v);
+            return  uint32_t(v + 0.5f);
+        }
+        /// <summary>
+        /// float 分量 → 2bit 无符号 A 分量(USCALED/UINT):四舍五入并 clamp 到[0,3]
+        /// </summary>
+        static  inline  uint32_t    f2u2(float v)
+        {
+            v   =   v < 0.0f ? 0.0f : (v > 3.0f ? 3.0f : v);
+            return  uint32_t(v + 0.5f);
+        }
+        /// <summary>
+        /// float 分量 → 10bit 有符号整数分量(SSCALED/SINT):四舍五入并 clamp 到[-512,511]
+        /// </summary>
+        static  inline  int32_t     f2s10(float v)
+        {
+            v   =   v < -512.0f ? -512.0f : (v > 511.0f ? 511.0f : v);
+            return  int32_t(v + (v < 0.0f ? -0.5f : 0.5f));
+        }
+        /// <summary>
+        /// float 分量 → 2bit 有符号 A 分量(SSCALED/SINT):四舍五入并 clamp 到[-2,1]
+        /// </summary>
+        static  inline  int32_t     f2s2(float v)
+        {
+            v   =   v < -2.0f ? -2.0f : (v > 1.0f ? 1.0f : v);
+            return  int32_t(v + (v < 0.0f ? -0.5f : 0.5f));
+        }
+
+    public:
+        /// <summary>
+        /// 打包内核:将 float 源数据按每元素 srcComponents 分量,以 dstChannels 个 S 标量
+        /// 连续写入输出字节流(源分量不足补 0,超出截断)
+        /// </summary>
+        template<typename S,typename Conv>
+        static  void    packVec(uint8s& out,const float* src,size_t elements,uint dstChannels,uint srcComponents,Conv conv)
+        {
+            out.resize(elements*(size_t)dstChannels*sizeof(S));
+            S*  p   =   reinterpret_cast<S*>(out.data());
+            for (size_t e = 0; e < elements; e++)
+            {
+                const   float*  s   =   src + e*(size_t)srcComponents;
+                S*              d   =   p + e*(size_t)dstChannels;
+                for (uint c = 0; c < dstChannels; c++)
+                    d[c]    =   conv(c < srcComponents ? s[c] : 0.0f);
+            }
+        }
+
+        /// <summary>
+        /// packed A2B10G10R10 打包内核:每元素取 4 分量(不足补 0,超出截断),由组装回调生成 uint32 word
+        /// (组装复用 FEMathUtil 的 glm packUnorm3x10_1x2/packSnorm3x10_1x2/packU3x10_1x2/packI3x10_1x2)
+        /// </summary>
+        template<typename Assemble>
+        static  void    packVec1032(uint8s& out,const float* src,size_t elements,uint srcComponents,Assemble assemble)
+        {
+            out.resize(elements*sizeof(uint32_t));
+            uint32_t*   p   =   reinterpret_cast<uint32_t*>(out.data());
+            for (size_t e = 0; e < elements; e++)
+            {
+                const   float*  s   =   src + e*(size_t)srcComponents;
+                float   comp[4];
+                for (uint c = 0; c < 4; c++)
+                    comp[c] =   c < srcComponents ? s[c] : 0.0f;
+                p[e]    =   assemble(comp);
+            }
+        }
+
+        /// <summary>
+        /// 打包分发:按目标顶点格式选择标量类型与分量转换器;
+        /// 不支持的格式 assert 中断并返回空字节流(Release 退化为返回空)
+        /// </summary>
+        static  uint8s  packFloatsCore(const float* src,size_t elements,uint srcComponents,FEFormat dst)
+        {
+            uint8s  out;
+            #define FE_PACK_CASE(FMT,S,CONV,N)  case FMT: packVec<S>(out,src,elements,N,srcComponents,CONV); break;
+            #define FE_PACK_CASE_1032(FMT,PACK,VEC) \
+                case FMT: packVec1032(out,src,elements,srcComponents,[](const float* c) \
+                {   return  uint(PACK(VEC(c[0],c[1],c[2],c[3])));   }); break;
+            #define FE_PACK_CASE_1032_CVT(FMT,PACK,VEC,CVT10,CVT2) \
+                case FMT: packVec1032(out,src,elements,srcComponents,[](const float* c) \
+                {   return  uint(PACK(VEC(CVT10(c[0]),CVT10(c[1]),CVT10(c[2]),CVT2(c[3]))));    }); break;
+            switch(dst)
+            {
+            /// 32 位 FLOAT 族:直拷
+            FE_PACK_CASE(FMT_R32_FLOAT          ,float  ,[](float v){return v;}          ,1)
+            FE_PACK_CASE(FMT_R32G32_FLOAT       ,float  ,[](float v){return v;}          ,2)
+            FE_PACK_CASE(FMT_R32G32B32_FLOAT    ,float  ,[](float v){return v;}          ,3)
+            FE_PACK_CASE(FMT_R32G32B32A32_FLOAT ,float  ,[](float v){return v;}          ,4)
+            /// 16 位 FLOAT 族:half 编码
+            FE_PACK_CASE(FMT_R16_FLOAT          ,float16,[](float v){return float16(v);} ,1)
+            FE_PACK_CASE(FMT_R16G16_FLOAT       ,float16,[](float v){return float16(v);} ,2)
+            FE_PACK_CASE(FMT_R16G16B16_FLOAT    ,float16,[](float v){return float16(v);} ,3)
+            FE_PACK_CASE(FMT_R16G16B16A16_FLOAT ,float16,[](float v){return float16(v);} ,4)
+            /// 8bit 归一化族
+            FE_PACK_CASE(FMT_R8_UNORM           ,uint8_t,f2unorm8 ,1)
+            FE_PACK_CASE(FMT_R8G8_UNORM         ,uint8_t,f2unorm8 ,2)
+            FE_PACK_CASE(FMT_R8G8B8_UNORM       ,uint8_t,f2unorm8 ,3)
+            FE_PACK_CASE(FMT_R8G8B8A8_UNORM     ,uint8_t,f2unorm8 ,4)
+            FE_PACK_CASE(FMT_R8_SNORM           ,int8_t ,f2snorm8 ,1)
+            FE_PACK_CASE(FMT_R8G8_SNORM         ,int8_t ,f2snorm8 ,2)
+            FE_PACK_CASE(FMT_R8G8B8_SNORM       ,int8_t ,f2snorm8 ,3)
+            FE_PACK_CASE(FMT_R8G8B8A8_SNORM     ,int8_t ,f2snorm8 ,4)
+            /// 16bit 归一化族
+            FE_PACK_CASE(FMT_R16_UNORM          ,uint16_t,f2unorm16,1)
+            FE_PACK_CASE(FMT_R16G16_UNORM       ,uint16_t,f2unorm16,2)
+            FE_PACK_CASE(FMT_R16G16B16_UNORM    ,uint16_t,f2unorm16,3)
+            FE_PACK_CASE(FMT_R16G16B16A16_UNORM ,uint16_t,f2unorm16,4)
+            FE_PACK_CASE(FMT_R16_SNORM          ,int16_t,f2snorm16,1)
+            FE_PACK_CASE(FMT_R16G16_SNORM       ,int16_t,f2snorm16,2)
+            FE_PACK_CASE(FMT_R16G16B16_SNORM    ,int16_t,f2snorm16,3)
+            FE_PACK_CASE(FMT_R16G16B16A16_SNORM ,int16_t,f2snorm16,4)
+            /// 8bit 整数族(USCALED/UINT 与 SSCALED/SINT 分别共用无/有符号转换)
+            FE_PACK_CASE(FMT_R8_USCALED         ,uint8_t,f2u8,1)
+            FE_PACK_CASE(FMT_R8G8_USCALED       ,uint8_t,f2u8,2)
+            FE_PACK_CASE(FMT_R8G8B8_USCALED     ,uint8_t,f2u8,3)
+            FE_PACK_CASE(FMT_R8G8B8A8_USCALED   ,uint8_t,f2u8,4)
+            FE_PACK_CASE(FMT_R8_UINT            ,uint8_t,f2u8,1)
+            FE_PACK_CASE(FMT_R8G8_UINT          ,uint8_t,f2u8,2)
+            FE_PACK_CASE(FMT_R8G8B8_UINT        ,uint8_t,f2u8,3)
+            FE_PACK_CASE(FMT_R8G8B8A8_UINT      ,uint8_t,f2u8,4)
+            FE_PACK_CASE(FMT_R8_SSCALED         ,int8_t ,f2s8,1)
+            FE_PACK_CASE(FMT_R8G8_SSCALED       ,int8_t ,f2s8,2)
+            FE_PACK_CASE(FMT_R8G8B8_SSCALED     ,int8_t ,f2s8,3)
+            FE_PACK_CASE(FMT_R8G8B8A8_SSCALED   ,int8_t ,f2s8,4)
+            FE_PACK_CASE(FMT_R8_SINT            ,int8_t ,f2s8,1)
+            FE_PACK_CASE(FMT_R8G8_SINT          ,int8_t ,f2s8,2)
+            FE_PACK_CASE(FMT_R8G8B8_SINT        ,int8_t ,f2s8,3)
+            FE_PACK_CASE(FMT_R8G8B8A8_SINT      ,int8_t ,f2s8,4)
+            /// 16bit 整数族
+            FE_PACK_CASE(FMT_R16_USCALED        ,uint16_t,f2u16,1)
+            FE_PACK_CASE(FMT_R16G16_USCALED     ,uint16_t,f2u16,2)
+            FE_PACK_CASE(FMT_R16G16B16_USCALED  ,uint16_t,f2u16,3)
+            FE_PACK_CASE(FMT_R16G16B16A16_USCALED,uint16_t,f2u16,4)
+            FE_PACK_CASE(FMT_R16_UINT           ,uint16_t,f2u16,1)
+            FE_PACK_CASE(FMT_R16G16_UINT        ,uint16_t,f2u16,2)
+            FE_PACK_CASE(FMT_R16G16B16_UINT     ,uint16_t,f2u16,3)
+            FE_PACK_CASE(FMT_R16G16B16A16_UINT  ,uint16_t,f2u16,4)
+            FE_PACK_CASE(FMT_R16_SSCALED        ,int16_t,f2s16,1)
+            FE_PACK_CASE(FMT_R16G16_SSCALED     ,int16_t,f2s16,2)
+            FE_PACK_CASE(FMT_R16G16B16_SSCALED  ,int16_t,f2s16,3)
+            FE_PACK_CASE(FMT_R16G16B16A16_SSCALED,int16_t,f2s16,4)
+            FE_PACK_CASE(FMT_R16_SINT           ,int16_t,f2s16,1)
+            FE_PACK_CASE(FMT_R16G16_SINT        ,int16_t,f2s16,2)
+            FE_PACK_CASE(FMT_R16G16B16_SINT     ,int16_t,f2s16,3)
+            FE_PACK_CASE(FMT_R16G16B16A16_SINT  ,int16_t,f2s16,4)
+            /// packed A2B10G10R10 族:R/G/B 10bit + A 2bit,单 word(组装复用 glm pack*3x10_1x2)
+            FE_PACK_CASE_1032(FMT_A2B10G10R10_UNORM     ,FE::packUnorm3x10_1x2,float4)
+            FE_PACK_CASE_1032(FMT_A2B10G10R10_SNORM     ,FE::packSnorm3x10_1x2,float4)
+            FE_PACK_CASE_1032_CVT(FMT_A2B10G10R10_USCALED   ,FE::packU3x10_1x2,glm::uvec4,f2u10,f2u2)
+            FE_PACK_CASE_1032_CVT(FMT_A2B10G10R10_UINT      ,FE::packU3x10_1x2,glm::uvec4,f2u10,f2u2)
+            FE_PACK_CASE_1032_CVT(FMT_A2B10G10R10_SSCALED   ,FE::packI3x10_1x2,glm::ivec4,f2s10,f2s2)
+            FE_PACK_CASE_1032_CVT(FMT_A2B10G10R10_SINT      ,FE::packI3x10_1x2,glm::ivec4,f2s10,f2s2)
+            default:
+                assert(false && "unsupported vertex attribute format");
+                break;
+            }
+            #undef  FE_PACK_CASE
+            #undef  FE_PACK_CASE_1032
+            #undef  FE_PACK_CASE_1032_CVT
+            return  out;
+        }
+    public:
+        /// <summary>
+        /// 将扁平 float 顶点数据按目标属性格式打包
+        /// (目标分量数多于源补 0,少于源截断;格式不支持时 assert 并返回空)
+        /// </summary>
+        /// <param name="src">扁平 float 数据,按元素、按分量连续存储</param>
+        /// <param name="dst">目标顶点属性格式</param>
+        /// <param name="srcComponents">源每元素分量数(POS/NOR=3,UV=2)</param>
+        /// <returns>目标格式的字节流;无数据或格式不支持时返回空</returns>
+        static  uint8s  packFloats(const floats& src,FEFormat dst,uint srcComponents)
+        {
+            if (src.empty() || srcComponents == 0)
+                return  {};
+            return  packFloatsCore(src.data(),src.size()/(size_t)srcComponents,srcComponents,dst);
+        }
+        /// <summary>
+        /// 将 float3 顶点数据按目标属性格式打包(每元素 3 分量)
+        /// </summary>
+        /// <param name="src">float3 数据</param>
+        /// <param name="dst">目标顶点属性格式</param>
+        /// <returns>目标格式的字节流;无数据或格式不支持时返回空</returns>
+        static  uint8s  packFloats(const float3s& src,FEFormat dst)
+        {
+            if (src.empty())
+                return  {};
+            return  packFloatsCore(reinterpret_cast<const float*>(src.data()),src.size(),3,dst);
+        }
+        /// <summary>
+        /// 将 Rgba8 顶点色按目标属性格式打包
+        /// (R8G8B8A8_UNORM 走直拷恒等路径,与既有行为字节一致)
+        /// </summary>
+        /// <param name="src">Rgba8 顶点色数据</param>
+        /// <param name="dst">目标顶点属性格式</param>
+        /// <returns>目标格式的字节流;无数据或格式不支持时返回空</returns>
+        static  uint8s  packColors(const Rgba8s& src,FEFormat dst)
+        {
+            if (src.empty())
+                return  {};
+            if (dst == FMT_R8G8B8A8_UNORM)
+            {
+                uint8s  out(src.size()*sizeof(Rgba8));
+                memcpy(out.data(),src.data(),out.size());
+                return  out;
+            }
+            /// 展开为 [0,1] float 后走通用打包(颜色固定 4 分量)
+            floats      tmp;
+            tmp.reserve(src.size()*4);
+            const   uint8_t*    p   =   reinterpret_cast<const uint8_t*>(src.data());
+            for (size_t i = 0; i < src.size()*4; i++)
+                tmp.push_back(p[i]/255.0f);
+            return  packFloatsCore(tmp.data(),src.size(),4,dst);
+        }
+
         /// <summary>
         /// 计算一行数据(w个像素)占用的内存空间大小(单位字节)
+        /// 块压缩格式:w 以像素计,一行 = ceil(w/块宽) 个块 × 每块字节
         /// </summary>
         /// <param name="w">宽度</param>
         /// <param name="align">对齐字节数1,2,4,8,16,32,64...</param>
@@ -470,6 +959,11 @@ namespace   FE
         /// <returns>所需空间大小，单位字节</returns>
         static  uint32_t    pitch(uint32_t w,uint16_t align,FEFormat fmt)
         {
+            if (isBlockFormat(fmt))
+            {
+                const uint2 be  =   blockExtent(fmt);
+                w               =   (w + be.x - 1) / be.x;
+            }
             return  (w * FEFormatHelper::sizeOf(fmt) + (align - 1)) / align * align;
         }
         /// <summary>
@@ -482,6 +976,25 @@ namespace   FE
         static  uint32_t    pitch(uint32_t w,uint16_t align,uint16_t pixelByte)
         {
             return  (w * pixelByte + (align - 1)) / align * align;
+        }
+        /// <summary>
+        /// 计算单层(w*h*d,像素单位)数据的大小(单位字节)
+        /// 块压缩格式:高(深)度按块行数 ceil(h/块高) 折算
+        /// </summary>
+        /// <param name="w">宽度(像素)</param>
+        /// <param name="h">高度(像素)</param>
+        /// <param name="d">深度(像素)</param>
+        /// <param name="align">对齐字节数1,2,4,8,16,32,64...</param>
+        /// <param name="fmt">像素格式</param>
+        /// <returns>所需空间大小，单位字节</returns>
+        static  uint32_t    bytesOfPlane(uint32_t w,uint32_t h,uint32_t d,uint32_t align,FEFormat fmt)
+        {
+            if (isBlockFormat(fmt))
+            {
+                const uint2 be  =   blockExtent(fmt);
+                h               =   (h + be.y - 1) / be.y;
+            }
+            return  pitch(w,align,fmt) * h * d;
         }
         /// <summary>
         /// 根据图像的大小,mipmap,对齐方式,数据格式,计算需要的空间字节数
@@ -500,7 +1013,7 @@ namespace   FE
                 const auto    w     =   (std::max<uint32_t>)(extent.x >> m,1);
                 const auto    h     =   (std::max<uint32_t>)(extent.y >> m,1);
                 const auto    d     =   (std::max<uint32_t>)(extent.z >> m,1);
-                nByte               +=   pitch(w,align,fmt) * h * d;
+                nByte               +=   bytesOfPlane(w,h,d,align,fmt);
             }
             return  nByte;
         }
@@ -508,7 +1021,9 @@ namespace   FE
     template<FEFormat fmt>
     struct  TypeOfFormat
     {
+        /// <summary>
         /// 标记自身格式,供switch调用点把FMT透传给转换内核
+        /// </summary>
         static  constexpr   FEFormat    value   =   fmt;
     };
 

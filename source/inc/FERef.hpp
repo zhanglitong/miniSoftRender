@@ -8,12 +8,16 @@ namespace   FE
     public:
         using   TValue  =   T;
     public:
+        /// <summary>
         /// Create a nullptr
+        /// </summary>
         FERef()
             :_ptr(nullptr)
         {}
 
+        /// <summary>
         /// Construct a reference from a pointer
+        /// </summary>
         FERef(T *ptr) : _ptr(ptr)
         {
             if (_ptr)
@@ -22,7 +26,9 @@ namespace   FE
             }
         }
 
+        /// <summary>
         /// Copy constructor
+        /// </summary>
         FERef(const FERef &r) : _ptr(r._ptr)
         {
             if (_ptr)
@@ -31,12 +37,16 @@ namespace   FE
             }
         }
 
+        /// <summary>
         /// Move constructor
+        /// </summary>
         FERef(FERef &&r) noexcept : _ptr(r._ptr)
         {
             r._ptr = nullptr;
         }
+        /// <summary>
         /// Destroy this reference
+        /// </summary>
         ~FERef()
         {
             if (_ptr)
@@ -83,7 +93,9 @@ namespace   FE
             return *this;
         }
 
+        /// <summary>
         /// Compare this reference with another reference
+        /// </summary>
         bool operator==(const FERef &r) const
         {
             return _ptr == r._ptr;
@@ -95,7 +107,9 @@ namespace   FE
             return _ptr != r._ptr;
         }
 
+        /// <summary>
         /// Compare this reference with a pointer
+        /// </summary>
         bool operator==(const T* ptr) const
         {
             return _ptr == ptr;
@@ -152,13 +166,17 @@ namespace   FE
             return *_ptr;
         }
 
+        /// <summary>
         /// Return a pointer to the referenced object
+        /// </summary>
         operator T* ()
         {
             return _ptr;
         }
 
+        /// <summary>
         /// Return a const pointer to the referenced object
+        /// </summary>
         inline  T* get()
         {
             return _ptr;

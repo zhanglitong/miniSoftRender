@@ -146,6 +146,15 @@ int     main(int argc, char** argv)
 
     std::cout << "cylinder running: cone | cylinder | open tube..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的节点
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        cone        =   nullptr;
+        cylinder    =   nullptr;
+        tube        =   nullptr;
+    });
     /// 7. 进入渲染循环
     app->run();
 

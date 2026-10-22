@@ -38,7 +38,9 @@ namespace   FE
         mat4r       _matView;
         mat4r       _matProj;
         
+        /// <summary>
         ///正交投影模式使用
+        /// </summary>
         real        _scaler;
         /// <summary>
         ///  相机速度
@@ -47,9 +49,13 @@ namespace   FE
         real        _fov;
         real        _zNear;
         real        _zFar;
+        /// <summary>
         /// 保存操作摄像机的一些状态信息
+        /// </summary>
         Flags       _flag;
+        /// <summary>
         ///是否正交投影
+        /// </summary>
         bool        _isOrtho    =   false;
         bool        _freeze     =   false;  
         real        _rLeft      =   0;
@@ -451,7 +457,9 @@ namespace   FE
             {
                 _matProj    =   FE::perspective<real>(_fov,_viewSize.x/_viewSize.y,_zNear,_zFar);
             }
+            /// <summary>
             /// 标记需要更新
+            /// </summary>
             flags().addFlag(FLAG_UPDATE);
         }
         /// <summary>
@@ -891,7 +899,9 @@ namespace   FE
         /// <returns></returns>
         FrustumR    extract(const uint2& screenMin,const uint2& screenMax,real3* vCorner = nullptr)
         {
+            /// <summary>
             /// 将屏幕坐标映射成0-1
+            /// </summary>
             real2   vMin    =   real2(screenMin.x,screenMin.y)/_viewSize;
             real2   vMax    =   real2(screenMax.x,screenMax.y)/_viewSize;
             /// 保证范围

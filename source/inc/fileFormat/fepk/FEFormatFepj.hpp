@@ -5,7 +5,9 @@
 
 namespace   FE
 {
+    /// <summary>
     /// #define CLASS_INDEX
+    /// </summary>
     struct  FEFepjHeader
     {
         struct  Header

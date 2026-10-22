@@ -116,6 +116,14 @@ int     main(int argc, char** argv)
 
     std::cout << "animation running: box (0,0,0) -> (10,0,0), entering render loop..." << std::endl;
 
+    /// <summary>
+    /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的节点与网格
+    /// </summary>
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        node        =   nullptr;
+        mesh        =   nullptr;
+    });
     /// 6. 进入渲染循环
     app->run();
 

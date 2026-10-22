@@ -494,19 +494,32 @@ namespace   FE
         /// 一行数据的真实数据大小，不包含对齐填补部分
         /// 与pitch区别 bytesOfRow() <= pitch
         /// pitch有对齐信息
+        /// 块压缩格式:一行 = ceil(w/块宽) 个块 × 每块字节
         /// </summary>
         /// <returns></returns>
         inline  uint64  bytesOfRow() const
         {
-            return  FEFormatHelper::sizeOf(_format) * _width;
+            uint32  w   =   _width;
+            if (FEFormatHelper::isBlockFormat(_format))
+            {
+                const auto  be  =   FEFormatHelper::blockExtent(_format);
+                w               =   (w + be.x - 1) / be.x;
+            }
+            return  uint64(FEFormatHelper::sizeOf(_format)) * w;
         }
         /// <summary>
-        /// 数据大小,单位字节
+        /// 数据大小,单位字节;块压缩格式按块行数折算
         /// </summary>
         /// <returns></returns>
         inline  uint64  size() const
         {
-            return  pitch() * _height;
+            uint32  h   =   _height;
+            if (FEFormatHelper::isBlockFormat(_format))
+            {
+                const auto  be  =   FEFormatHelper::blockExtent(_format);
+                h               =   (h + be.y - 1) / be.y;
+            }
+            return  uint64(pitch()) * h;
         }
         /// <summary>
         /// 水平反转图像
@@ -563,8 +576,10 @@ namespace   FE
             }
         }
     protected:
+        /// <summary>
         /// Tag: TypeOfFormat<FMT>标签,携带宿存储类型type与宿格式value(决定宿量化语义)
         /// 不支持的转换对直接返回*this,避免实例化产生编译错误
+        /// </summary>
         template<class TFrom,class Tag>
         inline  auto&   convert(const RectU32& rect,const TFrom& src)
         {

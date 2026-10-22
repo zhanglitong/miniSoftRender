@@ -9,6 +9,14 @@
 
 namespace   FE
 {
+    /// DEBUG: 帧采样审计——每 200 帧完整记录一次该帧全部 bindDescriptors 调用,
+    /// 用于对账后期帧的 dset→bind group 是否与创建期一致
+    static uint s_dbgFrameSeq   =   0;
+    static bool s_dbgFrameSampled   =   false;
+    /// DEBUG: 供 FEFactoryRender 组级打点读取的全局采样标志(定义于 core 端,
+    /// 与帧采样同步;插件不能反向导出符号给 core)
+    extern FE_API bool  g_dbgFrameSampled;
+
     WGCmdBuffer::~WGCmdBuffer()
     {
         if (_dummyVB)
@@ -135,10 +143,16 @@ namespace   FE
         return FEResult::ER_FAILED;
     }
 
-    FEResult    WGCmdBuffer::beginRender(const RenderInfo& rs)
+    FEResult WGCmdBuffer::beginRender(const RenderInfo& rs)
     {
         if (!_native)
             return FEResult::ER_FAILED;
+
+        ++s_dbgFrameSeq;
+        s_dbgFrameSampled   =   (s_dbgFrameSeq % 200 == 0);
+        g_dbgFrameSampled   =   s_dbgFrameSampled;
+        if (s_dbgFrameSampled)
+            LOG_ERR("WGFRAME: %u",s_dbgFrameSeq);
 
         WGPURenderPassDescriptor renderPassDesc = {};
         renderPassDesc.nextInChain      =   nullptr;
@@ -282,6 +296,12 @@ namespace   FE
                     else if (_renderPassEncoder)
                     {
                         wgpuRenderPassEncoderSetBindGroup(_renderPassEncoder,dss.firstSet + (uint32_t)i,bindGroup,0,nullptr);
+                    }
+                    /// DEBUG: 绘制时实际绑定的 dset,与 WGDSET.ubo 创建记录对账
+                    /// (帧采样:每 200 帧完整记录一次,覆盖后期帧状态)
+                    if (s_dbgFrameSampled)
+                    {
+                        LOG_ERR("WGCMD.bind: dset=%p set=%zu bg=%p",(void*)wgSet,i,(void*)bindGroup);
                     }
                     _bindGroups.push_back(bindGroup);
                 }

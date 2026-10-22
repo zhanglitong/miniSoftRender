@@ -94,7 +94,9 @@ namespace   FE
         inline  bool    exec()
         {
             _state  =   TS_Run;
+            /// <summary>
             /// 1. 先调用开始
+            /// </summary>
             onStart();
             /// 2. 执行
             return  onExec();

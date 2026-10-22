@@ -6,12 +6,16 @@
 namespace   FE
 {
 
+    /// <summary>
     /// lambda 表达式作为类型别名，确保ViewerLess是类型名
+    /// </summary>
     constexpr auto    ViewerLessLambda = [](const Viewer& l, const Viewer& r)
     {
         return  l < r ;
     };
+    /// <summary>
     /// 先定义类型别名，确保ViewerLess是类型名
+    /// </summary>
     using   ViewerLess    =   decltype(ViewerLessLambda);
 
     class   FE_API  FEViewerMgr : public FEFactoryTemplate<Viewer,ViewerLess>
