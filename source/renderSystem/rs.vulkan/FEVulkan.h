@@ -41,6 +41,7 @@ namespace   FE
     {
         switch(fmt)
         {
+        case FMT_NONE               :   return  VK_FORMAT_UNDEFINED;
         case FMT_R8_UNORM           :   return  VK_FORMAT_R8_UNORM;
         case FMT_R8G8_UNORM         :   return  VK_FORMAT_R8G8_UNORM;
         case FMT_R8G8B8_UNORM       :   return  VK_FORMAT_R8G8B8_UNORM;
@@ -68,7 +69,17 @@ namespace   FE
         case FMT_R8G8B8_USCALED     :   return  VK_FORMAT_R8G8B8_USCALED;
         case FMT_R8G8B8A8_USCALED   :   return  VK_FORMAT_R8G8B8A8_USCALED;
 
+        case FMT_R8_SNORM           :   return  VK_FORMAT_R8_SNORM;
+        case FMT_R8G8_SNORM         :   return  VK_FORMAT_R8G8_SNORM;
+        case FMT_R8G8B8_SNORM       :   return  VK_FORMAT_R8G8B8_SNORM;
+        case FMT_R8G8B8A8_SNORM     :   return  VK_FORMAT_R8G8B8A8_SNORM;
+
         case FMT_B8G8R8A8_UNORM     :   return  VK_FORMAT_B8G8R8A8_UNORM;
+        case FMT_B8G8R8A8_SNORM     :   return  VK_FORMAT_B8G8R8A8_SNORM;
+        case FMT_B8G8R8A8_USCALED   :   return  VK_FORMAT_B8G8R8A8_USCALED;
+        case FMT_B8G8R8A8_SSCALED   :   return  VK_FORMAT_B8G8R8A8_SSCALED;
+        case FMT_B8G8R8A8_UINT      :   return  VK_FORMAT_B8G8R8A8_UINT;
+        case FMT_B8G8R8A8_SINT      :   return  VK_FORMAT_B8G8R8A8_SINT;
 
         
         case FMT_R32_FLOAT          :   return  VK_FORMAT_R32_SFLOAT;
@@ -76,11 +87,40 @@ namespace   FE
         case FMT_R32G32B32_FLOAT    :   return  VK_FORMAT_R32G32B32_SFLOAT;
         case FMT_R32G32B32A32_FLOAT :   return  VK_FORMAT_R32G32B32A32_SFLOAT;
 
+        case FMT_R16_UNORM          :   return  VK_FORMAT_R16_UNORM;
+        case FMT_R16_SNORM          :   return  VK_FORMAT_R16_SNORM;
+        case FMT_R16_USCALED        :   return  VK_FORMAT_R16_USCALED;
+        case FMT_R16_SSCALED        :   return  VK_FORMAT_R16_SSCALED;
+        case FMT_R16_UINT           :   return  VK_FORMAT_R16_UINT;
+        case FMT_R16_SINT           :   return  VK_FORMAT_R16_SINT;
+
+        case FMT_R16G16_UNORM       :   return  VK_FORMAT_R16G16_UNORM;
+        case FMT_R16G16_SNORM       :   return  VK_FORMAT_R16G16_SNORM;
+        case FMT_R16G16_USCALED     :   return  VK_FORMAT_R16G16_USCALED;
+        case FMT_R16G16_SSCALED     :   return  VK_FORMAT_R16G16_SSCALED;
+        case FMT_R16G16_UINT        :   return  VK_FORMAT_R16G16_UINT;
+        case FMT_R16G16_SINT        :   return  VK_FORMAT_R16G16_SINT;
+
+        case FMT_R16G16B16_UNORM    :   return  VK_FORMAT_R16G16B16_UNORM;
+        case FMT_R16G16B16_SNORM    :   return  VK_FORMAT_R16G16B16_SNORM;
+        case FMT_R16G16B16_USCALED  :   return  VK_FORMAT_R16G16B16_USCALED;
+        case FMT_R16G16B16_SSCALED  :   return  VK_FORMAT_R16G16B16_SSCALED;
+        case FMT_R16G16B16_UINT     :   return  VK_FORMAT_R16G16B16_UINT;
+        case FMT_R16G16B16_SINT     :   return  VK_FORMAT_R16G16B16_SINT;
+
+        case FMT_R16G16B16A16_UNORM :   return  VK_FORMAT_R16G16B16A16_UNORM;
+        case FMT_R16G16B16A16_SNORM :   return  VK_FORMAT_R16G16B16A16_SNORM;
+        case FMT_R16G16B16A16_USCALED:  return  VK_FORMAT_R16G16B16A16_USCALED;
+        case FMT_R16G16B16A16_SSCALED:  return  VK_FORMAT_R16G16B16A16_SSCALED;
+        case FMT_R16G16B16A16_UINT  :   return  VK_FORMAT_R16G16B16A16_UINT;
+        case FMT_R16G16B16A16_SINT  :   return  VK_FORMAT_R16G16B16A16_SINT;
+
         case FMT_R16_FLOAT          :   return  VK_FORMAT_R16_SFLOAT;
         case FMT_R16G16_FLOAT       :   return  VK_FORMAT_R16G16_SFLOAT;
         case FMT_R16G16B16_FLOAT    :   return  VK_FORMAT_R16G16B16_SFLOAT;
         case FMT_R16G16B16A16_FLOAT :   return  VK_FORMAT_R16G16B16A16_SFLOAT;
 
+        case FMT_R4G4_UNORM         :   return  VK_FORMAT_R4G4_UNORM_PACK8;
         case FMT_R4G4B4A4_UNORM     :   return  VK_FORMAT_R4G4B4A4_UNORM_PACK16 ;
         case FMT_B4G4R4A4_UNORM     :   return  VK_FORMAT_B4G4R4A4_UNORM_PACK16 ;
         case FMT_R5G6B5_UNORM       :   return  VK_FORMAT_R5G6B5_UNORM_PACK16   ;
@@ -108,6 +148,7 @@ namespace   FE
         case FMT_R32G32B32A32_UINT  :   return  VK_FORMAT_R32G32B32A32_UINT;
         case FMT_R32G32B32A32_SINT  :   return  VK_FORMAT_R32G32B32A32_SINT;
 
+        case FMT_D16_UNORM          :   return  VK_FORMAT_D16_UNORM;
         case FMT_D32_UNORM          :   return  VK_FORMAT_D32_SFLOAT;
         case FMT_D32_S8_UNORM       :   return  VK_FORMAT_D32_SFLOAT_S8_UINT;
 
@@ -150,7 +191,154 @@ namespace   FE
         }
     }
 
-    
+    inline  static  auto    native2System(VkFormat fmt)
+    {
+        switch(fmt)
+        {
+        case VK_FORMAT_UNDEFINED                    :   return  FMT_NONE;
+        case VK_FORMAT_R8_UNORM                     :   return  FMT_R8_UNORM;
+        case VK_FORMAT_R8G8_UNORM                   :   return  FMT_R8G8_UNORM;
+        case VK_FORMAT_R8G8B8_UNORM                 :   return  FMT_R8G8B8_UNORM;
+        case VK_FORMAT_R8G8B8A8_UNORM               :   return  FMT_R8G8B8A8_UNORM;
+
+        case VK_FORMAT_R8_UINT                      :   return  FMT_R8_UINT;
+        case VK_FORMAT_R8G8_UINT                    :   return  FMT_R8G8_UINT;
+        case VK_FORMAT_R8G8B8_UINT                  :   return  FMT_R8G8B8_UINT;
+        case VK_FORMAT_R8G8B8A8_UINT                :   return  FMT_R8G8B8A8_UINT;
+
+        case VK_FORMAT_R8_SINT                      :   return  FMT_R8_SINT;
+        case VK_FORMAT_R8G8_SINT                    :   return  FMT_R8G8_SINT;
+        case VK_FORMAT_R8G8B8_SINT                  :   return  FMT_R8G8B8_SINT;
+        case VK_FORMAT_R8G8B8A8_SINT                :   return  FMT_R8G8B8A8_SINT;
+
+        case VK_FORMAT_R8_SSCALED                   :   return  FMT_R8_SSCALED;
+        case VK_FORMAT_R8G8_SSCALED                 :   return  FMT_R8G8_SSCALED;
+        case VK_FORMAT_R8G8B8_SSCALED               :   return  FMT_R8G8B8_SSCALED;
+        case VK_FORMAT_R8G8B8A8_SSCALED             :   return  FMT_R8G8B8A8_SSCALED;
+
+        case VK_FORMAT_R8_USCALED                   :   return  FMT_R8_USCALED;
+        case VK_FORMAT_R8G8_USCALED                 :   return  FMT_R8G8_USCALED;
+        case VK_FORMAT_R8G8B8_USCALED               :   return  FMT_R8G8B8_USCALED;
+        case VK_FORMAT_R8G8B8A8_USCALED             :   return  FMT_R8G8B8A8_USCALED;
+
+        case VK_FORMAT_R8_SNORM                     :   return  FMT_R8_SNORM;
+        case VK_FORMAT_R8G8_SNORM                   :   return  FMT_R8G8_SNORM;
+        case VK_FORMAT_R8G8B8_SNORM                 :   return  FMT_R8G8B8_SNORM;
+        case VK_FORMAT_R8G8B8A8_SNORM               :   return  FMT_R8G8B8A8_SNORM;
+
+        case VK_FORMAT_B8G8R8A8_UNORM               :   return  FMT_B8G8R8A8_UNORM;
+        case VK_FORMAT_B8G8R8A8_SNORM               :   return  FMT_B8G8R8A8_SNORM;
+        case VK_FORMAT_B8G8R8A8_USCALED             :   return  FMT_B8G8R8A8_USCALED;
+        case VK_FORMAT_B8G8R8A8_SSCALED             :   return  FMT_B8G8R8A8_SSCALED;
+        case VK_FORMAT_B8G8R8A8_UINT                :   return  FMT_B8G8R8A8_UINT;
+        case VK_FORMAT_B8G8R8A8_SINT                :   return  FMT_B8G8R8A8_SINT;
+
+        case VK_FORMAT_R32_SFLOAT                   :   return  FMT_R32_FLOAT;
+        case VK_FORMAT_R32G32_SFLOAT                :   return  FMT_R32G32_FLOAT;
+        case VK_FORMAT_R32G32B32_SFLOAT             :   return  FMT_R32G32B32_FLOAT;
+        case VK_FORMAT_R32G32B32A32_SFLOAT          :   return  FMT_R32G32B32A32_FLOAT;
+
+        case VK_FORMAT_R16_UNORM                    :   return  FMT_R16_UNORM;
+        case VK_FORMAT_R16_SNORM                    :   return  FMT_R16_SNORM;
+        case VK_FORMAT_R16_USCALED                  :   return  FMT_R16_USCALED;
+        case VK_FORMAT_R16_SSCALED                  :   return  FMT_R16_SSCALED;
+        case VK_FORMAT_R16_UINT                     :   return  FMT_R16_UINT;
+        case VK_FORMAT_R16_SINT                     :   return  FMT_R16_SINT;
+
+        case VK_FORMAT_R16G16_UNORM                 :   return  FMT_R16G16_UNORM;
+        case VK_FORMAT_R16G16_SNORM                 :   return  FMT_R16G16_SNORM;
+        case VK_FORMAT_R16G16_USCALED               :   return  FMT_R16G16_USCALED;
+        case VK_FORMAT_R16G16_SSCALED               :   return  FMT_R16G16_SSCALED;
+        case VK_FORMAT_R16G16_UINT                  :   return  FMT_R16G16_UINT;
+        case VK_FORMAT_R16G16_SINT                  :   return  FMT_R16G16_SINT;
+
+        case VK_FORMAT_R16G16B16_UNORM              :   return  FMT_R16G16B16_UNORM;
+        case VK_FORMAT_R16G16B16_SNORM              :   return  FMT_R16G16B16_SNORM;
+        case VK_FORMAT_R16G16B16_USCALED            :   return  FMT_R16G16B16_USCALED;
+        case VK_FORMAT_R16G16B16_SSCALED            :   return  FMT_R16G16B16_SSCALED;
+        case VK_FORMAT_R16G16B16_UINT               :   return  FMT_R16G16B16_UINT;
+        case VK_FORMAT_R16G16B16_SINT               :   return  FMT_R16G16B16_SINT;
+
+        case VK_FORMAT_R16G16B16A16_UNORM           :   return  FMT_R16G16B16A16_UNORM;
+        case VK_FORMAT_R16G16B16A16_SNORM           :   return  FMT_R16G16B16A16_SNORM;
+        case VK_FORMAT_R16G16B16A16_USCALED         :   return  FMT_R16G16B16A16_USCALED;
+        case VK_FORMAT_R16G16B16A16_SSCALED         :   return  FMT_R16G16B16A16_SSCALED;
+        case VK_FORMAT_R16G16B16A16_UINT            :   return  FMT_R16G16B16A16_UINT;
+        case VK_FORMAT_R16G16B16A16_SINT            :   return  FMT_R16G16B16A16_SINT;
+
+        case VK_FORMAT_R16_SFLOAT                   :   return  FMT_R16_FLOAT;
+        case VK_FORMAT_R16G16_SFLOAT                :   return  FMT_R16G16_FLOAT;
+        case VK_FORMAT_R16G16B16_SFLOAT             :   return  FMT_R16G16B16_FLOAT;
+        case VK_FORMAT_R16G16B16A16_SFLOAT          :   return  FMT_R16G16B16A16_FLOAT;
+
+        case VK_FORMAT_R4G4_UNORM_PACK8             :   return  FMT_R4G4_UNORM;
+        case VK_FORMAT_R4G4B4A4_UNORM_PACK16        :   return  FMT_R4G4B4A4_UNORM;
+        case VK_FORMAT_B4G4R4A4_UNORM_PACK16        :   return  FMT_B4G4R4A4_UNORM;
+        case VK_FORMAT_R5G6B5_UNORM_PACK16          :   return  FMT_R5G6B5_UNORM;
+        case VK_FORMAT_B5G6R5_UNORM_PACK16          :   return  FMT_B5G6R5_UNORM;
+        case VK_FORMAT_R5G5B5A1_UNORM_PACK16        :   return  FMT_R5G5B5A1_UNORM;
+        case VK_FORMAT_B5G5R5A1_UNORM_PACK16        :   return  FMT_B5G5R5A1_UNORM;
+        case VK_FORMAT_A1R5G5B5_UNORM_PACK16        :   return  FMT_A1R5G5B5_UNORM;
+
+        case VK_FORMAT_A2B10G10R10_UNORM_PACK32     :   return  FMT_A2B10G10R10_UNORM;
+        case VK_FORMAT_A2B10G10R10_SNORM_PACK32     :   return  FMT_A2B10G10R10_SNORM;
+        case VK_FORMAT_A2B10G10R10_USCALED_PACK32   :   return  FMT_A2B10G10R10_USCALED;
+        case VK_FORMAT_A2B10G10R10_SSCALED_PACK32   :   return  FMT_A2B10G10R10_SSCALED;
+        case VK_FORMAT_A2B10G10R10_UINT_PACK32      :   return  FMT_A2B10G10R10_UINT;
+        case VK_FORMAT_A2B10G10R10_SINT_PACK32      :   return  FMT_A2B10G10R10_SINT;
+
+        case VK_FORMAT_R32_UINT                     :   return  FMT_R32_UINT;
+        case VK_FORMAT_R32_SINT                     :   return  FMT_R32_SINT;
+        case VK_FORMAT_R32G32_UINT                  :   return  FMT_R32G32_UINT;
+        case VK_FORMAT_R32G32_SINT                  :   return  FMT_R32G32_SINT;
+        case VK_FORMAT_R32G32B32_UINT               :   return  FMT_R32G32B32_UINT;
+        case VK_FORMAT_R32G32B32_SINT               :   return  FMT_R32G32B32_SINT;
+        case VK_FORMAT_R32G32B32A32_UINT            :   return  FMT_R32G32B32A32_UINT;
+        case VK_FORMAT_R32G32B32A32_SINT            :   return  FMT_R32G32B32A32_SINT;
+
+        case VK_FORMAT_D16_UNORM                    :   return  FMT_D16_UNORM;
+        case VK_FORMAT_D32_SFLOAT                   :   return  FMT_D32_UNORM;
+        case VK_FORMAT_D32_SFLOAT_S8_UINT           :   return  FMT_D32_S8_UNORM;
+
+        /// 块压缩格式逆向映射,与正向一一对应
+        case VK_FORMAT_BC1_RGB_UNORM_BLOCK          :   return  FMT_BC1_RGB_UNORM;
+        case VK_FORMAT_BC1_RGB_SRGB_BLOCK           :   return  FMT_BC1_RGB_SRGB;
+        case VK_FORMAT_BC1_RGBA_UNORM_BLOCK         :   return  FMT_BC1_RGBA_UNORM;
+        case VK_FORMAT_BC1_RGBA_SRGB_BLOCK          :   return  FMT_BC1_RGBA_SRGB;
+        case VK_FORMAT_BC2_UNORM_BLOCK              :   return  FMT_BC2_UNORM;
+        case VK_FORMAT_BC2_SRGB_BLOCK               :   return  FMT_BC2_SRGB;
+        case VK_FORMAT_BC3_UNORM_BLOCK              :   return  FMT_BC3_UNORM;
+        case VK_FORMAT_BC3_SRGB_BLOCK               :   return  FMT_BC3_SRGB;
+        case VK_FORMAT_BC4_UNORM_BLOCK              :   return  FMT_BC4_UNORM;
+        case VK_FORMAT_BC4_SNORM_BLOCK              :   return  FMT_BC4_SNORM;
+        case VK_FORMAT_BC5_UNORM_BLOCK              :   return  FMT_BC5_UNORM;
+        case VK_FORMAT_BC5_SNORM_BLOCK              :   return  FMT_BC5_SNORM;
+        case VK_FORMAT_BC6H_UFLOAT_BLOCK            :   return  FMT_BC6H_UFLOAT;
+        case VK_FORMAT_BC6H_SFLOAT_BLOCK            :   return  FMT_BC6H_SFLOAT;
+        case VK_FORMAT_BC7_UNORM_BLOCK              :   return  FMT_BC7_UNORM;
+        case VK_FORMAT_BC7_SRGB_BLOCK               :   return  FMT_BC7_SRGB;
+        case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK      :   return  FMT_ETC2_R8G8B8_UNORM;
+        case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK       :   return  FMT_ETC2_R8G8B8_SRGB;
+        case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK    :   return  FMT_ETC2_R8G8B8A8_UNORM;
+        case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK     :   return  FMT_ETC2_R8G8B8A8_SRGB;
+        case VK_FORMAT_EAC_R11_UNORM_BLOCK          :   return  FMT_EAC_R11_UNORM;
+        case VK_FORMAT_EAC_R11_SNORM_BLOCK          :   return  FMT_EAC_R11_SNORM;
+        case VK_FORMAT_EAC_R11G11_UNORM_BLOCK       :   return  FMT_EAC_R11G11_UNORM;
+        case VK_FORMAT_EAC_R11G11_SNORM_BLOCK       :   return  FMT_EAC_R11G11_SNORM;
+        case VK_FORMAT_ASTC_4x4_UNORM_BLOCK         :   return  FMT_ASTC_4x4_UNORM;
+        case VK_FORMAT_ASTC_4x4_SRGB_BLOCK          :   return  FMT_ASTC_4x4_SRGB;
+        case VK_FORMAT_ASTC_6x6_UNORM_BLOCK         :   return  FMT_ASTC_6x6_UNORM;
+        case VK_FORMAT_ASTC_6x6_SRGB_BLOCK          :   return  FMT_ASTC_6x6_SRGB;
+        case VK_FORMAT_ASTC_8x8_UNORM_BLOCK         :   return  FMT_ASTC_8x8_UNORM;
+        case VK_FORMAT_ASTC_8x8_SRGB_BLOCK          :   return  FMT_ASTC_8x8_SRGB;
+
+        default:
+            assert(0!=0);
+            return  FMT_R8G8B8A8_UNORM;
+        }
+    }
+
+
     inline  static  auto    system2Native(FEAspect val)
     {
         switch(val)
