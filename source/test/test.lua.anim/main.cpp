@@ -14,7 +14,7 @@
 #include    "../../inc/graphic/FEScene.h"
 #include    "../../inc/geometry/FEGeometryBox.hpp"
 #include    "../../inc/material/FEMaterialPBR.hpp"
-#include    "../../core/script/FELuaVM.hpp"
+#include    "../../core/script/lua/FELuaVM.hpp"
 
 using   namespace   FE;
 

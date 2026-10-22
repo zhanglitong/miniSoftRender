@@ -9,7 +9,7 @@
 ///   lua.setScene(scene.get());
 ///   lua.doFile("anim.lua");
 
-#include    "../inc/FEDefine.h"
+#include    "../../inc/FEDefine.h"
 
 struct  lua_State;
 

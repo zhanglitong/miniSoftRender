@@ -133,6 +133,14 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/lua"
 set(CMAKE_FOLDER "${_FE_SAVED_CMAKE_FOLDER}")
 unset(_FE_SAVED_CMAKE_FOLDER)
 
+# ===== QuickJS-NG:源码内置(嵌入脚本,最小拷贝,排除 qjs/qjsc 独立 CLI 与 libc)=====
+set(_FE_SAVED_CMAKE_FOLDER "${CMAKE_FOLDER}")
+set(CMAKE_FOLDER "3rdparty/quickjs")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/quickjs"
+                 "${CMAKE_BINARY_DIR}/quickjs")
+set(CMAKE_FOLDER "${_FE_SAVED_CMAKE_FOLDER}")
+unset(_FE_SAVED_CMAKE_FOLDER)
+
 # ===== cpp-httplib 0.62.0:源码内置(header-only,单编译单元,自包含无外部依赖)=====
 set(_FE_SAVED_CMAKE_FOLDER "${CMAKE_FOLDER}")
 set(CMAKE_FOLDER "3rdparty/httplib")
@@ -158,6 +166,9 @@ target_link_libraries(${TARGET_NAME} PRIVATE ktx)
 
 # Lua 静态库编入 core(PUBLIC include 目录提供 <lua.hpp>)
 target_link_libraries(${TARGET_NAME} PRIVATE lua)
+
+# QuickJS-NG 静态库编入 core(PUBLIC include 目录提供 <quickjs.h>)
+target_link_libraries(${TARGET_NAME} PRIVATE quickjs)
 
 # cpp-httplib 静态库编入 core(PUBLIC include 目录提供 <httplib.h>)
 target_link_libraries(${TARGET_NAME} PRIVATE httplib)
