@@ -8,12 +8,12 @@
 
 #include    <lua.hpp>
 
-#include    "../inc/FEContext.hpp"
-#include    "../inc/node/FENode.hpp"
-#include    "../inc/mesh/FEMesh.hpp"
-#include    "../inc/graphic/FEScene.h"
-#include    "../inc/animation/FEAnimationHelper.hpp"
-#include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../../inc/FEContext.hpp"
+#include    "../../inc/node/FENode.hpp"
+#include    "../../inc/mesh/FEMesh.hpp"
+#include    "../../inc/graphic/FEScene.h"
+#include    "../../inc/animation/FEAnimationHelper.hpp"
+#include    "../../inc/animation/FEAnimationSys.hpp"
 
 namespace   FE
 {
