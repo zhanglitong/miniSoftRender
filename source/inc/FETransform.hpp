@@ -10,10 +10,11 @@ namespace FE
     /// 提供：
     ///   - 成员访问：position() / rotation() / scale() (公开访问器)
     ///   - 设置器：setPosition / setRotation / setScale (链式)
-    ///   - 欧拉角辅助：euler() / setEuler() / fromEuler()
+    ///   - 欧拉角辅助：euler() / setEuler() / fromEuler()（按需从四元数换算,不另存）
     ///   - 矩阵生成：toMatrix() / toInverseMatrix() / fromMatrix()
     ///   - 数学方法：compose / inverted / operator*
     ///   - 混合方法：lerp / slerp / lerpTo
+    ///   - 旋转中心点：绕本地点旋转(默认原点)
     /// </summary>
     class   FE_API  FETransform
     {
@@ -35,9 +36,9 @@ namespace FE
         static  FETransform   fromEuler(const real3& pos, const float3& eulerDegrees, const float3& sc)
         {
             FETransform  t;
-            t._position =   pos;
-            t._scale    =   sc;
-            t._rotation =   quatf(glm::radians(eulerDegrees));
+            t._position     =   pos;
+            t._scale        =   sc;
+            t._rotation     =   quatf(glm::radians(eulerDegrees));
             return  t;
         }
 
@@ -46,7 +47,7 @@ namespace FE
         /// </summary>
         inline  const real3&   position() const     {   return _position;   }
         /// <summary>
-        /// 旋转（只读引用）
+        /// 旋转（只读引用，始终为有效四元数，计算与矩阵生成统一使用它）
         /// </summary>
         inline  const quatf&  rotation() const      {   return _rotation;   }
         /// <summary>
@@ -55,20 +56,37 @@ namespace FE
         inline  const float3& scale() const         {   return _scale;      }
 
         /// <summary>
+        /// 旋转中心点(本地空间),几何体绕该点旋转,默认原点
+        /// </summary>
+        inline  const real3&   rotationCenter() const   {   return _pivot;  }
+        /// <summary>
+        /// 设置旋转中心点(本地空间),几何体将绕该点旋转
+        /// </summary>
+        inline  FETransform&   setRotationCenter(const real3& center)
+        {
+            _pivot  =   center;
+            return  *this;
+        }
+
+        /// <summary>
         /// 设置位置，返回 *this 便于链式调用
         /// </summary>
         inline  FETransform&  setPosition(const real3& v)   { _position = v; return *this; }
         /// <summary>
-        /// 设置旋转，返回 *this 便于链式调用
+        /// 设置旋转（四元数）
         /// </summary>
-        inline  FETransform&  setRotation(const quatf& q)   { _rotation = q; return *this; }
+        inline  FETransform&  setRotation(const quatf& q)
+        {
+            _rotation   =   q;
+            return  *this;
+        }
         /// <summary>
         /// 设置缩放，返回 *this 便于链式调用
         /// </summary>
         inline  FETransform&  setScale(const float3& s)     { _scale = s;     return *this; }
 
         /// <summary>
-        /// 返回欧拉角（单位：度）
+        /// 返回欧拉角（单位：度），由四元数实时换算，范围 ±180
         /// </summary>
         inline  float3  euler() const
         {
@@ -81,7 +99,7 @@ namespace FE
         inline  FETransform&   setEuler(const float3& eulerDegrees)
         {
             _rotation   =   quatf(glm::radians(eulerDegrees));
-            return      *this;
+            return  *this;
         }
 
         /// <summary>
@@ -89,7 +107,15 @@ namespace FE
         /// </summary>
         inline  mat4r   toMatrix() const
         {
-            return  FE::makeTransform<real>(_position, _scale, _rotation);
+            if (_pivot.x == real(0) && _pivot.y == real(0) && _pivot.z == real(0))
+                return  FE::makeTransform<real>(_position, _scale, _rotation);
+            /// 绕本地旋转中心点旋转: T(position) * T(pivot) * R * T(-pivot) * S
+            mat4r   mat =   glm::translate(mat4r(1), _position);
+            mat         =   glm::translate(mat, _pivot);
+            mat         =   mat * glm::mat4_cast(quatr(_rotation));
+            mat         =   glm::translate(mat, -_pivot);
+            mat         =   glm::scale(mat, real3(_scale));
+            return  mat;
         }
 
         /// <summary>
@@ -131,6 +157,9 @@ namespace FE
         /// <returns></returns>
         inline FETransform compose(const FETransform& other) const
         {
+            /// 存在旋转中心点时无法解析复合,退化为矩阵运算(结果中心点归零)
+            if (_pivot != real3(0) || other._pivot != real3(0))
+                return  fromMatrix(toMatrix() * other.toMatrix());
             // this = A, other = B，返回标准矩阵积 A * B
             FETransform r;
             r._rotation =   this->_rotation * other._rotation;
@@ -156,13 +185,15 @@ namespace FE
         }
 
         /// <summary>
-        /// 线性混合：位置/缩放用 lerp，旋转用 slerp
+        /// 线性混合：位置/缩放/中心点用 lerp
+        /// 旋转统一走四元数 slerp(最短弧,无万向节死锁)
         /// </summary>
         static  FETransform   lerp(const FETransform& a, const FETransform& b, real t)
         {
             FETransform  r;
             r._position =   a._position + (b._position - a._position) * t;
             r._scale    =   a._scale + (b._scale - a._scale) * float(t);
+            r._pivot    =   a._pivot + (b._pivot - a._pivot) * real(t);
             r._rotation =   FE::slerp(a._rotation, b._rotation, float(t));
             return  r;
         }
@@ -201,7 +232,8 @@ namespace FE
         {
             return  _position == other._position
                 &&  _rotation == other._rotation
-                &&  _scale    == other._scale;
+                &&  _scale    == other._scale
+                &&  _pivot    == other._pivot;
         }
 
         inline  bool   operator!=(const FETransform& other) const
@@ -215,7 +247,11 @@ namespace FE
         /// </summary>
         real3   _position   =   real3(0);
         /// <summary>
-        /// 旋转属性（四元数，w 为实部，单位四元数表示无旋转）
+        /// 旋转中心点（本地空间），几何体绕该点旋转，默认原点
+        /// </summary>
+        real3   _pivot      =   real3(0);
+        /// <summary>
+        /// 旋转（四元数，始终有效，计算与矩阵生成统一使用它）
         /// </summary>
         quatf   _rotation   =   quatf(1, 0, 0, 0);
         /// <summary>
@@ -223,4 +259,5 @@ namespace FE
         /// </summary>
         float3  _scale      =   float3(1);
     };
+
 }

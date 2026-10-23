@@ -13,7 +13,7 @@ namespace   FE
     {
         _local._scale       =   float3(1,1,1);
         _local._position    =   real3(0,0,0);
-        _local._rotation    =   quatf(1,0,0,0);
+        _local.setRotation(quatf(1,0,0,0));
         /// 默认情况下颜色会 color x fragment 
         _color      =   Rgba8(255,255,255,255);
         _gloabal    =   _local;
@@ -127,7 +127,7 @@ namespace   FE
         FE::decompose<real>(localMat, pos, scl, rot);
         _local._position    =   pos;
         _local._scale       =   float3(scl);
-        _local._rotation    =   quatf(rot);
+        _local.setRotation(quatf(rot));
         flags().addFlag(FLAG_PROP_TRANS | FLAG_PROP_SCALE | FLAG_PROP_ROT);
         /// _gloabal 保持为保存的 global 不变,globalTransform() 立即可读;
         /// 下一帧 update() 按 parentGlobal * local 重算,结果仍为 global
@@ -308,7 +308,7 @@ namespace   FE
             return  false;
         case PROP_QUAT:
             flags().addFlag(FLAG_PROP_ROT); 
-            _local._rotation    =   std::get<quatf>(value);
+            _local.setRotation(std::get<quatf>(value));
             return  true;
          
         case PROP_COLOR_RGB:
@@ -345,11 +345,11 @@ namespace   FE
         case PROP_SCALE_Y:          return  _local._scale.y;
         case PROP_SCALE_Z:          return  _local._scale.z;
         case PROP_SCALE_XYZ:        return  _local._scale;
-        case PROP_ROTATE_X:         return  RAD2DEG(quatToEuler(_local._rotation).x);
-        case PROP_ROTATE_Y:         return  RAD2DEG(quatToEuler(_local._rotation).y);
-        case PROP_ROTATE_Z:         return  RAD2DEG(quatToEuler(_local._rotation).z);
-        case PROP_ROTATE_XYZ:       return  quatToEuler(_local._rotation);
-        case PROP_QUAT:             return  _local._rotation;
+        case PROP_ROTATE_X:         return  RAD2DEG(quatToEuler(_local.rotation()).x);
+        case PROP_ROTATE_Y:         return  RAD2DEG(quatToEuler(_local.rotation()).y);
+        case PROP_ROTATE_Z:         return  RAD2DEG(quatToEuler(_local.rotation()).z);
+        case PROP_ROTATE_XYZ:       return  quatToEuler(_local.rotation());
+        case PROP_QUAT:             return  _local.rotation();
         case PROP_COLOR_RGB:        return  _color.value();
         case PROP_COLOR_ALPHA:      return  _color.value().a;
         case PROP_G_TRANSFORM_XYZ:  return  globalTranslation();

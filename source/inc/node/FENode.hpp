@@ -160,7 +160,7 @@ namespace   FE
         }
         inline  auto    localRotation() const
         {
-            return  _local._rotation;
+            return  _local.rotation();
         }
         inline  FENode& setLocalTranslation(const real3& trans)
         {
@@ -219,12 +219,12 @@ namespace   FE
                 real3   scale;
                 quatr   rot;
                 FE::decompose<real>(rMat, pos, scale, rot);
-                _local._rotation =   rot;
+                _local.setRotation(rot);
                 
             }
             else
             {
-                _local._rotation =   quat;
+                _local.setRotation(quat);
             }
             flags().addFlag(FLAG_PROP_TRANS);
             return  *this;
@@ -565,19 +565,18 @@ namespace   FE
         /// </summary>
         friend  class   FENodeHelper;
     protected:
-        FETransform _local;
-        FETransform _gloabal;
-        RenderFlags _renderBits;
-        aabb3r      _aabb;
-        
+        FETransform     _local;
+        FETransform     _gloabal;
+        RenderFlags     _renderBits;
+        Rgba8           _color;
+        aabb3r          _aabb;
         /// <summary>
         /// 经常被访问的组件
         /// </summary>
-        Mesh        _mesh;
-        Material    _material;
-        FEString    _name;
-        Components  _coms;
-        Rgba8       _color;
+        Mesh            _mesh;
+        Material        _material;
+        FEString        _name;
+        Components      _coms;
     };
 
     using   Node    =   SharedPtr<FENode>;
