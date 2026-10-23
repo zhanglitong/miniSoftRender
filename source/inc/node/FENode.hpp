@@ -378,9 +378,17 @@ namespace   FE
             }
         }
         /// <summary>
+        /// 排序组件列表,根据优先级与排序值
+        /// 当修改了组件优先级或排序值后,需要调用该函数刷新组件列表顺序
+        /// </summary>
+        inline  void    sortComponents()
+        {
+            std::stable_sort(_coms.begin(),_coms.end(),FEComponent::compare);
+        }
+        /// <summary>
         /// 清空节点数据，包含子孙节点数据,以及子孙后代的组件数据
         /// </summary>
-        virtual void    clear()
+        inline  void    clear()
         {
             clearComponent(true);
             removeAllChildren();
@@ -551,6 +559,11 @@ namespace   FE
         /// 约束计算
         /// </summary>
         void            solve(const real& tm);
+    protected:
+        /// <summary>
+        /// 允许 FENodeHelper 维护组件列表顺序,安全修改组件优先级
+        /// </summary>
+        friend  class   FENodeHelper;
     protected:
         FETransform _local;
         FETransform _gloabal;
