@@ -14,8 +14,8 @@ namespace   FE
 
     void    FEBuffer::serializeTraits(FEWriter& writer,FEChunkInf& ,uint version,FESerializeCtx& ctx) const
     {
-        (void)ctx;
-        (void)version;
+        UNUSED(ctx);
+        UNUSED(version);
         uint64  length  =   _cInfo._buffer.size();
         writer.write(length);
         writer.write(_cInfo._offset);
@@ -25,8 +25,8 @@ namespace   FE
     }
     void    FEBuffer::deserializeTraits(FEReader& reader,const FEChunkInf&,uint version,FESerializeCtx& ctx) 
     {
-        (void)ctx;
-        (void)version;
+        UNUSED(ctx);
+        UNUSED(version);
         uint64  length  =   _cInfo._buffer.size();
         reader.read(length);
         reader.read(_cInfo._offset);
@@ -268,8 +268,8 @@ namespace   FE
     };
     void    FEMesh::serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const
     {
-        (void)ctx;
-        (void)version;
+        UNUSED(ctx);
+        UNUSED(version);
 
         MeshChunkBit    bits(chk._flags);
 
@@ -319,8 +319,8 @@ namespace   FE
     }
     void    FEMesh::deserializeTraits(FEReader& reader,const FEChunkInf& chk,uint version,FESerializeCtx& ctx)
     {
-        (void)ctx;
-        (void)version;
+        UNUSED(ctx);
+        UNUSED(version);
 
         MeshChunkBit    bits(chk._flags);
 
@@ -405,8 +405,8 @@ namespace   FE
 
     void    FEGeometry::serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const 
     {
-        (void)ctx;
-        (void)version;
+        UNUSED(ctx);
+        UNUSED(version);
 
         GeometryChunkBit    bits(chk._flags);
         bits._isParam   =   isParam() ? 1 : 0;
@@ -421,8 +421,8 @@ namespace   FE
     }
     void    FEGeometry::deserializeTraits(FEReader& reader,const FEChunkInf& chk ,uint version,FESerializeCtx& ctx)
     {
-        (void)version;
-        (void)ctx;
+        UNUSED(version);
+        UNUSED(ctx);
         GeometryChunkBit    bits(chk._flags);
         if (bits._hasMesh && !bits._isParam)
         {
@@ -436,8 +436,8 @@ namespace   FE
 
     void    FEGeometryParam::serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const
     {
-        (void)ctx;
-        (void)version;
+        UNUSED(ctx);
+        UNUSED(version);
 
         FEGeometry::serializeTraits(writer,chk,version,ctx);
         assert (_mesh != nullptr);

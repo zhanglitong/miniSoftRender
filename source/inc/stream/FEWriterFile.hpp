@@ -37,7 +37,7 @@ namespace   FE
         /// <returns>写入大小,0失败</returns>
         virtual uint64  writeBuffer(const void*data,uint64 len ,const Tag& tag = {}) override
         {
-            (void)tag;
+            UNUSED(tag);
             assert(_file != nullptr);
             if (_file == nullptr || data == nullptr || len == 0)
                 return  0;

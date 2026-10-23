@@ -220,7 +220,7 @@ namespace   FE
 
     Pipeline    FEPipelineHelper::createPipeline(FEContext& ctx,FEDevice& device,RenderPass renderPass,FEPipeline::CreateInfo& cInfo,XMLNode* node,const String& prefix,const char* plType)
     {
-        (void)renderPass;
+        UNUSED(renderPass);
         auto    xmlStates   =   node->first_node("dynamicStates");
         if (xmlStates)
         {

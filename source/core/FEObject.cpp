@@ -108,7 +108,7 @@ namespace   FE
     }
     size_t  FEObject::queryDepends(ObjectUSet& uset) const
     {
-        (void)uset;
+        UNUSED(uset);
         return  0;
     }
 

@@ -259,7 +259,7 @@ namespace   FE
     template<class T>
     static  void    finalizerObj(JSRuntime* rt,JSValueConst val)
     {
-        (void)rt;
+        UNUSED(rt);
         auto*   p   =   (JSObjPtr<T>*)JS_GetOpaque(val,JS_GetClassID(val));
         delete  p;
     }

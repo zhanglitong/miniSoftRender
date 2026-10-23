@@ -593,6 +593,7 @@ namespace   FE
         static  int     matToString(lua_State* L)
         {
             auto*   p   =   checkMath<M>(L,1);
+            UNUSED(p);
             lua_pushfstring(L,"%s(%gx%g)",MatLabel<M>::value,(double)M::length(),(double)M::length());
             return  1;
         }

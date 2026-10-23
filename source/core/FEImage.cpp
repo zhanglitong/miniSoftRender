@@ -70,7 +70,7 @@ namespace   FE
 
     void    FEImage::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const
     {
-        (void)chunk;
+        UNUSED(chunk);
         auto&   cInf    =   cInfo();
         writer.write(cInf._extent);
         writer.write(cInf._format);
@@ -84,7 +84,7 @@ namespace   FE
     }
     void    FEImage::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx)
     {
-        (void)chunk;
+        UNUSED(chunk);
 
         auto&   cInf    =   cInfo();
         reader.read(cInf._extent);

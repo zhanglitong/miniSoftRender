@@ -42,7 +42,7 @@ namespace   FE
 
     static  JSValue Node_name(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -54,7 +54,7 @@ namespace   FE
     /// setter 统一返回 self,支持链式调用
     static  JSValue Node_setName(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -71,7 +71,7 @@ namespace   FE
 
     static  JSValue Node_localTranslation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -81,7 +81,7 @@ namespace   FE
 
     static  JSValue Node_setLocalTranslation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -95,7 +95,7 @@ namespace   FE
 
     static  JSValue Node_localScaling(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -105,7 +105,7 @@ namespace   FE
 
     static  JSValue Node_setLocalScaling(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -119,7 +119,7 @@ namespace   FE
 
     static  JSValue Node_localRotation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -129,7 +129,7 @@ namespace   FE
 
     static  JSValue Node_setLocalRotation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -143,7 +143,7 @@ namespace   FE
 
     static  JSValue Node_localTransform(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -153,7 +153,7 @@ namespace   FE
 
     static  JSValue Node_globalTranslation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -163,7 +163,7 @@ namespace   FE
 
     static  JSValue Node_globalRotation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -173,7 +173,7 @@ namespace   FE
 
     static  JSValue Node_globalScaling(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -183,7 +183,7 @@ namespace   FE
 
     static  JSValue Node_setGlobalTranslation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -197,7 +197,7 @@ namespace   FE
 
     static  JSValue Node_setGlobalRotation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -211,7 +211,7 @@ namespace   FE
 
     static  JSValue Node_setGlobalScaling(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -225,7 +225,7 @@ namespace   FE
 
     static  JSValue Node_globalTransform(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -235,7 +235,7 @@ namespace   FE
 
     static  JSValue Node_globalRSTransform(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -258,7 +258,7 @@ namespace   FE
 
     static  JSValue Node_globalAabb(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -282,7 +282,7 @@ namespace   FE
 
     static  JSValue Node_fireChanged(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -293,7 +293,7 @@ namespace   FE
 
     static  JSValue Node_makeDirty(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -304,7 +304,7 @@ namespace   FE
 
     static  JSValue Node_mesh(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -314,7 +314,7 @@ namespace   FE
 
     static  JSValue Node_setMesh(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -328,7 +328,7 @@ namespace   FE
 
     static  JSValue Node_color(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -338,7 +338,7 @@ namespace   FE
 
     static  JSValue Node_setColor(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -372,7 +372,7 @@ namespace   FE
 
     static  JSValue Node_addChild(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -386,7 +386,7 @@ namespace   FE
 
     static  JSValue Node_removeChild(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -399,7 +399,7 @@ namespace   FE
 
     static  JSValue Node_children(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -452,7 +452,7 @@ namespace   FE
 
     static  JSValue Node_root(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -462,7 +462,7 @@ namespace   FE
 
     static  JSValue Node_parent(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;(void)argv;
+        UNUSED(argc); UNUSED(argv);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -478,7 +478,7 @@ namespace   FE
     /// </summary>
     static  JSValue Node_addComponent(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -491,7 +491,7 @@ namespace   FE
 
     static  JSValue Node_removeComponent(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)argc;
+        UNUSED(argc);
         auto*   env =   getEnv(ctx);
         auto    node    =   checkObj<FENode>(ctx,env,this_val);
         if (node == nullptr)
@@ -549,7 +549,7 @@ namespace   FE
     /// </summary>
     static  JSValue FE_log(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)this_val;
+        UNUSED(this_val);
         auto*   env =   getEnv(ctx);
         std::string msg;
         for (int i = 0; i < argc; ++i)
@@ -580,7 +580,7 @@ namespace   FE
     /// </summary>
     static  JSValue FE_findNode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)this_val;(void)argc;
+        UNUSED(this_val); UNUSED(argc);
         auto*   env     =   getEnv(ctx);
         if (!JS_IsString(argv[0]))
             return  JS_ThrowTypeError(ctx,"fe.findNode: expect string name");
@@ -605,7 +605,7 @@ namespace   FE
     /// </summary>
     static  JSValue FE_createNode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)this_val;
+        UNUSED(this_val);
         auto*   env =   getEnv(ctx);
         if (env == nullptr || env->scene == nullptr)
             return  JS_ThrowTypeError(ctx,"fe.createNode: scene not set");
@@ -629,7 +629,7 @@ namespace   FE
     /// </summary>
     static  JSValue FE_dispatchNode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
     {
-        (void)this_val;(void)argc;
+        UNUSED(this_val); UNUSED(argc);
         auto*   env =   getEnv(ctx);
         if (env == nullptr || env->scene == nullptr)
             return  JS_ThrowTypeError(ctx,"fe.dispatchNode: scene not set");

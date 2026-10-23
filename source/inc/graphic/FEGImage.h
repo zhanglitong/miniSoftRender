@@ -58,6 +58,7 @@ namespace   FE
         /// </summary>
         virtual GImgView    createView(uint baseMip,uint levelCount)
         {   
+            UNUSED(baseMip,levelCount);
             return  createView();  
         }
         virtual bool        resize(const uint3& dims,uint layer,uint mips) 

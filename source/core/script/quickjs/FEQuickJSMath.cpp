@@ -86,7 +86,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecCtor(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
+            UNUSED(this_val);
             using   Vec    =   typename VecOf<DIM>::type;
             JSEnv*  env    =   getEnv(ctx);
             if (argc == 0)
@@ -142,7 +142,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecAdd(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a,b;
             if (!vecOperands<DIM>(ctx,env,this_val,argv[0],a,b))
@@ -153,7 +153,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecSub(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a,b;
             if (!vecOperands<DIM>(ctx,env,this_val,argv[0],a,b))
@@ -164,7 +164,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecMul(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             using   Vec    =   typename VecOf<DIM>::type;
             JSEnv*  env    =   getEnv(ctx);
             Vec     a;
@@ -182,7 +182,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecDiv(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             using   Vec    =   typename VecOf<DIM>::type;
             JSEnv*  env    =   getEnv(ctx);
             Vec     a;
@@ -200,8 +200,8 @@ namespace   FE
         template<int DIM>
         static  JSValue vecNeg(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a;
             if (!VecOf<DIM>::readStrict(ctx,env,this_val,a))
@@ -212,7 +212,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecEquals(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a,b;
             if (!vecOperands<DIM>(ctx,env,this_val,argv[0],a,b))
@@ -223,8 +223,8 @@ namespace   FE
         template<int DIM>
         static  JSValue vecClone(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a;
             if (!VecOf<DIM>::readStrict(ctx,env,this_val,a))
@@ -235,7 +235,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecAt(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a;
             if (!VecOf<DIM>::readStrict(ctx,env,this_val,a))
@@ -249,8 +249,8 @@ namespace   FE
         template<int DIM>
         static  JSValue vecLength(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a;
             if (!VecOf<DIM>::readStrict(ctx,env,this_val,a))
@@ -261,7 +261,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecDot(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a,b;
             if (!vecOperands<DIM>(ctx,env,this_val,argv[0],a,b))
@@ -272,7 +272,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecDistance(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a,b;
             if (!vecOperands<DIM>(ctx,env,this_val,argv[0],a,b))
@@ -283,8 +283,8 @@ namespace   FE
         template<int DIM>
         static  JSValue vecNormalize(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a;
             if (!VecOf<DIM>::readStrict(ctx,env,this_val,a))
@@ -295,7 +295,7 @@ namespace   FE
         template<int DIM>
         static  JSValue vecLerp(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a,b;
             if (!vecOperands<DIM>(ctx,env,this_val,argv[0],a,b))
@@ -308,7 +308,7 @@ namespace   FE
 
         static  JSValue vec3Cross(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             real3   a,b;
             if (!VecOf<3>::readStrict(ctx,env,this_val,a) || !VecOf<3>::readStrict(ctx,env,argv[0],b))
@@ -319,8 +319,8 @@ namespace   FE
         template<int DIM>
         static  JSValue vecToString(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename VecOf<DIM>::type   a;
             if (!VecOf<DIM>::readStrict(ctx,env,this_val,a))
@@ -445,7 +445,7 @@ namespace   FE
 
         static  JSValue quatCtor(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
+            UNUSED(this_val);
             JSEnv*  env =   getEnv(ctx);
             quatr   q(1,0,0,0);
             if (argc == 0)
@@ -477,8 +477,8 @@ namespace   FE
         /// fe.quatAngleAxis(angleRad, axis):绕轴旋转构造四元数(axis 自动归一化)
         static  JSValue quatAngleAxis(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             real    angle;
             real3   axis;
@@ -489,7 +489,7 @@ namespace   FE
 
         static  JSValue quatMul(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -515,7 +515,7 @@ namespace   FE
 
         static  JSValue quatAdd(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             quatr   a,b;
             if (!QuatOf::readStrict(ctx,env,this_val,a) || !QuatOf::readStrict(ctx,env,argv[0],b))
@@ -525,7 +525,7 @@ namespace   FE
 
         static  JSValue quatSub(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             quatr   a,b;
             if (!QuatOf::readStrict(ctx,env,this_val,a) || !QuatOf::readStrict(ctx,env,argv[0],b))
@@ -535,8 +535,8 @@ namespace   FE
 
         static  JSValue quatNeg(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -551,7 +551,7 @@ namespace   FE
 
         static  JSValue quatEquals(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             quatr   a,b;
             if (!QuatOf::readStrict(ctx,env,this_val,a) || !QuatOf::readStrict(ctx,env,argv[0],b))
@@ -561,8 +561,8 @@ namespace   FE
 
         static  JSValue quatClone(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -572,7 +572,7 @@ namespace   FE
 
         static  JSValue quatAt(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -585,8 +585,8 @@ namespace   FE
 
         static  JSValue quatConj(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -596,8 +596,8 @@ namespace   FE
 
         static  JSValue quatNormalize(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -607,7 +607,7 @@ namespace   FE
 
         static  JSValue quatDot(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             quatr   a,b;
             if (!QuatOf::readStrict(ctx,env,this_val,a) || !QuatOf::readStrict(ctx,env,argv[0],b))
@@ -617,7 +617,7 @@ namespace   FE
 
         static  JSValue quatSlerp(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             quatr   a,b;
             if (!QuatOf::readStrict(ctx,env,this_val,a) || !QuatOf::readStrict(ctx,env,argv[0],b))
@@ -630,8 +630,8 @@ namespace   FE
 
         static  JSValue quatAngle(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -641,8 +641,8 @@ namespace   FE
 
         static  JSValue quatAxis(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -652,8 +652,8 @@ namespace   FE
 
         static  JSValue quatToMat3(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -663,8 +663,8 @@ namespace   FE
 
         static  JSValue quatToMat4(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -674,8 +674,8 @@ namespace   FE
 
         static  JSValue quatToString(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             quatr   a;
             if (!QuatOf::readStrict(ctx,env,this_val,a))
@@ -819,7 +819,7 @@ namespace   FE
         template<int DIM>
         static  JSValue matCtor(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
+            UNUSED(this_val);
             using   Mat    =   typename MatOf<DIM>::type;
             JSEnv*  env    =   getEnv(ctx);
             Mat     m(1.0);     /// 单位阵
@@ -847,7 +847,7 @@ namespace   FE
         template<int DIM>
         static  JSValue matMul(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             using   Mat    =   typename MatOf<DIM>::type;
             using   Col    =   typename MatOf<DIM>::colType;
             JSEnv*  env    =   getEnv(ctx);
@@ -869,7 +869,7 @@ namespace   FE
         template<int DIM>
         static  JSValue matEquals(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             typename MatOf<DIM>::type   a,b;
             if (!MatOf<DIM>::readStrict(ctx,env,this_val,a) || !MatOf<DIM>::readStrict(ctx,env,argv[0],b))
@@ -880,8 +880,8 @@ namespace   FE
         template<int DIM>
         static  JSValue matClone(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename MatOf<DIM>::type   a;
             if (!MatOf<DIM>::readStrict(ctx,env,this_val,a))
@@ -893,7 +893,7 @@ namespace   FE
         template<int DIM>
         static  JSValue matCol(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             using   Mat    =   typename MatOf<DIM>::type;
             using   Col    =   typename MatOf<DIM>::colType;
             JSEnv*  env    =   getEnv(ctx);
@@ -910,7 +910,7 @@ namespace   FE
         template<int DIM>
         static  JSValue matSetCol(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             using   Col    =   typename MatOf<DIM>::colType;
             JSEnv*  env    =   getEnv(ctx);
             typename MatOf<DIM>::type   m;
@@ -931,8 +931,8 @@ namespace   FE
         template<int DIM>
         static  JSValue matTranspose(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename MatOf<DIM>::type   m;
             if (!MatOf<DIM>::readStrict(ctx,env,this_val,m))
@@ -943,8 +943,8 @@ namespace   FE
         template<int DIM>
         static  JSValue matInverse(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename MatOf<DIM>::type   m;
             if (!MatOf<DIM>::readStrict(ctx,env,this_val,m))
@@ -955,8 +955,8 @@ namespace   FE
         template<int DIM>
         static  JSValue matDeterminant(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename MatOf<DIM>::type   m;
             if (!MatOf<DIM>::readStrict(ctx,env,this_val,m))
@@ -967,7 +967,7 @@ namespace   FE
         /// mat4:transformPoint(v3):变换点(平移生效)
         static  JSValue mat4TransformPoint(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             mat4r   m;
             if (!MatOf<4>::readStrict(ctx,env,this_val,m))
@@ -982,7 +982,7 @@ namespace   FE
         /// mat4:transformVector(v3):变换方向(平移不生效)
         static  JSValue mat4TransformVector(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env =   getEnv(ctx);
             mat4r   m;
             if (!MatOf<4>::readStrict(ctx,env,this_val,m))
@@ -997,8 +997,8 @@ namespace   FE
         /// fe.mat4Perspective(fovyRad, aspect, near, far)
         static  JSValue mat4Perspective(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             real    fovy,aspect,znear,zfar;
             if (!argNum(ctx,argv[0],fovy) || !argNum(ctx,argv[1],aspect) ||
                 !argNum(ctx,argv[2],znear) || !argNum(ctx,argv[3],zfar))
@@ -1009,8 +1009,8 @@ namespace   FE
         /// fe.mat4LookAt(eye, center, up)
         static  JSValue mat4LookAt(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             real3   eye,center,up;
             if (!toReal3(ctx,argv[0],eye) || !toReal3(ctx,argv[1],center) || !toReal3(ctx,argv[2],up))
                 return  JS_ThrowTypeError(ctx,"fe.mat4LookAt: expect (eye, center, up)");
@@ -1020,8 +1020,8 @@ namespace   FE
         template<int DIM>
         static  JSValue matToString(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env =   getEnv(ctx);
             typename MatOf<DIM>::type   m;
             if (!MatOf<DIM>::readStrict(ctx,env,this_val,m))

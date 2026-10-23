@@ -1102,7 +1102,6 @@ namespace   FE
             ktxTexture2*    k2  =   nullptr;
             if  (ktxTexture2_Create(&ci,KTX_TEXTURE_CREATE_ALLOC_STORAGE,&k2) != KTX_SUCCESS)
                 return  false;
-            ktxTexture1*    as1 =   reinterpret_cast<ktxTexture1*>(k2);
             /// ktxTexture2 构造后 glType/glFormat 字段未初始化,
             /// SetImageFromMemory 内部会依赖 ktxTexture_vtbl::SetImageFromMemory,
             /// 对 ktxTexture2 只关心 vkFormat,无需设置 GL 字段

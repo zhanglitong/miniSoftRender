@@ -54,7 +54,7 @@ namespace   FE
         /// <returns>nullptr 失败</returns>
         static  Object  readObject(FEContext& _ctx,FEReader& reader,uint& version,FESerializeCtx& xctx)
         {
-            (void)version;
+            UNUSED(version);
             FEReaderHelper  helper(reader);
             FEChunkInf      infor       =   {};
             CLSId           clsId;

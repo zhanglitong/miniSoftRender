@@ -41,9 +41,9 @@ namespace   FE
         /// <returns></returns>
         virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ) const override
         {
-            (void)version;
-            (void)chunk;
-            (void)writer;
+            UNUSED(version);
+            UNUSED(chunk);
+            UNUSED(writer);
             uint    cnt =   (uint)_entryList.size();
             writer.write(cnt);
             for (auto& var: _entryList)
@@ -60,9 +60,9 @@ namespace   FE
         /// <returns></returns>
         virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override
         {
-            (void)chunk;
-            (void)version;
-            (void)ctx;
+            UNUSED(chunk);
+            UNUSED(version);
+            UNUSED(ctx);
             uint    cnt =   (uint)_entryList.size();
             reader.read(cnt);
             _entryList.reserve(cnt);

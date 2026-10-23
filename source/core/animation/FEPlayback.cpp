@@ -284,10 +284,10 @@ namespace FE
     }
     void    FEPlayback::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx)
     {
-        (void)reader;
-        (void)chunk;
-        (void)version;
-        (void)ctx;
+        UNUSED(reader);
+        UNUSED(chunk);
+        UNUSED(version);
+        UNUSED(ctx);
 
         reader.read(_playMode);
         reader.read(_timeMode);

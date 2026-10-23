@@ -78,7 +78,7 @@ namespace FE
         /// <returns></returns>
         virtual FETransform   solve(const FETransform& currentWorld,const real& time) const override
         {
-            (void)time;
+            UNUSED(time);
             FETransform   desired   =   currentWorld;
             desired.setPosition(effectiveTarget() + _offset.position());
             return                  desired;

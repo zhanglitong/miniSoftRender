@@ -194,10 +194,10 @@ namespace FE
     }
     void    FEAnimClip::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx)
     {
-        (void)reader;
-        (void)chunk;
-        (void)version;
-        (void)ctx;
+        UNUSED(reader);
+        UNUSED(chunk);
+        UNUSED(version);
+        UNUSED(ctx);
         uint            nTrack  =   reader.readValue<uint>();
         KeyFrameTracks  tracks;
         tracks.reserve(nTrack);

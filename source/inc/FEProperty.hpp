@@ -138,9 +138,9 @@ namespace   FE
         /// <returns></returns>
         virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override
         {
-            (void)ctx;
-            (void)version;
-            (void)chk;
+            UNUSED(ctx);
+            UNUSED(version);
+            UNUSED(chk);
             const   auto&   keyVals =   _values.data();
             const   uint    cnt     =   (uint)keyVals.size();
             writer.write(cnt);
@@ -180,9 +180,9 @@ namespace   FE
         /// <returns></returns>
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chk ,uint version,FESerializeCtx& ctx) override
         {
-            (void)chk;
-            (void)ctx;
-            (void)version;
+            UNUSED(chk);
+            UNUSED(ctx);
+            UNUSED(version);
             uint    cnt     =   0;
             uint    index   =   0;
             String  key;

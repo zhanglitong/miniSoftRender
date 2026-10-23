@@ -41,9 +41,9 @@ namespace   FE
             FESerializeCtx    xsCtx;
             xsCtx.query =   [&](const OBJId& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
             {
-                (void)id;
-                (void)object;
-                (void)option;
+                UNUSED(id);
+                UNUSED(object);
+                UNUSED(option);
                 return  {nullptr,0};
             };
             FEWriterVirtual vFile(_ctx);

@@ -1,6 +1,7 @@
 #pragma     once
 
 #include    "FEMath.hpp"
+#include    "../FEUnused.hpp"
 #include    <vector>
 
 namespace   FE
@@ -98,7 +99,7 @@ namespace   FE
     public:
         bool    isValid() const { return _valid; }
         size_t  bufferSize() const { return _size; }
-        void    update(size_t offset, size_t size, const void* data) { (void)offset; (void)size; (void)data; }
+        void    update(size_t offset, size_t size, const void* data) { UNUSED(offset); UNUSED(size); UNUSED(data); }
         void    setValid(bool v) { _valid = v; }
         void    setSize(size_t s) { _size = s; }
     private:
@@ -115,7 +116,7 @@ namespace   FE
     public:
         bool    isValid() const { return _valid; }
         size_t  bufferSize() const { return _size; }
-        void    update(size_t offset, size_t size, const void* data) { (void)offset; (void)size; (void)data; }
+        void    update(size_t offset, size_t size, const void* data) { UNUSED(offset); UNUSED(size); UNUSED(data); }
         void    setValid(bool v) { _valid = v; }
         void    setSize(size_t s) { _size = s; }
     private:

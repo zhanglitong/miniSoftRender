@@ -29,7 +29,7 @@ namespace   FE
     protected:
         virtual void    onProgress(real val)
         {
-            (void)val;
+            UNUSED(val);
         }
     protected:
         real    _progress   =   0;

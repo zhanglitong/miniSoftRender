@@ -477,7 +477,7 @@ namespace   FE
         /// </summary>
         bool        applyVariant(Nodes& nodes,int variantIndex)
         {
-            (void)nodes;
+            UNUSED(nodes);
             if (variantIndex < 0 || variantIndex >= (int)_variantNames.size())
                 return  false;
             FEScene*    scene   =   _ctx.scene();
@@ -1101,16 +1101,16 @@ namespace   FE
 
         Material    parseMaterialV3(const tinygltf::Model& model, int matIndex)
         {
-            (void)model;
-            (void)matIndex;
+            UNUSED(model);
+            UNUSED(matIndex);
             /// auto&       material    =   model.materials[matIndex];
             auto        sysMat      =   new FEMaterialV3C4(_ctx);
             return      sysMat;
         }
         Material    parseMaterialV3C4(const tinygltf::Model& model, int matIndex)
         {
-            (void)model;
-            (void)matIndex;
+            UNUSED(model);
+            UNUSED(matIndex);
            ///  auto&       material    =   model.materials[matIndex];
             auto        sysMat      =   new FEMaterialV3(_ctx);
             return      sysMat;
@@ -1181,11 +1181,11 @@ namespace   FE
             };
             auto&       material    =   model.materials[matIndex];
             bool        bTest       =   material.alphaMode == "MASK";
-            (void)bTest;
+            UNUSED(bTest);
             auto        alphaRef    =   (float)material.alphaCutoff;
-            (void)alphaRef;
+            UNUSED(alphaRef);
             const auto& pbr         =   material.pbrMetallicRoughness;
-            (void)pbr;
+            UNUSED(pbr);
             auto        pbrMat      =   new FEMaterialPBR(_ctx);
             
             pbrMat->data()._value._emissive     =   float4(1,1,1,1);

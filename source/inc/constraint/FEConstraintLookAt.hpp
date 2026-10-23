@@ -77,7 +77,7 @@ namespace FE
         /// <returns></returns>
         virtual FETransform   solve(const FETransform& currentWorld,const real& time) const override
         {
-            (void)time;
+            UNUSED(time);
             
             real3       forward(1,0,0);
             real3       delta   =   effectiveTarget() - currentWorld.position();

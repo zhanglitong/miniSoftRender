@@ -70,17 +70,6 @@ namespace   FE
         }
     };
 
-    /// <summary>
-    /// #define UNUSED(...)         (void)(__VA_ARGS__)
-    /// C++17 （利用折叠表达式）
-    /// </summary>
-    template <typename... Args>
-    inline void UNUSED(Args&&... args) 
-    {
-        /// 逐个将参数转为 void，从左到右求值
-        ((void)(args), ...); 
-    }
-
     #define UUIDOF(CLASS)       FE::UUIDTraits<CLASS>::property().classId()
 
     #define CLS_PROPERTY(CLASS) FE::UUIDTraits<CLASS>::property().property()

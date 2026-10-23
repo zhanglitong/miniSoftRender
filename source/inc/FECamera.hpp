@@ -532,9 +532,9 @@ namespace   FE
         /// <param name="zFar"></param>
         inline  void    perspective(real fov, real aspect, real zNear, real zFar)
         {
-            (void)aspect;
-            (void)zNear;
-            (void)zFar;
+            UNUSED(aspect);
+            UNUSED(zNear);
+            UNUSED(zFar);
 
             _fov       =    fov;
             _zNear      =   zNear;
@@ -966,8 +966,8 @@ public:
         /// <returns>返回级联数据</returns>
         static  real2s  calcCascade(const real2& nearFar,SplitMethod method = SM_Auto,size_t cnt= 3)
         {
-            (void)SM_Auto;
-            (void)cnt;
+            UNUSED(SM_Auto);
+            UNUSED(cnt);
             return  calcCascade(nearFar.x,nearFar.y,method,cnt);
         }
         /// <summary>

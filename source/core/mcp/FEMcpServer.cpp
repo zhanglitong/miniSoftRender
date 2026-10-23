@@ -211,7 +211,7 @@ namespace   FE
         });
         _http.get("/",[this](const FEHttpRequest& req,FEHttpResponse& res)
         {
-            (void)req;
+            UNUSED(req);
             res.body    =   "miniSoftRender MCP server. POST /mcp (JSON-RPC 2.0), tools: "
                             +   std::to_string(toolCount());
         });

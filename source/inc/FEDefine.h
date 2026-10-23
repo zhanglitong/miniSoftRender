@@ -28,6 +28,7 @@
 #include    "FEReference.hpp"
 #include    "FERef.hpp"
 #include    "FEConst.h"
+#include    "FEUnused.hpp"
 
 #if FE_PLATFORM == FE_PLATFORM_WIN32
     #define     API_EXPORT __declspec(dllexport)

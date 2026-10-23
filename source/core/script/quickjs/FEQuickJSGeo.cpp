@@ -159,8 +159,8 @@ namespace   FE
 
         static  JSValue Mesh_vertexCount(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    mesh    =   checkObj<FEMesh>(ctx,getEnv(ctx),this_val);
             if (mesh == nullptr)
                 return  JS_EXCEPTION;
@@ -178,8 +178,8 @@ namespace   FE
 
         static  JSValue Mesh_aabb(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    mesh    =   checkObj<FEMesh>(ctx,getEnv(ctx),this_val);
             if (mesh == nullptr)
                 return  JS_EXCEPTION;
@@ -190,8 +190,8 @@ namespace   FE
 
         static  JSValue Mesh_updateAabb(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    mesh    =   checkObj<FEMesh>(ctx,getEnv(ctx),this_val);
             if (mesh == nullptr)
                 return  JS_EXCEPTION;
@@ -211,8 +211,8 @@ namespace   FE
 
         static  JSValue Mesh_attributes(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    mesh    =   checkObj<FEMesh>(ctx,getEnv(ctx),this_val);
             if (mesh == nullptr)
                 return  JS_EXCEPTION;
@@ -246,8 +246,8 @@ namespace   FE
 
         static  JSValue geoBox(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryBox   geo(*env->ctx);
             geo.param()._size   =   optFloat3(ctx,argv[0],"size",float3(1,1,1));
@@ -257,8 +257,8 @@ namespace   FE
 
         static  JSValue geoSphere(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometrySphere    geo(*env->ctx);
             geo.param().radius          =   (float)optNum(ctx,argv[0],"radius",1.0);
@@ -273,8 +273,8 @@ namespace   FE
 
         static  JSValue geoCylinder(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryCylinder  geo(*env->ctx);
             geo.param().radiusTop       =   (float)optNum(ctx,argv[0],"radiusTop",1.0);
@@ -290,8 +290,8 @@ namespace   FE
 
         static  JSValue geoCone(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryCone  geo(*env->ctx);
             geo.param().radiusBottom    =   (float)optNum(ctx,argv[0],"radius",optNum(ctx,argv[0],"radiusBottom",1.0));
@@ -305,8 +305,8 @@ namespace   FE
 
         static  JSValue geoPyramid(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryPyramid   geo(*env->ctx);
             geo.param().radiusBottom    =   (float)optNum(ctx,argv[0],"radius",optNum(ctx,argv[0],"radiusBottom",1.0));
@@ -319,8 +319,8 @@ namespace   FE
 
         static  JSValue geoTorus(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryTorus geo(*env->ctx);
             geo.param().radius          =   (float)optNum(ctx,argv[0],"radius",1.0);
@@ -333,8 +333,8 @@ namespace   FE
 
         static  JSValue geoTorusKnot(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryTorusKnot geo(*env->ctx);
             geo.param().radius          =   (float)optNum(ctx,argv[0],"radius",1.0);
@@ -348,8 +348,8 @@ namespace   FE
 
         static  JSValue geoCircle(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryCircle    geo(*env->ctx);
             geo.param().radius          =   (float)optNum(ctx,argv[0],"radius",1.0);
@@ -361,8 +361,8 @@ namespace   FE
 
         static  JSValue geoRing(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryRing  geo(*env->ctx);
             geo.param().innerRadius     =   (float)optNum(ctx,argv[0],"innerRadius",0.5);
@@ -376,8 +376,8 @@ namespace   FE
 
         static  JSValue geoPlane(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryPlane geo(*env->ctx);
             geo.param()._width  =   (float)optNum(ctx,argv[0],"width",1.0);
@@ -389,8 +389,8 @@ namespace   FE
 
         static  JSValue geoGrid(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryGrid  geo(*env->ctx);
             Rgba8   lineColor   =   Rgba8(uint8x4(180,180,180,255));
@@ -407,8 +407,8 @@ namespace   FE
 
         static  JSValue geoEllipsoid(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryEllipsoidEGM  geo(*env->ctx);
             geo.param()._size   =   optFloat3(ctx,argv[0],"size",float3(1,1,1));
@@ -436,8 +436,8 @@ namespace   FE
         /// fe.geo.tube({type:"catmullrom", points:[[0,0,0],[1,1,0],...], radius:0.1, ...})
         static  JSValue geoTube(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env =   getEnv(ctx);
             FEGeometryTube  geo(*env->ctx);
             geo.param().type             =   FECurveType::CatmullRom;

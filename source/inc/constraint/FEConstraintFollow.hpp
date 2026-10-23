@@ -87,8 +87,8 @@ namespace   FE
         /// </summary>
         virtual FETransform   solve(const FETransform& currentWorld,const real& time) const override
         {
-            (void)time;
-            (void)currentWorld;
+            UNUSED(time);
+            UNUSED(currentWorld);
             FETransform   desired   =   currentWorld;
             FETransform   targetXform   =   effectiveTargetTransform();
             quatr   targetRot   =   quatr(targetXform.rotation());

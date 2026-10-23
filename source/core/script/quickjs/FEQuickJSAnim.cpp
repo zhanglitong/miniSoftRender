@@ -63,8 +63,8 @@ namespace   FE
 
         static  JSValue Anim_name(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -73,7 +73,7 @@ namespace   FE
 
         static  JSValue Anim_setName(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -87,8 +87,8 @@ namespace   FE
 
         static  JSValue Anim_offset(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -97,7 +97,7 @@ namespace   FE
 
         static  JSValue Anim_setOffset(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -110,8 +110,8 @@ namespace   FE
 
         static  JSValue Anim_clip(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -120,7 +120,7 @@ namespace   FE
 
         static  JSValue Anim_setClip(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    anim    =   checkObj<FEAnimation>(ctx,env,this_val);
             if (anim == nullptr)
@@ -134,8 +134,8 @@ namespace   FE
 
         static  JSValue Anim_range(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -144,8 +144,8 @@ namespace   FE
 
         static  JSValue Anim_isValid(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -154,8 +154,8 @@ namespace   FE
 
         static  JSValue Anim_isChanged(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -164,8 +164,8 @@ namespace   FE
 
         static  JSValue Anim_clearChanged(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),this_val);
             if (anim == nullptr)
                 return  JS_EXCEPTION;
@@ -192,7 +192,7 @@ namespace   FE
 
         static  JSValue Clip_addKeyFrame(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    clip    =   checkObj<FEAnimClip>(ctx,env,this_val);
             if (clip == nullptr)
@@ -208,7 +208,7 @@ namespace   FE
 
         static  JSValue Clip_insertKeyFrame(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    clip    =   checkObj<FEAnimClip>(ctx,env,this_val);
             if (clip == nullptr)
@@ -228,7 +228,7 @@ namespace   FE
 
         static  JSValue Clip_removeKeyFrame(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    clip    =   checkObj<FEAnimClip>(ctx,getEnv(ctx),this_val);
             if (clip == nullptr)
                 return  JS_EXCEPTION;
@@ -246,7 +246,7 @@ namespace   FE
 
         static  JSValue Clip_updateKeyFrame(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    clip    =   checkObj<FEAnimClip>(ctx,env,this_val);
             if (clip == nullptr)
@@ -268,7 +268,7 @@ namespace   FE
 
         static  JSValue Clip_addTrack(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    clip    =   checkObj<FEAnimClip>(ctx,env,this_val);
             if (clip == nullptr)
@@ -281,8 +281,8 @@ namespace   FE
 
         static  JSValue Clip_trackCount(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    clip    =   checkObj<FEAnimClip>(ctx,getEnv(ctx),this_val);
             if (clip == nullptr)
                 return  JS_EXCEPTION;
@@ -291,7 +291,7 @@ namespace   FE
 
         static  JSValue Clip_getTrack(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    clip    =   checkObj<FEAnimClip>(ctx,getEnv(ctx),this_val);
             if (clip == nullptr)
                 return  JS_EXCEPTION;
@@ -304,8 +304,8 @@ namespace   FE
 
         static  JSValue Clip_range(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    clip    =   checkObj<FEAnimClip>(ctx,getEnv(ctx),this_val);
             if (clip == nullptr)
                 return  JS_EXCEPTION;
@@ -314,8 +314,8 @@ namespace   FE
 
         static  JSValue Clip_simplifyTimeline(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    clip    =   checkObj<FEAnimClip>(ctx,getEnv(ctx),this_val);
             if (clip == nullptr)
                 return  JS_EXCEPTION;
@@ -341,8 +341,8 @@ namespace   FE
 
         static  JSValue Track_name(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -351,7 +351,7 @@ namespace   FE
 
         static  JSValue Track_setName(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -365,8 +365,8 @@ namespace   FE
 
         static  JSValue Track_propertyIndex(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -375,7 +375,7 @@ namespace   FE
 
         static  JSValue Track_setPropertyIndex(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -388,7 +388,7 @@ namespace   FE
 
         static  JSValue Track_addKeyFrame(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,env,this_val);
             if (track == nullptr)
@@ -404,7 +404,7 @@ namespace   FE
 
         static  JSValue Track_removeKeyFrame(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -422,7 +422,7 @@ namespace   FE
 
         static  JSValue Track_updateKeyFrame(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,env,this_val);
             if (track == nullptr)
@@ -444,8 +444,8 @@ namespace   FE
 
         static  JSValue Track_keyCount(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -455,8 +455,8 @@ namespace   FE
 
         static  JSValue Track_times(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -487,8 +487,8 @@ namespace   FE
 
         static  JSValue Track_values(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             JSEnv*  env     =   getEnv(ctx);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,env,this_val);
             if (track == nullptr)
@@ -536,8 +536,8 @@ namespace   FE
 
         static  JSValue Track_range(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -546,8 +546,8 @@ namespace   FE
 
         static  JSValue Track_isValid(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -556,7 +556,7 @@ namespace   FE
 
         static  JSValue Track_setInterpolation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -569,8 +569,8 @@ namespace   FE
 
         static  JSValue Track_interpolation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -579,7 +579,7 @@ namespace   FE
 
         static  JSValue Track_setTension(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -592,8 +592,8 @@ namespace   FE
 
         static  JSValue Track_tension(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    track   =   checkObj<FEKeyFrameTrack>(ctx,getEnv(ctx),this_val);
             if (track == nullptr)
                 return  JS_EXCEPTION;
@@ -625,8 +625,8 @@ namespace   FE
 
         static  JSValue Playback_play(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -636,8 +636,8 @@ namespace   FE
 
         static  JSValue Playback_stop(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -647,7 +647,7 @@ namespace   FE
 
         static  JSValue Playback_setMode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -660,8 +660,8 @@ namespace   FE
 
         static  JSValue Playback_status(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -670,7 +670,7 @@ namespace   FE
 
         static  JSValue Playback_setClipTime(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -683,8 +683,8 @@ namespace   FE
 
         static  JSValue Playback_buildCache(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -694,8 +694,8 @@ namespace   FE
 
         static  JSValue Playback_clearCache(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -705,8 +705,8 @@ namespace   FE
 
         static  JSValue Playback_isCacheMode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -715,8 +715,8 @@ namespace   FE
 
         static  JSValue Playback_refreshRange(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -726,7 +726,7 @@ namespace   FE
 
         static  JSValue Playback_addAnimation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    act     =   checkObj<FEPlayback>(ctx,env,this_val);
             if (act == nullptr)
@@ -739,7 +739,7 @@ namespace   FE
 
         static  JSValue Playback_removeAnimation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             JSEnv*  env     =   getEnv(ctx);
             auto    act     =   checkObj<FEPlayback>(ctx,env,this_val);
             if (act == nullptr)
@@ -752,8 +752,8 @@ namespace   FE
 
         static  JSValue Playback_count(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    act     =   checkObj<FEPlayback>(ctx,getEnv(ctx),this_val);
             if (act == nullptr)
                 return  JS_EXCEPTION;
@@ -784,7 +784,7 @@ namespace   FE
         /// </summary>
         static  JSValue AnimSys_getOrCreate(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
+            UNUSED(argc);
             auto    sys     =   checkObj<FEAnimationSys>(ctx,getEnv(ctx),this_val);
             if (sys == nullptr)
                 return  JS_EXCEPTION;
@@ -801,8 +801,8 @@ namespace   FE
 
         static  JSValue AnimSys_count(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    sys     =   checkObj<FEAnimationSys>(ctx,getEnv(ctx),this_val);
             if (sys == nullptr)
                 return  JS_EXCEPTION;
@@ -811,8 +811,8 @@ namespace   FE
 
         static  JSValue AnimSys_clear(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)argc;
-            (void)argv;
+            UNUSED(argc);
+            UNUSED(argv);
             auto    sys     =   checkObj<FEAnimationSys>(ctx,getEnv(ctx),this_val);
             if (sys == nullptr)
                 return  JS_EXCEPTION;
@@ -832,9 +832,9 @@ namespace   FE
 
         static  JSValue AnimModule_createAnimation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
-            (void)argv;
+            UNUSED(this_val);
+            UNUSED(argc);
+            UNUSED(argv);
             auto*   env     =   getEnv(ctx);
             Animation   anim    =   new FEAnimation(*env->ctx);
             return  pushObj<FEAnimation>(ctx,env,anim);
@@ -842,8 +842,8 @@ namespace   FE
 
         static  JSValue AnimModule_createNodeAnimation(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env     =   getEnv(ctx);
             NodeProperyBits bits(NP_Default);
             if (argc >= 1 && JS_IsNumber(argv[0]))
@@ -857,9 +857,9 @@ namespace   FE
 
         static  JSValue AnimModule_createClip(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
-            (void)argv;
+            UNUSED(this_val);
+            UNUSED(argc);
+            UNUSED(argv);
             auto*   env     =   getEnv(ctx);
             AnimClip    clip    =   new FEAnimClip(*env->ctx);
             return  pushObj<FEAnimClip>(ctx,env,clip);
@@ -902,8 +902,8 @@ namespace   FE
         /// </summary>
         static  JSValue AnimModule_createTrack(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env         =   getEnv(ctx);
             int64_t propIdx     =   0;
             if (!isIntegerValue(ctx,argv[0],propIdx))
@@ -929,8 +929,8 @@ namespace   FE
         /// </summary>
         static  JSValue AnimModule_action(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
-            (void)argc;
+            UNUSED(this_val);
+            UNUSED(argc);
             auto*   env     =   getEnv(ctx);
             if (env->scene == nullptr)
                 return  JS_ThrowTypeError(ctx,"fe.anim.action: scene not set");
@@ -964,7 +964,7 @@ namespace   FE
 
         static  JSValue AnimModule_addKeyFrameFromNode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
+            UNUSED(this_val);
             JSEnv*  env     =   getEnv(ctx);
             auto    anim    =   checkObj<FEAnimation>(ctx,env,argv[0]);
             if (anim == nullptr)
@@ -981,7 +981,7 @@ namespace   FE
 
         static  JSValue AnimModule_updateKeyFrameFromNode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
+            UNUSED(this_val);
             JSEnv*  env     =   getEnv(ctx);
             auto    anim    =   checkObj<FEAnimation>(ctx,env,argv[0]);
             if (anim == nullptr)
@@ -998,7 +998,7 @@ namespace   FE
 
         static  JSValue AnimModule_removeKeyFrameFromNode(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
-            (void)this_val;
+            UNUSED(this_val,argc);
             auto    anim    =   checkObj<FEAnimation>(ctx,getEnv(ctx),argv[0]);
             if (anim == nullptr)
                 return  JS_EXCEPTION;

@@ -3,6 +3,7 @@
 #include    <algorithm>
 #include    <initializer_list>
 #include    <stdexcept>
+#include    "FEUnused.hpp"
 
 namespace   FE
 {
@@ -684,7 +685,7 @@ namespace   FE
         /// <param name="n"></param>
         static void     deallocate(pointer p, TSize n) noexcept 
         {
-            (void)n;
+            UNUSED(n);
             if (p) ::operator delete(p);
         }
         /// <summary>

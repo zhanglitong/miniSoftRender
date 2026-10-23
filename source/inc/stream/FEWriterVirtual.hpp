@@ -21,7 +21,7 @@ namespace   FE
         /// <returns>写入大小,0失败</returns>
         virtual uint64  writeBuffer(const void*,uint64 len,const Tag& tag = {}) override
         {
-            (void)tag;
+            UNUSED(tag);
             _cur    +=  len;
             return  len;
         }

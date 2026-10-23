@@ -72,7 +72,7 @@ namespace   FE
     }
     void    systemInitializeCreator(FEContext& ctx)
     {
-        (void)ctx;
+        UNUSED(ctx);
         DEFINE_CLASS_CREATOR(FEEntryList);
         DEFINE_CLASS_CREATOR(FEPrimitive);
         DEFINE_CLASS_CREATOR(FEDrawArray);
@@ -132,19 +132,19 @@ namespace   FE
     }
     void    systemInitializeReader(FEContext& ctx)
     {
-        (void)ctx;
+        UNUSED(ctx);
 
         DEFINE_FORMAT_READER(FEFormatFepjReader);
         DEFINE_FORMAT_READER(FEFormatGLTFReader);
     }
     void    systemInitializeWriter(FEContext& ctx)
     {
-        (void)ctx;
+        UNUSED(ctx);
         DEFINE_FORMAT_WRITER(FEFormatFepjWriter);
     }
     void    systemInitialize(FEContext& ctx)
     {
-        (void)ctx;
+        UNUSED(ctx);
         systemInitializeCreator(ctx);
         systemInitializeReader(ctx);
         systemInitializeWriter(ctx);
