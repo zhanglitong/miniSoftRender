@@ -100,6 +100,16 @@ int     main(int argc, char** argv)
                   << " nor=" << norCount
                   << " primitives=" << mesh->primitives().size() << std::endl;
 
+        /// 校验 calcAabb 对 R16G16B16_SSCALED 的解析:
+        /// 顶点坐标 ±0.5 被量化为 int16 ±1,包围盒应为 [-1,-1,-1]~[1,1,1]
+        /// 注意 aabb() 返回缓存值,需先 updateAabb() 才会按顶点格式重新计算
+        mesh->updateAabb();
+        const   auto&   box     =   mesh->aabb();
+        const   auto&   boxMin  =   box.getMinimum();
+        const   auto&   boxMax  =   box.getMaximum();
+        std::cout << "box.sscaled aabb=[" << boxMin.x << "," << boxMin.y << "," << boxMin.z
+                  << "]-[" << boxMax.x << "," << boxMax.y << "," << boxMax.z << "]" << std::endl;
+
         passed  =   (mesh->buffers().size() >= 3)
                  && (posCount > 0)
                  && (norCount == posCount)

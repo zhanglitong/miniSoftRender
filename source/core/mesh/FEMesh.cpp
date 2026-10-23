@@ -7,6 +7,105 @@ constexpr const float   constDistance2          =   4;
 
 namespace   FE
 {
+    namespace
+    {
+        /// <summary>
+        /// 拾取支持的顶点位置格式:32bit FLOAT、16bit FLOAT 与 16bit 整型 RGB/RGBA 族
+        /// </summary>
+        static  bool    isPickupFormat(FEFormat format)
+        {
+            switch (format)
+            {
+            case FMT_R32G32B32_FLOAT:
+            case FMT_R32G32B32A32_FLOAT:
+            case FMT_R16G16B16_FLOAT:
+            case FMT_R16G16B16A16_FLOAT:
+            case FMT_R16G16B16_UNORM:
+            case FMT_R16G16B16_SNORM:
+            case FMT_R16G16B16_USCALED:
+            case FMT_R16G16B16_SSCALED:
+            case FMT_R16G16B16_UINT:
+            case FMT_R16G16B16_SINT:
+            case FMT_R16G16B16A16_UNORM:
+            case FMT_R16G16B16A16_SNORM:
+            case FMT_R16G16B16A16_USCALED:
+            case FMT_R16G16B16A16_SSCALED:
+            case FMT_R16G16B16A16_UINT:
+            case FMT_R16G16B16A16_SINT:
+                return  true;
+            default:
+                return  false;
+            }
+        }
+
+        /// <summary>
+        /// 16bit 整型位置向量读取:按转换器逐分量还原,忽略 A 分量
+        /// </summary>
+        template<typename V,typename Conv>
+        static  real3   readVec3(const uint8* pData,Conv conv)
+        {
+            const   V*  p   =   (const V*)pData;
+            return  real3(conv(p->x),conv(p->y),conv(p->z));
+        }
+
+        /// <summary>
+        /// 按顶点格式读取位置,统一转换为 real3(忽略 A 分量)
+        /// _UNORM/_SNORM 归一化到[0,1]/[-1,1];_USCALED/_UINT、_SSCALED/_SINT 按原值
+        /// </summary>
+        static  real3   readPosition(const uint8* pData,FEFormat format)
+        {
+            switch (format)
+            {
+            case FMT_R32G32B32_FLOAT:
+                {
+                    const   float3* p   =   (const float3*)pData;
+                    return  real3(p->x,p->y,p->z);
+                }
+            case FMT_R32G32B32A32_FLOAT:
+                {
+                    const   float4* p   =   (const float4*)pData;
+                    return  real3(p->x,p->y,p->z);
+                }
+            case FMT_R16G16B16_FLOAT:
+                {
+                    const   half3*  p   =   (const half3*)pData;
+                    return  real3(float(p->x),float(p->y),float(p->z));
+                }
+            case FMT_R16G16B16A16_FLOAT:
+                {
+                    const   half4*  p   =   (const half4*)pData;
+                    return  real3(float(p->x),float(p->y),float(p->z));
+                }
+            /// 16bit 无符号归一化:[0,65535] -> [0,1]
+            case FMT_R16G16B16_UNORM:
+                return  readVec3<ushort3>(pData,[](uint16 v) { return  real(v) / 65535.0; });
+            case FMT_R16G16B16A16_UNORM:
+                return  readVec3<ushort4>(pData,[](uint16 v) { return  real(v) / 65535.0; });
+            /// 16bit 有符号归一化:[-32767,32767] -> [-1,1]
+            case FMT_R16G16B16_SNORM:
+                return  readVec3<short3>(pData,[](int16 v) { real r = real(v) / 32767.0; return  r < -1.0 ? -1.0 : r; });
+            case FMT_R16G16B16A16_SNORM:
+                return  readVec3<short4>(pData,[](int16 v) { real r = real(v) / 32767.0; return  r < -1.0 ? -1.0 : r; });
+            /// 16bit 无符号整数族(USCALED/UINT):原值
+            case FMT_R16G16B16_USCALED:
+            case FMT_R16G16B16_UINT:
+                return  readVec3<ushort3>(pData,[](uint16 v) { return  real(v); });
+            case FMT_R16G16B16A16_USCALED:
+            case FMT_R16G16B16A16_UINT:
+                return  readVec3<ushort4>(pData,[](uint16 v) { return  real(v); });
+            /// 16bit 有符号整数族(SSCALED/SINT):原值
+            case FMT_R16G16B16_SSCALED:
+            case FMT_R16G16B16_SINT:
+                return  readVec3<short3>(pData,[](int16 v) { return  real(v); });
+            case FMT_R16G16B16A16_SSCALED:
+            case FMT_R16G16B16A16_SINT:
+                return  readVec3<short4>(pData,[](int16 v) { return  real(v); });
+            default:
+                return  real3(0);
+            }
+        }
+    }
+
     int     FEMesh::drawCmd(FECmdIndex& cmd,uint idx,uint instId)
     {
         assert(idx < _primitives.size());
@@ -104,15 +203,10 @@ namespace   FE
             return  false;
         auto    attr        =   pSubMesh->attr();
 
-        /// 顶点格式必须是以下两种
-        switch (attr.format())
-        {
-        case FMT_R32G32B32_FLOAT:
-        case FMT_R32G32B32A32_FLOAT:
-            break;
-        default:
+        /// 顶点格式校验:32bit FLOAT、16bit FLOAT 与 16bit 整型 RGB/RGBA 族
+        auto    format      =   attr.format();
+        if (!isPickupFormat(format))
             return  false;
-        }
         auto    stride      =   attr.stride();
         auto    pData       =   pSubMesh->buffer()->data();
         if (pData == nullptr)
@@ -133,11 +227,9 @@ namespace   FE
             {
                 for (uint i = nStart; i < nEnd; i+= 2)
                 {
-                    float3* p0      =   (float3*)(pData + stride * (i + 0));
-                    float3* p1      =   (float3*)(pData + stride * (i + 1));
+                    real3   dpos0   =   readPosition(pData + stride * (i + 0),format);
+                    real3   dpos1   =   readPosition(pData + stride * (i + 1),format);
 
-                    real3   dpos0   =   real3(p0->x,p0->y,p0->z);
-                    real3   dpos1   =   real3(p1->x,p1->y,p1->z);
                     real3   seg[]   =   {dpos0,dpos1};
                     real3   ptRay;
                     real3   ptSet;
@@ -156,12 +248,10 @@ namespace   FE
             break;
         case PRI_LINE_STRIP:
             {
-                float3* p0      =   (float3*)(pData + stride);
-                real3   dpos0   =   real3(p0->x,p0->y,p0->z);
+                real3   dpos0   =   readPosition(pData + stride,format);
                 for (uint i = nStart + 1; i < nEnd; ++i)
                 {
-                    float3* p1      =   (float3*)(pData + stride * i);
-                    real3   dpos1   =   real3(p1->x,p1->y,p1->z);
+                    real3   dpos1   =   readPosition(pData + stride * i,format);
                     real3   seg[]   =   {dpos0,dpos1};
                     real3   ptRay;
                     real3   ptSet;
@@ -182,13 +272,9 @@ namespace   FE
             {
                 for (uint i = nStart; i < nEnd; i+= 3)
                 {
-                    float3* p0      =   (float3*)(pData + stride * (i + 0));
-                    float3* p1      =   (float3*)(pData + stride * (i + 1));
-                    float3* p2      =   (float3*)(pData + stride * (i + 2));
-
-                    real3  dpos0    =   real3(p0->x,p0->y,p0->z);
-                    real3  dpos1    =   real3(p1->x,p1->y,p1->z);
-                    real3  dpos2    =   real3(p2->x,p2->y,p2->z);
+                    real3   dpos0   =   readPosition(pData + stride * (i + 0),format);
+                    real3   dpos1   =   readPosition(pData + stride * (i + 1),format);
+                    real3   dpos2   =   readPosition(pData + stride * (i + 2),format);
 
                     real   t(0), u(0), v(0);
                     if (!ray.intersect(dpos0, dpos1, dpos2, &t, &u, &v))
@@ -207,16 +293,12 @@ namespace   FE
             break;
         case PRI_TRIANGLE_STRIP  :
             {
-                float3* p0      =   (float3*)(pData + stride * 0);
-                float3* p1      =   (float3*)(pData + stride * 1);
-
-                real3   dpos0   =   real3(p0->x,p0->y,p0->z);
-                real3   dpos1   =   real3(p1->x,p1->y,p1->z);
+                real3   dpos0   =   readPosition(pData,format);
+                real3   dpos1   =   readPosition(pData + stride,format);
 
                 for (uint i = nStart + 2; i < nEnd; ++ i)
                 {
-                    float3* p2      =   (float3*)(pData + stride * i);
-                    real3   dpos2   =   real3(p2->x,p2->y,p2->z);
+                    real3   dpos2   =   readPosition(pData + stride * i,format);
 
                     real   t(0), u(0), v(0);
                     if (!ray.intersect(dpos0, dpos1, dpos2, &t, &u, &v))
@@ -245,16 +327,12 @@ namespace   FE
             break;
         case PRI_TRIANGLE_FAN    : 
             {
-                float3* p0      =   (float3*)(pData + stride * 0);
-                float3* p1      =   (float3*)(pData + stride * 1);
-
-                real3   dpos0   =   real3(p0->x,p0->y,p0->z);
-                real3   dpos1   =   real3(p1->x,p1->y,p1->z);
+                real3   dpos0   =   readPosition(pData,format);
+                real3   dpos1   =   readPosition(pData + stride,format);
 
                 for (uint i = nStart + 2; i < nEnd; ++ i)
                 {
-                    float3* p2      =   (float3*)(pData + stride * i);
-                    real3   dpos2   =   real3(p2->x,p2->y,p2->z);
+                    real3   dpos2   =   readPosition(pData + stride * i,format);
 
                     real   t(0), u(0), v(0);
                     if (!ray.intersect(dpos0, dpos1, dpos2, &t, &u, &v))
@@ -294,15 +372,10 @@ namespace   FE
             return  false;
         /// 获取顶点属性
         auto    attr        =   pBuffer->attr();
-        /// 顶点格式必须是以下两种
-        switch (attr.format())
-        {
-        case FMT_R32G32B32_FLOAT:
-        case FMT_R32G32B32A32_FLOAT:
-            break;
-        default:
+        /// 顶点格式校验:32bit FLOAT、16bit FLOAT 与 16bit 整型 RGB/RGBA 族
+        auto    format      =   attr.format();
+        if (!isPickupFormat(format))
             return  false;
-        }
         auto    stride      =   attr.stride();
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
@@ -324,11 +397,8 @@ namespace   FE
                     uint    index0  =   pIndex[i + 0];
                     uint    index1  =   pIndex[i + 1];
 
-                    float3* p0      =   (float3*)(pData + stride * index0 );
-                    float3* p1      =   (float3*)(pData + stride * index1 );
-
-                    real3   dpos0   =   real3(p0->x,p0->y,p0->z);
-                    real3   dpos1   =   real3(p1->x,p1->y,p1->z);
+                    real3   dpos0   =   readPosition(pData + stride * index0,format);
+                    real3   dpos1   =   readPosition(pData + stride * index1,format);
                     real3   seg[]   =   {dpos0,dpos1};
                     real3   ptRay;
                     real3   ptSet;
@@ -353,12 +423,9 @@ namespace   FE
                 for (size_t i = 0; i < nCount; i += 3)
                 {
                     byte3   index   =   byte3(pIndex[i+0],pIndex[i+1],pIndex[i+2]);
-                    float3  pos0    =   *(float3*)(pData +index.x * stride);
-                    float3  pos1    =   *(float3*)(pData +index.y * stride);
-                    float3  pos2    =   *(float3*)(pData +index.z * stride);
-                    real3   dpos0   =   real3(pos0.x, pos0.y, pos0.z);
-                    real3   dpos1   =   real3(pos1.x, pos1.y, pos1.z);
-                    real3   dpos2   =   real3(pos2.x, pos2.y, pos2.z);
+                    real3   dpos0   =   readPosition(pData +index.x * stride,format);
+                    real3   dpos1   =   readPosition(pData +index.y * stride,format);
+                    real3   dpos2   =   readPosition(pData +index.z * stride,format);
                     real    t(0), u(0), v(0);
                     if (!ray.intersect(dpos0, dpos1, dpos2, &t, &u, &v))
                         continue;
@@ -392,15 +459,10 @@ namespace   FE
             return  false;
         /// 获取顶点属性
         auto    attr        =   pBuffer->attr();
-        /// 顶点格式必须是以下两种
-        switch (attr.format())
-        {
-        case FMT_R32G32B32_FLOAT:
-        case FMT_R32G32B32A32_FLOAT:
-            break;
-        default:
+        /// 顶点格式校验:32bit FLOAT、16bit FLOAT 与 16bit 整型 RGB/RGBA 族
+        auto    format      =   attr.format();
+        if (!isPickupFormat(format))
             return  false;
-        }
         auto    stride      =   attr.stride();
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
@@ -422,11 +484,8 @@ namespace   FE
                     uint    index0  =   pIndex[i + 0];
                     uint    index1  =   pIndex[i + 1];
 
-                    float3* p0      =   (float3*)(pData + stride * index0 );
-                    float3* p1      =   (float3*)(pData + stride * index1 );
-
-                    real3   dpos0   =   real3(p0->x,p0->y,p0->z);
-                    real3   dpos1   =   real3(p1->x,p1->y,p1->z);
+                    real3   dpos0   =   readPosition(pData + stride * index0,format);
+                    real3   dpos1   =   readPosition(pData + stride * index1,format);
                     real3   seg[]   =   {dpos0,dpos1};
                     real3   ptRay;
                     real3   ptSet;
@@ -451,12 +510,9 @@ namespace   FE
                 for (size_t i = 0; i < nCount; i += 3)
                 {
                     ushort3 index   =   ushort3(pIndex[i+0],pIndex[i+1],pIndex[i+2]);
-                    float3  pos0    =   *(float3*)(pData +index.x * stride);
-                    float3  pos1    =   *(float3*)(pData +index.y * stride);
-                    float3  pos2    =   *(float3*)(pData +index.z * stride);
-                    real3   dpos0   =   real3(pos0.x, pos0.y, pos0.z);
-                    real3   dpos1   =   real3(pos1.x, pos1.y, pos1.z);
-                    real3   dpos2   =   real3(pos2.x, pos2.y, pos2.z);
+                    real3   dpos0   =   readPosition(pData +index.x * stride,format);
+                    real3   dpos1   =   readPosition(pData +index.y * stride,format);
+                    real3   dpos2   =   readPosition(pData +index.z * stride,format);
                     real    t(0), u(0), v(0);
                     if (!ray.intersect(dpos0, dpos1, dpos2, &t, &u, &v))
                         continue;
@@ -490,15 +546,10 @@ namespace   FE
             return  false;
         /// 获取顶点属性
         auto    attr        =   pBuffer->attr();
-        /// 顶点格式必须是以下两种
-        switch (attr.format())
-        {
-        case FMT_R32G32B32_FLOAT:
-        case FMT_R32G32B32A32_FLOAT:
-            break;
-        default:
+        /// 顶点格式校验:32bit FLOAT、16bit FLOAT 与 16bit 整型 RGB/RGBA 族
+        auto    format      =   attr.format();
+        if (!isPickupFormat(format))
             return  false;
-        }
         auto    stride      =   attr.stride();
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
@@ -520,11 +571,8 @@ namespace   FE
                     uint    index0  =   pIndex[i + 0];
                     uint    index1  =   pIndex[i + 1];
 
-                    float3* p0      =   (float3*)(pData + stride * index0 );
-                    float3* p1      =   (float3*)(pData + stride * index1 );
-
-                    real3   dpos0   =   real3(p0->x,p0->y,p0->z);
-                    real3   dpos1   =   real3(p1->x,p1->y,p1->z);
+                    real3   dpos0   =   readPosition(pData + stride * index0,format);
+                    real3   dpos1   =   readPosition(pData + stride * index1,format);
                     real3   seg[]   =   {dpos0,dpos1};
                     real3   ptRay;
                     real3   ptSet;
@@ -549,12 +597,9 @@ namespace   FE
                 for (size_t i = 0; i < nCount; i += 3)
                 {
                     ushort3 index   =   ushort3(pIndex[i+0],pIndex[i+1],pIndex[i+2]);
-                    float3  pos0    =   *(float3*)(pData +index.x * stride);
-                    float3  pos1    =   *(float3*)(pData +index.y * stride);
-                    float3  pos2    =   *(float3*)(pData +index.z * stride);
-                    real3   dpos0   =   real3(pos0.x, pos0.y, pos0.z);
-                    real3   dpos1   =   real3(pos1.x, pos1.y, pos1.z);
-                    real3   dpos2   =   real3(pos2.x, pos2.y, pos2.z);
+                    real3   dpos0   =   readPosition(pData +index.x * stride,format);
+                    real3   dpos1   =   readPosition(pData +index.y * stride,format);
+                    real3   dpos2   =   readPosition(pData +index.z * stride,format);
                     real    t(0), u(0), v(0);
                     if (!ray.intersect(dpos0, dpos1, dpos2, &t, &u, &v))
                         continue;
