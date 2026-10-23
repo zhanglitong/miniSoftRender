@@ -4,10 +4,24 @@
 #include    "../inc/FEObjectHelper.hpp"
 #include    "../inc/FENodeHelper.hpp"
 #include    "../inc/animation/FEAnimation.hpp"
+#include    "../inc/animation/FEAnimationSys.hpp"
 #include    "../inc/graphic/FEScene.h"
 
 namespace FE
 {
+    /// <summary>
+    /// 把节点加入动画系统的更新列表,由场景在动画系统 update 完成后显式刷新
+    /// </summary>
+    static  void    addToUpdateList(FEContext& ctx,Object object)
+    {
+        if (object == nullptr)
+            return;
+        auto    scene   =   ctx.scene();
+        auto    sys     =   scene ? scene->animationSystem() : nullptr;
+        if (sys != nullptr)
+            sys->updateList().addObject(object);
+    }
+
     FEAnimation::FEAnimation(FEContext& ctx)  
         :FEComponent(ctx)
     {
@@ -139,8 +153,18 @@ namespace FE
 
     void    FEAnimation::beginSetProp()
     {
+        /// 采样基准:以节点本地变换为底,未被轨道覆盖的通道保持节点当前值
         if (_owner)
+        {
+            auto    node    =   _owner->cast<FENode>();
+            if (node != nullptr)
+            {
+                _transform.setPosition(node->localTranslation());
+                _transform.setScale(float3(node->localScaling()));
+                _transform.setRotation(node->localRotation());
+            }
             _owner->beginSetProp();
+        }
     }
     bool    FEAnimation::setProperty(int prop,const KFValue& value)
     {
@@ -151,86 +175,7 @@ namespace FE
             else
                 return  false;
         }
-        switch(prop)
-        {
-        case PROP_TRANSFORM_X:
-            {
-                real3   pos =   _transform.position();
-                pos.x       =   std::get<real>(value);
-                _transform.setPosition(pos);
-            }
-            break;
-        case PROP_TRANSFORM_Y:
-            {
-                real3   pos =   _transform.position();
-                pos.y       =   std::get<real>(value);
-                _transform.setPosition(pos);
-            }
-            break;
-        case PROP_TRANSFORM_Z:
-            {
-                real3   pos =   _transform.position();
-                pos.z       =   std::get<real>(value);
-                _transform.setPosition(pos);
-            }
-            break;
-        case PROP_TRANSFORM_XYZ:
-            _transform.setPosition(std::get<real3>(value));
-            break;
-        case PROP_SCALE_X:
-            {
-                float3  scl =   _transform.scale();
-                scl.x       =   (float)std::get<real>(value);
-                _transform.setScale(scl);
-            }
-            break;
-        case PROP_SCALE_Y:
-            {
-                float3  scl =   _transform.scale();
-                scl.y       =   (float)std::get<real>(value);
-                _transform.setScale(scl);
-            }
-            break;
-        case PROP_SCALE_Z:
-            {
-                float3  scl =   _transform.scale();
-                scl.z       =   (float)std::get<real>(value);
-                _transform.setScale(scl);
-            }
-            break;
-        case PROP_SCALE_XYZ:
-            _transform.setScale(float3(std::get<real3>(value)));
-            break;
-        case PROP_ROTATE_X:
-            {
-                float3  euler   =   _transform.euler();
-                euler.x         =   (float)std::get<real>(value);
-                _transform.setEuler(euler);
-            }
-            break;
-        case PROP_ROTATE_Y:
-            {
-                float3  euler   =   _transform.euler();
-                euler.y         =   (float)std::get<real>(value);
-                _transform.setEuler(euler);
-            }
-            break;
-        case PROP_ROTATE_Z:
-            {
-                float3  euler   =   _transform.euler();
-                euler.z         =   (float)std::get<real>(value);
-                _transform.setEuler(euler);
-            }
-            break;
-        case PROP_ROTATE_XYZ:
-            _transform.setEuler(float3(std::get<real3>(value)));
-            break;
-        case PROP_QUAT:
-            _transform.setRotation(std::get<quatf>(value));
-            break;
-        default:
-            return  false;
-        }
+        setTransformProperty(prop,value);
         return  true;
     }
 
@@ -286,7 +231,7 @@ namespace FE
         /// 把需要更新的对象加入到更新列表,引擎在所有组件更新完成后统一执行 update + fireChanged
         /// 不在 endSetProp 中立即触发,避免与更新列表重复执行 update/fireChanged
         if (bModify)
-            _ctx.scene()->updateList().addObject(_owner);
+            addToUpdateList(_ctx,_owner);
 
         LOG_DBG("_translation = %lf,%lf,%lf",_transform.position().x,_transform.position().y,_transform.position().z);
     }
@@ -318,9 +263,15 @@ namespace FE
     bool    FEAnimation::update(const real& clipTime)
     {
         if (!isEnable())
+        {
+            markApplied(false);
             return  false;
+        }
         if (!isValid())
+        {
+            markApplied(false);
             return  false;
+        }
         auto    rng =   range();
         /// 只有一个关键帧，update 流程需要正常走
         /// 典型的操作: 编辑时间线，添加了一个关键帧后，在添加第二个关键帧
@@ -330,11 +281,13 @@ namespace FE
         else if (clipTime <= rng.x && _clipTime  == rng.x)
         {
             flags().addFlag(OutOfRangeBit);
+            markApplied(false);
             return  false;
         } 
         else if(clipTime >= rng.y && _clipTime == rng.y)
         {
             flags().addFlag(OutOfRangeBit);
+            markApplied(false);
             return  false;
         }
         flags().removeFlag(OutOfRangeBit);
@@ -354,7 +307,26 @@ namespace FE
                 bModify     =   true;
         }
         this->endSetProp(clipTime,bModify);
+        markApplied(true);
         return  bModify;
+    }
+
+    void    FEAnimation::markApplied(bool applied)
+    {
+        if (flags().hasFlag(AppliedBit) == applied)
+            return;
+        if (applied)
+        {
+            flags().addFlag(AppliedBit);
+            return;
+        }
+        flags().removeFlag(AppliedBit);
+        /// 采样变换不再覆盖节点:标记节点重新按本地变换计算
+        if (_owner)
+        {
+            _owner->flags().addFlag(FENode::FLAG_PROP_TRANS | FENode::FLAG_PROP_SCALE | FENode::FLAG_PROP_ROT);
+            addToUpdateList(_ctx,_owner);
+        }
     }
 
     FETransform*    FEAnimation::getTransform()

@@ -30,7 +30,6 @@ namespace   FE
         ,_nodeTree(ctx)
         ,_factorys(ctx)
         ,_viewerMgr(ctx)
-        ,_updateList(ObjectLessFunc)
         ,_comSysMgr(ctx)
     {
         _nodeTree.eventsChangedNode()   +=  {this,[this](const FENode* node)
@@ -43,7 +42,6 @@ namespace   FE
         ,_nodeTree(other._nodeTree)
         ,_factorys(other._factorys)
         ,_viewerMgr(other._viewerMgr)
-        ,_updateList(ObjectLessFunc)
         ,_comSysMgr(other._comSysMgr)
     {}
     FEScene::~FEScene()
@@ -289,19 +287,10 @@ namespace   FE
         for (auto& var : comSyss)
         {
             var->update(_ctx.deltaTime());
+            /// 组件更新过程中收集的脏节点由各系统自己显式刷新
+            var->updateObjectList();
         }
 
-        for (auto var : _updateList.objects())
-        {   
-            auto    node    =   var->cast<FENode>();
-            if (node)
-            {
-                node->update();
-                node->fireChanged();
-            }
-        }
-        _updateList.clearObjects();
-        
         /// 渲染工厂
         auto    factorys    =   _factorys.objects();
         /// 按照优先级排序

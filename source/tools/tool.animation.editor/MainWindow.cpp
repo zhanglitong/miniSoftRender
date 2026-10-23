@@ -13,6 +13,7 @@
 #include    "UiProperties.h"
 #include    "FEAnimationXmlIO.hpp"
 #include    "UndoCommand.h"
+#include    "AnimationRefresher.hpp"
 
 MainWindow* _mainApp   =   nullptr;
 
@@ -150,6 +151,13 @@ MainWindow::MainWindow()
             auto    createAnim =   menu.addAction(u8"创建动画");
             connect(createAnim, &QAction::triggered, this, [this, node]()
             {
+                /// 动画覆盖本地变换:同一节点多个动画时只有最后添加的生效,先提示用户
+                auto    exist   =   node->objects<FEAnimation>();
+                if  (!exist.empty())
+                {
+                    QMessageBox::information(this, C2Q(u8"创建动画")
+                        , C2Q(u8"该节点已有动画。多个动画按添加顺序覆盖,只有最后一个生效。"));
+                }
                 auto    anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
                 if  (_undoStack)
                 {
@@ -302,7 +310,11 @@ MainWindow::MainWindow()
                         if  (sys)   sys->removeObject(anim);
                     }
                     if  (ownerNode)
+                    {
+                        /// 移除前先刷新:动画移除后节点需回落到本地变换
+                        refreshAnimOwner(anim);
                         ownerNode->removeComponent(anim);
+                    }
                     ui.animationTree->updateUi();
                 }
             });
@@ -473,6 +485,8 @@ void    MainWindow::disableAllAnimations()
         for (auto& anim : anims)
         {
             anim->setEnable(false);
+            /// 批量禁用后主动刷新 owner:播放未运行时动画 update 不会被执行,节点会停留在动画姿态
+            refreshAnimOwner(anim.get());
         }
     }
 }
@@ -732,6 +746,45 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
                                 snap.oldPos =   MoveNodeCmd::getPosition(obj);
                                 snap.newPos =   snap.oldPos;
                                 _moveSnapshots.push_back(snap);
+                            }
+                        }
+                    }
+                    else if (status == FE::FEEditAxis::Editting)
+                    {
+                        /// 拖动过程中的即时反馈:动画覆盖本地变换后,节点本地位置不再直接生效,
+                        /// 必须把拖出的位置同步到动画采样变换,并在当前时间写入/覆盖关键帧
+                        auto    ed  =   this->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
+                        auto    me  =   ed ? ed->as<FENodeMoveEditor>() : nullptr;
+                        if  (!me)
+                            return;
+                        real    tm  =   ui.timeLineEditor->curTime();
+                        for (auto obj : me->objects())
+                        {
+                            auto    node    =   obj ? obj->cast<FENode>() : nullptr;
+                            if  (!node)
+                                continue;
+                            for (auto* animPtr : node->objects<FEAnimation>())
+                            {
+                                if  (!animPtr || !animPtr->isEnable())
+                                    continue;
+                                FE::Animation   anim(animPtr);
+                                if  (!FE::PropertyKeyCmd::isDriven(anim, FE::PROP_TRANSFORM_XYZ))
+                                    continue;
+                                FE::PropertyKeyCmd::syncFromNode(anim, node, FE::PROP_TRANSFORM_XYZ);
+                                if  (FE::PropertyKeyCmd::hasKeyAt(anim, FE::PROP_TRANSFORM_XYZ, tm))
+                                    FEAnimationHelper::updateNodeKeyFrame(anim, tm, node
+                                        , FE::NodeProperyBits(FE::NP_TRANSFORM_XYZ));
+                                else if (autoKeyframe())
+                                    FEAnimationHelper::addNodeKeyFrame(anim, tm, node
+                                        , FE::NodeProperyBits(FE::NP_TRANSFORM_XYZ));
+                            }
+                            node->makeDirty();
+                            node->update();
+                            if  (auto    scene   =   node->ctx().scene())
+                            {
+                                auto    sys =   scene->animationSystem();
+                                if  (sys)
+                                    sys->updateList().addObject(node);
                             }
                         }
                     }

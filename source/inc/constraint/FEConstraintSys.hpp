@@ -114,7 +114,8 @@ namespace FE
                 node->setGlobalTranslation(solved.position());
                 node->setGlobalRotation(quatr(solved.rotation()));
                 lastSolved[node.get()]  =   solved;
-                _ctx.scene()->updateList().addObject(con->owner());
+                /// 加入本系统的更新列表,由场景在 update 之后显式刷新
+                updateList().addObject(con->owner());
             }
         }
     protected:

@@ -132,15 +132,19 @@ namespace   FE
         /// _gloabal 保持为保存的 global 不变,globalTransform() 立即可读;
         /// 下一帧 update() 按 parentGlobal * local 重算,结果仍为 global
 
-        /// 7. 将受影响节点加入场景更新列表,统一刷新实例数据与包围盒
-        FEScene*    scene   =   _ctx.scene();
-        if (scene != nullptr)
+        /// 7. 立即刷新受影响节点: 重算全局变换与包围盒并发送变更通知
+        ///    更新列表已下沉到组件系统,节点层级变更不属于组件系统,故此处直接刷新
+        selfNode->update();
+        selfNode->fireChanged();
+        if (newParent != nullptr)
         {
-            scene->updateList().addObject(Object(selfNode.get()));
-            if (newParent != nullptr)
-                scene->updateList().addObject(Object(newParent));
-            if (oldParent != nullptr)
-                scene->updateList().addObject(Object(oldParent));
+            newParent->update();
+            newParent->fireChanged();
+        }
+        if (oldParent != nullptr)
+        {
+            oldParent->update();
+            oldParent->fireChanged();
         }
     }
 
@@ -174,14 +178,19 @@ namespace   FE
     
     void    FENode::updateTransform(const real& ,bool recursion)
     {
-        FETransform blended;
-        /// 处理动画混合
-        blend(blended);
-        /// 全局变换 = 父全局 * (局部 * 混合组件变换)
+        /// 动画覆盖:有效动画组件的采样变换直接作为本地变换,多个动画时按组件顺序后者生效
+        FETransform local   =   _local;
+        for (auto& var : _coms)
+        {
+            auto*   tf  =   var->getTransform();
+            if (tf != nullptr)
+                local   =   *tf;
+        }
+        /// 全局变换 = 父全局 * 本地变换
         if (parent() != nullptr)
-            _gloabal    =   (parent()->_gloabal * (_local * blended));
+            _gloabal    =   (parent()->_gloabal * local);
         else
-            _gloabal    =   (_local * blended);
+            _gloabal    =   local;
         
         if (!recursion || children().empty())
             return;
@@ -367,54 +376,6 @@ namespace   FE
             fireChanged();
         }
     }
-
-    void    FENode::blend(FETransform& blended)
-    {
-        /// 第一遍: 计算权重总和 (weight <= 0 不参与)
-        float   allW    =   0;
-        int     cnt     =   0;
-        for (auto& var : _coms)
-        {
-            if (!var->getTransform())   continue;
-            float   w   =   var->weight();
-            if (w <= 0.0f)              continue;
-            allW    +=  w;
-            ++cnt;
-        }
-
-        /// 计算混合后的组件变换
-        if (cnt == 1)
-        {
-            /// 单组件: 直接使用
-            for (auto& var : _coms)
-            {
-                auto*   tf  =   var->getTransform();
-                if (tf) { blended = *tf; break; }
-            }
-        }
-        else if (cnt > 1)
-        {
-            /// 多组件: 按权重混合 position/scale/rotation
-            real3   pos(0);
-            float3  scl(0);
-            quatf   rot(0,0,0,0);
-            for (auto& var : _coms)
-            {
-                auto*   tf  =   var->getTransform();
-                if (!tf)        continue;
-                float   w   =   var->weight();
-                if (w <= 0.0f)  continue;
-                float   wn  =   w / allW;
-                pos     +=  tf->position() * real(wn);
-                scl     +=  tf->scale()    * wn;
-                rot     +=  tf->rotation() * wn;
-            }
-            blended.setPosition(pos);
-            blended.setScale(scl);
-            blended.setRotation(FE::normalize(rot));
-        }
-    }
-
 
     void    FENode::solve(const real& tm)
     {

@@ -355,10 +355,27 @@ namespace   FE
         static  KeyFrameTracks  targetTracks(Animation anim, PropIndex prop);
         /// 时间线时间 time 处目标轨道是否已有关键帧
         static  bool            hasKeyAt(Animation anim, PropIndex prop, real time);
+        /// <summary>
         /// addNodeKeyFrame 使用的位标记:存在精确轨道用轴位,否则用 XYZ 组位
+        /// </summary>
         static  uint32          helperBit(Animation anim, PropIndex prop);
+        /// <summary>
         /// 属性所属轨道组的位标记(用于补建轨道)
+        /// </summary>
         static  NodeProperyBit  groupBit(PropIndex prop);
+        /// <summary>
+        /// 属性是否被该动画的轨道接管(接管后节点本地值不再直接生效)
+        /// </summary>
+        static  bool            isDriven(Animation anim, PropIndex prop);
+        /// <summary>
+        /// 读取属性的显示值:被轨道接管时取动画采样值,否则取节点本地值
+        /// </summary>
+        static  bool            readDriven(Animation anim, PropIndex prop, real& value);
+        /// <summary>
+        /// 把节点上刚编辑的分量写入动画采样变换
+        /// 动画覆盖本地变换后,编辑值必须先落到采样变换再写关键帧,否则记录到的仍是旧值
+        /// </summary>
+        static  void            syncFromNode(Animation anim, Node node, PropIndex prop);
     private:
         void    doAdd();
         void    doRemoveAdded();

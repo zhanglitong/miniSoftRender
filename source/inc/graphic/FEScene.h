@@ -105,14 +105,6 @@ namespace   FE
         {
             return  _viewerMgr;
         }
-        inline  auto&   updateList()
-        {
-            return  _updateList;
-        }
-        const   auto&   updateList() const
-        {
-            return  _updateList;
-        }
         inline  Frame   currentFrame() const
         {
             return  _frame;
@@ -233,10 +225,6 @@ namespace   FE
         /// 管理所有viewer
         /// </summary>
         FEViewerMgr         _viewerMgr;
-        /// <summary>
-        /// 所有组件中计算出来需要更新的对象
-        /// </summary>
-        ObjectList          _updateList;
         /// <summary>
         /// 管理所有系统，例如动画系统，物理系统，脚本系统,粒子系统
         /// </summary>

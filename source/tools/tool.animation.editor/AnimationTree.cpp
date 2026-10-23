@@ -7,6 +7,7 @@
 #include    "AnimationItem.h"
 #include    "MainWindow.h"
 #include    "UndoCommand.h"
+#include    "AnimationRefresher.hpp"
 #include    "mesh/FEMesh.hpp"
 #include    "animation/FEAnimationHelper.hpp"
 #include    "animation/FEAnimationSys.hpp"
@@ -461,7 +462,11 @@ void    AnimationTree::slotToggleAllEnable()
         for (auto* animPtr : allAnims)
         {
             if (hasEnabled == animPtr->isEnable())
+            {
                 animPtr->setEnable(!animPtr->isEnable());
+                /// 播放未运行时动画 update 不执行,需主动让 owner 回落到本地变换
+                refreshAnimOwner(animPtr);
+            }
         }
         updateUi();
     }
@@ -500,6 +505,8 @@ void    AnimationTree::slotClearAllAnimations()
             auto    sys     =   scene ? scene->animationSystem() : nullptr;
             for (auto* animPtr : anims)
             {
+                /// 移除前先刷新:动画移除后节点需回落到本地变换
+                refreshAnimOwner(animPtr);
                 if (sys) sys->removeObject(animPtr);
                 node->removeComponent(animPtr);
             }
@@ -537,6 +544,8 @@ void    AnimationTree::slotRemoveNode()
         auto    sys     =   scene ? scene->animationSystem() : nullptr;
         for (auto* animPtr : anims)
         {
+            /// 移除前先刷新:动画移除后节点需回落到本地变换
+            refreshAnimOwner(animPtr);
             if (sys) sys->removeObject(animPtr);
             node->removeComponent(animPtr);
         }

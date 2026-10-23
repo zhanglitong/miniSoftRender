@@ -4,10 +4,24 @@
 #include    "../inc/FEObjectHelper.hpp"
 #include    "../inc/FENodeHelper.hpp"
 #include    "../../inc/graphic/FEScene.h"
+#include    "../inc/animation/FEAnimationSys.hpp"
 #include    "../inc/animation/FEPlayback.hpp"
 
 namespace FE
 {
+    /// <summary>
+    /// 把节点加入动画系统的更新列表,由场景在动画系统 update 完成后显式刷新
+    /// </summary>
+    static  void    addToUpdateList(FEContext& ctx,Object object)
+    {
+        if (object == nullptr)
+            return;
+        auto    scene   =   ctx.scene();
+        auto    sys     =   scene ? scene->animationSystem() : nullptr;
+        if (sys != nullptr)
+            sys->updateList().addObject(object);
+    }
+
     FEPlayback::FEPlayback(FEContext& ctx)  
         :FEObject(ctx)
         ,FEObjectsTemplate<Animation, AnimationLess>(AnimationLessFunc)
@@ -193,10 +207,10 @@ namespace FE
                                FENode::FLAG_PROP_SCALE  |
                                FENode::FLAG_PROP_ROT);
         }
-        /// 所有修改过的对象加入更新列表,引擎统一执行 update + fireChanged
+        /// 所有修改过的对象加入更新列表,由动画系统统一执行 update + fireChanged
         for (auto& o : modOwners)
         {
-            _ctx.scene()->updateList().addObject(o);
+            addToUpdateList(_ctx,o);
         }
     }
 

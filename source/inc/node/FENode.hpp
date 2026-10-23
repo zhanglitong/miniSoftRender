@@ -554,7 +554,6 @@ namespace   FE
         /// <param name="bModify"></param>
         virtual void    endSetProp(const real& tm,bool bModify) override;
     protected:
-        void            blend(FETransform& result);
         /// <summary>
         /// 约束计算
         /// </summary>

@@ -31,6 +31,10 @@ namespace FE
             /// 决定在transform 是否应该被应用到owner上
             /// </summary>
             OutOfRangeBit       =   (AnimationChanged<<1),
+            /// <summary>
+            /// 标记上一帧采样变换已覆盖到节点,动画停止贡献时据此让节点回落到本地变换
+            /// </summary>
+            AppliedBit          =   (AnimationChanged<<2),
         };
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)
@@ -162,16 +166,9 @@ namespace FE
         /// <returns>true/false</returns>
         virtual bool    update(const real& clipTime) override;
         /// <summary>
-        /// 获取动画组件的变换数据,有效则参与节点变换混合计算
+        /// 获取动画采样得到的本地变换,有效时覆盖节点自身本地变换
         /// </summary>
         virtual FETransform*    getTransform() override;
-        /// <summary>
-        /// 动画组件默认权重为 1.0,参与节点变换混合
-        /// </summary>
-        virtual float   weight() const override
-        {
-            return  1.0f;
-        }
         /// <summary>
         /// 动画系统独有接口
         /// 通用设置对象属性接口，子类实现
@@ -214,6 +211,11 @@ namespace FE
         /// <param name="value"></param>
         void    setTransformProperty(int prop,const KFValue& value);
         /// <summary>
+        /// 记录采样变换是否已覆盖到节点;由覆盖转为不覆盖时标记节点重新计算变换
+        /// </summary>
+        /// <param name="applied"></param>
+        void    markApplied(bool applied);
+        /// <summary>
         /// 获取依赖的对象,子类实现
         /// </summary>
         /// <param name="uset"></param>
@@ -249,6 +251,9 @@ namespace FE
         /// 记录动画播放到哪里了
         /// </summary>
         real            _clipTime   =   0;
+        /// <summary>
+        /// 动画采样缓存:每帧以节点本地变换为底,轨道采样值覆盖对应通道
+        /// </summary>
         FETransform     _transform;
         TrackResults    _results; 
         String          _name;

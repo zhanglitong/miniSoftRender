@@ -164,6 +164,10 @@ void    WizQProperty::applyRealtime(double value)
         return;
 
     auto    anim    =   animation();
+    /// 动画覆盖本地变换后,编辑值先落到采样变换,再据此覆盖关键帧,否则写入的仍是旧采样值
+    if  (anim && FE::PropertyKeyCmd::isDriven(anim, _propIndex))
+        FE::PropertyKeyCmd::syncFromNode(anim, n, _propIndex);
+
     if  (anim && FE::PropertyKeyCmd::hasKeyAt(anim, _propIndex, _mainApp->curTime()))
     {
         /// 当前时间在该属性关键帧上:实时覆盖关键帧值(不记录 undo)
@@ -232,9 +236,15 @@ void    WizDoubleQProperty::updateUiOfPropertyValue()
     auto    n   =   node();
     if  (!n)
         return;
+    /// 被动画轨道接管时显示采样值,与视口保持一致
+    real    value   =   FE::NodePropsCmd::readProp(n, _propIndex);
+    bool    driven  =   FE::PropertyKeyCmd::readDriven(animation(), _propIndex, value);
     _valueBox->blockSignals(true);
-    _valueBox->setValue(NodePropsCmd::readProp(n, _propIndex));
+    _valueBox->setValue(value);
     _valueBox->blockSignals(false);
+    _valueBox->setToolTip(driven ? C2Q(u8"该通道由动画驱动,显示的是当前采样值") : QString());
+    if  (_label)
+        _label->setStyleSheet(driven ? QStringLiteral("color:#3aa0ff;") : QString());
 }
 
 void    WizDoubleQProperty::slotValueChanged(double value)

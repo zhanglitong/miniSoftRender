@@ -174,13 +174,16 @@ namespace FE
             real    internalTime    =   time - anim->offset();
 
             /// <summary>
-            /// 分解 node 的 transform
+            /// 取当前显示姿态:采样变换生效时用它(未打帧通道已由节点本地变换播种),
+            /// 未生效(停用/超范围)时节点显示的是本地变换
+            /// 关键帧记录本地通道值,不能用 globalTransform 分解,否则父子层级会重复叠加父变换
             /// </summary>
-            real3   pos         =   anim->transform().position();
-            real3   scale       =   anim->transform().scale();
-            quatr   rot         =   anim->transform().rotation();
+            bool    bSampled    =   anim->getTransform() != nullptr;
+            auto&   sampled     =   anim->transform();
+            real3   pos         =   bSampled ? real3(sampled.position())  : real3(node->localTranslation());
+            real3   scale       =   bSampled ? real3(sampled.scale())     : real3(node->localScaling());
+            quatr   rot         =   bSampled ? sampled.rotation()         : node->localRotation();
             
-            decompose<real>(node->globalTransform(),pos,scale,rot);
             auto    eulerRad    =   quatToEuler(rot);
             real3   eulerDeg(RAD2DEG(eulerRad.x),RAD2DEG(eulerRad.y),RAD2DEG(eulerRad.z));
 
@@ -408,11 +411,13 @@ namespace FE
             real    internalTime    =   time - anim->offset();
 
             /// <summary>
-            /// 分解 node 的 transform
+            /// 取当前显示姿态:采样变换生效时用它,否则用节点本地变换
             /// </summary>
-            real3   pos         =   anim->transform().position();
-            real3   scale       =   anim->transform().scale();
-            quatr   rot         =   anim->transform().rotation();
+            bool    bSampled    =   anim->getTransform() != nullptr;
+            auto&   sampled     =   anim->transform();
+            real3   pos         =   bSampled ? real3(sampled.position())  : real3(node->localTranslation());
+            real3   scale       =   bSampled ? real3(sampled.scale())     : real3(node->localScaling());
+            quatr   rot         =   bSampled ? sampled.rotation()         : node->localRotation();
             auto    eulerRad    =   quatToEuler(rot);
             real3   eulerDeg(RAD2DEG(eulerRad.x),RAD2DEG(eulerRad.y),RAD2DEG(eulerRad.z));
 

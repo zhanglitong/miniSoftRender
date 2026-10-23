@@ -2,6 +2,7 @@
 #include    "FEComponent.hpp"
 #include    "FEFactory.hpp"
 #include    "FEObjectsTemplate.hpp"
+#include    "node/FENode.hpp"
 namespace   FE 
 {     
 
@@ -16,16 +17,30 @@ namespace   FE
     public:         
         FEComponentSys(FEContext& ctx)
             :FEFactory(ctx)   
+            ,_updateList(ObjectLessFunc)
         {
             priority(FEFactory::PT_Update).setPriority(EPriority::EP_Last);
             priority(FEFactory::PT_Update).setOrder(MaxInt16);
         }         
         FEComponentSys(const FEComponentSys& other)            
             :FEFactory(other)         
+            ,_updateList(ObjectLessFunc)
         {
         } 
 
     public:
+        /// <summary>
+        /// 更新列表:组件系统在 update 中把受影响的节点加入该列表,
+        /// 由场景在系统更新完成后显式调用 updateObjectList 统一刷新
+        /// </summary>
+        inline  auto&   updateList()
+        {
+            return  _updateList;
+        }
+        const   auto&   updateList() const
+        {
+            return  _updateList;
+        }
         virtual size_t  addObject(Component  com)
         {
             UNUSED(com);
@@ -50,13 +65,34 @@ namespace   FE
         /// 组件每一帧更新
         /// </summary>
         /// <param name="deltaTm"></param>
-        /// <param name="updateList">输出需要更新的对象</param>
         virtual void    update(const real& deltaTm)
         {
             UNUSED(deltaTm);
         }
+        /// <summary>
+        /// 显式刷新更新列表中的节点:依次执行 update + fireChanged,然后清空列表
+        /// 由场景在组件系统更新完成后调用,顺序在 update 之后
+        /// </summary>
+        void    updateObjectList()
+        {
+            for (auto var : _updateList.objects())
+            {
+                auto    node    =   var->cast<FENode>();
+                if (node)
+                {
+                    node->update();
+                    node->fireChanged();
+                }
+            }
+            _updateList.clearObjects();
+        }
         virtual void    clear()
         {}
+    protected:
+        /// <summary>
+        /// 组件系统中计算出来需要更新的对象
+        /// </summary>
+        ObjectList          _updateList;
     public:
         template<typename TObject>
         static  uint    countObject(const Node&  node)
