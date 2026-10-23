@@ -7,12 +7,7 @@
 #include    "FEAnimation.hpp"
 #include    "FEAnimClip.hpp"
 #include    "FEKeyFrameTrack.hpp"
-#include    "FERealsObject.hpp"
-#include    "FEReal3sObject.hpp"
-#include    "FEQuatrsObject.hpp"
-#include    "FEColorObject.hpp"
-#include    "FEAlphaObject.hpp"
-#include    "FEBoolsObject.hpp"
+#include    "FEValueArrayObjects.hpp"
 #include    "../FEEulerObject.hpp"
 
 

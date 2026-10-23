@@ -42,6 +42,7 @@
 #include    "../inc/FEConst.h"
 #include    "../inc/animation/FEAnimation.hpp"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/animation/FEValueArrayObjects.hpp"
 #include    "../inc/constraint/FEConstraintTrans.hpp"
 #include    "../inc/constraint/FEConstraintLookAt.hpp"
 #include    "../inc/constraint/FEConstraintPath.hpp"
@@ -121,19 +122,12 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEAnimation);
         DEFINE_CLASS_CREATOR(FEAnimClip);
         DEFINE_CLASS_CREATOR(FEKeyFrameTrack);
-        DEFINE_CLASS_CREATOR(FEBoolsObject);
 
-        DEFINE_CLASS_CREATOR(FEFloatsObject);
-        DEFINE_CLASS_CREATOR(FEFloat2sObject);
-        DEFINE_CLASS_CREATOR(FEFloat3sObject);
-        DEFINE_CLASS_CREATOR(FEFloat4sObject);
-        DEFINE_CLASS_CREATOR(FEQuatfsObject);
+        #define FE_REG_VALUE_ARRAY_OBJECT(ObjectClass, AliasName, ValueT, uuid)     DEFINE_CLASS_CREATOR(ObjectClass);
 
-        DEFINE_CLASS_CREATOR(FERealsObject);
-        DEFINE_CLASS_CREATOR(FEReal2sObject);
-        DEFINE_CLASS_CREATOR(FEReal3sObject);
-        DEFINE_CLASS_CREATOR(FEReal4sObject);
-        DEFINE_CLASS_CREATOR(FEQuatrsObject);
+        FE_VALUE_ARRAY_OBJECT_LIST(FE_REG_VALUE_ARRAY_OBJECT)
+
+        #undef  FE_REG_VALUE_ARRAY_OBJECT
 
     }
     void    systemInitializeReader(FEContext& ctx)

@@ -10,7 +10,7 @@
 #include    "animation/FEAnimation.hpp"
 #include    "animation/FEAnimationHelper.hpp"
 #include    "animation/FEAnimationSys.hpp"
-#include    "animation/FEUintsObject.hpp"
+#include    "animation/FEValueArrayObjects.hpp"
 #include    "graphic/FEScene.h"
 #include    "node/FENode.hpp"
 #include    "FEMathUtil.hpp"

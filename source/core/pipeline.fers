@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='gb2312' ?>
-<root dataPath="E:/miniSoftRender/bin/data" outPath="" singleOut="1">
+<root dataPath="D:/miniSoftRender/bin/data" outPath="" singleOut="1">
 	<folder path="pipeline">
 		<file name="pipeline/computeCull.xml" input="computeCull.xml"/>
 		<file name="pipeline/cube.xml" input="cube.xml"/>
@@ -7,6 +7,7 @@
 		<file name="pipeline/pbr.xml" input="pbr.xml"/>
 		<file name="pipeline/pbr2s.xml" input="pbr2s.xml"/>
 		<file name="pipeline/pbrBlend.xml" input="pbrBlend.xml"/>
+		<file name="pipeline/pbrSScaled.xml" input="pbrSScaled.xml"/>
 		<file name="pipeline/point.xml" input="point.xml"/>
 		<file name="pipeline/sky.xml" input="sky.xml"/>
 		<file name="pipeline/text.xml" input="text.xml"/>

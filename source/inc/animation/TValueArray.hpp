@@ -78,4 +78,27 @@ namespace FE
     protected:
         Values  _values;
     };
+
+    /// <summary>
+    /// 声明一个值数组对象,用于替代重复的 TValueArray 空壳子类
+    /// </summary>
+    /// <param name="ObjectClass">类名</param>
+    /// <param name="AliasName">智能指针别名</param>
+    /// <param name="ValueT">元素类型</param>
+    /// <param name="uuid">类UUID,不要修改</param>
+    #define FE_DEFINE_VALUE_ARRAY_OBJECT(ObjectClass, AliasName, ValueT, uuid) \
+        DEFINE_CLASS_UUID(ObjectClass, uuid);                                  \
+        class   FE_API  ObjectClass :public TValueArray<ValueT>                \
+        {                                                                      \
+            IMPLEMENT_CLASS_REFLECT(ObjectClass)                               \
+        public:                                                                \
+            ObjectClass(FEContext& ctx)                                        \
+                :TValueArray(ctx)                                              \
+            {}                                                                 \
+            ObjectClass(const ObjectClass& other)                              \
+                :TValueArray(other)                                            \
+            {}                                                                 \
+            ~ObjectClass()  =   default;                                       \
+        };                                                                     \
+        using   AliasName   =   SharedPtr<ObjectClass>
 }

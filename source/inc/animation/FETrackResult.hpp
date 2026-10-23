@@ -2,29 +2,7 @@
 #include    "../FEMath.hpp"
 #include    "../FEObject.h"
 
-#include    "FERealsObject.hpp"
-#include    "FEReal2sObject.hpp"
-#include    "FEReal3sObject.hpp"
-#include    "FEReal4sObject.hpp"
-#include    "FEQuatrsObject.hpp"
-
-#include    "FEFloatsObject.hpp"
-#include    "FEFloat2sObject.hpp"
-#include    "FEFloat3sObject.hpp"
-#include    "FEFloat4sObject.hpp"
-#include    "FEQuatfsObject.hpp"
-#include    "FEBoolsObject.hpp"
-#include    "FEColorObject.hpp"
-#include    "FEAlphaObject.hpp"
-
-#include    "FEIntsObject.hpp"
-#include    "FEInt2sObject.hpp"
-#include    "FEInt3sObject.hpp"
-#include    "FEInt4sObject.hpp"
-#include    "FEUintsObject.hpp"
-#include    "FEUint2sObject.hpp"
-#include    "FEUint3sObject.hpp"
-#include    "FEUint4sObject.hpp"
+#include    "FEValueArrayObjects.hpp"
 
 
 namespace FE
