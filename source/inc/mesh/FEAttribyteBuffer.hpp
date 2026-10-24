@@ -171,30 +171,30 @@ namespace   FE
                 switch(attr.format())
                 {
                 /// FLOAT 族:直读 half/float
-                case FMT_R16_FLOAT          :   mergeElements<half,  1>(box,buff,elements,asFloat);  break;
-                case FMT_R16G16_FLOAT       :   mergeElements<half2, 2>(box,buff,elements,asFloat);  break;
-                case FMT_R16G16B16_FLOAT    :   mergeElements<half3, 3>(box,buff,elements,asFloat);  break;
-                case FMT_R16G16B16A16_FLOAT :   mergeElements<half4, 3>(box,buff,elements,asFloat);  break;
-                case FMT_R32_FLOAT          :   mergeElements<float, 1>(box,buff,elements,asFloat);  break;
-                case FMT_R32G32_FLOAT       :   mergeElements<float2,2>(box,buff,elements,asFloat);  break;
-                case FMT_R32G32B32_FLOAT    :   mergeElements<float3,3>(box,buff,elements,asFloat);  break;
-                case FMT_R32G32B32A32_FLOAT :   mergeElements<float4,3>(box,buff,elements,asFloat);  break;
+                case FMT_R16_FLOAT              :   mergeElements<half,  1>(box,buff,elements,asFloat);  break;
+                case FMT_R16G16_FLOAT           :   mergeElements<half2, 2>(box,buff,elements,asFloat);  break;
+                case FMT_R16G16B16_FLOAT        :   mergeElements<half3, 3>(box,buff,elements,asFloat);  break;
+                case FMT_R16G16B16A16_FLOAT     :   mergeElements<half4, 3>(box,buff,elements,asFloat);  break;
+                case FMT_R32_FLOAT              :   mergeElements<float, 1>(box,buff,elements,asFloat);  break;
+                case FMT_R32G32_FLOAT           :   mergeElements<float2,2>(box,buff,elements,asFloat);  break;
+                case FMT_R32G32B32_FLOAT        :   mergeElements<float3,3>(box,buff,elements,asFloat);  break;
+                case FMT_R32G32B32A32_FLOAT     :   mergeElements<float4,3>(box,buff,elements,asFloat);  break;
                 /// 16bit UNORM:[0,65535] -> [0,1]
-                case FMT_R16G16B16_UNORM    :   mergeElements<ushort3,3>(box,buff,elements,asUnorm); break;
-                case FMT_R16G16B16A16_UNORM :   mergeElements<ushort4,3>(box,buff,elements,asUnorm); break;
+                case FMT_R16G16B16_UNORM        :   mergeElements<ushort3,3>(box,buff,elements,asUnorm); break;
+                case FMT_R16G16B16A16_UNORM     :   mergeElements<ushort4,3>(box,buff,elements,asUnorm); break;
                 /// 16bit SNORM:[-32767,32767] -> [-1,1]
-                case FMT_R16G16B16_SNORM    :   mergeElements<short3,3>(box,buff,elements,asSnorm);  break;
-                case FMT_R16G16B16A16_SNORM :   mergeElements<short4,3>(box,buff,elements,asSnorm);  break;
+                case FMT_R16G16B16_SNORM        :   mergeElements<short3,3>(box,buff,elements,asSnorm);  break;
+                case FMT_R16G16B16A16_SNORM     :   mergeElements<short4,3>(box,buff,elements,asSnorm);  break;
                 /// 16bit 无符号整数族(USCALED/UINT):原值
-                case FMT_R16G16B16_USCALED  :
-                case FMT_R16G16B16_UINT     :   mergeElements<ushort3,3>(box,buff,elements,asFloat); break;
-                case FMT_R16G16B16A16_USCALED :
-                case FMT_R16G16B16A16_UINT    : mergeElements<ushort4,3>(box,buff,elements,asFloat); break;
+                case FMT_R16G16B16_USCALED      :
+                case FMT_R16G16B16_UINT         :   mergeElements<ushort3,3>(box,buff,elements,asFloat); break;
+                case FMT_R16G16B16A16_USCALED   :
+                case FMT_R16G16B16A16_UINT      :   mergeElements<ushort4,3>(box,buff,elements,asFloat); break;
                 /// 16bit 有符号整数族(SSCALED/SINT):原值
-                case FMT_R16G16B16_SSCALED  :
-                case FMT_R16G16B16_SINT     :   mergeElements<short3,3>(box,buff,elements,asFloat); break;
-                case FMT_R16G16B16A16_SSCALED :
-                case FMT_R16G16B16A16_SINT    : mergeElements<short4,3>(box,buff,elements,asFloat); break;
+                case FMT_R16G16B16_SSCALED      :
+                case FMT_R16G16B16_SINT         :   mergeElements<short3,3>(box,buff,elements,asFloat); break;
+                case FMT_R16G16B16A16_SSCALED   :
+                case FMT_R16G16B16A16_SINT      :   mergeElements<short4,3>(box,buff,elements,asFloat); break;
                 }
                 return  box;
             } while (false);

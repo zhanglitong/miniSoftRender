@@ -1,22 +1,15 @@
 #pragma     once
 
-#include    "FEMath.hpp"
-#include    "FEMathUtil.hpp"
+#include    "FETransform.hpp"
 
 namespace FE
 {
     /// <summary>
-    /// 节点变换：位置 + 旋转(四元数) + 缩放
-    /// 提供：
-    ///   - 成员访问：position() / rotation() / scale() (公开访问器)
-    ///   - 设置器：setPosition / setRotation / setScale (链式)
-    ///   - 欧拉角辅助：euler() / setEuler() / fromEuler()（按需从四元数换算,不另存）
-    ///   - 矩阵生成：toMatrix() / toInverseMatrix() / fromMatrix()
-    ///   - 数学方法：compose / inverted / operator*
-    ///   - 混合方法：lerp / slerp / lerpTo
-    ///   - 旋转中心点：绕本地点旋转(默认原点)
+    /// 带旋转中心点的变换：位置 + 旋转(四元数) + 缩放 + 旋转中心
+    /// 在 FETransform 基础上增加 _pivot,几何体绕本地旋转中心点旋转
+    /// 未设置中心点(默认原点)时计算与 FETransform 完全一致
     /// </summary>
-    class   FE_API  FETransformPivot
+    class   FE_API  FETransformPivot : public FETransform
     {
     public:
         friend  class   FENode;
@@ -25,9 +18,7 @@ namespace FE
         FETransformPivot() = default;
 
         FETransformPivot(const real3& pos, const quatf& rot, const float3& sc)
-            : _position(pos)
-            , _rotation(rot)
-            , _scale(sc)
+            : FETransform(pos, rot, sc)
         {}
 
         /// <summary>
@@ -41,19 +32,6 @@ namespace FE
             t._rotation     =   quatf(glm::radians(eulerDegrees));
             return  t;
         }
-
-        /// <summary>
-        /// 位置（只读引用）
-        /// </summary>
-        inline  const real3&   position() const     {   return _position;   }
-        /// <summary>
-        /// 旋转（只读引用，始终为有效四元数，计算与矩阵生成统一使用它）
-        /// </summary>
-        inline  const quatf&  rotation() const      {   return _rotation;   }
-        /// <summary>
-        /// 缩放（只读引用）
-        /// </summary>
-        inline  const float3& scale() const         {   return _scale;      }
 
         /// <summary>
         /// 旋转中心点(本地空间),几何体绕该点旋转,默认原点
@@ -71,32 +49,19 @@ namespace FE
         /// <summary>
         /// 设置位置，返回 *this 便于链式调用
         /// </summary>
-        inline  FETransformPivot&  setPosition(const real3& v)   { _position = v; return *this; }
+        inline  FETransformPivot&  setPosition(const real3& v)   { _position = v;    return *this; }
         /// <summary>
         /// 设置旋转（四元数）
         /// </summary>
-        inline  FETransformPivot&  setRotation(const quatf& q)
-        {
-            _rotation   =   q;
-            return  *this;
-        }
+        inline  FETransformPivot&  setRotation(const quatf& q)   { _rotation = q;    return *this; }
         /// <summary>
         /// 设置缩放，返回 *this 便于链式调用
         /// </summary>
-        inline  FETransformPivot&  setScale(const float3& s)     { _scale = s;     return *this; }
-
-        /// <summary>
-        /// 返回欧拉角（单位：度），由四元数实时换算，范围 ±180
-        /// </summary>
-        inline  float3  euler() const
-        {
-            return  glm::degrees(glm::eulerAngles(_rotation));
-        }
-
+        inline  FETransformPivot&  setScale(const float3& s)     { _scale = s;       return *this; }
         /// <summary>
         /// 用欧拉角（单位：度）设置旋转
         /// </summary>
-        inline  FETransformPivot&   setEuler(const float3& eulerDegrees)
+        inline  FETransformPivot&  setEuler(const float3& eulerDegrees)
         {
             _rotation   =   quatf(glm::radians(eulerDegrees));
             return  *this;
@@ -119,7 +84,7 @@ namespace FE
         }
 
         /// <summary>
-        /// 生成 TRS 逆矩阵
+        /// 生成 TRS 逆矩阵(以中心点旋转后的矩阵求逆)
         /// </summary>
         inline  mat4r   toInverseMatrix() const
         {
@@ -129,8 +94,6 @@ namespace FE
         /// <summary>
         /// 从矩阵分解出 Transform
         /// </summary>
-        /// <param name="mat"></param>
-        /// <returns></returns>
         static  FETransformPivot   fromMatrix(const mat4r& mat)
         {
             real3   pos;
@@ -143,39 +106,25 @@ namespace FE
             t._rotation =   quatf(rot);
             return  t;
         }
-#if 1
+
         /// <summary>
-        /// 均匀缩放（最常见，可精确解析）s.x == s.y == s.z
-        /// 设 A = (Pa, Ra, Sa), B = (Pb, Rb, Sb)，且 Sa、Sb 为均匀缩放
-        /// 
-        /// 复合 C = A * B （先应用 B 再应用 A，标准矩阵乘法顺序）：
-        ///     C.position = Pa + Ra * (Sa * Pb)        /// A 变换 B 的原点
-        ///     C.rotation = Ra * Rb                    /// 旋转直接相乘
-        ///     C.scale    = Sa * Sb                    /// 均匀缩放直接相乘
+        /// 复合: 均匀缩放时解析计算,存在旋转中心点时退化为矩阵运算
+        /// 设 A = (Pa, Ra, Sa), B = (Pb, Rb, Sb)
+        ///     C.position = Pa + Ra * (Sa * Pb)
+        ///     C.rotation = Ra * Rb
+        ///     C.scale    = Sa * Sb
         /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
         inline FETransformPivot compose(const FETransformPivot& other) const
         {
-            /// 存在旋转中心点时无法解析复合,退化为矩阵运算(结果中心点归零)
             if (_pivot != real3(0) || other._pivot != real3(0))
                 return  fromMatrix(toMatrix() * other.toMatrix());
-            // this = A, other = B，返回标准矩阵积 A * B
             FETransformPivot r;
             r._rotation =   this->_rotation * other._rotation;
-            r._scale    =   this->_scale * other._scale;          // 分量乘（均匀时正确）
+            r._scale    =   this->_scale * other._scale;
             r._position =   this->_position + quatr(this->_rotation) * (real3(this->_scale) * other._position);
-            return r;
+            return  r;
         }
-#else
-        /// <summary>
-        /// 复合：先应用 this，再应用 other (返回 other * this 的分解)
-        /// </summary>
-        inline  FETransformPivot   compose(const FETransformPivot& other) const
-        {
-            return  fromMatrix(other.toMatrix() * this->toMatrix());
-        }
-#endif 
+
         /// <summary>
         /// 逆变换
         /// </summary>
@@ -243,21 +192,9 @@ namespace FE
 
     protected:
         /// <summary>
-        /// 位置属性
-        /// </summary>
-        real3   _position   =   real3(0);
-        /// <summary>
         /// 旋转中心点（本地空间），几何体绕该点旋转，默认原点
         /// </summary>
         real3   _pivot      =   real3(0);
-        /// <summary>
-        /// 旋转（四元数，始终有效，计算与矩阵生成统一使用它）
-        /// </summary>
-        quatf   _rotation   =   quatf(1, 0, 0, 0);
-        /// <summary>
-        /// 缩放属性
-        /// </summary>
-        float3  _scale      =   float3(1);
     };
 
 }

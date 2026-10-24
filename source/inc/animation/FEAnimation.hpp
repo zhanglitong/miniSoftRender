@@ -1,7 +1,7 @@
 #pragma     once
 #include    <functional>
 #include    <format>
-#include    "../FETransform.hpp"
+#include    "../FETransformPivot.hpp"
 #include    "../FEComponent.hpp"
 #include    "FEAnimClip.hpp"
 
@@ -264,33 +264,34 @@ namespace FE
         /// <summary>
         /// AnimClip 类型的变量，用于保存动画剪辑。
         /// </summary>
-        AnimClip        _clip;
+        AnimClip            _clip;
         /// <summary>
         /// 动画在大时间线上的起始时间，标记了动画从什么时间开始播放
         /// </summary>
-        real            _offset     =   0;
+        real                _offset     =   0;
         /// <summary>
         /// 记录动画播放到哪里了
         /// </summary>
-        real            _clipTime   =   0;
+        real                _clipTime   =   0;
         /// <summary>
         /// 动画采样缓存:每帧以节点当前本地变换为底,轨道采样值覆盖对应通道
+        /// 使用带旋转中心点的变换,支持绕本地中心点旋转
         /// </summary>
-        FETransform     _transform;
+        FETransformPivot    _transform;
         /// <summary>
         /// 动画首次覆盖前节点的原始本地变换,停止贡献时用于回退
         /// </summary>
-        FETransform     _original;
+        FETransform         _original;
         /// <summary>
         /// _original 是否已记录
         /// </summary>
-        bool            _hasOriginal    =   false;
+        bool                _hasOriginal    =   false;
         /// <summary>
         /// 是否已产生过采样数据,避免未采样时把默认变换写入节点
         /// </summary>
-        bool            _bSampled       =   false;
-        TrackResults    _results; 
-        String          _name;
+        bool                _bSampled       =   false;
+        TrackResults        _results; 
+        String              _name;
     };
 
     using   Animation       =   SharedPtr<FEAnimation>;

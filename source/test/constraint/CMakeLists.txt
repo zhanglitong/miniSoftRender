@@ -1,0 +1,7 @@
+add_subdirectory ("test.constraint")
+add_subdirectory ("test.constraint.visual")
+add_subdirectory ("test.constraint.follow")
+add_subdirectory ("test.constraint.trans")
+add_subdirectory ("test.constraint.lookat")
+add_subdirectory ("test.constraint.path")
+add_subdirectory ("test.constraint.drive")

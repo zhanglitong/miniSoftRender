@@ -106,6 +106,7 @@ namespace FE
         {
             _time   +=  tmDelta;
             std::map<FENode*, FETransform>  lastSolved;
+            FEConstraint::SolvedNodes       solvedNodes;
             for (auto& con : _objects.objects())
             {
                 if (!con->isEnable())
@@ -115,12 +116,27 @@ namespace FE
                     continue;
                 auto    it      =   lastSolved.find(node.get());
                 FETransform current   =   (it != lastSolved.end()) ? it->second : node->globalFETransform();
-                FETransform solved    =   con->solve(current, _time);
-                node->setGlobalTranslation(solved.position());
-                node->setGlobalRotation(quatr(solved.rotation()));
-                lastSolved[node.get()]  =   solved;
-                /// 加入本系统的更新列表,由场景在 update 之后显式刷新
-                updateList().addObject(con->owner());
+                /// 求解本约束影响的所有节点(默认仅 owner,驱动约束包含多个被驱动节点)
+                solvedNodes.clear();
+                if (con->solveNodes(node,current,_time,solvedNodes) == 0)
+                    continue;
+                for (auto& var : solvedNodes)
+                {
+                    auto    target  =   var._node;
+                    if (target == nullptr)
+                        continue;
+                    target->setGlobalTranslation(var._transform.position());
+                    target->setGlobalRotation(quatr(var._transform.rotation()));
+                    /// 缩放仅在结果与当前全局缩放不一致时写回,避免无谓的浮点误差累积
+                    if (var._transform.scale() != target->globalFETransform().scale())
+                    {
+                        target->setGlobalScaling(real3(var._transform.scale()));
+                        target->flags().addFlag(FENode::FLAG_PROP_SCALE);
+                    }
+                    lastSolved[target.get()]  =   var._transform;
+                    /// 加入本系统的更新列表,由场景在 update 之后显式刷新
+                    updateList().addObject(Object(target.get()));
+                }
             }
         }
     protected:
