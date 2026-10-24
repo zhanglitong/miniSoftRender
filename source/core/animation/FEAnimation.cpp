@@ -153,15 +153,22 @@ namespace FE
 
     void    FEAnimation::beginSetProp()
     {
-        /// 采样基准:以节点本地变换为底,未被轨道覆盖的通道保持节点当前值
+        /// 采样基准:以节点当前本地变换为底,未被轨道覆盖的通道保持节点当前值
         if (_owner)
         {
             auto    node    =   _owner->cast<FENode>();
             if (node != nullptr)
             {
+                /// 首次覆盖前记录节点原始本地变换,动画停止贡献时据此回退
+                if (!_hasOriginal)
+                {
+                    _original       =   node->transform();
+                    _hasOriginal    =   true;
+                }
                 _transform.setPosition(node->localTranslation());
                 _transform.setScale(float3(node->localScaling()));
                 _transform.setRotation(node->localRotation());
+                _bSampled       =   true;
             }
             _owner->beginSetProp();
         }
@@ -308,25 +315,111 @@ namespace FE
         }
         this->endSetProp(clipTime,bModify);
         markApplied(true);
+        /// 采样结果直接写入节点本地变换,节点不再反向查询动画组件
+        applyTransform();
         return  bModify;
     }
 
     void    FEAnimation::markApplied(bool applied)
     {
-        if (flags().hasFlag(AppliedBit) == applied)
-            return;
         if (applied)
         {
             flags().addFlag(AppliedBit);
             return;
         }
+        /// 从未覆盖过节点时无需恢复
+        if (!flags().hasFlag(AppliedBit) && !_hasOriginal)
+            return;
+        restoreLocal();
+    }
+
+    void    FEAnimation::applyTransform()
+    {
+        auto    node    =   _owner ? _owner->cast<FENode>() : nullptr;
+        if (node == nullptr)
+            return;
+        auto*   tf      =   getTransform();
+        /// 未产生过采样时保持节点本地变换不变,避免默认变换覆盖节点
+        if (tf == nullptr || !_bSampled)
+        {
+            restoreOriginal();
+            return;
+        }
+        node->setLocalTranslation(tf->position());
+        node->setLocalScaling(real3(tf->scale()));
+        node->setLocalRotation(quatr(tf->rotation()));
+        addToUpdateList(_ctx,_owner);
+    }
+
+    void    FEAnimation::restoreIfInactive()
+    {
+        /// 仍有效时保持当前采样结果,等下一次采样覆盖
+        if (getTransform() != nullptr)
+            return;
+        markApplied(false);
+    }
+
+    void    FEAnimation::restoreLocal()
+    {
         flags().removeFlag(AppliedBit);
-        /// 采样变换不再覆盖节点:标记节点重新按本地变换计算
+        restoreOriginal();
         if (_owner)
         {
             _owner->flags().addFlag(FENode::FLAG_PROP_TRANS | FENode::FLAG_PROP_SCALE | FENode::FLAG_PROP_ROT);
             addToUpdateList(_ctx,_owner);
         }
+    }
+
+    void    FEAnimation::restoreOriginal()
+    {
+        if (!_hasOriginal)
+            return;
+        _hasOriginal    =   false;
+        auto    node    =   _owner ? _owner->cast<FENode>() : nullptr;
+        if (node == nullptr)
+            return;
+        /// 只恢复动画真正驱动的通道,未驱动通道保持节点当前值(含动画运行期间的编辑)
+        bool    bPos    =   false;
+        bool    bScl    =   false;
+        bool    bRot    =   false;
+        if (_clip != nullptr)
+        {
+            for (auto& track : _clip->tracks())
+            {
+                if (!track)
+                    continue;
+                switch(track->propertyIndex())
+                {
+                case PROP_TRANSFORM_X:
+                case PROP_TRANSFORM_Y:
+                case PROP_TRANSFORM_Z:
+                case PROP_TRANSFORM_XYZ:
+                    bPos    =   true;
+                    break;
+                case PROP_SCALE_X:
+                case PROP_SCALE_Y:
+                case PROP_SCALE_Z:
+                case PROP_SCALE_XYZ:
+                    bScl    =   true;
+                    break;
+                case PROP_ROTATE_X:
+                case PROP_ROTATE_Y:
+                case PROP_ROTATE_Z:
+                case PROP_ROTATE_XYZ:
+                case PROP_QUAT:
+                    bRot    =   true;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        if (bPos)
+            node->setLocalTranslation(_original.position());
+        if (bScl)
+            node->setLocalScaling(real3(_original.scale()));
+        if (bRot)
+            node->setLocalRotation(quatr(_original.rotation()));
     }
 
     FETransform*    FEAnimation::getTransform()

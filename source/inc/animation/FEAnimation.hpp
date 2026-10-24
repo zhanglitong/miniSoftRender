@@ -69,15 +69,19 @@ namespace FE
         /// <param name="owner"></param>
         virtual void    attach(Object owner) override
         {
-            _owner  =   owner;
+            _owner      =   owner;
+            _hasOriginal=   false;
+            _bSampled   =   false;
             flags().addFlag(AnimationChanged);
         }
         /// <summary>
-        /// 取消关键
+        /// 取消关联,先把节点本地变换恢复到动画覆盖前的值
         /// </summary>
         virtual void    detach() override
         {
-            _owner  =   nullptr;
+            markApplied(false);
+            _owner      =   nullptr;
+            _bSampled   =   false;
             flags().addFlag(AnimationChanged);
         }
         /// <summary>
@@ -197,7 +201,25 @@ namespace FE
         /// </summary>
         /// <param name="bModify"></param>
         virtual void    endSetProp(const real&,bool bModify) override;
+        /// <summary>
+        /// 把采样变换直接写入 owner 节点的本地变换(与约束求解一致,节点不再反向依赖组件)
+        /// 采样无效时恢复节点原始本地变换
+        /// </summary>
+        void    applyTransform();
+        /// <summary>
+        /// 动画仍有效时保持当前采样结果,不再贡献时恢复节点原始本地变换
+        /// 用于编辑器启停/删除动画后主动刷新节点
+        /// </summary>
+        void    restoreIfInactive();
+        /// <summary>
+        /// 强制把节点本地变换恢复到动画覆盖前的值
+        /// </summary>
+        void    restoreLocal();
     protected:
+        /// <summary>
+        /// 恢复节点原始本地变换(仅生效一次,恢复后清除记录)
+        /// </summary>
+        void    restoreOriginal();
         /// <summary>
         /// 判断属性是否属于变换相关属性(位置/旋转/缩放)
         /// </summary>
@@ -252,9 +274,21 @@ namespace FE
         /// </summary>
         real            _clipTime   =   0;
         /// <summary>
-        /// 动画采样缓存:每帧以节点本地变换为底,轨道采样值覆盖对应通道
+        /// 动画采样缓存:每帧以节点当前本地变换为底,轨道采样值覆盖对应通道
         /// </summary>
         FETransform     _transform;
+        /// <summary>
+        /// 动画首次覆盖前节点的原始本地变换,停止贡献时用于回退
+        /// </summary>
+        FETransform     _original;
+        /// <summary>
+        /// _original 是否已记录
+        /// </summary>
+        bool            _hasOriginal    =   false;
+        /// <summary>
+        /// 是否已产生过采样数据,避免未采样时把默认变换写入节点
+        /// </summary>
+        bool            _bSampled       =   false;
         TrackResults    _results; 
         String          _name;
     };

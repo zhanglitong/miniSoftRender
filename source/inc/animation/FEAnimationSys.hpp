@@ -99,6 +99,12 @@ namespace   FE
 
         virtual void    clear()
         {
+            /// 清除播放器前把被动画覆盖的节点本地变换恢复到原始值
+            for (auto& var : _playbacks)
+            {
+                for (auto& anim : var.second->objects())
+                    anim->restoreLocal();
+            }
             _playbacks.clear();
         }
         /// <summary>
@@ -111,6 +117,13 @@ namespace   FE
             for (auto& var : _playbacks)
             {
                 var.second->update(tmDelta);
+            }
+            /// 采样结果直接写入节点本地变换(与约束求解过程一致,节点不再反向依赖动画组件)
+            /// 播放暂停时也执行,保证编辑器跳帧后节点处于最新采样姿态
+            for (auto& var : _playbacks)
+            {
+                for (auto& anim : var.second->objects())
+                    anim->applyTransform();
             }
         }
         /// <summary>

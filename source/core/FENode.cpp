@@ -178,19 +178,12 @@ namespace   FE
     
     void    FENode::updateTransform(const real& ,bool recursion)
     {
-        /// 动画覆盖:有效动画组件的采样变换直接作为本地变换,多个动画时按组件顺序后者生效
-        FETransform local   =   _local;
-        for (auto& var : _coms)
-        {
-            auto*   tf  =   var->getTransform();
-            if (tf != nullptr)
-                local   =   *tf;
-        }
+        /// 本地变换由动画系统/约束系统直接写入,节点不再反向查询组件
         /// 全局变换 = 父全局 * 本地变换
         if (parent() != nullptr)
-            _gloabal    =   (parent()->_gloabal * local);
+            _gloabal    =   (parent()->_gloabal * _local);
         else
-            _gloabal    =   local;
+            _gloabal    =   _local;
         
         if (!recursion || children().empty())
             return;
