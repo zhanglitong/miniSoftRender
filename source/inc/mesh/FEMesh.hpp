@@ -20,6 +20,7 @@
 #include    "FEAttribyteBuffer.hpp"
 namespace   FE
 {
+    class   FEGeometry;
     /// <summary>
     /// 根据 mesh 信息 生成的唯一类型key
     /// 大小必须是8字节
@@ -86,6 +87,7 @@ namespace   FE
             _aabb       =   other._aabb;
             _primitives =   other._primitives;
             _buffers    =   other._buffers;
+            _geometry   =   other._geometry;
         }
         virtual ~FEMesh()
         {}
@@ -171,6 +173,23 @@ namespace   FE
             _buffers.clear();
             return  *this;
         }
+        /// <summary>
+        /// 绑定参数化几何体(几何体必须由引用计数管理),保存时只记录几何参数与属性组合,不保存顶点数据
+        /// </summary>
+        /// <param name="geo">参数化几何体,nullptr表示解除绑定</param>
+        /// <returns></returns>
+        FEMesh* setGeometry(FEGeometry* geo);
+        /// <summary>
+        /// 获取绑定的参数化几何体,没有则返回nullptr
+        /// </summary>
+        /// <returns></returns>
+        FEGeometry* geometry();
+        /// <summary>
+        /// 获取依赖的对象,序列化时先写几何体
+        /// </summary>
+        /// <param name="uSet"></param>
+        /// <returns></returns>
+        virtual size_t  queryDepends(ObjectUSet& uSet) const override;
         /// <summary>
         /// 包围盒信息
         /// </summary>
@@ -269,7 +288,10 @@ namespace   FE
         /// 缓冲区数据
         /// </summary>
         AttrBuffers     _buffers;
-       
+        /// <summary>
+        /// 参数化几何体,非空时保存只写几何体id与属性组合,顶点数据由加载时重建
+        /// </summary>
+        Object          _geometry;
     };
     using   Mesh        =   SharedPtr<FEMesh>;
     using   Meshs       =   TVector<Mesh>;

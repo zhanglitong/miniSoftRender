@@ -1,5 +1,6 @@
 
 #include    "../inc/mesh/FEMesh.hpp"
+#include    "../inc/geometry/FEGeometry.hpp"
 
 constexpr const float   constScreenThreshold    =   4;
 constexpr const float   constScreenThreshold2   =   constScreenThreshold * constScreenThreshold;
@@ -7,6 +8,24 @@ constexpr const float   constDistance2          =   4;
 
 namespace   FE
 {
+    FEMesh*     FEMesh::setGeometry(FEGeometry* geo)
+    {
+        _geometry   =   geo;
+        return  this;
+    }
+    FEGeometry* FEMesh::geometry()
+    {
+        return  _geometry ? _geometry->as<FEGeometry>() : nullptr;
+    }
+    size_t      FEMesh::queryDepends(ObjectUSet& uSet) const
+    {
+        if (_geometry == nullptr)
+            return  0;
+        size_t  nPrev   =   uSet.size();
+        uSet.emplace(_geometry);
+        return  uSet.size() - nPrev;
+    }
+
     namespace
     {
         /// <summary>

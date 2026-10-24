@@ -199,13 +199,13 @@ namespace   FE
                     break;
                 case 2:     value   =   reader.readValue<real>();   
                     break;
-                case 3:     value   =   reader.readValue<String>();  
+                case 3:     {   String  val;    reader.read(val);   value   =   std::move(val);    }
                     break;
-                case 4:     value   =   reader.readValue<Strings>();  
+                case 4:     {   Strings vals;   reader.read(vals);  value   =   std::move(vals);   }
                     break;
-                case 5:     value   =   reader.readValue<uint8s>();
+                case 5:     {   uint8s  vals;   reader.read(vals);  value   =   std::move(vals);   }
                     break;
-                case 6:     value   =   reader.readValue<reals>();
+                case 6:     {   reals   vals;   reader.read(vals);  value   =   std::move(vals);   }
                     break;
                 case 7:     value   =   reader.readValue<Rgba8>();
                     break;

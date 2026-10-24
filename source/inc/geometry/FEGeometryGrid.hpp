@@ -43,8 +43,7 @@ namespace   FE
                 FEGridImpl::build<true>(_param,data);
             else
                 FEGridImpl::build<false>(_param,data);
-            _mesh   =   FEMeshBuilder::makeMeshLine(_ctx,inputs,data.vertices,data.colors);
-            return  _mesh;
+            return  FEMeshBuilder::makeMeshLine(_ctx,inputs,data.vertices,data.colors);
         }
     };
 }

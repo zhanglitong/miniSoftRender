@@ -35,7 +35,7 @@ namespace   FE
         /// </summary>
         /// <param name="val"></param>
         /// <returns></returns>
-        template<typename TSize>
+        template<typename TSize = uint>
         inline  uint64  read(FEString& val)
         {
             TSize   len     =   0;
@@ -43,11 +43,14 @@ namespace   FE
             if (result != sizeof(len))
                 return  result;
             val.resize(len + 1);
-            result  +=   readBuffer(val.data(),len);
+            if (len > 0)
+            {
+                result  +=   readBuffer(val.data(),len);
+            }
             assert(result == len + sizeof(len));
             return  result;
         }
-        template<typename TSize>
+        template<typename TSize = uint>
         inline  uint64  read(String& val)
         {
             TSize   len     =   0;
@@ -55,7 +58,10 @@ namespace   FE
             if (result != sizeof(len))
                 return  result;
             val.resize(len);
-            result  +=   readBuffer(val.data(),len);
+            if (len > 0)
+            {
+                result  +=   readBuffer(val.data(),len);
+            }
             assert(result == len + sizeof(len));
             return  result;
         }
@@ -68,7 +74,7 @@ namespace   FE
         {
             uint    len     =   0;
             auto    result  =   readBuffer(&len,sizeof(len));
-            if (result != len)
+            if (result != sizeof(len))
                 return  result;
             vals.resize(len);
             for (auto& var : vals)

@@ -99,9 +99,10 @@ namespace   FE
         else if (nCom < MaxUint32)  bits._hasCom    =   3;
 
         bits._hasColor      =   (_color == Rgba8(0,0,0,255)) ? 0:1;
-        bits._hasScale      =   _local._scale     ==  float3(1,1,1)  ? 1 : 0;
-        bits._hasTrans      =   _local._position  ==  real3(0,0,0)   ? 1 : 0;
-        bits._hasRotate     =   _local.rotation() ==  quatf(1,0,0,0) ? 1 : 0;
+        /// 值为默认时不写入,减少体积
+        bits._hasScale      =   _local._scale     ==  float3(1,1,1)  ? 0 : 1;
+        bits._hasTrans      =   _local._position  ==  real3(0,0,0)   ? 0 : 1;
+        bits._hasRotate     =   _local.rotation() ==  quatf(1,0,0,0) ? 0 : 1;
         bits._hasGeometry   =   _mesh       ? 1 : 0;
         bits._hasMaterial   =   _material   ? 1 : 0;
 
@@ -119,11 +120,7 @@ namespace   FE
         
         if (bits._hasScale )    writer.write(_local._scale);
         if (bits._hasTrans )    writer.write(_local._position);
-        if (bits._hasRotate )
-        {
-            quatf   rot =   _local.rotation();
-            writer.write(rot);
-        }
+        if (bits._hasRotate )   writer.write(_local._rotation);
         if (bits._hasColor )    writer.write(_color);
         if (_mesh)              writer.write(_mesh->objectId());
         if (_material)          writer.write(_material->objectId());
@@ -167,12 +164,7 @@ namespace   FE
         OBJId   geoId;
         if (bits._hasScale )    reader.read(_local._scale);
         if (bits._hasTrans )    reader.read(_local._position);
-        if (bits._hasRotate )
-        {
-            quatf   rot;
-            reader.read(rot);
-            _local.setRotation(rot);
-        }
+        if (bits._hasRotate )   reader.read(_local._rotation);
         if (bits._hasColor)     reader.read(_color);
        
         /// 读几何体
@@ -266,6 +258,8 @@ namespace   FE
                 uint16  _hasPrimitive   :2;
                 /// 是否有meshBuffer,0 没有 1,uint8,2:uint16,3:uint32,减少长度字段的内存占用
                 uint16  _hasBuffer      :2;
+                /// 是否绑定参数化几何体,1时只写几何体id与属性组合,顶点数据由加载时重建
+                uint16  _hasGeometry    :1;
             };
             uint16  _value;
         };
@@ -273,6 +267,7 @@ namespace   FE
         {
             _hasPrimitive   =   flags>>0;
             _hasBuffer      =   flags>>2;
+            _hasGeometry    =   flags>>4;
         }
     };
     void    FEMesh::serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const
@@ -296,6 +291,14 @@ namespace   FE
         else if (nBuf < MaxUint16)  bits._hasBuffer     =   1;
         else if (nBuf < MaxUint32)  bits._hasBuffer     =   2;
 
+        /// 参数化mesh只记录几何体与属性组合,顶点数据加载时重建
+        bits._hasGeometry   =   _geometry != nullptr ? 1 : 0;
+        if (bits._hasGeometry)
+        {
+            bits._hasPrimitive  =   0;
+            bits._hasBuffer     =   0;
+        }
+
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         /// 必须修改
         /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -308,33 +311,48 @@ namespace   FE
         case 3: writer.write<uint32>(uint32(nPri)); break;
         }
 
-        for(auto var : _primitives)
+        if (bits._hasPrimitive)
         {
-            var->serialize(writer,version,ctx);
+            for(auto var : _primitives)
+            {
+                var->serialize(writer,version,ctx);
+            }
         }
-
-        switch(bits._hasBuffer)
+        if (bits._hasBuffer)
         {
-        case 1: writer.write<uint8>(uint8(nBuf));   break;
-        case 2: writer.write<uint16>(uint16(nBuf)); break;
-        case 3: writer.write<uint32>(uint32(nBuf)); break;
+            switch(bits._hasBuffer)
+            {
+            case 1: writer.write<uint8>(uint8(nBuf));   break;
+            case 2: writer.write<uint16>(uint16(nBuf)); break;
+            case 3: writer.write<uint32>(uint32(nBuf)); break;
+            }
+            for (size_t i = 0; i < nBuf; i++)
+            {
+                writer.write<FEAttribute>(_buffers[i].attr());
+                _buffers[i].buffer()->serialize(writer,version,ctx);
+            }
         }
-        for (size_t i = 0; i < nBuf; i++)
+        if (bits._hasGeometry)
         {
-            writer.write<FEAttribute>(_buffers[i].attr());
-            _buffers[i].buffer()->serialize(writer,version,ctx);
+            writer.write(_geometry->objectId());
+            Attrs   attrs   =   inputs();
+            writer.write<uint8>(uint8(attrs.size()));
+            for (auto& var : attrs)
+            {
+                writer.write<FEAttribute>(var);
+            }
         }
 
     }
     void    FEMesh::deserializeTraits(FEReader& reader,const FEChunkInf& chk,uint version,FESerializeCtx& ctx)
     {
-        UNUSED(ctx);
         UNUSED(version);
 
         MeshChunkBit    bits(chk._flags);
 
         _buffers.clear();
         _primitives.clear();
+        _geometry   =   nullptr;
 
         if (bits._hasPrimitive)
         {
@@ -381,142 +399,31 @@ namespace   FE
                 _buffers.push_back(data);
             }
         }
-        if (!_buffers.empty())
-        {
-            updateAabb();
-        }
-    }
-
-    struct  GeometryChunkBit
-    {
-        union
-        {
-            struct 
-            {
-                /// <summary>
-                /// 是否是参数化
-                /// </summary>
-                uint16  _isParam    :   1;
-                /// 是否有mesh, 0 没有,1 有
-                uint16  _hasMesh    :   1;
-                /// 是否有attr, 0 没有 1,uint8,2:uint16,3:uint32,减少长度字段的内存占用
-                uint16  _hasAttr    :   2;
-            };
-            uint16  _value;
-        };
-        GeometryChunkBit(uint16 flags = 0)
-        {
-            _isParam    =   flags>>0;
-            _hasMesh    =   flags>>1;
-            _hasAttr    =   flags>>2;
-        }
-    };
-
-    void    FEGeometry::serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const 
-    {
-        UNUSED(ctx);
-        UNUSED(version);
-
-        GeometryChunkBit    bits(chk._flags);
-        bits._isParam   =   isParam() ? 1 : 0;
-        bits._hasMesh   =   _mesh ? 1: 0;
-        chk._flags      =   bits._value;
-
-        if (bits._hasMesh && !bits._isParam)
-        {
-            FEUuid  uuid    =  _mesh->objectId();
-            writer.write(uuid);
-        }
-    }
-    void    FEGeometry::deserializeTraits(FEReader& reader,const FEChunkInf& chk ,uint version,FESerializeCtx& ctx)
-    {
-        UNUSED(version);
-        UNUSED(ctx);
-        GeometryChunkBit    bits(chk._flags);
-        if (bits._hasMesh && !bits._isParam)
+        if (bits._hasGeometry)
         {
             FEUuid  uuid;
             reader.read(uuid);
-            auto    result  =   ctx.query(uuid,nullptr,FESerializeCtx::O_Query);
-            if (result.first != nullptr)
-                _mesh       =   dynamic_cast<FEMesh*>(result.first);
+            uint8   attrCnt =   reader.readValue<uint8>();
+            Attrs   inputs;
+            inputs.reserve(attrCnt);
+            for (uint8 i = 0; i < attrCnt; ++ i)
+            {
+                inputs.push_back(reader.readValue<FEAttribute>());
+            }
+            auto            result  =   ctx.query(uuid,nullptr,FESerializeCtx::O_Query);
+            FEGeometryParam* geo    =   result.first ? result.first->as<FEGeometryParam>() : nullptr;
+            Mesh            built   =   geo ? geo->triangular(inputs) : nullptr;
+            if (built)
+            {
+                _primitives =   built->primitives();
+                _buffers    =   built->buffers();
+                _geometry   =   geo;
+                updateAabb();
+            }
         }
-    }
-
-    void    FEGeometryParam::serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const
-    {
-        UNUSED(ctx);
-        UNUSED(version);
-
-        FEGeometry::serializeTraits(writer,chk,version,ctx);
-        assert (_mesh != nullptr);
-        Attrs   customs;
-        Attrs   systems;
-        /// 参数化几何体，为了保证可以正确的参数化，需要把属性信息记录下来
-        if (_mesh)
+        if (!_buffers.empty())
         {
-            
-        }
-        /// 写入系统类型的个数
-        writer.write<uint8>(uint8(systems.size()));
-        /// 写入自定义类型的个数
-        writer.write<uint8>(uint8(customs.size()));
-        /// 系统类型写入index
-        if (!systems.empty())
-        {
-            
-        }
-        /// 自定义类型 写objectId
-        /// for (auto& var : customs)
-        /// {
-        /// }
-    }
-
-    void    FEGeometryParam::deserializeTraits(FEReader& reader,const FEChunkInf& chk ,uint version,FESerializeCtx& ctx)
-    {
-        struct  SlotFormat
-        {
-            uint16      slot;
-            FEFormat    format;
-        };
-
-        using   SlotFormats =   std::vector<SlotFormat>;
-
-        FEGeometry::deserializeTraits(reader,chk,version,ctx);
-
-        uint8       systemCnt  =   0;
-        uint8       customCnt  =   0;
-       
-        Attrs       inputs;
-        Attrs       systems;
-        SlotFormats slotFmts;
-        /// 读系统类型的个数
-        reader.read<uint8>(systemCnt);
-        /// 读自定义类型的个数
-        reader.read<uint8>(customCnt);
-        /// 读系统类型index
-        systems.resize(systemCnt);
-        inputs.reserve(systemCnt + customCnt);
-        
-        slotFmts.resize(systemCnt);
-
-        if (systemCnt)
-        {
-            reader.readBuffer(systems.data(),slotFmts.size() * sizeof(SlotFormat));
-        }
-        for (auto  index : slotFmts)
-        {
-           
-        }
-
-        /// 自定义类型 写objectId
-        for (uint8 i = 0 ;i < customCnt ; ++ i)
-        {
-            
-        }
-        if (!inputs.empty())
-        {
-            _mesh   =   triangular(inputs);
+            updateAabb();
         }
     }
 
