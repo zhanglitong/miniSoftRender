@@ -34,11 +34,16 @@ namespace FE
         FEConstraintSys(FEContext& ctx)
             :FEComponentSys(ctx)
             ,_objects(ConstComLessFunc)
-        {}
+        {
+            /// 约束在动画之后求解(动画 MaxInt16-2,约束 MaxInt16-1)
+            priority(FEFactory::PT_Update).setOrder(MaxInt16 - 1);
+        }
         FEConstraintSys(const FEConstraintSys& other)
             :FEComponentSys(other)
             ,_objects(ConstComLessFunc)
-        {}
+        {
+            priority(FEFactory::PT_Update).setOrder(MaxInt16 - 1);
+        }
         /// <summary>
         /// 根据Id查找
         /// </summary>

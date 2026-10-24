@@ -245,6 +245,6 @@ namespace FE
         TrackObjects    _cache;
     };
 
-    using   Action      =   SharedPtr<FEPlayback>;
-    using   Actions     =   std::vector<Action>;
+    using   Playback    =   SharedPtr<FEPlayback>;
+    using   Playbacks   =   std::vector<Playback>;
 }

@@ -109,7 +109,7 @@ int     main(int argc, char** argv)
     node->addComponent(anim.get());
     node->update();
 
-    /// 5. 分发到渲染工厂与动画系统,然后启动默认 Action 播放(默认 PT_Loop 循环)
+    /// 5. 分发到渲染工厂与动画系统,然后启动默认 Playback 播放(默认 PT_Loop 循环)
     scene->dispatchNodesToSystem({node});
     scene->animationSystem()->getOrCreate()->setMode(FEPlayback::PlayMode::PT_Once);
     scene->animationSystem()->getOrCreate()->play();

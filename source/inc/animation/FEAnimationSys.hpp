@@ -10,24 +10,27 @@ namespace   FE
     class   FE_API  FEAnimationSys :public FEComponentSys     
     {    
     public:
-        using   ActionMap   =   std::map<String, Action>;
+        using   PlaybackMap =   std::map<String, Playback>;
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimationSys)
     public:       
         FEAnimationSys(FEContext& ctx)
             :FEComponentSys(ctx)   
-        {}         
+        {
+            /// 动画先于约束求解:约束系统读取动画采样后的世界变换
+            priority(FEFactory::PT_Update).setOrder(MaxInt16 - 2);
+        }         
         FEAnimationSys(const FEAnimationSys& other)            
             :FEComponentSys(other)         
         {}
     public:
-        inline  auto&   actions()
+        inline  auto&   playbacks()
         {
-            return  _actions;
+            return  _playbacks;
         }
-        inline  auto&   actions() const
+        inline  auto&   playbacks() const
         {
-            return  _actions;
+            return  _playbacks;
         }
         /// <summary>
         /// 创建或者获取
@@ -36,12 +39,12 @@ namespace   FE
         /// <returns></returns>
         inline  auto    getOrCreate(const String& name = "default")
         {
-            auto    itr     =   _actions.find(name);
-            if (itr != _actions.end())
+            auto        itr     =   _playbacks.find(name);
+            if (itr != _playbacks.end())
                 return  itr->second;
-            Action  action  =   new FEPlayback(_ctx);
-            _actions[name]  =   action;
-            return  action;
+            Playback    playback    =   new FEPlayback(_ctx);
+            _playbacks[name]        =   playback;
+            return  playback;
         }
     public:
         /// <summary>
@@ -51,18 +54,18 @@ namespace   FE
         /// <returns></returns>
         virtual size_t  addObject(Component com) override
         {
-            auto    action  =   getOrCreate();
-            return  action->addObject(com->as<FEAnimation>());
+            auto    playback    =   getOrCreate();
+            return  playback->addObject(com->as<FEAnimation>());
         }
         virtual size_t  addObjects(const Components&  coms) override
         {
-            auto        action  =   getOrCreate();
+            auto        playback    =   getOrCreate();
             Animations  anims(coms.size());
             for (size_t i = 0; i < coms.size(); ++i)
             {
                 anims[i]    =   (FEAnimation*)(coms[i]->as<FEAnimation>());
             }
-            return  action->addObjects(anims);
+            return  playback->addObjects(anims);
         }
         /// <summary>
         /// 删除Animation
@@ -73,8 +76,8 @@ namespace   FE
         {
             if (com == nullptr)
                 return  0;
-            auto    action  =   getOrCreate();
-            return  action->removeObject(com->as<FEAnimation>());
+            auto    playback    =   getOrCreate();
+            return  playback->removeObject(com->as<FEAnimation>());
         }
         /// <summary>
         /// 删除多个Animation
@@ -85,18 +88,18 @@ namespace   FE
         {
             if (coms.empty())
                 return  0;
-            auto        action  =   getOrCreate();
+            auto        playback    =   getOrCreate();
             Animations  anims(coms.size());
             for (size_t i = 0; i < coms.size(); ++i)
             {
                 anims[i]    =   (FEAnimation*)(coms[i]->as<FEAnimation>());
             }
-            return  action->removeObjects(anims);
+            return  playback->removeObjects(anims);
         }
 
         virtual void    clear()
         {
-            _actions.clear();
+            _playbacks.clear();
         }
         /// <summary>
         /// 组件每一帧更新
@@ -105,7 +108,7 @@ namespace   FE
         /// <returns></returns>
         virtual void    update(const real& tmDelta) override
         {
-            for (auto& var : _actions)
+            for (auto& var : _playbacks)
             {
                 var.second->update(tmDelta);
             }
@@ -116,7 +119,7 @@ namespace   FE
         /// <param name="clipTime"></param>
         virtual void    setClipTime(const real& clipTime)
         {
-            for (auto& var : _actions)
+            for (auto& var : _playbacks)
             {
                 var.second->setClipTime(clipTime);
             }
@@ -126,13 +129,13 @@ namespace   FE
         /// </summary>
         virtual void    refreshRange()
         {
-            for (auto& var : _actions)
+            for (auto& var : _playbacks)
             {
                 var.second->refreshRange();
             }
         }
     protected:
-        ActionMap   _actions;
+        PlaybackMap     _playbacks;
     };
 
     using   AnimSys   =   SharedPtr<FEAnimationSys>;

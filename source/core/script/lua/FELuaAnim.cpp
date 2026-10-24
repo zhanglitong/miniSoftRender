@@ -425,7 +425,7 @@ namespace   FE
         {   nullptr,            nullptr                 },
     };
 
-    // ==================== Playback(Action) ====================
+    // ==================== Playback ====================
 
     static  int Playback_play(lua_State* L)
     {
@@ -546,7 +546,7 @@ namespace   FE
     static  int AnimSys_count(lua_State* L)
     {
         auto    sys     =   checkObj<FEAnimationSys>(L,1);
-        lua_pushinteger(L,(lua_Integer)sys->actions().size());
+        lua_pushinteger(L,(lua_Integer)sys->playbacks().size());
         return  1;
     }
 

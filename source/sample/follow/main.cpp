@@ -193,7 +193,7 @@ int     main(int argc, char** argv)
         }
     }
 
-    /// 6. 节点分发到渲染工厂与各组件系统,然后启动默认 Action 播放
+    /// 6. 节点分发到渲染工厂与各组件系统,然后启动默认 Playback 播放
     ///    只传顶层节点: 工厂与组件系统都会递归子节点
     Nodes   allNodes    =   markerNodes;
     allNodes.push_back(leaderNode);

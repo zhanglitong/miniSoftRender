@@ -198,7 +198,7 @@ int     main(int argc, char** argv)
     followerNode->addComponent(constraint.get());
     followerNode->update();
 
-    /// 6. 节点分发到渲染工厂与各组件系统,然后启动默认 Action 播放
+    /// 6. 节点分发到渲染工厂与各组件系统,然后启动默认 Playback 播放
     ///    只传顶层节点: 工厂与组件系统都会递归子节点,
     ///    若再显式传入 shaft/tip 会被收集两次、画出重复实例(一个停在初始朝向,
     ///    与跟随朝向垂直,形成交叉十字)

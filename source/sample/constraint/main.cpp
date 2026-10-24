@@ -131,7 +131,7 @@ int     main(int argc, char** argv)
     followNode->addComponent(constraint.get());
     followNode->update();
 
-    /// 6. 两个节点分发到渲染工厂与各组件系统,然后启动默认 Action 播放
+    /// 6. 两个节点分发到渲染工厂与各组件系统,然后启动默认 Playback 播放
     scene->dispatchNodesToSystem({targetNode, followNode});
     scene->animationSystem()->getOrCreate()->play();
     scene->nodeTree().addToplevelNodes({targetNode, followNode});

@@ -477,11 +477,11 @@ void    MainWindow::disableAllAnimations()
     auto    sys     =   scene->animationSystem();
     if (!sys)
         return;
-    /// 遍历动画系统中所有 action,禁用每个 action 管理的动画
-    for (auto& pair : sys->actions())
+    /// 遍历动画系统中所有 playback,禁用每个 playback 管理的动画
+    for (auto& pair : sys->playbacks())
     {
-        auto&   action  =   pair.second;
-        auto&   anims   =   action->objects();
+        auto&   playback    =   pair.second;
+        auto&   anims       =   playback->objects();
         for (auto& anim : anims)
         {
             anim->setEnable(false);

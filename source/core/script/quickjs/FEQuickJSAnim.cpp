@@ -621,7 +621,7 @@ namespace   FE
             {   nullptr,            nullptr,                0   },
         };
 
-        // ==================== Playback(Action) ====================
+        // ==================== Playback ====================
 
         static  JSValue Playback_play(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)
         {
@@ -806,7 +806,7 @@ namespace   FE
             auto    sys     =   checkObj<FEAnimationSys>(ctx,getEnv(ctx),this_val);
             if (sys == nullptr)
                 return  JS_EXCEPTION;
-            return  JS_NewInt32(ctx,(int32_t)sys->actions().size());
+            return  JS_NewInt32(ctx,(int32_t)sys->playbacks().size());
         }
 
         static  JSValue AnimSys_clear(JSContext* ctx,JSValueConst this_val,int argc,JSValueConst* argv)

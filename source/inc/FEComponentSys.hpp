@@ -73,7 +73,7 @@ namespace   FE
         /// 显式刷新更新列表中的节点:依次执行 update + fireChanged,然后清空列表
         /// 由场景在组件系统更新完成后调用,顺序在 update 之后
         /// </summary>
-        void    updateObjectList()
+        virtual void    updateObjectList()
         {
             for (auto var : _updateList.objects())
             {
