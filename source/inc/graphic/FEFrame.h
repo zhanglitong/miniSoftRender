@@ -19,6 +19,7 @@ namespace   FE
         friend  class   VKQueue;
         friend  class   VKSwapchain;
         friend  class   FEScene;
+        friend  class   FEOffscreenSwapchain;
         friend  class   WGQueue;
         friend  class   WGSwapchain;
     public:

@@ -1,6 +1,7 @@
 #pragma     once
 
 #include    "RSObject.h"
+#include    "FEGImage.h"
 #include    "FEGImageView.h"
 #include    "FEFence.h"
 #include    "FESemaphore.h"
@@ -45,6 +46,10 @@ namespace   FE
         virtual bool        create(const CreateInfo& info)      =   0;
         virtual bool        queuePresent(const PresentInfo& pInfo)    =   0;
         virtual FEFormat    colorFormat() const     =   0;
+        /// <summary>
+        /// 离屏渲染目标:无头(离屏)交换链返回色附件图像,窗口交换链返回 nullptr
+        /// </summary>
+        virtual GImage      colorImage() const      {   return  nullptr;    }
     };
 
 

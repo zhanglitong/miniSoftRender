@@ -117,6 +117,10 @@ namespace   FE
         FEAnimationSys* animationSystem() const;
 
         virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
+        /// <summary>
+        /// 无头(离屏)初始化:不创建窗口,渲染到内部离屏颜色目标
+        /// </summary>
+        virtual bool    setupHeadless(uint width,uint height,const FEUuid& rendererId = RS_VULKAN);
         virtual void    destroy();
         /// <summary>
         /// 显示/隐藏编辑网格(setup 时默认创建)
@@ -142,6 +146,20 @@ namespace   FE
         virtual void    onFrameUpdate();
         virtual void    onFrameRender();
         virtual void    onFrameEnd();
+        /// <summary>
+        /// 驱动一帧(onFrameStart..onFrameEnd),结束后等待 GPU 完成,
+        /// 便于无头模式立即回读像素
+        /// </summary>
+        void            renderFrame();
+        /// <summary>
+        /// 读取当前离屏帧像素(RGBA8 紧密排布,size 需 >= 宽*高*4)
+        /// </summary>
+        bool            readPixels(void* dst,uint64 size);
+        /// <summary>
+        /// 修改渲染尺寸(窗口模式走窗口消息,无头模式重建离屏目标)
+        /// </summary>
+        void            resize(uint width,uint height);
+        inline  uint2   renderSize() const  {   return  _size;    }
         /// <summary>
         /// 消息处理
         /// </summary>
@@ -191,6 +209,10 @@ namespace   FE
         /// </summary>
         void    initializeBuildin(FEDevice& device);
         void    initializeQueue();
+        /// <summary>
+        /// 设备/系统初始化(setup 与 setupHeadless 共用)
+        /// </summary>
+        bool    initialize(const FEUuid& rendererId);
         void    resize(const MsgResize& evt);
 
         /// <summary>
@@ -206,6 +228,10 @@ namespace   FE
         /// 渲染目标清屏色(onFrameRender 每帧 beginRender 使用)
         /// </summary>
         float4              _clearColor =   float4(0,0,0,1);
+        /// <summary>
+        /// 渲染尺寸(无头模式不依赖窗口,统一从这里取宽高)
+        /// </summary>
+        uint2               _size       =   uint2(0,0);
         /// <summary>
         /// 创建工具
         /// </summary>

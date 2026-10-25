@@ -62,6 +62,7 @@ namespace   FE
         virtual Swapchain   createSwapchain()   override;
         virtual GImage      createGImage()      override;
         virtual TexPtr      createTexture()     override;
+        virtual bool        readbackImage(GImage image,void* dst,uint64 size) override;
         virtual FEImGuiBackend* createImGuiBackend() override;
 
         virtual DSetLayout  createDSLayout()    override;

@@ -2,6 +2,10 @@
 #include    "VKDevice.h"
 #include    "VKRenderSystem.h"
 
+#include    "FEFormatHelper.hpp"
+
+#include    <cstring>
+
 #include    "VKCmdBuffer.h"
 #include    "VKQueue.h"
 #include    "VKFrameBuffer.h"
@@ -314,6 +318,108 @@ namespace   FE
         }
         LOG_ERR("VKGPUBuffer.create return false");
         return  nullptr;
+    }
+
+    bool    VKDevice::readbackImage(GImage image,void* dst,uint64 size)
+    {
+        if (image == nullptr || dst == nullptr || size == 0)
+            return  false;
+        const auto&     imgInfo =   image->cInfo();
+        const uint64    need    =   uint64(imgInfo._width) * uint64(imgInfo._height)
+                                    * uint64(FEFormatHelper::sizeOf(imgInfo._format));
+        if (need == 0 || size < need)
+        {
+            LOG_ERR("VKDevice.readbackImage: size mismatch (%llu < %llu)",size,need);
+            return  false;
+        }
+        if (_logicalDevice == nullptr || _transferPool == nullptr || _queueTransfer == nullptr)
+            return  false;
+
+        /// 1. 主机可见 staging buffer(拷贝目标),HOST_COHERENT 无需额外 invalidate
+        GPUBuffer   staging =   new VKGPUBuffer(_ctx,BufferUsage::TRANSFER_DST_BIT);
+        FEGPUBuffer::CreateInfo bInfo   =   {};
+        bInfo._length       =   need;
+        bInfo._bufUsages    =   TRANSFER_DST_BIT;
+        bInfo._memUsages    =   HOST_VISIBLE_BIT | HOST_COHERENT_BIT;
+        if (!staging->create(bInfo))
+            return  false;
+
+        /// 2. 一次性命令缓冲:布局切换 -> copy -> 切回 COLOR_ATTACHMENT
+        VkCommandPool   cmdPool =   (VkCommandPool)_transferPool->native();
+        VkCommandBufferAllocateInfo cmdAI   =   {};
+        cmdAI.sType                 =   VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAI.commandPool           =   cmdPool;
+        cmdAI.level                 =   VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAI.commandBufferCount    =   1;
+        VkCommandBuffer cmd =   nullptr;
+        if (vkAllocateCommandBuffers(_logicalDevice,&cmdAI,&cmd) != VK_SUCCESS)
+            return  false;
+
+        VkCommandBufferBeginInfo beginInfo  =   {};
+        beginInfo.sType                     =   VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags                     =   VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        VK_CHECK_RESULT(vkBeginCommandBuffer(cmd,&beginInfo));
+
+        VkImage     nativeImage =   (VkImage)image->native();
+        VkImageMemoryBarrier barrier    =   {};
+        barrier.sType                   =   VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.srcQueueFamilyIndex     =   VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex     =   VK_QUEUE_FAMILY_IGNORED;
+        barrier.image                   =   nativeImage;
+        barrier.subresourceRange        =   {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
+        barrier.oldLayout               =   system2Native(imgInfo._layout);
+        barrier.newLayout               =   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.srcAccessMask           =   VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+        barrier.dstAccessMask           =   VK_ACCESS_TRANSFER_READ_BIT;
+        vkCmdPipelineBarrier(cmd
+                            ,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+                            ,VK_PIPELINE_STAGE_TRANSFER_BIT
+                            ,0,0,nullptr,0,nullptr,1,&barrier);
+
+        VkBufferImageCopy   region  =   {};
+        region.imageSubresource     =   {VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};
+        region.imageExtent          =   {imgInfo._width,imgInfo._height,1};
+        vkCmdCopyImageToBuffer(cmd
+                            ,nativeImage
+                            ,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+                            ,(VkBuffer)staging->native()
+                            ,1,&region);
+
+        barrier.oldLayout       =   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.newLayout       =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.srcAccessMask   =   VK_ACCESS_TRANSFER_READ_BIT;
+        barrier.dstAccessMask   =   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        vkCmdPipelineBarrier(cmd
+                            ,VK_PIPELINE_STAGE_TRANSFER_BIT
+                            ,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+                            ,0,0,nullptr,0,nullptr,1,&barrier);
+
+        VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
+
+        /// 3. 提交到传输队列并等待,保证映射时数据已就绪
+        VkQueue     queue   =   (VkQueue)queueTransfer()->native();
+        VkSubmitInfo submitInfo =   {};
+        submitInfo.sType                =   VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount   =   1;
+        submitInfo.pCommandBuffers      =   &cmd;
+        VK_CHECK_RESULT(vkQueueSubmit(queue,1,&submitInfo,nullptr));
+        VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+
+        vkFreeCommandBuffers(_logicalDevice,cmdPool,1,&cmd);
+
+        /// 4. 映射并拷贝到调用者缓冲
+        bool    result  =   false;
+        void*   pData   =   staging->lock(need,0);
+        if (pData)
+        {
+            std::memcpy(dst,pData,(size_t)need);
+            staging->unlock();
+            /// 与 VKCmdBuffer::beginRender 保持一致:下一帧从 COLOR_ATTACHMENT 布局继续
+            image->setLayout(IL_COLOR_ATTACHMENT_OPTIMAL);
+            result  =   true;
+        }
+        staging =   nullptr;
+        return  result;
     }
 
     uint32      VKDevice::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound) const

@@ -1,0 +1,155 @@
+/// test.headless
+/// 无头(离屏)渲染测试:
+///   1. setupHeadless 创建无窗口场景,离屏清屏后回读像素校验清屏色
+///   2. 用 FEMaterialV3C4 + 大三角形验证几何确实被绘制到离屏目标
+///   3. resize 后重新渲染,校验回读尺寸与像素
+/// 用法: test.headless.exe [--vulkan|--webgpu]
+
+#include    <iostream>
+#include    <filesystem>
+#include    <Windows.h>
+
+#include    "../../../inc/FEContext.hpp"
+#include    "../../../inc/graphic/FEScene.h"
+#include    "../../../inc/mesh/FEMeshBuilder.hpp"
+#include    "../../../inc/material/FEMaterialV3C4.hpp"
+
+using   namespace   FE;
+
+USING_PLUGIN(rs_vulkan);
+USING_PLUGIN(rs_webgpu);
+
+static  int     g_passed    =   0;
+static  int     g_failed    =   0;
+
+static  void    check(bool condition,const char* message)
+{
+    if (condition)
+    {
+        ++g_passed;
+    }
+    else
+    {
+        ++g_failed;
+        std::cerr << "[FAILED] " << message << std::endl;
+    }
+}
+
+static  String  exePath()
+{
+    char    szTemp[2048]    =   {};
+    GetModuleFileNameA(nullptr,szTemp,sizeof(szTemp));
+    std::filesystem::path   filePath(szTemp);
+    return  filePath.parent_path().string();
+}
+
+static  bool    pixelIs(const uint8s& pixels,uint width,uint x,uint y
+                       ,uint8 r,uint8 g,uint8 b,uint8 a)
+{
+    const uint8*    p   =   &pixels[(y * width + x) * 4];
+    return  p[0] == r && p[1] == g && p[2] == b && p[3] == a;
+}
+
+int     main(int argc,char** argv)
+{
+    FEUuid  rendererId  =   RS_VULKAN;
+    for (int i = 1; i < argc; ++i)
+    {
+        const char* arg = argv[i];
+        if (_stricmp(arg,"--webgpu") == 0 || _stricmp(arg,"-webgpu") == 0)
+            rendererId  =   RS_WEBGPU;
+        else if (_stricmp(arg,"--vulkan") == 0 || _stricmp(arg,"-vulkan") == 0)
+            rendererId  =   RS_VULKAN;
+    }
+
+    FEContext&  ctx     =   FEContext::instance();
+    const String    path    =   exePath();
+    ctx.setWorkPath(path);
+    ctx.setResourcePath(path + "/../");
+
+    Scene   scene   =   new FEScene(ctx);
+    if (!scene->setupHeadless(32,32,rendererId))
+    {
+        std::cerr << "scene setupHeadless failed" << std::endl;
+        scene   =   nullptr;
+        return  1;
+    }
+
+    /// 隐藏编辑器网格,避免干扰像素校验
+    scene->showGrid(false);
+
+    /// 用例 1:纯清屏色回读
+    {
+        scene->setClearColor(float4(1,0,0,1));
+        scene->renderFrame();
+
+        uint8s  pixels(32 * 32 * 4,0);
+        const bool  readOk  =   scene->readPixels(pixels.data(),pixels.size());
+        check(readOk,"readPixels(clear) returned false");
+        check(scene->renderSize() == uint2(32,32),"renderSize != 32x32");
+        if (readOk)
+        {
+            check(pixelIs(pixels,32,0,0,255,0,0,255),"corner pixel != clear red");
+            check(pixelIs(pixels,32,31,31,255,0,0,255),"corner pixel(31,31) != clear red");
+            check(pixelIs(pixels,32,31,0,255,0,0,255),"corner pixel(31,0) != clear red");
+        }
+    }
+
+    /// 用例 2:几何绘制(蓝色背景 + 覆盖视口的绿色三角形)
+    {
+        scene->setClearColor(float4(0,0,1,1));
+
+        float3s     poss    =   {float3(-2,-2,0),float3(2,-2,0),float3(0,2,0)};
+        Rgba8s      colors  =   {Rgba8(0,255,0,255),Rgba8(0,255,0,255),Rgba8(0,255,0,255)};
+        Mesh        mesh    =   FEMeshBuilder::makeMesh(ctx,poss,colors);
+        check(mesh != nullptr,"triangle mesh build failed");
+
+        if (mesh)
+        {
+            Node    node    =   new FENode(ctx);
+            node->setMesh(mesh);
+            node->setMaterial(new FEMaterialV3C4(ctx));
+            node->makeDirty();
+            node->update();
+            scene->dispatchNodesToSystem({node});
+        }
+
+        scene->renderFrame();
+
+        uint8s  pixels(32 * 32 * 4,0);
+        const bool  readOk  =   scene->readPixels(pixels.data(),pixels.size());
+        check(readOk,"readPixels(triangle) returned false");
+        if (readOk)
+        {
+            /// 角落在三角形之外,应保持清屏蓝
+            check(pixelIs(pixels,32,0,0,0,0,255,255),"corner pixel != clear blue");
+            /// 三角形在视口中下部覆盖屏幕,取靠下中间位置的像素
+            check(pixelIs(pixels,32,16,28,0,255,0,255),"triangle pixel(16,28) != green");
+            check(pixelIs(pixels,32,8,26,0,255,0,255),"triangle pixel(8,26) != green");
+        }
+    }
+
+    /// 用例 3:尺寸切换后重新渲染与回读
+    {
+        scene->resize(64,24);
+        scene->setClearColor(float4(0,1,0,1));
+        scene->renderFrame();
+
+        check(scene->renderSize() == uint2(64,24),"renderSize != 64x24 after resize");
+
+        uint8s  pixels(64 * 24 * 4,0);
+        const bool  readOk  =   scene->readPixels(pixels.data(),pixels.size());
+        check(readOk,"readPixels(resize) returned false");
+        if (readOk)
+        {
+            check(pixelIs(pixels,64,0,0,0,255,0,255),"corner pixel != clear green after resize");
+            check(pixelIs(pixels,64,63,23,0,255,0,255),"corner pixel(63,23) != clear green after resize");
+        }
+    }
+
+    scene->destroy();
+    scene   =   nullptr;
+
+    std::cout << "=== " << g_passed << " passed, " << g_failed << " failed ===" << std::endl;
+    return  g_failed == 0 ? 0 : 1;
+}

@@ -22,6 +22,7 @@
 #include    "../inc/graphic/FEFactoryAxisRotate.hpp"
 #include    "../inc/graphic/FEFactoryAxisScale.hpp"
 #include    "../inc/graphic/FESceneBrowse.h"
+#include    "FEOffscreenSwapchain.h"
 
 namespace   FE
 {
@@ -72,10 +73,21 @@ namespace   FE
 
     bool    FEScene::setup(App app,const FEUuid& rendererId)
     {
+        _app    =   app;
+        _size   =   uint2(uint(app->cInfo()._width),uint(app->cInfo()._height));
+        return  initialize(rendererId);
+    }
+    bool    FEScene::setupHeadless(uint width,uint height,const FEUuid& rendererId)
+    {
+        _app    =   nullptr;
+        _size   =   uint2(width,height);
+        return  initialize(rendererId);
+    }
+    bool    FEScene::initialize(const FEUuid& rendererId)
+    {
         FETimestamp     timestamp;
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
-        _app        =   app;
         _rendererId =   rendererId;
         _renderSys  =   FERenderSystem::create(_ctx,rendererId);
         assert(_renderSys != nullptr);
@@ -123,14 +135,14 @@ namespace   FE
         /// 默认相机: 位于 +Z 侧, 看向原点(-Z 方向), up=+Y, 保证右手坐标系 Z 向上
         _camera     =   new FECamera(_ctx,real3(0,0,0),real3(0,0,2.5),real3(1,0,0));
         _camera->setUp(real3(0,1,0));
-        _camera->perspective(DEG2RAD(45), float(app->cInfo()._width) / float(app->cInfo()._height), 0.05f, 256.0f);
+        _camera->perspective(DEG2RAD(45), float(_size.x) / float(_size.y), 0.05f, 256.0f);
         _camera->update();
         /// 
         auto    light   =   new FELightDir(_ctx);
         /// 
         _device->lights().add("main",light);
         /// 
-        resize(MsgResize({{_app->cInfo()._width,_app->cInfo()._height}}));
+        resize(MsgResize(_size));
         /// 
         initializeQueue();
         /// 
@@ -330,8 +342,8 @@ namespace   FE
     {
         if (_frame == nullptr)
             return;
-        uint    width       =   _app->cInfo()._width;
-        uint    height      =   _app->cInfo()._height;
+        uint    width       =   _size.x;
+        uint    height      =   _size.y;
         FECmdBuffer::RenderInfo  rsInfo  =   {};
         rsInfo._depth       =   _depthView;
         rsInfo._colors      =   {_frame->_imageViewer};
@@ -463,6 +475,32 @@ namespace   FE
         info._frame     =   _frame;
         info._queue     =   queue;
         _swapchain->queuePresent(info);
+    }
+
+    void    FEScene::renderFrame()
+    {
+        onFrameStart();
+        onFrameUpdate();
+        onFrameRender();
+        onFrameEnd();
+        /// 无头/离线场景:等待 GPU 完成,保证随后回读的像素有效
+        if (_device)
+            _device->waitIdle();
+    }
+
+    bool    FEScene::readPixels(void* dst,uint64 size)
+    {
+        if (_device == nullptr || _swapchain == nullptr)
+            return  false;
+        GImage  image   =   _swapchain->colorImage();
+        if (image == nullptr)
+            return  false;
+        return  _device->readbackImage(image,dst,size);
+    }
+
+    void    FEScene::resize(uint width,uint height)
+    {
+        resize(MsgResize(uint2(width,height)));
     }
 
     void    FEScene::onMessage(const FEMessage& msgIn)
@@ -835,6 +873,7 @@ namespace   FE
 
         uint    width   =   evt._info._size.x;
         uint    height  =   evt._info._size.y;
+        _size   =   uint2(width,height);
 
         if (_app)
         {
@@ -846,6 +885,16 @@ namespace   FE
             infor._window   =   _app ? _app->cInfo()._window  : nullptr;
             _swapchain->create(infor);
         }
+        else
+        {
+            /// 无头/离屏:不创建窗口交换链,渲染到内部颜色目标
+            Swapchain   swapchain   =   new FEOffscreenSwapchain(_ctx);
+            FESwapchain::CreateInfo infor   =   {};
+            infor._width    =   width;
+            infor._height   =   height;
+            if (swapchain->create(infor))
+                _swapchain  =   swapchain;
+        }
 
         _imgDepth       =   nullptr;
         _depthView      =   nullptr;
@@ -854,8 +903,8 @@ namespace   FE
         {
             FEGImage::CreateInfo    info;
             {
-                info._width     =   _app->cInfo()._width;
-                info._height    =   _app->cInfo()._height;
+                info._width     =   width;
+                info._height    =   height;
                 info._depth     =   1;
                 info._usage     =   USAGE_DEPTH_STENCIL_ATTACHMENT | USAGE_SAMPLED;
                 info._type      =   IT_2D;

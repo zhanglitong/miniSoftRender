@@ -117,6 +117,15 @@ namespace   FE
             return  nullptr;
         }
         /// <summary>
+        /// 图像像素回读到主机内存(离屏/无头渲染用;未实现的后端返回 false)。
+        /// dst 按 format 紧密排布,size 需不小于 宽*高*每像素字节。
+        /// </summary>
+        virtual bool        readbackImage(GImage image,void* dst,uint64 size)
+        {
+            UNUSED(image,dst,size);
+            return  false;
+        }
+        /// <summary>
         /// 创建调试 GUI(ImGui)渲染后端。
         /// 支持的后端(如 Vulkan)返回具体实现,未实现的后端返回 nullptr。
         /// 调用者负责在退出时 destroy() 并 delete。
