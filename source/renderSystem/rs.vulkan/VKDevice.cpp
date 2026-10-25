@@ -385,15 +385,8 @@ namespace   FE
                             ,(VkBuffer)staging->native()
                             ,1,&region);
 
-        barrier.oldLayout       =   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.newLayout       =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        barrier.srcAccessMask   =   VK_ACCESS_TRANSFER_READ_BIT;
-        barrier.dstAccessMask   =   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        vkCmdPipelineBarrier(cmd
-                            ,VK_PIPELINE_STAGE_TRANSFER_BIT
-                            ,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
-                            ,0,0,nullptr,0,nullptr,1,&barrier);
-
+        /// 反切布局放到下一次 beginRender 里完成(图形队列),
+        /// 避免在传输队列上使用 COLOR_ATTACHMENT 阶段导致的校验告警
         VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
 
         /// 3. 提交到传输队列并等待,保证映射时数据已就绪
@@ -414,8 +407,8 @@ namespace   FE
         {
             std::memcpy(dst,pData,(size_t)need);
             staging->unlock();
-            /// 与 VKCmdBuffer::beginRender 保持一致:下一帧从 COLOR_ATTACHMENT 布局继续
-            image->setLayout(IL_COLOR_ATTACHMENT_OPTIMAL);
+            /// 布局停留在 TRANSFER_SRC,下一帧 beginRender 会自行切回 COLOR_ATTACHMENT
+            image->setLayout(IL_TRANSFER_SRC_OPTIMAL);
             result  =   true;
         }
         staging =   nullptr;

@@ -225,13 +225,15 @@ int main(int argc, char** argv)
     }
 
     /// 加载 CarConcept.gltf(网格/材质/贴图/扩展全部由解析器完成)
-    const String gltfFile = R"(D:\study\glTF-Sample-Assets\Models\CarConcept\glTF\CarConcept.gltf)";
+    const String gltfFile = R"(E:\study\gltf\glTF-Sample-Assets\Models\CarConcept\glTF\CarConcept.gltf)";
     FEFileFormat fmt(".gltf", "1.0.0.0", "GLTF text Format!");
     auto reader = FEFileFormatHelper::queryReader(ctx, fmt);
     if (!reader)
     {
         std::cerr << "query gltf reader failed\n";
-        scene = nullptr; app->destroy(); return 1;
+        scene = nullptr; 
+        app->destroy(); 
+        return 1;
     }
     auto objects = reader->readFiles({gltfFile});
     for (auto var : objects)
