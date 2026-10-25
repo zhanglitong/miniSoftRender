@@ -533,6 +533,17 @@ namespace   FE
         {
             return  _pbr;
         }
+        /// <summary>
+        /// 获取贴图标志/强度与 KHR 扩展参数
+        /// </summary>
+        inline  auto&   texParams()
+        {
+            return  _texParams;
+        }
+        const   auto&   texParams() const
+        {
+            return  _texParams;
+        }
     public:
         virtual void        appDynamicState(CMDPtr cmd,EPrimitive pri) override
         {

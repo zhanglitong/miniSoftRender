@@ -109,6 +109,7 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEFormatFepjWriter);
 
         DEFINE_CLASS_CREATOR(FEFormatGLTFReader);
+        DEFINE_CLASS_CREATOR(FEFormatGLTFWriter);
 
         DEFINE_CLASS_CREATOR(FEMaterialV3C4);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3);
@@ -144,6 +145,7 @@ namespace   FE
     {
         UNUSED(ctx);
         DEFINE_FORMAT_WRITER(FEFormatFepjWriter);
+        DEFINE_FORMAT_WRITER(FEFormatGLTFWriter);
     }
     void    systemInitialize(FEContext& ctx)
     {

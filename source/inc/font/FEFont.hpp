@@ -189,14 +189,17 @@ namespace   FE
         /// </summary>
         bool    uploadAtlas();
     protected:
+        using   GlyphIndex  =   std::unordered_map<uint32,uint32>;
+        using   Glyphs      =   std::vector<FEFontGlyph>;
+    protected:
         TexPtr                      _texture    =   nullptr;
         FEFontImpl*                 _impl       =   nullptr;
         /// <summary>
         /// 码点 -> _glyphs 下标(支持非连续字符集)
         /// </summary>
-        std::unordered_map<uint32,uint32>   _glyphIndex;
-        std::vector<FEFontGlyph>    _glyphs;
-        std::vector<uint8_t>        _atlasPixels;
+        GlyphIndex                  _glyphIndex;
+        Glyphs                      _glyphs;
+        uint8s                      _atlasPixels;
         uint                        _atlasW     =   0;
         uint                        _atlasH     =   0;
         /// <summary>

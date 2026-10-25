@@ -1434,27 +1434,30 @@ namespace   FE
                 {
                     auto    mesh    =   meshs.front();
                     auto    mat     =   getOrCreate(matMap,model,gltfMesh.primitives[0].material,mesh);
-                    if (mat == nullptr)
-                        return  pNode;
+                    /// 无材质时仍要保留网格与子节点,不能提前返回
                     pNode->setMesh(meshs.front());
-                    pNode->setMaterial(mat);
-                    /// 变体:源材质带 KHR_materials_variants 映射时记录节点(供 applyVariant 切换)
-                    if (_variantMappings.find(gltfMesh.primitives[0].material) != _variantMappings.end())
-                        _variantNodes.push_back({pNode,gltfMesh.primitives[0].material});
+                    if (mat != nullptr)
+                    {
+                        pNode->setMaterial(mat);
+                        /// 变体:源材质带 KHR_materials_variants 映射时记录节点(供 applyVariant 切换)
+                        if (_variantMappings.find(gltfMesh.primitives[0].material) != _variantMappings.end())
+                            _variantNodes.push_back({pNode,gltfMesh.primitives[0].material});
+                    }
                 }
                 else if (meshs.size() == gltfMesh.primitives.size() && !meshs.empty())
                 {
                     for (size_t i = 0; i < gltfMesh.primitives.size(); ++i)
                     {
                         auto    mat =   getOrCreate(matMap,model,gltfMesh.primitives[i].material,meshs[i]);
-                        if (mat == nullptr)
-                            continue;
                         Node        child   =   new FENode(_ctx);
                         child->setMesh(meshs[i]);
-                        child->setMaterial(mat);
-                        /// 变体:同上,多 primitive 时记录到 child 节点
-                        if (_variantMappings.find(gltfMesh.primitives[i].material) != _variantMappings.end())
-                            _variantNodes.push_back({child,gltfMesh.primitives[i].material});
+                        if (mat != nullptr)
+                        {
+                            child->setMaterial(mat);
+                            /// 变体:同上,多 primitive 时记录到 child 节点
+                            if (_variantMappings.find(gltfMesh.primitives[i].material) != _variantMappings.end())
+                                _variantNodes.push_back({child,gltfMesh.primitives[i].material});
+                        }
 
                         pNode->addChild(child.get());
                     }

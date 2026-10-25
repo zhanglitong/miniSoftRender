@@ -8,5 +8,6 @@
 #include    "fileFormat/xml/FEFormatXMLWriter.hpp"
 
 #include    "fileFormat/gltf/FEFormatGLTFReader.hpp"
+#include    "fileFormat/gltf/FEFormatGLTFWriter.hpp"
 
 
