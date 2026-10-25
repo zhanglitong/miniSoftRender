@@ -332,7 +332,7 @@ namespace   FE
             LOG_ERR("VKDevice.readbackImage: size mismatch (%llu < %llu)",size,need);
             return  false;
         }
-        if (_logicalDevice == nullptr || _transferPool == nullptr || _queueTransfer == nullptr)
+        if (_logicalDevice == nullptr || _graphicPool == nullptr || _queueGraphic == nullptr)
             return  false;
 
         /// 1. 主机可见 staging buffer(拷贝目标),HOST_COHERENT 无需额外 invalidate
@@ -344,8 +344,8 @@ namespace   FE
         if (!staging->create(bInfo))
             return  false;
 
-        /// 2. 一次性命令缓冲:布局切换 -> copy -> 切回 COLOR_ATTACHMENT
-        VkCommandPool   cmdPool =   (VkCommandPool)_transferPool->native();
+        /// 2. 一次性命令缓冲:布局切换 -> copy(布局由下一次 beginRender 反切)
+        VkCommandPool   cmdPool =   (VkCommandPool)_graphicPool->native();
         VkCommandBufferAllocateInfo cmdAI   =   {};
         cmdAI.sType                 =   VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         cmdAI.commandPool           =   cmdPool;
@@ -389,8 +389,8 @@ namespace   FE
         /// 避免在传输队列上使用 COLOR_ATTACHMENT 阶段导致的校验告警
         VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
 
-        /// 3. 提交到传输队列并等待,保证映射时数据已就绪
-        VkQueue     queue   =   (VkQueue)queueTransfer()->native();
+        /// 3. 提交到图形队列并等待(命令池来自图形队列族,支持 ALL_COMMANDS 阶段)
+        VkQueue     queue   =   (VkQueue)queueGraphic()->native();
         VkSubmitInfo submitInfo =   {};
         submitInfo.sType                =   VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount   =   1;

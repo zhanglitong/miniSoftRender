@@ -5,7 +5,7 @@
 
 namespace   FE
 {
-    bool    createBuffer(FEDevice& dev,const FEGPUBuffer::CreateInfo& info,BufferUsages usage,VkBuffer& buffer,VkDeviceMemory& memory)
+    bool    createBuffer(FEDevice& dev,const FEGPUBuffer::CreateInfo& info,BufferUsages usage,VkBuffer& buffer,VkDeviceMemory& memory,VkDeviceSize* allocSize)
     {
         auto&       vkDevice    =   (VKDevice&)dev;
         auto        device      =   vkDevice.logicalDevice();
@@ -40,6 +40,8 @@ namespace   FE
         VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &memory));
         VK_CHECK_RESULT(vkBindBufferMemory(device, buffer, memory, 0));
 
+        if (allocSize != nullptr)
+            *allocSize  =   memReqs.size;
         return  memory != nullptr;
     }
 
@@ -80,7 +82,7 @@ namespace   FE
     bool    VKGPUBuffer::create(const CreateInfo& info)
     {
         _cInfo  =   info;
-        return  createBuffer(_ctx.device(),info,_bufferUsage,_native,_memory);
+        return  createBuffer(_ctx.device(),info,_bufferUsage,_native,_memory,&_allocSize);
     }
 
     bool    VKGPUBuffer::update(const void* pData,uint64 length,uint64 offset)
@@ -138,29 +140,51 @@ namespace   FE
             _memory =   nullptr;
         }
         _cInfo._length  =   length;
-        return  createBuffer(_ctx.device(),_cInfo,_bufferUsage,_native,_memory);
+        return  createBuffer(_ctx.device(),_cInfo,_bufferUsage,_native,_memory,&_allocSize);
     }
     void*   VKGPUBuffer::lock(uint64 size,uint64 offset)
     {
         auto&           vkDevice    =   (VKDevice&)_ctx.device();
         auto            device      =   vkDevice.logicalDevice();
+        if (size != 0 && offset + size > _allocSize)
+            return  nullptr;
         void*           ptr     =   nullptr;
-        VkDeviceSize    devSize =   size == 0 ?  _cInfo._length - offset :size;
-        auto            result  =   vkMapMemory(device, _memory, offset, devSize, 0, &ptr);
-
-        return          result == VK_SUCCESS ? ptr : nullptr;
+        /// 整块映射,返回 offset 处指针:
+        /// flush 需要把区间向前对齐到 nonCoherentAtomSize 边界,
+        /// 若只映射子区间则该对齐区间会越出映射范围
+        auto            result  =   vkMapMemory(device, _memory, 0, VK_WHOLE_SIZE, 0, &ptr);
+        if (result != VK_SUCCESS)
+            return  nullptr;
+        return          (uint8*)ptr + offset;
     }
     bool    VKGPUBuffer::flush(uint64 length,uint64 offset)
     {
         auto&           vkDevice    =   (VKDevice&)_ctx.device();
         auto            device      =   vkDevice.logicalDevice();
+        /// 一致(COHERENT)内存无需刷新
+        if (_cInfo._memUsages.hasFlag(HOST_COHERENT_BIT))
+            return  true;
+
+        VkPhysicalDeviceProperties  props   =   {};
+        vkGetPhysicalDeviceProperties(vkDevice.physicalDevice(),&props);
+
+        /// 规范要求 offset/size 按 nonCoherentAtomSize 对齐,
+        /// 或者 offset + size 恰好等于整个内存分配大小
+        const   VkDeviceSize    atom    =   props.limits.nonCoherentAtomSize;
+        VkDeviceSize            begin   =   offset - (offset % atom);
+        VkDeviceSize            end     =   offset + length;
+        if (end % atom != 0)
+            end +=  atom - (end % atom);
+        if (end > _allocSize)
+            end =   _allocSize;
+
         VkMappedMemoryRange mappedRange; 
         {
-            mappedRange.sType   =    VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+            mappedRange.sType   =   VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
             mappedRange.pNext   =   nullptr;
             mappedRange.memory  =   _memory,
-            mappedRange.offset  =   offset,
-            mappedRange.size    =   length;
+            mappedRange.offset  =   begin,
+            mappedRange.size    =   end - begin;
         };
         return vkFlushMappedMemoryRanges(device, 1, &mappedRange) == VkResult::VK_SUCCESS;
     }

@@ -100,8 +100,10 @@ namespace   FE
         if (staging == nullptr)
             return  false;
 
-        /// 2. 从传输命令池分配一次性命令缓冲,执行布局切换 + 拷贝
-        VkCommandPool       cmdPool =   (VkCommandPool)vkDevice.transferCmdPool()->native();
+        /// 2. 从图形命令池分配一次性命令缓冲,执行布局切换 + 拷贝
+        /// (收尾要切到 SHADER_READ_ONLY,涉及 FRAGMENT_SHADER 阶段,
+        ///  纯传输队列族不支持该阶段,故走图形队列)
+        VkCommandPool       cmdPool =   (VkCommandPool)vkDevice.graphicCmdPool()->native();
         VkCommandBufferAllocateInfo cmdAI   =   {};
         cmdAI.sType                 =   VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         cmdAI.commandPool           =   cmdPool;
@@ -212,7 +214,7 @@ namespace   FE
         VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
 
         /// 3. 提交并等待完成(staging buffer 随后即可释放)
-        VkQueue queue   =   (VkQueue)vkDevice.queueTransfer()->native();
+        VkQueue queue   =   (VkQueue)vkDevice.queueGraphic()->native();
         VkSubmitInfo    submitInfo  =   {};
         submitInfo.sType                =   VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount   =   1;
