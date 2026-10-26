@@ -223,6 +223,11 @@ namespace   FE
         /// </summary>
         bool    initialize(const FEUuid& rendererId);
         void    resize(const MsgResize& evt);
+        /// <summary>
+        /// 场景中是否存在需要折射双趟渲染的 transmission 材质
+        /// (由渲染工厂查询其材质组,替代材质类的全局静态计数)
+        /// </summary>
+        bool    anyTransmissionMaterial();
 
         /// <summary>
         /// 创建网格

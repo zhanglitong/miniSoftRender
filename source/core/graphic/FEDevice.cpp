@@ -10,7 +10,12 @@ namespace   FE
                 return  left->objectId() < right->objectId();
             });
         if (itr != _cacheObject.end() && (*itr)->objectId() == object->objectId())
-            return  false;
+        {
+            /// 同 ID 覆盖:场景折射纹理 resize 重建后需要替换缓存中的旧对象,
+            /// 否则 queryCache 永远返回已失效的旧纹理
+            *itr    =   object;
+            return  true;
+        }
         _cacheObject.insert(itr,object);
         return  true;
     }

@@ -444,6 +444,16 @@ namespace   FE
         return  false;
     }
 
+    bool    FEFactoryRender::hasTransmissionMaterial() const
+    {
+        for (auto& grp : _groupNode)
+        {
+            if (grp->_mat && grp->_mat->isTransmission())
+                return  true;
+        }
+        return  false;
+    }
+
     void    FEFactoryRender::render(CMDPtr cmd)
     {
         if (_groupNode.empty())

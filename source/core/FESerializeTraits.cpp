@@ -427,9 +427,6 @@ namespace   FE
         }
     }
 
-    /// 全局"已挂场景纹理且 transmission>0"材质计数(FEMaterialPBR.hpp 内联代码维护)
-    int     FEMaterialPBR::s_transmissionMats   =   0;
-
     void    FEMaterialPBR::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const
     {
         UNUSED(writer,chunk,version,ctx);

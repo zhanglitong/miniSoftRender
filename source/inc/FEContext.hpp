@@ -144,6 +144,20 @@ namespace FE
             _deltaTime  =   tm;
             return  *this;
         }
+        /// <summary>
+        /// 单调递增帧序号(每帧 onFrameStart 递增):供材质等按帧缓存/节流查询使用
+        /// </summary>
+        uint64      frameIndex() const
+        {
+            return  _frameIndex;
+        }
+        /// <summary>
+        /// 帧序号递增(FEScene::onFrameStart 每帧调用)
+        /// </summary>
+        void        nextFrame()
+        {
+            ++_frameIndex;
+        }
 
         void    destroy();
     public:
@@ -156,6 +170,10 @@ namespace FE
         /// 一帧花费的时间，第一帧肯定是0，
         /// </summary>
         real        _deltaTime  =   0;
+        /// <summary>
+        /// 单调递增帧序号
+        /// </summary>
+        uint64      _frameIndex =   0;
         LogPtr      _log;
         Object      _device;
         Object      _anchor;

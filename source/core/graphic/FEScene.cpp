@@ -280,6 +280,8 @@ namespace   FE
 
         if (_frame == nullptr)
             return;
+        /// 帧序号递增:材质按帧节流查询场景折射纹理(见 FEMaterialPBR::refreshSceneTexture)
+        _ctx.nextFrame();
         /// 无论 cmd 是否存在, 都要先等待并重置 fence,
         /// 防止上一帧的信号量/fence 处于 pending 状态导致后续 acquire 失败
         _frame->reset();
@@ -293,6 +295,15 @@ namespace   FE
             _frame->_cmd->begin();
         }
 
+    }
+    bool    FEScene::anyTransmissionMaterial()
+    {
+        for (auto& fac : _factorys.objects())
+        {
+            if (fac && fac->hasTransmissionMaterial())
+                return  true;
+        }
+        return  false;
     }
     void    FEScene::onFrameUpdate()
     {
@@ -429,7 +440,7 @@ namespace   FE
 
             cmd->endRender(compInfo);
         }
-        else if (_sceneTexView && FEMaterialPBR::anyTransmissionMaterial())
+        else if (_sceneTexView && anyTransmissionMaterial())
         {
             // ===== transmission 场景折射:双趟渲染 =====
             // pass1: 仅不透明场景 → sceneTex(工厂 TP_OPAQUE 趟过滤掉透明组)

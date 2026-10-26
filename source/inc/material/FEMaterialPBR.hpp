@@ -239,13 +239,10 @@ namespace   FE
             _hasRealSceneTex=   other._hasRealSceneTex;
             _autoSceneTex   =   other._autoSceneTex;
             bindAllTextures();
-            updateSceneTexCount();
             update();
         }
         virtual ~FEMaterialPBR()
         {
-            if (_sceneTexCounted)
-                --s_transmissionMats;
             _pbr._gpu   =   nullptr;
         }
 
@@ -389,7 +386,6 @@ namespace   FE
             /// 透射因子跨 0 时切换 BIND_SCENE_TEX 绑定(真纹理↔占位白图)
             /// </summary>
             bindSceneTex();
-            updateSceneTexCount();
         }
         /// <summary>
         /// 挂接 transmission 场景折射纹理(手动模式:外部渲染器接管绑定,
@@ -406,14 +402,21 @@ namespace   FE
             }
             bindSceneTex();
             update();
-            updateSceneTexCount();
         }
         /// <summary>
-        /// 是否存在需要场景折射双趟渲染的透射材质(全局)
+        /// 当前 KHR_materials_transmission 透射因子
         /// </summary>
-        static  bool    anyTransmissionMaterial()
+        inline  float   transmission() const
         {
-            return  s_transmissionMats > 0;
+            return  _texParams._value._transmissionFactor;
+        }
+        /// <summary>
+        /// 是否为透射材质(因子>0 时需要场景折射双趟渲染;
+        /// FEScene 通过工厂组扫描查询,不再使用全局静态计数)
+        /// </summary>
+        virtual bool    isTransmission() const override
+        {
+            return  _texParams._value._transmissionFactor > 0.0f;
         }
         /// <summary>
         /// KHR_materials_volume 体积参数(需配合 transmission>0 才有视觉效果):
@@ -722,13 +725,9 @@ namespace   FE
         /// </summary>
         bool                _autoSceneTex       =   true;
         /// <summary>
-        /// 本材质当前是否计入 s_transmissionMats(真纹理 + transmission>0)
+        /// 上次查询场景纹理的帧号:同一帧内多次绘制调用只查一次 device cache
         /// </summary>
-        bool                _sceneTexCounted    =   false;
-        /// <summary>
-        /// 全局"已挂场景纹理且 transmission>0"材质计数(定义于 FEMaterialPBR.cpp)
-        /// </summary>
-        static  int         s_transmissionMats;
+        uint64              _sceneTexFrame      =   ~uint64(0);
         /// <summary>
         /// 按 transmission 因子选择 BIND_SCENE_TEX 的绑定对象:
         /// transmission>0(仅 pass2 绘制)绑真场景纹理;否则绑占位白图
@@ -742,14 +741,19 @@ namespace   FE
                 bind(0,BIND_SCENE_TEX,{_sceneTexWhite.get()});
         }
         /// <summary>
-        /// 自动模式下每帧(渲染调用 appDynamicState 时)从 device cache 自取
-        /// 场景折射纹理:构造时 sceneTex 可能尚未创建(resize 时才建),建成后
-        /// 下一帧自动检测指针变化并重绑;sceneTex 重建后亦然。指针未变时零开销。
+        /// 自动模式下从 device cache 自取场景折射纹理:按帧号节流,同帧内
+        /// 多次绘制调用只查询一次;sceneTex 重建(resize)后下一帧自动重绑。
         /// </summary>
         inline  void        refreshSceneTexture()
         {
-            if (!_autoSceneTex)
+            /// 仅自动模式且为透射材质才需要查询场景纹理;
+            /// 普通材质始终使用占位白图,无需访问 device cache
+            if (!_autoSceneTex || _texParams._value._transmissionFactor <= 0.0f)
                 return;
+            const uint64    frame   =   _ctx.frameIndex();
+            if (frame == _sceneTexFrame)
+                return;
+            _sceneTexFrame  =   frame;
             auto    obj =   _ctx.device().queryCache(FEConstUuid::SceneTexId);
             auto    tex =   obj ? obj->as<FETexture>() : nullptr;
             if (tex == _sceneTexMap.get())
@@ -758,17 +762,6 @@ namespace   FE
             _hasRealSceneTex    =   (tex != nullptr);
             bindSceneTex();
             update();
-            updateSceneTexCount();
-        }
-        /// <summary>
-        /// 按当前 纹理/透射因子 状态刷新全局计数
-        /// </summary>
-        inline  void        updateSceneTexCount()
-        {
-            const bool  should  =   _hasRealSceneTex
-                                    && (_texParams._value._transmissionFactor > 0.0f);
-            if (should && !_sceneTexCounted) { ++s_transmissionMats; _sceneTexCounted = true;  }
-            if (!should && _sceneTexCounted) { --s_transmissionMats; _sceneTexCounted = false; }
         }
     };
 }

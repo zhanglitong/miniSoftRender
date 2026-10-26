@@ -180,6 +180,11 @@ namespace   FE
         /// </summary>
         virtual bool        isTransparent() const { return false; }
         /// <summary>
+        /// 透射材质标记(KHR_materials_transmission 因子>0):FEScene 据此决定
+        /// 是否需要先渲染不透明场景到 sceneTex 再做折射双趟。默认 false。
+        /// </summary>
+        virtual bool        isTransmission() const { return false; }
+        /// <summary>
         /// 应用动态设置
         /// </summary>
         virtual void        appDynamicState(CMDPtr cmd,EPrimitive pri);

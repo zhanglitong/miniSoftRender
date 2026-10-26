@@ -319,6 +319,11 @@ namespace   FE
         /// </summary>
         virtual bool    isTransparent() const;
         /// <summary>
+        /// 工厂内是否存在 transmission 材质组(KHR_materials_transmission 因子>0),
+        /// FEScene 据此决定是否需要先渲染不透明场景到 sceneTex 再做折射双趟
+        /// </summary>
+        bool            hasTransmissionMaterial() const;
+        /// <summary>
         /// 销毁前一定调用该函数，解除数据对工厂的引用计数
         /// 才能正确的释放数据
         /// </summary>
