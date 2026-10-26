@@ -475,6 +475,11 @@ void main()
             prefiltered = skySpecularRadiance(R, roughness) * skyExposure;
             brdf        = vec2(1.0, 0.0);
         }
+        /// 太阳不可见后压暗环境光(解析天空与 HDR 环境贴图同规则),
+        /// 曲线与方向光一致,夜间保留约 2% 微光避免全黑
+        float   sunGate =   skyAmbientSunGate(_sky,0.02);
+        irradiance  *=  sunGate;
+        prefiltered *=  sunGate;
         vec3 Fenv  = fresnelSchlickRoughness(NdotV, F0, roughness);
         /// 虹彩:IBL 菲涅尔权重同步替换(参考 pbr.frag:219-220)。
         /// 镜面权重:常规 F*brdf.x+brdf.y ↔ 裸 iriFresnel(参考实现不叠 LUT);
@@ -499,6 +504,7 @@ void main()
             vec3 ccPrefiltered = hasEnvTex
                 ? textureLod(u_EnvironmentMap, R, ccRoughness * maxLod).rgb
                 : skySpecularRadiance(R, ccRoughness) * skyExposure;
+            ccPrefiltered  *=  sunGate;
             color = mix(color, ccPrefiltered, ccWeight);
         }
     }
