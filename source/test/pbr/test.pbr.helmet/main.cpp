@@ -100,7 +100,7 @@ int main(int argc, char** argv)
     }
 
     /// 加载 DamagedHelmet.gltf(网格/材质/贴图全部由解析器完成)
-    const String gltfFile = R"(D:\study\glTF-Sample-Models\2.0\DamagedHelmet\glTF\DamagedHelmet.gltf)";
+    const String gltfFile = R"(E:\study\gltf\glTF-Sample-Assets\Models\DamagedHelmet\glTF\DamagedHelmet.gltf)";
     FEFileFormat fmt(".gltf", "1.0.0.0", "GLTF text Format!");
     auto reader = FEFileFormatHelper::queryReader(ctx, fmt);
     if (!reader)
@@ -148,10 +148,13 @@ int main(int argc, char** argv)
     std::cout << "pbr helmet test ready, entering render loop...\n";
     /// <summary>
     /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
-    /// 场景外 GPU 资源——gltf 节点(objects/nodes 共同引用)与环境 cubemap
+    /// 场景外 GPU 资源——gltf 节点(objects/nodes 共同引用)、环境 cubemap
+    /// 以及 reader(其内部缓存同样引用节点与纹理,漏掉会在 device 销毁后
+    /// 才释放,触发 vkDestroyDevice 泄漏验证错误)
     /// </summary>
     app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
     {
+        reader      =   nullptr;
         nodes.clear();
         objects.clear();
         envCube     =   nullptr;

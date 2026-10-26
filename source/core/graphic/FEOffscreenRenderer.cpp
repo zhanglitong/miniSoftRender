@@ -38,6 +38,8 @@ namespace   FE
         destroy();
 
         _scene  =   new FEScene(_ctx);
+        /// 采样数必须在 setup 之前指定(setup 内按设备能力钳制)
+        _scene->setSampleCount(info._samples);
         if (!_scene->setupHeadless(info._width,info._height,info._rendererId))
         {
             _scene  =   nullptr;

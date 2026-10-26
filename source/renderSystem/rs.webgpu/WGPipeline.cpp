@@ -166,7 +166,8 @@ namespace   FE
         pipelineDesc.primitive =   primitiveState;
 
         WGPUMultisampleState multisampleState = {};
-        multisampleState.count                  =   1;
+        /// WebGPU 仅支持 1x/4x
+        multisampleState.count                  =   info._sampleCount > 1 ? 4 : 1;
         multisampleState.mask                   =   0xFFFFFFFF;
         multisampleState.alphaToCoverageEnabled =   false;
         pipelineDesc.multisample                =   multisampleState;

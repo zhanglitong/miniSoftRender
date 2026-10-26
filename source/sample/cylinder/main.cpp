@@ -5,9 +5,10 @@
 ///      - 标准圆柱体(中间,橙色): radiusTop=radiusBottom,带顶/底盖
 ///      - 圆锥(左侧,绿色):       radiusTop=0,只带底盖
 ///      - 开口管(右侧,蓝色):     openEnded=true,无盖管状
-/// 用法: sample.cylinder.exe [--vulkan|--webgpu]
+/// 用法: sample.cylinder.exe [--vulkan|--webgpu] [--msaa N]
 
 #include    <iostream>
+#include    <cstdlib>
 
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/FEAppHelper.hpp"
@@ -53,6 +54,7 @@ int     main(int argc, char** argv)
 {
     /// 选择渲染后端,默认 Vulkan
     FEUuid  rendererId  =   RS_VULKAN;
+    uint    msaa        =   1;   ///< 多采样数(MSAA),默认 1x
     for (int i = 1; i < argc; ++i)
     {
         const char* arg = argv[i];
@@ -65,6 +67,12 @@ int     main(int argc, char** argv)
                  _stricmp(arg, "/vulkan") == 0)
         {
             rendererId = RS_VULKAN;
+        }
+        else if (_stricmp(arg, "--msaa") == 0 || _stricmp(arg, "-msaa") == 0 ||
+                 _stricmp(arg, "/msaa") == 0)
+        {
+            if (i + 1 < argc)
+                msaa    =   (uint)atoi(argv[++i]);
         }
     }
 
@@ -96,6 +104,8 @@ int     main(int argc, char** argv)
     /// 2. 创建引擎并初始化渲染后端
     Scene   scene   =   new FEScene(ctx);
     pScene          =   scene.get();
+    /// 多采样数必须在 setup 之前设置,setup 内会按设备能力钳制
+    scene->setSampleCount(msaa);
     if (!scene->setup(app, rendererId))
     {
         std::cerr << "scene setup failed" << std::endl;

@@ -164,6 +164,7 @@ namespace   FE
         constexpr   size_t  nMax    =   32;
         RectU32     rect            =   rs._rect;
         VkImageView cViews[nMax]    =   {};
+        VkImageView rViews[nMax]    =   {};
         size_t      nCnt            =   (std::min<size_t>)(nMax,rs._colors.size());
 
         const bool  skipColor       =   rs._skipColor;
@@ -172,6 +173,8 @@ namespace   FE
         for (size_t i = 0; i < nCnt; i++)
         {
             cViews[i]   =   (VkImageView)rs._colors[i]->native();
+            if (i < rs._resolveColors.size() && rs._resolveColors[i])
+                rViews[i]   =   (VkImageView)rs._resolveColors[i]->native();
         }
         VkImageView dView       =   skipDepth ? nullptr : (VkImageView)rs._depth->native();
 
@@ -195,6 +198,26 @@ namespace   FE
                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
                     colorImage->setLayout(IL_COLOR_ATTACHMENT_OPTIMAL);
+                }
+                /// 多采样解析目标同样需要转入 COLOR_ATTACHMENT_OPTIMAL
+                if (rViews[i])
+                {
+                    auto    resolveImage =  rs._resolveColors[i]->cInfo()._image;
+                    if (resolveImage && resolveImage->cInfo()._layout != IL_COLOR_ATTACHMENT_OPTIMAL)
+                    {
+                        auto    cImage  =   (VkImage)(resolveImage->native());
+                        insertImageMemoryBarrier(
+                            _native,
+                            cImage,
+                            0,
+                            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                            system2Native(resolveImage->cInfo()._layout),
+                            system2Native(IL_COLOR_ATTACHMENT_OPTIMAL),
+                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+                        resolveImage->setLayout(IL_COLOR_ATTACHMENT_OPTIMAL);
+                    }
                 }
             }
         }
@@ -235,6 +258,13 @@ namespace   FE
                 rs._clearColor.b,
                 rs._clearColor.a
             };
+            /// 多采样解析:渲染结束时把 MSAA attachment 平均解析到单采样目标
+            if (rViews[i])
+            {
+                cAttachments[i].resolveMode         =   VK_RESOLVE_MODE_AVERAGE_BIT;
+                cAttachments[i].resolveImageView    =   rViews[i];
+                cAttachments[i].resolveImageLayout  =   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
         }
 			
         VkRenderingAttachmentInfoKHR dsAttachment   =   {};
@@ -281,7 +311,10 @@ namespace   FE
 
         for (size_t i = 0; i < nCnt; i++)
         {
-            auto    colorImage =   rs._colors[i]->cInfo()._image;
+            /// 有解析目标时,呈现/采样的对象是解析后的单采样图像
+            const bool  hasResolve  =   (i < rs._resolveColors.size() && rs._resolveColors[i]);
+            auto        colorImage  =   hasResolve ? rs._resolveColors[i]->cInfo()._image
+                                                   : rs._colors[i]->cInfo()._image;
             /// 离屏渲染目标(color attachment + sampled,如 transmission 场景纹理)
             /// 渲染结束后转入 SHADER_READ_ONLY 供后续趟采样;
             /// swapchain 图像(包装 cInfo 无 COLOR_ATTACHMENT 标志)转 PRESENT

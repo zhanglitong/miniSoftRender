@@ -358,6 +358,20 @@ namespace   FE
         default                             : return  VK_IMAGE_ASPECT_COLOR_BIT             ;
         }
     }
+    /// <summary>
+    /// 采样数(MSAA)映射:1/2/4/8/16 -> VK_SAMPLE_COUNT_*
+    /// </summary>
+    inline  static  auto    sampleCount2Native(uint samples)
+    {
+        switch(samples)
+        {
+        case 2  :   return  VK_SAMPLE_COUNT_2_BIT   ;
+        case 4  :   return  VK_SAMPLE_COUNT_4_BIT   ;
+        case 8  :   return  VK_SAMPLE_COUNT_8_BIT   ;
+        case 16 :   return  VK_SAMPLE_COUNT_16_BIT  ;
+        default :   return  VK_SAMPLE_COUNT_1_BIT   ;
+        }
+    }
 
     inline  static  auto  system2Native(FEShaderType val)
     {

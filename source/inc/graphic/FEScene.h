@@ -131,6 +131,15 @@ namespace   FE
         /// </summary>
         void            setClearColor(const float4& color)  {   _clearColor =   color;  }
         /// <summary>
+        /// 设置多采样数(MSAA):1=单采样。必须在 setup/setupHeadless 之前调用,
+        /// setup 时按设备能力钳制后固定,运行期不支持切换
+        /// </summary>
+        void            setSampleCount(uint samples)    {   _sampleCount =  samples;    }
+        /// <summary>
+        /// 当前生效的采样数
+        /// </summary>
+        uint            sampleCount() const             {   return  _sampleCount;   }
+        /// <summary>
         /// 节点加入到系统下，只是挂在节点上，并不做渲染
         /// </summary>
         virtual void    addNodesToTree(const Nodes& nodeList);
@@ -269,6 +278,15 @@ namespace   FE
         CMDPool             _cmdPool;
         GImage              _imgDepth   =   nullptr;
         GImgView            _depthView  =   nullptr;
+        /// <summary>
+        /// MSAA 颜色目标(_sampleCount>1 时创建,解析到交换链/离屏颜色目标)
+        /// </summary>
+        GImage              _imgColorMSAA   =   nullptr;
+        GImgView            _msaaColorView  =   nullptr;
+        /// <summary>
+        /// 采样数(MSAA):1=单采样,由 setSampleCount 指定
+        /// </summary>
+        uint                _sampleCount    =   1;
         /// <summary>
         /// transmission 场景折射纹理(不透明场景预渲染,color attachment + sampled 双用途)
         /// </summary>

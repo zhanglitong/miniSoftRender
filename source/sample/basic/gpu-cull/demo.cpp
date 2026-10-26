@@ -9,8 +9,9 @@
 
 namespace   FE
 {
-    Demo::Demo(const FEUuid& rendererId)
+    Demo::Demo(const FEUuid& rendererId, uint sampleCount)
         :_ctx(FEContext::instance())
+        ,_sampleCount(sampleCount)
     {
         FEApp::CreateInfo   info    =   {};
         info._notify    =   std::bind(&Demo::messageNotify,this,std::placeholders::_1);
@@ -22,6 +23,8 @@ namespace   FE
         _ctx.setWorkPath(_app->path());
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
+        /// 多采样数必须在 setup 之前设置,setup 内会按设备能力钳制
+        _scene->setSampleCount(_sampleCount);
         _scene->setup(_app,rendererId);
         FEGeometryCylinder  geoBox(_ctx);
         Attrs               attrs   =   

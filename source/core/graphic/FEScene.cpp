@@ -129,6 +129,20 @@ namespace   FE
             infor.deviceId  =   gpuList[0].gpuId;
             _device->create(infor);
         }
+        /// 多采样能力钳制:必须在 resize/loadPipelines 之前确定,运行期不支持切换
+        {
+            if (_sampleCount != 1 && _sampleCount != 2 && _sampleCount != 4
+                &&  _sampleCount != 8 && _sampleCount != 16)
+                _sampleCount =   1;
+            uint    maxCnt  =   _device->maxSampleCount();
+            if (maxCnt < 1)
+                maxCnt  =   1;
+            if (_sampleCount > maxCnt)
+                _sampleCount =   maxCnt;
+            /// WebGPU 仅支持 1x/4x
+            if (_rendererId == RS_WEBGPU && _sampleCount > 1)
+                _sampleCount =   4;
+        }
         {
             _cmdPool    =   _device->graphicCmdPool();
         }
@@ -213,6 +227,8 @@ namespace   FE
         _frame      =   nullptr;
         _imgDepth   =   nullptr;
         _depthView  =   nullptr;
+        _imgColorMSAA   =   nullptr;
+        _msaaColorView  =   nullptr;
         _sceneTex   =   nullptr;
         _sceneTexView = nullptr;
         _sceneTexColorView = nullptr;
@@ -344,9 +360,13 @@ namespace   FE
             return;
         uint    width       =   _size.x;
         uint    height      =   _size.y;
+        /// 多采样时渲染到 MSAA 颜色目标,结束时解析到交换链/离屏颜色目标
+        GImgView    colorTarget =   _msaaColorView ? _msaaColorView : _frame->_imageViewer;
         FECmdBuffer::RenderInfo  rsInfo  =   {};
         rsInfo._depth       =   _depthView;
-        rsInfo._colors      =   {_frame->_imageViewer};
+        rsInfo._colors      =   {colorTarget};
+        if (_msaaColorView)
+            rsInfo._resolveColors   =   {_frame->_imageViewer};
         rsInfo._clearColor  =   _clearColor;
         rsInfo._rect.set(0,0,width,height);
 
@@ -415,7 +435,11 @@ namespace   FE
             // pass1: 仅不透明场景 → sceneTex(工厂 TP_OPAQUE 趟过滤掉透明组)
             FEFactoryRender::setTransPass(FEFactoryRender::TransPass::TP_OPAQUE);
             FECmdBuffer::RenderInfo p1Info  =   rsInfo;
-            p1Info._colors  =   {_sceneTexColorView ? _sceneTexColorView : _sceneTexView};
+            /// 多采样:深度也是多采样,pass1 必须同样渲染到 MSAA 目标后再解析到 sceneTex
+            if (_msaaColorView)
+                p1Info._resolveColors   =   {_sceneTexColorView ? _sceneTexColorView : _sceneTexView};
+            else
+                p1Info._colors          =   {_sceneTexColorView ? _sceneTexColorView : _sceneTexView};
             cmd->beginRender(p1Info);
             for (auto viewer : _viewerMgr.objects())
             {
@@ -690,7 +714,7 @@ namespace   FE
         for (auto& file : fileList)
         {   
             auto    fullPath    =   plDir + file;
-            auto    pipelines   =   FEPipelineHelper::create(_ctx,*_device,nullptr,fullPath.c_str());
+            auto    pipelines   =   FEPipelineHelper::create(_ctx,*_device,nullptr,fullPath.c_str(),_sampleCount);
 
             LOG_DBG("loading pipeline:%s",fullPath.c_str());
 
@@ -906,14 +930,48 @@ namespace   FE
                 info._width     =   width;
                 info._height    =   height;
                 info._depth     =   1;
-                info._usage     =   USAGE_DEPTH_STENCIL_ATTACHMENT | USAGE_SAMPLED;
+                /// 多采样深度仅作为 attachment 使用,不再声明 sampled 用途
+                info._usage     =   (_sampleCount > 1)
+                                    ? USAGE_DEPTH_STENCIL_ATTACHMENT
+                                    : (USAGE_DEPTH_STENCIL_ATTACHMENT | USAGE_SAMPLED);
                 info._type      =   IT_2D;
                 info._format    =   FMT_D32_S8_UNORM;
                 info._aspect    =   ASPECT_DEPTH_BIT;
                 info._layout    =   IL_UNDEFINED;
+                info._samples   =   _sampleCount;
             }
             _imgDepth->create(info);
             _depthView  =   _imgDepth->createView();
+        }
+
+        /// MSAA 颜色目标:渲染结束后解析(resolve)到交换链/离屏颜色目标
+        _imgColorMSAA   =   nullptr;
+        _msaaColorView  =   nullptr;
+        if (_sampleCount > 1)
+        {
+            auto    colorImage  =   _device->createGImage();
+            _imgColorMSAA       =   colorImage;
+            FEGImage::CreateInfo    info;
+            {
+                info._width     =   width;
+                info._height    =   height;
+                info._depth     =   1;
+                /// 多采样纹理只能作为 attachment 使用
+                info._usage     =   USAGE_COLOR_ATTACHMENT;
+                info._type      =   IT_2D;
+                info._format    =   _swapchain ? _swapchain->colorFormat() : FMT_R8G8B8A8_UNORM;
+                info._aspect    =   ASPECT_COLOR_BIT;
+                info._layout    =   IL_UNDEFINED;
+                info._samples   =   _sampleCount;
+            }
+            if (colorImage && colorImage->create(info))
+                _msaaColorView  =   colorImage->createView();
+            if (_msaaColorView == nullptr)
+            {
+                LOG_ERR("FEScene.resize: create MSAA color target failed, fallback to 1x");
+                _imgColorMSAA   =   nullptr;
+                _sampleCount    =   1;
+            }
         }
 
         /// transmission 场景折射纹理:与窗口同尺寸,color attachment + sampled 双用途

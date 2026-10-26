@@ -207,6 +207,17 @@ namespace   FE
         return  new VKImGuiBackend(_ctx,*this);
     }
 
+    uint        VKDevice::maxSampleCount() const
+    {
+        VkSampleCountFlags  mask    =   (_properties.limits.framebufferColorSampleCounts
+                                    &   _properties.limits.framebufferDepthSampleCounts);
+        if (mask & VK_SAMPLE_COUNT_16_BIT)  return  16;
+        if (mask & VK_SAMPLE_COUNT_8_BIT)   return  8;
+        if (mask & VK_SAMPLE_COUNT_4_BIT)   return  4;
+        if (mask & VK_SAMPLE_COUNT_2_BIT)   return  2;
+        return  1;
+    }
+
     DSetLayout  VKDevice::createDSLayout()
    {
        LOG_DBG("VKRenderSystem.createDSLayout");

@@ -25,6 +25,10 @@ namespace   FE
             uint            _depth  =   1;
             uint            _mips   =   1;
             uint            _layer  =   1;
+            /// <summary>
+            /// 采样数(MSAA):1=单采样,4=4x。多采样图像仅可作为 attachment 使用
+            /// </summary>
+            uint            _samples    =   1;
         };
     public:
         FEGImage(FEContext& ctx)

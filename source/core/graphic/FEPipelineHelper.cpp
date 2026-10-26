@@ -5,7 +5,7 @@
 #include    "../inc/mesh/FEPrimitive.hpp"
 namespace   FE
 {
-    Pipelines   FEPipelineHelper::create(FEContext& ctx,FEDevice& device,RenderPass renderPass,const char* fileName)
+    Pipelines   FEPipelineHelper::create(FEContext& ctx,FEDevice& device,RenderPass renderPass,const char* fileName,uint sampleCount)
     {
         auto        buffer  =   FEBuffer::loadFile(ctx,fileName); 
         if (buffer == nullptr)
@@ -24,14 +24,14 @@ namespace   FE
             if (root == nullptr)
                 return  {};
             else
-                return  create(ctx,device,renderPass,root,prefix);
+                return  create(ctx,device,renderPass,root,prefix,sampleCount);
         }
         catch (...)
         {
             return  {};
         }
     }
-    Pipelines   FEPipelineHelper::create(FEContext& _ctx,FEDevice& device,RenderPass renderPass,XMLNode* root,const String& prefix)
+    Pipelines   FEPipelineHelper::create(FEContext& _ctx,FEDevice& device,RenderPass renderPass,XMLNode* root,const String& prefix,uint sampleCount)
     {
         auto    xmlShaders  =   root->first_node("shaders");
         auto    xmlBinds    =   root->first_node("bindings");
@@ -46,6 +46,7 @@ namespace   FE
             return  {};
         FEPipeline::CreateInfo  cInfo;
         cInfo._renderPass   =   renderPass;
+        cInfo._sampleCount  =   sampleCount;
 
         /// 可选渲染状态覆盖(未在 xml 中指定时保持 CreateInfo 默认值):
         /// 例如文本等透明叠加层管线需要开启 alpha 混合

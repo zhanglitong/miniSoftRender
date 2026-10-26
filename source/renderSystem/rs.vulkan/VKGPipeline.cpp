@@ -210,7 +210,7 @@ namespace   FE
 
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
         multisampleStateCI.sType                        =   VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleStateCI.rasterizationSamples         =   VK_SAMPLE_COUNT_1_BIT;
+        multisampleStateCI.rasterizationSamples         =   sampleCount2Native(info._sampleCount);
         multisampleStateCI.pSampleMask                  =   nullptr;
         // 无 color attachment 的管线（如 OIT geometry pass）alpha-to-coverage 无意义且会触发 VUID-08891
         multisampleStateCI.alphaToCoverageEnable        =   (info._colorAttachmentCount > 0) ? VK_TRUE : VK_FALSE;

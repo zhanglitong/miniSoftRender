@@ -7,9 +7,10 @@
 
 namespace   FE
 {
-    Demo::Demo(const FEUuid& rendererId)
+    Demo::Demo(const FEUuid& rendererId, uint sampleCount)
         :_ctx(FEContext::instance())
         ,_rendererId(rendererId)
+        ,_sampleCount(sampleCount)
     {
 
         /// KFValue     val     =   float3(1,1,1);
@@ -27,6 +28,8 @@ namespace   FE
         _ctx.setWorkPath(_app->path());
         _ctx.setResourcePath(_app->path() + "/../");
         _scene      =   new FEScene(_ctx);
+        /// 多采样数必须在 setup 之前设置,setup 内会按设备能力钳制
+        _scene->setSampleCount(_sampleCount);
         _scene->setup(_app,_rendererId);
         
 #if 0

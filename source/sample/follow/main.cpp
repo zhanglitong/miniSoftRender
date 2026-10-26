@@ -12,9 +12,10 @@
 ///      Path  后执行 -> 覆盖位置为路径点,保留 Follow 写入的旋转
 ///      最终: Follower 沿菱形路径移动, nose 始终与 Leader 的 nose 同向
 ///   5. 路径点标记(绿色小方块)标示菱形顶点
-/// 用法: sample.follow.exe [--vulkan|--webgpu]
+/// 用法: sample.follow.exe [--vulkan|--webgpu] [--msaa N]
 
 #include    <iostream>
+#include    <cstdlib>
 
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/FEAppHelper.hpp"
@@ -59,6 +60,7 @@ int     main(int argc, char** argv)
 {
     /// 选择渲染后端,默认 Vulkan
     FEUuid  rendererId  =   RS_VULKAN;
+    uint    msaa        =   1;   ///< 多采样数(MSAA),默认 1x
     for (int i = 1; i < argc; ++i)
     {
         const char* arg = argv[i];
@@ -71,6 +73,12 @@ int     main(int argc, char** argv)
                  _stricmp(arg, "/vulkan") == 0)
         {
             rendererId = RS_VULKAN;
+        }
+        else if (_stricmp(arg, "--msaa") == 0 || _stricmp(arg, "-msaa") == 0 ||
+                 _stricmp(arg, "/msaa") == 0)
+        {
+            if (i + 1 < argc)
+                msaa    =   (uint)atoi(argv[++i]);
         }
     }
 
@@ -102,6 +110,8 @@ int     main(int argc, char** argv)
     /// 2. 创建引擎并初始化渲染后端
     Scene   scene   =   new FEScene(ctx);
     pScene          =   scene.get();
+    /// 多采样数必须在 setup 之前设置,setup 内会按设备能力钳制
+    scene->setSampleCount(msaa);
     if (!scene->setup(app, rendererId))
     {
         std::cerr << "scene setup failed" << std::endl;

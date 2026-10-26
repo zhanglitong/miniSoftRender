@@ -182,6 +182,13 @@ namespace   FE
         {
             return  false;
         }
+        /// <summary>
+        /// 设备支持的最大采样数(MSAA):默认 1(不支持多采样)
+        /// </summary>
+        virtual uint        maxSampleCount() const
+        {
+            return  1;
+        }
     public:
         NotifyCreate    _createNotify;
         NotifyDestroy   _destroyNotify;

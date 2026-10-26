@@ -31,7 +31,7 @@ namespace   FE
             uint32_t idx = (uint32_t)attachments.size();
             VkAttachmentDescription desc = {};
             desc.format             =   system2Native(cInfo._colorFmt);
-            desc.samples            =   VK_SAMPLE_COUNT_1_BIT;
+            desc.samples            =   sampleCount2Native(cInfo._samples);
             desc.loadOp             =   VK_ATTACHMENT_LOAD_OP_CLEAR;
             desc.storeOp            =   VK_ATTACHMENT_STORE_OP_STORE;
             desc.stencilLoadOp      =   VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -49,7 +49,7 @@ namespace   FE
             uint32_t idx = (uint32_t)attachments.size();
             VkAttachmentDescription desc = {};
             desc.format             =   system2Native(cInfo._depthFmt);
-            desc.samples            =   VK_SAMPLE_COUNT_1_BIT;
+            desc.samples            =   sampleCount2Native(cInfo._samples);
             desc.loadOp             =   VK_ATTACHMENT_LOAD_OP_CLEAR;
             desc.storeOp            =   VK_ATTACHMENT_STORE_OP_STORE;
             desc.stencilLoadOp      =   VK_ATTACHMENT_LOAD_OP_CLEAR;

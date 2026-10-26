@@ -45,6 +45,10 @@ namespace   FE
         {
             GImgView    _depth          =   nullptr;
             GImgViews   _colors;
+            /// <summary>
+            /// 多采样解析目标:与 _colors 一一对应,为空表示不解析(直接渲染到 _colors)
+            /// </summary>
+            GImgViews   _resolveColors;
             RectU32     _rect;    
             float4      _clearColor     =   float4(0,0,0,1);
             float       _clearDepth     =   1.0f;

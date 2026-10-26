@@ -22,6 +22,10 @@ namespace   FE
             /// 是否包含 depth/stencil attachment
             /// </summary>
             bool        _withDepth  =   true;
+            /// <summary>
+            /// 附件采样数(MSAA),需与管线 _sampleCount 一致
+            /// </summary>
+            uint        _samples    =   1;
         };
     protected:
         CreateInfo  _cInfo;

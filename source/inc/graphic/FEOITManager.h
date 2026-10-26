@@ -44,9 +44,10 @@ namespace   FE
         /// <summary>
         /// 初始化：创建 SSBO、load shader、build pipeline、alloc DSets
         /// @param screenW/screenH 屏幕分辨率，每像素一个 head index
-        /// @param maxNodesPerPixel  每像素最大透明层数（默认 20）
+        /// <param name="maxNodesPerPixel">每像素最大透明层数（默认 20）</param>
+        /// <param name="sampleCount">渲染目标采样数（MSAA，需与 FEScene 一致）</param>
         /// </summary>
-        bool    init(uint32_t screenW, uint32_t screenH, uint32_t maxNodesPerPixel = 20);
+        bool    init(uint32_t screenW, uint32_t screenH, uint32_t maxNodesPerPixel = 20, uint sampleCount = 1);
 
         /// <summary>
         /// 每帧开头调用：清空 counter + headIndex

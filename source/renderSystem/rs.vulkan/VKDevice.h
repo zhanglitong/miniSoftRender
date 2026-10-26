@@ -64,6 +64,10 @@ namespace   FE
         virtual TexPtr      createTexture()     override;
         virtual bool        readbackImage(GImage image,void* dst,uint64 size) override;
         virtual FEImGuiBackend* createImGuiBackend() override;
+        /// <summary>
+        /// 物理设备支持的最大采样数(MSAA),颜色/深度取样交集
+        /// </summary>
+        virtual uint        maxSampleCount() const override;
 
         virtual DSetLayout  createDSLayout()    override;
         DSetLayout          createDSLayoutFromShaders(const std::vector<Shader>& shaders);

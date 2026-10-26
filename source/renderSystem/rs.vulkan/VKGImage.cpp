@@ -31,7 +31,7 @@ namespace   FE
         imageCI.extent          =   { info._width,info._height, info._depth };
         imageCI.mipLevels       =   info._mips;
         imageCI.arrayLayers     =   info._layer;
-        imageCI.samples         =   VK_SAMPLE_COUNT_1_BIT;
+        imageCI.samples         =   sampleCount2Native(info._samples);
         imageCI.tiling          =   VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage           =   system2Native(info._usage);
         imageCI.initialLayout   =   system2Native(info._layout);

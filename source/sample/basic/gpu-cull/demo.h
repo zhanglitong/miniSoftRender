@@ -10,9 +10,10 @@ namespace   FE
         FEContext&  _ctx;
         App         _app;
         Scene       _scene;
+        uint        _sampleCount    =   1;   ///< 多采样数(MSAA)
         bool        _prepared   =   false;
     public:
-        Demo(const FEUuid& rendererId  =   RS_VULKAN);
+        Demo(const FEUuid& rendererId  =   RS_VULKAN, uint sampleCount = 1);
         ~Demo();
     public:
         void    messageNotify(const FEMessage& msgIn);

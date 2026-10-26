@@ -35,14 +35,20 @@ namespace   FE
         /// 立方体贴图为 6);_depth > 1 时沿用旧的 depth 语义(WebGPU 当前只走 2D 维度)
         const uint32_t  layers  =   info._depth > 1 ? info._depth : (info._layer > 0 ? info._layer : 1);
 
+        /// WebGPU 多采样纹理仅支持 4x,且只能作为 render attachment 使用
+        /// (sampleCount>1 时 mipLevelCount 必须为 1、depthOrArrayLayers 必须为 1)
+        const bool  multiSampled    =   info._samples > 1;
+
         WGPUTextureDescriptor textureDesc = {};
         textureDesc.nextInChain     =   nullptr;
         textureDesc.size            =   { info._width,info._height,layers };
         textureDesc.mipLevelCount   =   info._mips > 0 ? info._mips : 1;
-        textureDesc.sampleCount     =   1;
+        textureDesc.sampleCount     =   multiSampled ? 4 : 1;
         textureDesc.dimension       =   WGPUTextureDimension_2D;
         textureDesc.format          =   wgpuFormat;
-        textureDesc.usage           =   WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_RenderAttachment;
+        textureDesc.usage           =   multiSampled
+                                        ? WGPUTextureUsage_RenderAttachment
+                                        : (WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_RenderAttachment);
         textureDesc.viewFormatCount =   0;
         textureDesc.viewFormats     =   nullptr;
         _native                     =   wgpuDeviceCreateTexture(wgDevice.device(),&textureDesc);

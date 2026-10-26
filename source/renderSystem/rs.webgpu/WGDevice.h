@@ -81,6 +81,13 @@ namespace   FE
         bool    hasPassthroughShaders() const { return _hasPassthroughShaders; }
         /// 是否启用了 Float32Filterable(决定 float 纹理能否线性采样)
         bool    hasFloat32Filterable() const { return _hasFloat32Filterable; }
+        /// <summary>
+        /// 采样数(MSAA):WebGPU 仅支持 1x/4x
+        /// </summary>
+        virtual uint    maxSampleCount() const override
+        {
+            return  4;
+        }
         /// WGDevice 通过 WGPUShaderSourceWGSL 直接加载 WGSL 文本 shader
         virtual bool    supportWGSLShaders() const override
         {

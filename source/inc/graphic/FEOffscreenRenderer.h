@@ -25,6 +25,10 @@ namespace   FE
             uint        _height     =   0;
             FEUuid      _rendererId =   RS_VULKAN;
             /// <summary>
+            /// 多采样数(MSAA):1=单采样。回读像素始终来自解析后的单采样目标
+            /// </summary>
+            uint        _samples    =   1;
+            /// <summary>
             /// 为空时沿用 FEContext 已设置的路径
             /// </summary>
             String      _workPath;

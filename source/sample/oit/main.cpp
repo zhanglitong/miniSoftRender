@@ -2,9 +2,10 @@
 /// Order-Independent Transparency (PPLL) 演示:
 ///   多个半透明球相互穿插,用链表按像素排序后 alpha 合成
 ///
-/// 用法: sample.oit.exe [--vulkan|--webgpu]
+/// 用法: sample.oit.exe [--vulkan|--webgpu] [--msaa N]
 
 #include    <iostream>
+#include    <cstdlib>
 
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/FEAppHelper.hpp"
@@ -64,7 +65,8 @@ static  Node    createTransparentSphere(FEContext& ctx, uint32_t segments,
 
 int     main(int argc, char** argv)
 {
-    FEUuid  rendererId = RS_VULKAN;
+    FEUuid  rendererId  =   RS_VULKAN;
+    uint    msaa        =   1;   ///< 多采样数(MSAA),默认 1x
     for (int i = 1; i < argc; ++i)
     {
         const char* arg = argv[i];
@@ -72,6 +74,11 @@ int     main(int argc, char** argv)
             rendererId = RS_WEBGPU;
         else if (_stricmp(arg, "--vulkan") == 0 || _stricmp(arg, "-vulkan") == 0)
             rendererId = RS_VULKAN;
+        else if (_stricmp(arg, "--msaa") == 0 || _stricmp(arg, "-msaa") == 0)
+        {
+            if (i + 1 < argc)
+                msaa = (uint)atoi(argv[++i]);
+        }
     }
 
     FEContext&  ctx   =   FEContext::instance();
@@ -94,6 +101,8 @@ int     main(int argc, char** argv)
 
     Scene scene = new FEScene(ctx);
     pScene = scene.get();
+    /// 多采样数必须在 setup 之前设置,setup 内会按设备能力钳制
+    scene->setSampleCount(msaa);
     if (!scene->setup(app, rendererId))
     {
         std::cerr << "scene setup failed" << std::endl;
@@ -106,7 +115,7 @@ int     main(int argc, char** argv)
     uint32_t h = app->cInfo()._height;
 
     auto oit = OITManager(new FEOITManager(ctx));
-    if (!oit->init(w, h, 20))
+    if (!oit->init(w, h, 20, scene->sampleCount()))
     {
         std::cerr << "OITManager init failed (falling back to normal alpha)" << std::endl;
         oit = nullptr;

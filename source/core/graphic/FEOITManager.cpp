@@ -40,7 +40,7 @@ namespace   FE
         // SharedPtr 自动释放
     }
 
-    bool    FEOITManager::init(uint32_t screenW, uint32_t screenH, uint32_t maxNodesPerPixel)
+    bool    FEOITManager::init(uint32_t screenW, uint32_t screenH, uint32_t maxNodesPerPixel, uint sampleCount)
     {
         _screenW  = screenW;
         _screenH  = screenH;
@@ -126,6 +126,7 @@ namespace   FE
         FERenderPass::CreateInfo rpCI;
         rpCI._withColor = false;
         rpCI._withDepth = false;
+        rpCI._samples   = sampleCount;
         _geometryRP = rpFactory;
         if (!_geometryRP || !_geometryRP->create(rpCI))
         {
@@ -140,6 +141,7 @@ namespace   FE
             // 动态渲染(vkCmdBeginRendering)要求管线以 renderPass=VK_NULL_HANDLE 创建,
             // 否则触发 VUID-vkCmdDrawIndexedIndirect-renderPass-06198
             cInfo._renderPass = nullptr;
+            cInfo._sampleCount = sampleCount;
             cInfo._shaders    = {_geometryVS, _geometryFS};
             cInfo._inputAssemblyState._primitive = PRI_TRIANGLES;
             cInfo._dynamicStates.push_back(VIEWPORT);
@@ -215,6 +217,7 @@ namespace   FE
             // Color Pass 用正常的 scene render pass（color + depth attachment）
             // 由外部在 draw 时指定正确的 render pass
             cInfo._renderPass = nullptr;  // 会在 scene 的 render pass 里动态渲染
+            cInfo._sampleCount = sampleCount;
             cInfo._shaders    = {_colorVS, _colorFS};
             cInfo._inputAssemblyState._primitive = PRI_TRIANGLES;
             cInfo._dynamicStates.push_back(VIEWPORT);

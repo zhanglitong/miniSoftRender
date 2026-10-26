@@ -1,6 +1,7 @@
 
 #include    <iostream>
 #include    <stdio.h>
+#include    <cstdlib>
 #include    "../../../inc/FEContext.hpp"
 #include    "../../../inc/FEDateTime.hpp"
 #include    "../../../inc/FESetting.hpp"
@@ -12,8 +13,13 @@ using   namespace   FE;
 
 int     main(int argc,char** argv)
 {
-    (void)argc;
-    (void)argv;
+    /// 解析多采样数,默认 1x。用法: window.exe [--msaa N]
+    uint    msaa    =   1;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (_stricmp(argv[i], "--msaa") == 0 && i + 1 < argc)
+            msaa    =   (uint)atoi(argv[++i]);
+    }
 
     FESetting       cfg;
     cfg.get("test")
@@ -37,6 +43,8 @@ int     main(int argc,char** argv)
     ctx.setResourcePath(app->path() + "/../");
 
     FEScene*    scene   =   new FEScene(ctx);
+    /// 多采样数必须在 setup 之前设置,setup 内会按设备能力钳制
+    scene->setSampleCount(msaa);
     scene->setup(app, RS_VULKAN);
 
     /// 测试 CPU 图像保存 BMP

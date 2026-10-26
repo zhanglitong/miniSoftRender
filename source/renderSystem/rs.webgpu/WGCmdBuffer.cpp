@@ -166,7 +166,10 @@ namespace   FE
 
         WGPURenderPassColorAttachment colorAttachment = {};
         colorAttachment.view                =   attachments[0];
-        colorAttachment.resolveTarget       =   nullptr;
+        /// 多采样颜色 attachment 的解析目标(单采样,可用于呈现/采样)
+        colorAttachment.resolveTarget       =   (!rs._resolveColors.empty() && rs._resolveColors.front())
+                                                ? (WGPUTextureView)rs._resolveColors.front()->native()
+                                                : nullptr;
         colorAttachment.clearValue          =   { rs._clearColor.x,rs._clearColor.y,rs._clearColor.z,rs._clearColor.w };
         colorAttachment.loadOp              =   WGPULoadOp_Clear;
         colorAttachment.storeOp             =   WGPUStoreOp_Store;

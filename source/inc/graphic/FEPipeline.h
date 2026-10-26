@@ -31,6 +31,10 @@ namespace   FE
             /// </summary>
             ShaderTypes         _pushConstantStage;
             bool                _pushConstant;
+            /// <summary>
+            /// 光栅化采样数(MSAA),必须与当前渲染目标一致(1=单采样)
+            /// </summary>
+            uint                _sampleCount    =   1;
 
             // ===== Pipeline State Overrides =====
             // 默认值 0 表示用后端硬编码值，非 0 时覆盖

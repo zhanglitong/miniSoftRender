@@ -12,9 +12,10 @@
 ///   5. 锚点(点击物体设置,红点标记)旋转/缩放:
 ///      - 左键拖动:绕锚点水平/垂直公转,锚点屏幕位置不变
 ///      - 滚轮:以锚点为中心缩放,锚点始终位于光标下
-/// 用法: sample.ortho.exe [--vulkan|--webgpu]
+/// 用法: sample.ortho.exe [--vulkan|--webgpu] [--msaa N]
 
 #include    <iostream>
+#include    <cstdlib>
 
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/FEAppHelper.hpp"
@@ -55,6 +56,7 @@ int     main(int argc, char** argv)
 {
     /// 选择渲染后端,默认 Vulkan
     FEUuid  rendererId  =   RS_VULKAN;
+    uint    msaa        =   1;   ///< 多采样数(MSAA),默认 1x
     for (int i = 1; i < argc; ++i)
     {
         const char* arg = argv[i];
@@ -67,6 +69,12 @@ int     main(int argc, char** argv)
                  _stricmp(arg, "/vulkan") == 0)
         {
             rendererId = RS_VULKAN;
+        }
+        else if (_stricmp(arg, "--msaa") == 0 || _stricmp(arg, "-msaa") == 0 ||
+                 _stricmp(arg, "/msaa") == 0)
+        {
+            if (i + 1 < argc)
+                msaa    =   (uint)atoi(argv[++i]);
         }
     }
 
@@ -111,6 +119,8 @@ int     main(int argc, char** argv)
     /// 2. 创建引擎并初始化渲染后端
     Scene   scene   =   new FEScene(ctx);
     pScene          =   scene.get();
+    /// 多采样数必须在 setup 之前设置,setup 内会按设备能力钳制
+    scene->setSampleCount(msaa);
     if (!scene->setup(app, rendererId))
     {
         std::cerr << "scene setup failed" << std::endl;
