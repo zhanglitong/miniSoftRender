@@ -29,6 +29,7 @@
 namespace   FE
 {
     class   FEAnimationSys;
+    class   FESkyComponent;
     struct  DispatchResult
     {
         RFactorys   rFactorys;
@@ -115,6 +116,11 @@ namespace   FE
         /// <returns></returns>
         FEInputSystem*  inputSystem() const;
         FEAnimationSys* animationSystem() const;
+        /// <summary>
+        /// 场景默认天空盒组件(setup 时自动创建并加入渲染系统,可在此调整大气/太阳参数)
+        /// 返回 nullptr 表示当前场景未创建天空(初始化失败)
+        /// </summary>
+        FESkyComponent* sky() const;
 
         virtual bool    setup(App app,const FEUuid& rendererId   =   RS_VULKAN);
         /// <summary>
@@ -126,6 +132,10 @@ namespace   FE
         /// 显示/隐藏编辑网格(setup 时默认创建)
         /// </summary>
         void            showGrid(bool show);
+        /// <summary>
+        /// 显示/隐藏默认天空盒(setup 时默认创建并启动;隐藏后背景回落到清屏色)
+        /// </summary>
+        void            showSky(bool show);
         /// <summary>
         /// 设置渲染目标清屏色(默认黑色)
         /// </summary>
@@ -234,6 +244,16 @@ namespace   FE
         /// </summary>
         /// <returns></returns>
         Node    createGrid();
+        /// <summary>
+        /// 创建默认天空盒(节点已分发到渲染工厂,太阳同步主方向光)
+        /// </summary>
+        void    createSky();
+        /// <summary>
+        /// 默认天空盒组件与其节点(setup 时创建;Node 与 Component 互相强引用,
+        /// destroy 时需先解绑组件才能释放 GPU 资源)
+        /// </summary>
+        Component           _sky;
+        Node                _skyNode;
         /// <summary>
         /// 编辑网格节点(setup 时由 createGrid 创建,供 showGrid 使用)
         /// </summary>

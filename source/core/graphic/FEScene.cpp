@@ -22,6 +22,7 @@
 #include    "../inc/graphic/FEFactoryAxisRotate.hpp"
 #include    "../inc/graphic/FEFactoryAxisScale.hpp"
 #include    "../inc/graphic/FESceneBrowse.h"
+#include    "../inc/component/FESkyComponent.hpp"
 #include    "FEOffscreenSwapchain.h"
 
 namespace   FE
@@ -69,6 +70,13 @@ namespace   FE
             return  sys->as<FEAnimationSys>();
         else
             return  nullptr;
+    }
+    FESkyComponent* FEScene::sky() const
+    {
+        /// as 的 const 重载返回 const 指针,而调用方需要调整天空参数,故移除 const
+        return  (_sky != nullptr)
+                ?   const_cast<FESkyComponent*>(_sky->as<FESkyComponent>())
+                :   nullptr;
     }
 
     bool    FEScene::setup(App app,const FEUuid& rendererId)
@@ -204,6 +212,8 @@ namespace   FE
                 _mousePoint->fireChanged();
             }
         }};
+        /// 创建默认天空盒(默认启动:天空节点自动加入渲染工厂,太阳同步主方向光)
+        createSky();
         /// 创建网格
         _gridNode   =   createGrid();
         /// 创建工具
@@ -222,6 +232,12 @@ namespace   FE
 
         _mousePoint =   nullptr;
         _gridNode   =   nullptr;
+        /// 默认天空:Node 持有 Component,而 Component::_owner 又强引用 Node,构成引用环;
+        /// 先解绑组件并清空节点上的网格/材质,保证天空资源在 device 销毁前归还
+        if  (_skyNode != nullptr)
+            _skyNode->clearComponent();
+        _skyNode    =   nullptr;
+        _sky        =   nullptr;
 
         _cmdPool    =   nullptr;
         _frame      =   nullptr;
@@ -1044,6 +1060,23 @@ namespace   FE
         _device->waitIdle();
     }
 
+    void    FEScene::createSky()
+    {
+        auto*   sky     =   new FESkyComponent(_ctx);
+        _sky            =   sky;
+        _skyNode        =   sky->createNode();
+        _skyNode->addComponent(_sky);
+        /// 与编辑网格一致:天空盒恒以相机为中心,不能参与剔除;
+        /// resident 保证 clear() 时天空仍保留在工厂中(默认启动)
+        auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{_skyNode});
+        for (auto& var : factorys)
+        {
+            var->setResident(true);
+            var->setGPUCull(false);
+            _factorys.addObject(var);
+        }
+    }
+
     Node    FEScene::createGrid()
     {
         Material    mat     =   new FEMaterialV3C4(_ctx);
@@ -1082,6 +1115,23 @@ namespace   FE
         if (mat == nullptr)
             return;
         /// 网格挂在独立工厂上,按材质反查所在工厂后切换其可见标志
+        for (auto var : _factorys.objects())
+        {
+            if (!var->hasMaterialGroup(mat))
+                continue;
+            if (show)   var->flags().addFlag(FE::FLAG_VISIBLE);
+            else        var->flags().removeFlag(FE::FLAG_VISIBLE);
+        }
+    }
+
+    void    FEScene::showSky(bool show)
+    {
+        if (_skyNode == nullptr)
+            return;
+        auto    mat =   _skyNode->material();
+        if (mat == nullptr)
+            return;
+        /// 天空挂在独立工厂上(不参与剔除),按材质反查所在工厂后切换其可见标志
         for (auto var : _factorys.objects())
         {
             if (!var->hasMaterialGroup(mat))

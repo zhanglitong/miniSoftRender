@@ -456,6 +456,10 @@ namespace   FE
 
     void    FEFactoryRender::render(CMDPtr cmd)
     {
+        /// 不可见工厂不参与绘制(update 已经跳过,render 也必须跳过,
+        /// 否则会使用未构建的 VBO/实例缓冲与陈旧绘制计数绘制,导致崩溃)
+        if (!flags().hasFlag(FLAG_VISIBLE))
+            return;
         if (_groupNode.empty())
             return;
         /// 工厂被摘空(所有组均无节点,如变体二次切换后的旧工厂)时

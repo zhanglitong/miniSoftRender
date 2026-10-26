@@ -84,6 +84,9 @@ int     main(int argc,char** argv)
     Scene   scene   =   renderer->scene();
     check(scene != nullptr,"renderer->scene() == nullptr");
 
+    /// 本用例校验清屏色/几何覆盖,关闭引擎默认天空盒,避免背景被天空覆盖
+    scene->showSky(false);
+
     /// 用例 1:纯清屏色回读
     {
         scene->setClearColor(float4(1,0,0,1));

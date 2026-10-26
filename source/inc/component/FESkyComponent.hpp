@@ -7,6 +7,7 @@
 #include    "../node/FENode.hpp"
 #include    "../geometry/FEGeometryBox.hpp"
 #include    "../material/FEMaterialSky.hpp"
+#include    "../graphic/FELightMgr.h"
 
 namespace   FE
 {
@@ -37,6 +38,8 @@ namespace   FE
             /// 缓存引擎注册的天空 UBO(由 FEScene::initializeUBO 写入 device cache)
             auto    obj =   ctx.device().queryCache(FEConstUuid::SkyUBOId);
             _ubo        =   (obj != nullptr) ? obj->as<FEGPUBuffer>() : nullptr;
+            /// 解析场景主方向光,随后 apply() 会把太阳同步过去
+            resolveSunLight();
             apply();
         }
         FESkyComponent(const FESkyComponent& other)
@@ -52,6 +55,10 @@ namespace   FE
             _cloudElevation =   other._cloudElevation;
             _cloudSpeed     =   other._cloudSpeed;
             _ubo        =   other._ubo;
+            _sunLight   =   other._sunLight;
+            _syncSunLight   =   other._syncSunLight;
+            _sunLightIntensity  =   other._sunLightIntensity;
+            _sunLightColor      =   other._sunLightColor;
         }
         virtual ~FESkyComponent()
         {}
@@ -177,6 +184,33 @@ namespace   FE
             _elevSpeed  =   timeScaleDegPerSec;
             setSunElevationAzimuth(_elevation, _azimuth);
         }
+        /// <summary>
+        /// 是否把太阳位置/强度同步为场景主方向光(默认开启)。
+        /// 方向直接取太阳方向;颜色按太阳高度角在 -2°~+8° 间平滑衰减,
+        /// 地平线以下完全熄灭,实现"天黑模型也黑"。
+        /// </summary>
+        void    setSunAsLight(bool enable)
+        {
+            _syncSunLight   =   enable;
+            if (_syncSunLight)
+                syncSunLight();
+        }
+        /// <summary>
+        /// 太阳光白天最大强度系数(默认 1)
+        /// </summary>
+        void    setSunLightIntensity(float intensity)
+        {
+            _sunLightIntensity  =   intensity;
+            syncSunLight();
+        }
+        /// <summary>
+        /// 太阳光白天基准颜色(默认白色)
+        /// </summary>
+        void    setSunLightColor(const float3& color)
+        {
+            _sunLightColor  =   color;
+            syncSunLight();
+        }
         const   UBOSky& sky() const     {   return  _value;    }
         UBOSky&         sky()           {   return  _value;    }
         /// <summary>
@@ -209,10 +243,81 @@ namespace   FE
         {
             if  (_ubo != nullptr)
                 _ubo->update(&_value, sizeof(_value), 0);
+            /// 天空参数变化(含太阳方向)后,同步驱动场景主方向光
+            syncSunLight();
+        }
+        /// <summary>
+        /// 查找场景主方向光:优先 "main",否则取第一个可见方向光
+        /// </summary>
+        void    resolveSunLight()
+        {
+            auto&   lights  =   _ctx.device().lights();
+            Light*  main    =   lights.isExist("main");
+            if  (main != nullptr && *main != nullptr)
+            {
+                auto*   dirLight    =   (*main)->as<FELightDir>();
+                if  (dirLight != nullptr)
+                {
+                    _sunLight   =   dirLight;
+                    return;
+                }
+            }
+            for (auto& var : lights.data())
+            {
+                if  (var.second == nullptr)
+                    continue;
+                if  (var.second->type() != FELight::LT_Dir)
+                    continue;
+                if  (!var.second->flags().hasFlag(FLAG_VISIBLE))
+                    continue;
+                _sunLight   =   var.second->as<FELightDir>();
+                return;
+            }
+        }
+        /// <summary>
+        /// 太阳 -> 主方向光:方向直接复用太阳方向(指向光源);
+        /// 亮度按太阳仰角在 -2°~+8° 间 smoothstep 过渡,地平线以下为 0。
+        /// </summary>
+        void    syncSunLight()
+        {
+            if  (!_syncSunLight || _sunLight == nullptr)
+                return;
+            auto*   light   =   _sunLight->as<FELightDir>();
+            if  (light == nullptr)
+                return;
+            const   float3  raw =   float3(_value._sunDirection.x,
+                                           _value._sunDirection.y,
+                                           _value._sunDirection.z);
+            const   float   len =   length(raw);
+            if  (len <= 1e-6f)
+                return;
+            const   float3  dir =   raw / len;
+            light->_dir =   dir;
+            const   float   lo  =   sinf(-2.0f * float(PI) / 180.0f);
+            const   float   hi  =   sinf( 8.0f * float(PI) / 180.0f);
+            float   t   =   FE::clamp((dir.z - lo) / (hi - lo), 0.0f, 1.0f);
+            t   =   t * t * (3.0f - 2.0f * t);
+            light->_color   =   _sunLightColor * (t * _sunLightIntensity);
         }
     protected:
         UBOSky          _value;
         FEGPUBuffer*    _ubo        =   nullptr;
+        /// <summary>
+        /// 同步目标:场景主方向光(由 resolveSunLight 解析)
+        /// </summary>
+        Light           _sunLight   =   nullptr;
+        /// <summary>
+        /// 是否把太阳同步为主方向光(默认开启)
+        /// </summary>
+        bool            _syncSunLight       =   true;
+        /// <summary>
+        /// 白天最大光强系数
+        /// </summary>
+        float           _sunLightIntensity  =   1.0f;
+        /// <summary>
+        /// 白天基准光色
+        /// </summary>
+        float3          _sunLightColor      =   float3(1.0f,1.0f,1.0f);
         bool            _autoSun    =   false;
         float           _elevation  =   10.0f;
         float           _azimuth    =   180.0f;
