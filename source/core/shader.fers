@@ -1,11 +1,12 @@
 <?xml version='1.0' encoding='gb2312' ?>
-<root dataPath="E:/miniSoftRender/bin/data" outPath="" singleOut="1">
+<root dataPath="D:/miniSoftRender/bin/data" outPath="" singleOut="1">
 	<folder path="shader">
 		<folder path="cache">
 			<folder path="computeCull">
 				<file name="shader/cache/computeCull/shader.comp.spv" input="shader.comp.spv"/>
 			</folder>
 			<folder path="cube">
+				<file name="shader/cache/cube/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/cube/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="oit">
@@ -16,20 +17,18 @@
 			</folder>
 			<folder path="pbr">
 				<file name="shader/cache/pbr/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/pbr/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/pbr/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="phong">
 				<file name="shader/cache/phong/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/phong/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/phong/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="point">
 				<file name="shader/cache/point/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/point/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/point/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="sky">
+				<file name="shader/cache/sky/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/sky/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="text">
@@ -42,12 +41,10 @@
 			</folder>
 			<folder path="v3">
 				<file name="shader/cache/v3/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/v3/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/v3/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="v3c4">
 				<file name="shader/cache/v3c4/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/v3c4/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/v3c4/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="v3Instance">
@@ -64,6 +61,7 @@
 				<file name="shader/source/computeCull/shader.wgls" input="shader.wgls"/>
 			</folder>
 			<folder path="cube">
+				<file name="shader/source/cube/shader.frag" input="shader.frag"/>
 				<file name="shader/source/cube/shader.vert" input="shader.vert"/>
 				<file name="shader/source/cube/shader.wgls" input="shader.wgls"/>
 			</folder>
@@ -91,8 +89,11 @@
 				<file name="shader/source/point/shader.wgls" input="shader.wgls"/>
 			</folder>
 			<folder path="sky">
+				<file name="shader/source/sky/shader.frag" input="shader.frag"/>
+				<file name="shader/source/sky/shader.frag.softened.bak" input="shader.frag.softened.bak"/>
 				<file name="shader/source/sky/shader.vert" input="shader.vert"/>
 				<file name="shader/source/sky/shader.wgls" input="shader.wgls"/>
+				<file name="shader/source/sky/shader.wgls.softened.bak" input="shader.wgls.softened.bak"/>
 			</folder>
 			<folder path="text">
 				<file name="shader/source/text/shader.frag" input="shader.frag"/>

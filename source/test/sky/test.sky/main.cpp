@@ -9,8 +9,9 @@
 ///   4. 可选:开启自动日升日落(每帧经 MSG_UPDATE 推进太阳)
 ///   5. 进入渲染循环
 /// 用法:
-///   test.sky.exe [--vulkan|--webgpu] [--static]
-///     --static : 关闭太阳自动推进(固定太阳高度角)
+///   test.sky.exe [--vulkan|--webgpu] [--autorun]
+///     默认静态太阳(高度角 65°,与 three.js 参考示例一致)
+///     --autorun : 开启太阳自动推进(日升日落演示)
 
 #include    <iostream>
 #include    <string>
@@ -33,7 +34,9 @@ USING_PLUGIN(rs_webgpu);
 int     main(int argc, char** argv)
 {
     FEUuid  rendererId  =   RS_VULKAN;
-    bool    autoSun     =   true;
+    /// 默认静态太阳:参考示例是固定的 65° 高度角,自动推进会让太阳随时间变化,
+    /// 画面整幅变暗偏蓝,无法与参考对照
+    bool    autoSun     =   false;
     for (int i = 1; i < argc; ++i)
     {
         const char* arg = argv[i];
@@ -43,8 +46,8 @@ int     main(int argc, char** argv)
         else if (_stricmp(arg, "--vulkan") == 0 || _stricmp(arg, "-vulkan") == 0 ||
                  _stricmp(arg, "/vulkan") == 0)
             rendererId  =   RS_VULKAN;
-        else if (_stricmp(arg, "--static") == 0 || _stricmp(arg, "-static") == 0)
-            autoSun =   false;
+        else if (_stricmp(arg, "--autorun") == 0 || _stricmp(arg, "-autorun") == 0)
+            autoSun =   true;
     }
 
     FEContext&  ctx =   FEContext::instance();
