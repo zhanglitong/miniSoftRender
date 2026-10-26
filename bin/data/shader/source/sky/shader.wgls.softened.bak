@@ -1,0 +1,263 @@
+// ============ 天空盒(大气散射) Shader (WGSL) ============
+// 与 sky/shader.vert / shader.frag 的 GLSL 版本行为一致:
+//   移植自 three.js webgl_shaders_sky(Preetham 大气散射),实时计算,不依赖贴图
+//   binding 0: 相机 UBO(块名 _camera,供 autoAttach 名称匹配;仅用其 _offsetVp)
+//   binding 3: 天空参数 UBO(SB_Sky),由 FESkyComponent 写入 UBOSky
+//   顶点属性: 0=pos 1=uv,实例属性: 2=intPart 3=trans 4=scale 5=rot 6=nodeColor 7=flagBits
+//   顶点输出: 0=dir(相机相对方向);裁剪空间 z 强制到远平面(z=w)
+// 入口点名 vs_main/fs_main(WGSL 要求同一模块内函数名唯一)
+
+struct  CameraData
+{
+    _v          : mat4x4f,
+    _p          : mat4x4f,
+    _vp         : mat4x4f,
+    _offsetVp   : mat4x4f,
+    _decimal    : vec4f,
+    _offset     : vec4i,
+    _upDir      : vec4f,
+    _rightDir   : vec4f,
+}
+
+struct  UBOSky
+{
+    _sunDirection   : vec4f,
+    _params         : vec4f,
+    _up             : vec4f,
+    // 云参数: x=coverage 云量(0=无云), y=density 云密度, z=elevation 云层高度, w=保留
+    _cloud          : vec4f,
+    // 动画: x=累计时间(秒), y=cloudScale 云层缩放, z=cloudSpeed 云速, w=保留
+    _anim           : vec4f,
+}
+
+struct  SkyBlock
+{
+    _sky    : UBOSky,
+}
+
+@group(0) @binding(0) var<uniform> _camera    : CameraData;
+@group(0) @binding(3) var<uniform> _skyBlock  : SkyBlock;
+
+// ---- 大气散射常量(与 three.js Sky 一致)----
+const PI                        : f32 = 3.141592653589793238462643383279502884197169;
+const rayleighZenithLength      : f32 = 8.4e3;
+const mieZenithLength           : f32 = 1.25e3;
+const sunAngularDiameterCos     : f32 = 0.999956676946448443553574619906976478926848692873900859324;
+const cutoffAngle               : f32 = 1.6110731556870734;
+const steepness                 : f32 = 1.5;
+const EE                        : f32 = 1000.0;
+const totalRayleigh             : vec3f = vec3f(5.804542996261093e-6, 1.3562911419845635e-5, 3.0265902468824876e-5);
+const MieConst                  : vec3f = vec3f(1.8399918514433978e14, 2.7798023919660528e14, 4.0790479543861094e14);
+
+fn  rayleighPhase(cosTheta : f32) -> f32
+{
+    return (3.0 / (16.0 * PI)) * (1.0 + cosTheta * cosTheta);
+}
+
+fn  hgPhase(cosTheta : f32, g : f32) -> f32
+{
+    let g2  = g * g;
+    let inv = 1.0 / pow(max(0.0, 1.0 - 2.0 * g * cosTheta + g2), 1.5);
+    return (1.0 / (4.0 * PI)) * ((1.0 - g2) * inv);
+}
+
+fn  sunIntensity(zenithAngleCosIn : f32) -> f32
+{
+    let zenithAngleCos = clamp(zenithAngleCosIn, -1.0, 1.0);
+    return EE * max(0.0, 1.0 - exp(-((cutoffAngle - acos(zenithAngleCos)) / steepness)));
+}
+
+// ---- 云层噪声(移植 three.js SkyMesh,与 GLSL 版本逐行等价)----
+// 栅格角点梯度;无 sin 的哈希,保证各 GPU 输出一致
+fn  gradient(i : vec2f) -> vec2f
+{
+    var p = fract(i.xyx * vec3f(0.1031, 0.1030, 0.0973));
+    p += vec3f(dot(p, p.yzx + vec3f(33.33)));
+    return fract(p.xx + p.yz) * p.zy * 2.0 - vec2f(1.0);
+}
+
+// 2D 梯度噪声
+fn  noise2(p : vec2f) -> f32
+{
+    let i = floor(p);
+    let f = fract(p);
+    let u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    let a = dot(gradient(i), f);
+    let b = dot(gradient(i + vec2f(1.0, 0.0)), f - vec2f(1.0, 0.0));
+    let c = dot(gradient(i + vec2f(0.0, 1.0)), f - vec2f(0.0, 1.0));
+    let d = dot(gradient(i + vec2f(1.0, 1.0)), f - vec2f(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y) * 1.6;
+}
+
+// 6 阶 FBM;逐阶叠加 drift 使云翻涌
+fn  fbm(pIn : vec2f, drift : vec2f) -> f32
+{
+    var p            = pIn;
+    var result       = 0.0;
+    var amplitude    = 1.0;
+    for (var i = 0; i < 6; i = i + 1)
+    {
+        result       = result + amplitude * noise2(p);
+        amplitude    = amplitude * 0.5;
+        p            = p * 2.0 + drift;
+    }
+    return result;
+}
+
+struct  VertexInput
+{
+    @location(0) position   : vec3f,
+    @location(1) uv         : vec2f,
+    @location(2) intPart    : vec3i,
+    @location(3) trans      : vec3f,
+    @location(4) scale      : vec3f,
+    @location(5) rot        : vec4f,
+    @location(6) nodeColor  : vec4f,
+    @location(7) flagBits   : u32,
+}
+
+struct  VertexOutput
+{
+    @location(0) dir    : vec3f,
+    @builtin(position) pos : vec4f,
+}
+
+@vertex
+fn  vs_main(input : VertexInput) -> VertexOutput
+{
+    var out : VertexOutput;
+    // 相机中心化:只取视图矩阵的旋转部分(平移列清零),盒体中心恒等于相机位置
+    var vRot = _camera._v;
+    vRot[3]  = vec4f(0.0, 0.0, 0.0, 1.0);
+    out.pos  = _camera._p * vRot * vec4f(input.position, 1.0);
+    // 强制到远平面:z=w → NDC 深度=1(最大),天空不遮挡任何几何
+    out.pos.z = out.pos.w;
+    out.dir   = input.position;
+    return out;
+}
+
+@fragment
+fn  fs_main(input : VertexOutput) -> @location(0) vec4f
+{
+    let turbidity   = _skyBlock._sky._params.x;
+    let rayleigh    = _skyBlock._sky._params.y;
+    let mieCoef     = _skyBlock._sky._params.z;
+    let mieG        = _skyBlock._sky._params.w;
+    let luminance   = _skyBlock._sky._sunDirection.w;
+    let up          = normalize(_skyBlock._sky._up.xyz);
+    let sunDir      = normalize(_skyBlock._sky._sunDirection.xyz);
+
+    let direction   = normalize(input.dir);
+
+    let zenithAngle = acos(max(0.0, dot(up, direction)));
+    let inv         = 1.0 / (cos(zenithAngle) + 0.15 * pow(93.885 - (zenithAngle * 180.0 / PI), -1.253));
+    let sR          = rayleighZenithLength * inv;
+    let sM          = mieZenithLength * inv;
+
+    let sunE        = sunIntensity(dot(sunDir, up));
+    let sunfade     = 1.0 - clamp(1.0 - exp(sunDir.y / 450000.0), 0.0, 1.0);
+
+    let totalMie    = 0.434 * ((0.2 * turbidity) * 10e-18) * MieConst;
+    let betaR       = totalRayleigh * (rayleigh - (1.0 - sunfade));
+    let betaM       = totalMie * mieCoef;
+
+    let Fex         = exp(-(betaR * sR + betaM * sM));
+
+    let cosTheta    = dot(direction, sunDir);
+    let rPhase      = rayleighPhase(cosTheta * 0.5 + 0.5);
+    let betaRTheta  = betaR * rPhase;
+    let mPhase      = hgPhase(cosTheta, mieG);
+    let betaMTheta  = betaM * mPhase;
+
+    var Lin         = pow(sunE * ((betaRTheta + betaMTheta) / (betaR + betaM)) * (1.0 - Fex), vec3f(1.5));
+    Lin *= mix(vec3f(1.0),
+               pow(sunE * ((betaRTheta + betaMTheta) / (betaR + betaM)) * Fex, vec3f(0.5)),
+               clamp(pow(1.0 - dot(up, sunDir), 5.0), 0.0, 1.0));
+
+    var L0          = vec3f(0.1) * Fex;
+    // 太阳圆盘:与 three.js Sky 一致,cosTheta 超过日面角直径余弦即为日面
+    let sundisc     = clamp((cosTheta - sunAngularDiameterCos) * 50000.0, 0.0, 1.0);
+    let sundiscColor= (760.0 * sundisc) * min(sunE * Fex, vec3f(80.0));
+
+    var texColor    = (Lin + L0) * 0.04 + sundiscColor + vec3f(0.0, 0.0003, 0.00075);
+
+    // ---- 云层(移植 three.js SkyMesh,合成进天空自身的 HDR 辐亮度 texColor)----
+    // three.js 是 Y 轴朝上,本引擎 Z 轴朝上:把 direction.xz/direction.y 的
+    // 平面投影改写为以 up 为法线构造切向基,几何含义完全等价
+    let cloudCov    = _skyBlock._sky._cloud.x;
+    let cloudDens   = _skyBlock._sky._cloud.y;
+    let cloudElev   = _skyBlock._sky._cloud.z;
+    let cloudTime   = _skyBlock._sky._anim.x;
+    let cloudScale  = _skyBlock._sky._anim.y;
+    let cloudSpeed  = _skyBlock._sky._anim.z;
+    let dirUp       = dot(direction, up);
+    if (dirUp > 0.0 && cloudCov > 0.0)
+    {
+        let helper      = select(vec3f(1.0, 0.0, 0.0), vec3f(0.0, 0.0, 1.0), abs(up.z) < 0.9);
+        let tanX        = normalize(cross(helper, up));
+        let tanY        = cross(up, tanX);
+        // 投影到云平面(elevation 越大云看起来越低/越近)
+        let elev        = mix(1.0, 0.1, cloudElev);
+        var cloudUV     = vec2f(dot(direction, tanX), dot(direction, tanY)) / (dirUp * elev);
+        cloudUV         = cloudUV * cloudScale;
+        cloudUV         = cloudUV + cloudTime * cloudSpeed;
+
+        // 云密度场
+        let evolve      = cloudTime * cloudSpeed * 300.0;
+        // 参考实现是 clamp(fbm*0.7+0.5,0,1):fbm 经常超出 ±0.7,被硬裁到 0/1,云体内部
+        // 恒为 1(一整块平色),轮廓是该场的等值线(干净的硬边)。改用 tanh 软裁剪:
+        // 中段斜率与原式一致(云量基本不变),上端不再削平 -> 内部有浓淡层次。
+        let cloudNoise  = 0.5 + 0.5 * tanh(fbm(cloudUV * 1000.0, vec2f(evolve)) * 1.4);
+        // 大尺度覆盖变化:密云旁留出晴朗间隙
+        let region      = noise2(cloudUV * 300.0) * 0.37 + 0.5;
+        let cov         = clamp(cloudCov + (region - 0.5) * 0.6, 0.0, 1.0);
+        // 细节侵蚀(参考实现没有):两个尺度的高频噪声直接扰动覆盖阈值(低频参差、高频绒毛)
+        let erode       = noise2(cloudUV * 650.0 + evolve) * 0.10
+                        + noise2(cloudUV * 2200.0 - evolve * 0.6) * 0.055;
+        let threshold   = 1.0 - cov + erode;
+        // 边缘虚化:过渡带由参考的 0.3 加宽到 0.4(过大云会铺满整片天空)
+        let cloudSoft   = smoothstep(threshold, threshold + 0.4, cloudNoise);
+        var cloudMask   = cloudSoft;
+        // 近地平线淡出(随 elevation 调整)
+        let horizonFade = smoothstep(0.0, 0.03 + 0.06 * cloudElev, dirUp);
+        cloudMask       = cloudMask * horizonFade;
+
+        // 云受光:取自天空自身辐亮度
+        let dayFactor   = smoothstep(-0.08, 0.3, dot(sunDir, up));
+        // 云受光用消色差的消光(高浊度下 Fex 偏红,会让半透明云缘显粉/品红)
+        let sunLightFex = mix(Fex, vec3f(dot(Fex, vec3f(0.2126, 0.7152, 0.0722))), 0.75);
+        let sunColor    = sunE * sunLightFex * 0.22 * 0.04;
+        let skyAmbient  = Lin * 0.04 + vec3f(0.0, 0.0003, 0.00075);
+        // Beer-powder 自阴影
+        let depthC      = max(0.0, cloudNoise - threshold);
+        let beer        = exp(depthC * -4.0);
+        let powder      = 1.0 - beer * beer;
+        var shade       = mix(0.45, 1.0, clamp(beer * powder * 2.6, 0.0, 1.0));
+        // 云体内部明暗起伏(参考实现是一整块平色):中高频噪声调制自阴影
+        let swell       = noise2(cloudUV * 1400.0 + evolve * 1.3) * 0.5 + 0.5;
+        shade           = shade * mix(0.75, 1.06, swell);
+        // Henyey-Greenstein 前向瓣(g=0.7):朝阳一侧的银边
+        let silver      = clamp(0.51 / pow(1.49 - cosTheta * 1.4, 1.5), 0.0, 3.0);
+        // 银边只应紧贴轮廓:边缘软化后 mask 过渡区变宽,线性 edge 会把银边摊成宽彩带
+        // (实测呈粉/品红)。对 edge 取平方收成细线。
+        var edge        = cloudMask * (1.0 - cloudMask) * 4.0;
+        edge            = edge * edge;
+        var cloudColor  = skyAmbient + sunColor * shade;
+        cloudColor      = cloudColor + sunColor * silver * edge * 0.25;
+        cloudColor      = cloudColor * max(dayFactor, 0.03);
+        // 边缘虚化:不透明度用平滑阈值(阈值处斜率为零),密度只决定核心不透明度上限
+        let cloudAlpha  = cloudSoft * min(1.0, cloudDens * 1.4) * horizonFade;
+        // 不透明云遮挡其后的太阳圆盘/辉光
+        texColor        = texColor - (L0 * 0.04 + sundiscColor) * cloudAlpha;
+        // 透过大气合成,远处云消融进雾霭
+        let cloudAerial = mix(texColor, cloudColor, sunLightFex);
+        texColor        = mix(texColor, cloudAerial, cloudAlpha);
+    }
+
+    // 曝光(UBOSky._sunDirection.w,默认 0.5,对齐 three.js 示例 toneMappingExposure)
+    var color       = texColor * luminance;
+    // 色调映射(ACES filmic 近似,与 pbr/shader.frag 同款)+ gamma 编码:
+    // 引擎输出到 UNORM 交换链,须在着色器内完成 HDR->LDR 与 sRGB 编码
+    color = clamp((color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14), vec3f(0.0), vec3f(1.0));
+    return vec4f(pow(color, vec3f(1.0 / 2.2)), 1.0);
+}
