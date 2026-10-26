@@ -59,6 +59,7 @@ namespace   FE
             _syncSunLight   =   other._syncSunLight;
             _sunLightIntensity  =   other._sunLightIntensity;
             _sunLightColor      =   other._sunLightColor;
+            _panelVisible       =   other._panelVisible;
         }
         virtual ~FESkyComponent()
         {}
@@ -211,6 +212,15 @@ namespace   FE
             _sunLightColor  =   color;
             syncSunLight();
         }
+        /// <summary>
+        /// 控制天空参数调试面板是否显示(宿主/测试通过此接口开关)。
+        /// 仅影响调试 UI 的绘制,不影响天空本身与 PBR 的解析天空 IBL
+        /// </summary>
+        void    setPanelVisible(bool visible)
+        {
+            _panelVisible   =   visible;
+        }
+        bool    panelVisible() const    {   return  _panelVisible;    }
         const   UBOSky& sky() const     {   return  _value;    }
         UBOSky&         sky()           {   return  _value;    }
         /// <summary>
@@ -333,5 +343,9 @@ namespace   FE
         /// 云动画累计时间(秒)
         /// </summary>
         float           _timeAccum      =   0.0f;
+        /// <summary>
+        /// 调试面板显隐(默认显示,供宿主/测试通过 setPanelVisible 控制)
+        /// </summary>
+        bool            _panelVisible   =   true;
     };
 }

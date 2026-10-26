@@ -2,6 +2,9 @@
 <root dataPath="D:/miniSoftRender/bin/data" outPath="" singleOut="1">
 	<folder path="shader">
 		<folder path="cache">
+			<folder path="brdf">
+				<file name="shader/cache/brdf/brdf_lut.comp.spv" input="brdf_lut.comp.spv"/>
+			</folder>
 			<folder path="computeCull">
 				<file name="shader/cache/computeCull/shader.comp.spv" input="shader.comp.spv"/>
 			</folder>
@@ -53,8 +56,12 @@
 			</folder>
 		</folder>
 		<folder path="source">
+			<folder path="brdf">
+				<file name="shader/source/brdf/brdf_lut.comp" input="brdf_lut.comp"/>
+			</folder>
 			<folder path="common">
 				<file name="shader/source/common/FEShaderDefine.h" input="FEShaderDefine.h"/>
+				<file name="shader/source/common/FESkyModel.glsl" input="FESkyModel.glsl"/>
 			</folder>
 			<folder path="computeCull">
 				<file name="shader/source/computeCull/shader.comp" input="shader.comp"/>

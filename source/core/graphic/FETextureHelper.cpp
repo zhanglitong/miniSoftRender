@@ -4,6 +4,12 @@
 
 #include    "FETextureHelper.hpp"
 #include    "../../inc/graphic/FEDevice.h"
+#include    "../../inc/graphic/FECmdBuffer.h"
+#include    "../../inc/graphic/FECmdPool.h"
+#include    "../../inc/graphic/FEGPUBuffer.h"
+#include    "../../inc/graphic/FEShader.h"
+#include    "../../inc/graphic/FEPipeline.h"
+#include    "../../inc/graphic/FEDSet.h"
 #include    "../../inc/FEConst.h"
 #include    "../FEImageHelper.hpp"
 
@@ -128,7 +134,7 @@ namespace   FE
         {
             const float a       =   roughness * roughness;
             const float phi     =   2.0f * float(PI) * xi.x;
-            const float cosT    =   sqrtf((1.0f - xi.y) / (1.0f + (a * a - 1.0f) * xi.y));
+            const float cosT    =   clamp(sqrtf((1.0f - xi.y) / (1.0f + (a * a - 1.0f) * xi.y)),0.0f,1.0f);
             const float sinT    =   sqrtf(1.0f - cosT * cosT);
             return  float3(sinT * cosf(phi),sinT * sinf(phi),cosT);
         }
@@ -144,7 +150,7 @@ namespace   FE
         /// <summary>
         /// 逐 texel 积分:scale = ∫(1-Fc)·G_Vis,offset = ∫Fc·G_Vis(Fc=(1-VdotH)^5)
         /// </summary>
-        inline  float2  integrateBRDF(float ndotv,float roughness,uint32 samples = 1024)
+        inline  float2  integrateBRDF(float ndotv,float roughness,uint32 samples = 256)
         {
             const float3    v(sqrtf(1.0f - ndotv * ndotv),0.0f,ndotv);
             float   a   =   0.0f;
@@ -169,6 +175,107 @@ namespace   FE
                 }
             }
             return  float2(a / float(samples),b / float(samples));
+        }
+
+        /// <summary>
+        /// GPU 计算 BRDF LUT(计算着色器,每 texel 一个 invocation):
+        /// 输出 HOST_VISIBLE SSBO,dispatch 后等待完成直接映射回读,
+        /// 与 CPU 版共用同一套 Hammersley/GGX 公式,便于逐 texel 数值校验。
+        /// 失败(后端不支持/着色器缺失/管线创建失败)返回 false,由调用方回退 CPU
+        /// </summary>
+        bool    bakeBRDFLUTOnGPU(FEContext& ctx,uint size,uint samples,float* dst)
+        {
+            FEDevice&   device  =   ctx.device();
+            /// WebGPU 后端没有对应的 WGSL 计算着色器,直接回退 CPU
+            if  (device.supportWGSLShaders())
+                return  false;
+
+            const   String  spvPath =   ctx.resourcePath() + "/data/shader/cache/brdf/brdf_lut.comp.spv";
+            Buffer  spv =   FEBuffer::loadFile(ctx,spvPath.c_str());
+            if  (spv == nullptr)
+            {
+                ctx.log().warning("BRDF LUT GPU: load shader failed: %s",spvPath.c_str());
+                return  false;
+            }
+            Shader  shader  =   device.createShader();
+            FEShader::CreateInfo    shaderCI;
+            shaderCI._shaderType    =   ST_COMPUTE_BIT;
+            shaderCI._buffer        =   spv;
+            if  (!shader->create(shaderCI))
+            {
+                ctx.log().warning("BRDF LUT GPU: create compute shader failed");
+                return  false;
+            }
+            Pipeline    pl  =   device.createCPipeline();
+            FEPipeline::CreateInfo  plCI;
+            plCI._shaders   =   {shader};
+            if  (!pl->create(plCI))
+            {
+                ctx.log().warning("BRDF LUT GPU: create compute pipeline failed");
+                return  false;
+            }
+            DSets   dSets   =   pl->createDSets();
+            if  (dSets.empty())
+            {
+                ctx.log().warning("BRDF LUT GPU: create descriptor sets failed");
+                return  false;
+            }
+            const   uint64  bytes   =   uint64(size) * size * sizeof(float) * 4;
+            SBO     sbo =   device.createSBO();
+            FEGPUBuffer::CreateInfo bufCI;
+            bufCI._length       =   bytes;
+            bufCI._memUsages    =   MemoryUsage::HOST_VISIBLE_BIT | MemoryUsage::HOST_COHERENT_BIT;
+            bufCI._bufUsages    =   BufferUsage::STORAGE_BUFFER_BIT;
+            if  (!sbo->create(bufCI))
+            {
+                ctx.log().warning("BRDF LUT GPU: create output buffer failed");
+                return  false;
+            }
+            if  (!dSets[0]->setBinding(0,Objects{ Object(static_cast<FEObject*>(sbo)) },
+                                        uint64s{ bytes },uint64s{ 0 })
+                ||  !dSets[0]->update())
+            {
+                ctx.log().warning("BRDF LUT GPU: bind output buffer failed");
+                return  false;
+            }
+            auto    cmdPool =   device.computeCmdPool();
+            if  (cmdPool == nullptr)
+                return  false;
+            CMDPtr  cmd =   cmdPool->createCmd();
+            if  (cmd == nullptr)
+                return  false;
+
+            struct  PushConsts
+            {
+                uint32  _size;
+                uint32  _samples;
+            };
+            const   PushConsts  pc  =   { size,samples };
+            const   uint32      groups  =   (size + 7u) / 8u;
+
+            cmd->begin(true);
+            cmd->bindPipeline(pl);
+            FECmdBuffer::DSetBind   binds   =   {};
+            binds.plBindPoint   =   PL_COMPUTE;
+            binds.plLayout      =   pl->nativeLayout();
+            binds.firstSet      =   0;
+            binds.dSets         =   dSets;
+            cmd->bindDescriptors(binds);
+            cmd->pushConstants(pl.get(),ST_COMPUTE_BIT,0,sizeof(pc),&pc);
+            cmd->dispatch(groups,groups,1);
+            cmd->end();
+            cmd->submit(device.queueCompute());
+            device.waitIdle();
+
+            const   float*  src =   sbo->lockAs<float>(bytes,0);
+            if  (src == nullptr)
+            {
+                ctx.log().warning("BRDF LUT GPU: map output buffer failed");
+                return  false;
+            }
+            memcpy(dst,src,size_t(bytes));
+            sbo->unlock();
+            return  true;
         }
 
         /// <summary>
@@ -638,9 +745,65 @@ namespace   FE
         return  create(ctx,*image,FILTER_LINEAR,FILTER_LINEAR,ADDRESS_CLAMP_TO_EDGE);
     }
 
-    TexPtr  FETextureHelper::createBRDFLUT(FEContext& ctx,uint size)
+    TexPtr  FETextureHelper::createBRDFLUT(FEContext& ctx,uint size,uint samples)
     {
-        if  (size == 0)
+        if  (size == 0 || samples == 0)
+            return  nullptr;
+        ImagePtr    image   =   new FEImage(ctx);
+        FEImage::CreateInfo ci;
+        ci._extent  =   uint3(size,size,1);
+        ci._format  =   FMT_R32G32B32A32_FLOAT;
+        ci._layers  =   1;
+        ci._levels  =   1;
+        ci._align   =   4;
+        if  (!image->create(ci))
+            return  nullptr;
+        auto    plane   =   image->plane(0,0);
+        if  (plane._buffer == nullptr)
+            return  nullptr;
+        std::vector<float>  texels(size_t(size) * size * 4);
+        if  (bakeBRDFLUTOnGPU(ctx,size,samples,texels.data()))
+        {
+            /// 抽样与 CPU 参考实现比对(5x5 个 texel),校验 GPU 烘焙数值正确性
+            {
+                const   uint    probes[5]   =   { 1u,size / 4u,size / 2u,size * 3u / 4u,size - 1u };
+                float           maxDiff     =   0.0f;
+                uint            maxX        =   0;
+                uint            maxY        =   0;
+                for (uint py : probes)
+                {
+                    for (uint px : probes)
+                    {
+                        const float ndotv   =   (float(px) + 0.5f) / float(size);
+                        const float rough   =   (float(py) + 0.5f) / float(size);
+                        const float2    ref =   integrateBRDF(ndotv,rough,samples);
+                        const float*    t   =   texels.data() + (size_t(py) * size + px) * 4;
+                        const float     d   =   std::max(fabsf(ref.x - t[0]),fabsf(ref.y - t[1]));
+                        if  (d > maxDiff)
+                        {
+                            maxDiff =   d;
+                            maxX    =   px;
+                            maxY    =   py;
+                        }
+                    }
+                }
+                ctx.log().infor("BRDF LUT GPU probe: max |GPU-CPU| = %e at (%u,%u)",maxDiff,maxX,maxY);
+            }
+            /// GPU 输出为紧凑行主序,逐行拷贝到图像(尊重 _align 行对齐)
+            for (uint y = 0; y < size; ++y)
+            {
+                memcpy(plane.dataOffset<float>(y,0),
+                       texels.data() + size_t(y) * size * 4,
+                       size_t(size) * 4 * sizeof(float));
+            }
+            return  create(ctx,*image,FILTER_LINEAR,FILTER_LINEAR,ADDRESS_CLAMP_TO_EDGE);
+        }
+        return  createBRDFLUTCPU(ctx,size,samples);
+    }
+
+    TexPtr  FETextureHelper::createBRDFLUTCPU(FEContext& ctx,uint size,uint samples)
+    {
+        if  (size == 0 || samples == 0)
             return  nullptr;
         ImagePtr    image   =   new FEImage(ctx);
         FEImage::CreateInfo ci;
@@ -660,7 +823,7 @@ namespace   FE
             for (uint x = 0; x < size; ++x)
             {
                 const float ndotv   =   (float(x) + 0.5f) / float(size);
-                const float2    ab  =   integrateBRDF(ndotv,roughness);
+                const float2    ab  =   integrateBRDF(ndotv,roughness,samples);
                 float*  px  =   plane.dataOffset<float>(y,x);
                 px[0]   =   ab.x;   /// scale
                 px[1]   =   ab.y;   /// offset

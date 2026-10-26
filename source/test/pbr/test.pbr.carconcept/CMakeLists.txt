@@ -20,4 +20,8 @@ target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICOD
 
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "test/pbr")
 
-target_link_libraries(${TARGET_NAME} core rs.vulkan rs.webgpu)
+# 公共天空调试面板(与 test.sky 共用同一实现)
+target_sources(${TARGET_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../common/ImGuiSkyPanel.cpp")
+
+target_link_libraries(${TARGET_NAME} core rs.vulkan rs.webgpu imgui)

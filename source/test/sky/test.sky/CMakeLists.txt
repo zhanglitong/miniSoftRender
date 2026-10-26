@@ -21,11 +21,8 @@ target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICOD
 
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "test/sky")
 
-# ===== Dear ImGui:引擎内调试 GUI(仅本示例使用,故只在本目标链接)=====
-# 静态库单独编入本可执行文件,避免与 core(SHARED) 产生两份 ImGui 全局状态。
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../../../external/imgui"
-                 "${CMAKE_BINARY_DIR}/imgui")
-# imgui 自带 FOLDER "external",统一改归 3rdparty/imgui
-set_target_properties(imgui PROPERTIES FOLDER "3rdparty/imgui")
+# 公共天空调试面板(test.sky 与 test.pbr.* 共用同一实现)
+target_sources(${TARGET_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../common/ImGuiSkyPanel.cpp")
 
 target_link_libraries(${TARGET_NAME} core rs.vulkan rs.webgpu imgui)

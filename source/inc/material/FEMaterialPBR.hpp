@@ -584,10 +584,18 @@ namespace   FE
         {
             auto    cameraUBO   =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
             auto    lightSBO    =   _ctx.device().queryCache(FEConstUuid::LightsId);
+            auto    skyUBO      =   _ctx.device().queryCache(FEConstUuid::SkyUBOId);
             auto&   lights      =   _ctx.device().lights();
             bind(0,SB_Camera,   {cameraUBO});
             bind(0,SB_Light,    {lightSBO},{lights.count() * sizeof(LightData)});
             bind(0,SB_Material, {_pbr._gpu.get()});
+            /// <summary>
+            /// 天空参数 UBO(binding 3):未挂接环境纹理时,shader 用它对反射/法线
+            /// 方向解析求值作为 IBL 输入。WebGPU 侧 WGSL 暂未声明该绑定,
+            /// bind 会因找不到 binding 返回 false,不影响其余资源
+            /// </summary>
+            if  (skyUBO != nullptr)
+                bind(0,SB_Sky,  {skyUBO});
             bind(0,BIND_TEX_PARAMS,{_texParams._gpu.get()});
             bindAllTextures();
             update();

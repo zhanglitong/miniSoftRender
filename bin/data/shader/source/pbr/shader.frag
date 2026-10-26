@@ -3,6 +3,8 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 #include "FEShaderDefine.h"
+/// 程序化天空辐亮度(与天空盒着色器共用),用于无环境纹理时的解析 IBL
+#include "FESkyModel.glsl"
 
 const float M_PI = 3.141592653589793;
 
@@ -17,6 +19,12 @@ layout(set = 0, binding = 0) uniform CameraBlock {
 
 layout(set = 0, binding = 1) buffer LightsBlock {
     LightData _lights[];
+};
+
+/// 天空参数(binding 3 = SB_Sky,与 sky 管线共用同一份设备 UBO)。
+/// 未挂接环境纹理时,本着色器直接把天空当作无限远环境光源做解析 IBL
+layout(set = 0, binding = 3) uniform SkyBlock {
+    UBOSky _sky;
 };
 
 layout(set = 0, binding = 4) uniform PBRBlock {
@@ -262,6 +270,43 @@ mat3 buildTBN(vec3 position, vec3 normal, vec2 uv)
     return mat3(t, b, n);
 }
 
+/// <summary>
+/// 解析天空镜面(无环境纹理时的 IBL 镜面近似):
+/// 以反射方向 R 为中心,在切空间内按 roughness^2 的锥角做固定 4 方向采样,
+/// 近似 GGX 预滤波 cubemap 的 mip 模糊效果(无法对程序化函数做 textureLod)
+/// </summary>
+vec3 skySpecularRadiance(vec3 R,float roughness)
+{
+    vec3    up      =   normalize(_sky._up.xyz);
+    float   spread  =   roughness * roughness;
+    if  (spread < 1.0e-3)
+        return  skyRadiance(R, _sky);
+    vec3    helper  =   abs(dot(R, up)) < 0.99 ? up : vec3(1.0, 0.0, 0.0);
+    vec3    tanX    =   normalize(cross(helper, R));
+    vec3    tanY    =   cross(R, tanX);
+    const int   N   =   4;
+    vec3    acc     =   vec3(0.0);
+    for (int i = 0; i < N; ++i)
+    {
+        float   a   =   (float(i) + 0.5) * (2.0 * M_PI / float(N));
+        vec3    d   =   normalize(R + (tanX * cos(a) + tanY * sin(a)) * (spread * 0.9));
+        acc        +=   skyRadiance(d, _sky);
+    }
+    return  acc / float(N);
+}
+
+/// <summary>
+/// 解析天空漫反射(无环境纹理时的 irradiance 近似):
+/// 半球余弦卷积无法解析求值,用法线方向与天顶方向的加权混合方向单次采样,
+/// 得到天空在此半球上的平均辐亮度(均匀天空下等价于 E/π)
+/// </summary>
+vec3 skyDiffuseRadiance(vec3 n)
+{
+    vec3    up  =   normalize(_sky._up.xyz);
+    vec3    d   =   normalize(n + up * 0.5);
+    return  skyRadiance(d, _sky);
+}
+
 void main()
 {
     uint texFlags = _pbrTexFlags;
@@ -406,15 +451,31 @@ void main()
     ///    漫反射 = 球谐预卷积 irradiance cubemap(按 n 采样)
     ///    镜面   = split-sum:预滤波 cubemap × BRDF LUT(Karis 2013,与
     ///             glTF-Sample-Viewer 一致;LUT 修正掠射角能量损失与 F0 无关项)
+    ///    未挂接环境纹理时(方案 C):直接把程序化天空当作无限远环境光源,
+    ///    用 skyRadiance() 对反射/法线方向解析求值,并按曝光参数缩放到
+    ///    与方向光一致的量级;此时没有 BRDF LUT,brdf 取 (1,0) 等价 F*1+0
     vec3 color = Lo;
-    if ((texFlags & PBR_TEX_ENVIRONMENT) != 0u)
+    bool hasEnvTex = (texFlags & PBR_TEX_ENVIRONMENT) != 0u;
+    float skyExposure = _sky._sunDirection.w;
     {
-        float maxLod = floor(log2(float(textureSize(u_EnvironmentMap, 0).x)));
+        float maxLod = hasEnvTex ? floor(log2(float(textureSize(u_EnvironmentMap, 0).x))) : 0.0;
         vec3 R = reflect(-v, n);
-        vec3 irradiance  = texture(u_IrradianceMap, n).rgb;
-        vec3 prefiltered = textureLod(u_EnvironmentMap, R, roughness * maxLod).rgb;
+        vec3 irradiance;
+        vec3 prefiltered;
+        vec2 brdf;
+        if (hasEnvTex)
+        {
+            irradiance  = texture(u_IrradianceMap, n).rgb;
+            prefiltered = textureLod(u_EnvironmentMap, R, roughness * maxLod).rgb;
+            brdf        = texture(u_BRDFLUT, vec2(NdotV, roughness)).rg;
+        }
+        else
+        {
+            irradiance  = skyDiffuseRadiance(n) * skyExposure;
+            prefiltered = skySpecularRadiance(R, roughness) * skyExposure;
+            brdf        = vec2(1.0, 0.0);
+        }
         vec3 Fenv  = fresnelSchlickRoughness(NdotV, F0, roughness);
-        vec2 brdf  = texture(u_BRDFLUT, vec2(NdotV, roughness)).rg;
         /// 虹彩:IBL 菲涅尔权重同步替换(参考 pbr.frag:219-220)。
         /// 镜面权重:常规 F*brdf.x+brdf.y ↔ 裸 iriFresnel(参考实现不叠 LUT);
         /// 漫反射补项:1-Fenv ↔ 1-iriFresnel(菲涅尔被整体替换,能量守恒)
@@ -435,7 +496,9 @@ void main()
         /// 不再叠乘 LUT:外层混合权重已含菲涅尔,再乘 LUT 会重复计入菲涅尔
         if (ccStrength > 0.0)
         {
-            vec3 ccPrefiltered = textureLod(u_EnvironmentMap, R, ccRoughness * maxLod).rgb;
+            vec3 ccPrefiltered = hasEnvTex
+                ? textureLod(u_EnvironmentMap, R, ccRoughness * maxLod).rgb
+                : skySpecularRadiance(R, ccRoughness) * skyExposure;
             color = mix(color, ccPrefiltered, ccWeight);
         }
     }

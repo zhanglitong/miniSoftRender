@@ -1,0 +1,90 @@
+#version    450
+
+/// ===== BRDF 积分 LUT(split-sum 第二项,Karis 2013)GPU 版 =====
+/// 与 CPU 版 FETextureHelper::integrateBRDF 数学等价(同样的 Hammersley 序列
+/// 与 GGX 重要性采样),输出 RG float:x=NdotV、y=roughness,R=scale、G=offset。
+/// 每个 texel 的积分在各自 invocation 中串行执行,以保持与 CPU 的样本顺序一致,
+/// 保证数值可逐 texel 对比校验。
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(std430, binding = 0) writeonly buffer OutputLUT
+{
+    vec4    _lut[];
+};
+
+layout(push_constant) uniform PushConsts
+{
+    uint    _size;      /// LUT 边长
+    uint    _samples;   /// 每 texel 采样数
+} pc;
+
+float   radicalInverseVdC(uint bits)
+{
+    bits    =   (bits << 16u) | (bits >> 16u);
+    bits    =   ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits    =   ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits    =   ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits    =   ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return  float(bits) * 2.3283064365386963e-10f;  /// / 2^32
+}
+
+vec2    hammersley(uint i,uint n)
+{
+    return  vec2(float(i) / float(n),radicalInverseVdC(i));
+}
+
+vec3    importanceSampleGGX(vec2 xi,float roughness)
+{
+    const   float   PI      =   3.14159265358979323846f;
+    const   float   a       =   roughness * roughness;
+    const   float   phi     =   2.0f * PI * xi.x;
+    const   float   cosT    =   clamp(sqrt((1.0f - xi.y) / (1.0f + (a * a - 1.0f) * xi.y)),0.0f,1.0f);
+    const   float   sinT    =   sqrt(1.0f - cosT * cosT);
+    return  vec3(sinT * cos(phi),sinT * sin(phi),cosT);
+}
+
+float   geometrySchlickIBL(float ndot,float roughness)
+{
+    const   float   a   =   roughness * roughness;
+    const   float   k   =   a * 0.5f;
+    return  ndot / (ndot * (1.0f - k) + k + 1e-7f);
+}
+
+vec2    integrateBRDF(float ndotv,float roughness,uint samples)
+{
+    const   vec3    v   =   vec3(sqrt(1.0f - ndotv * ndotv),0.0f,ndotv);
+    float   a   =   0.0f;
+    float   b   =   0.0f;
+    for (uint i = 0u; i < samples; ++i)
+    {
+        const   vec2    xi  =   hammersley(i,samples);
+        const   vec3    h   =   importanceSampleGGX(xi,roughness);
+        const   float   vdh =   clamp(v.x * h.x + v.z * h.z,0.0f,1.0f);   /// dot(V,H),V.y=0
+        const   vec3    l   =   vec3(2.0f * vdh * h.x - v.x,
+                                     2.0f * vdh * h.y,
+                                     2.0f * vdh * h.z - v.z);            /// L=2(V·H)H-V
+        const   float   ndl =   l.z;
+        if  (ndl > 0.0f)
+        {
+            const   float   g       =   geometrySchlickIBL(ndotv,roughness) *
+                                        geometrySchlickIBL(ndl,roughness);
+            const   float   gVis    =   (g * vdh) / (h.z * ndotv + 1e-7f); /// h.z=NdotH
+            const   float   fc      =   pow(1.0f - vdh,5.0f);
+            a   +=  (1.0f - fc) * gVis;
+            b   +=  fc * gVis;
+        }
+    }
+    return  vec2(a / float(samples),b / float(samples));
+}
+
+void    main()
+{
+    const   uvec2   texel   =   gl_GlobalInvocationID.xy;
+    if  (texel.x >= pc._size || texel.y >= pc._size)
+        return;
+
+    const   float   ndotv       =   (float(texel.x) + 0.5f) / float(pc._size);
+    const   float   roughness   =   (float(texel.y) + 0.5f) / float(pc._size);
+    const   vec2    ab          =   integrateBRDF(ndotv,roughness,pc._samples);
+    _lut[texel.y * pc._size + texel.x]  =   vec4(ab.x,ab.y,0.0f,1.0f);
+}

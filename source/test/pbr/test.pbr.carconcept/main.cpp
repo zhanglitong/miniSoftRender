@@ -26,9 +26,13 @@
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/FEFileFormatHelper.hpp"
 #include    "../../../inc/material/FEMaterialPBR.hpp"
+#include    "../../../inc/component/FESkyComponent.hpp"
 #include    "../../../inc/fileFormat/gltf/FEFormatGLTFReader.hpp"
 #include    "../../../core/FEImageHelper.hpp"
 #include    "../../../core/graphic/FETextureHelper.hpp"
+
+/// 公共天空参数调试面板(与 test.sky 共用)
+#include    "../../common/ImGuiSkyPanel.hpp"
 
 using   namespace   FE;
 
@@ -89,8 +93,8 @@ namespace
             std::cerr << "load environment hdr failed: " << hdrFile << "\n";
             return  nullptr;
         }
-        /// 镜面预滤波 cubemap(带 mip 链,512 保证低粗糙度反射清晰)
-        g_envCube   =   FETextureHelper::createCube(ctx,*envImage,512);
+        /// 镜面预滤波 cubemap(带 mip 链,256 足够分辨低粗糙度反射,启动更快)
+        g_envCube   =   FETextureHelper::createCube(ctx,*envImage,256);
         if (g_envCube == nullptr)
         {
             std::cerr << "create environment cube failed\n";
@@ -142,6 +146,8 @@ namespace
 int main(int argc, char** argv)
 {
     FEUuid  rendererId  =   RS_VULKAN;
+    /// 天空参数面板启动显隐(命令行控制;运行时仍可用 setPanelVisible 切换)
+    bool    skyPanel    =   true;
     for (int i = 1; i < argc; ++i)
     {
         const char* arg =   argv[i];
@@ -149,9 +155,15 @@ int main(int argc, char** argv)
             rendererId  =   RS_WEBGPU;
         else if (_stricmp(arg,"--vulkan") == 0 || _stricmp(arg,"-vulkan") == 0)
             rendererId  =   RS_VULKAN;
+        else if (_stricmp(arg,"--no-sky-panel") == 0 || _stricmp(arg,"-no-sky-panel") == 0)
+            skyPanel    =   false;
+        else if (_stricmp(arg,"--sky-panel") == 0 || _stricmp(arg,"-sky-panel") == 0)
+            skyPanel    =   true;
     }
     FEContext& ctx = FEContext::instance();
     FEScene* pScene = nullptr;
+    /// 公共天空参数调试面板:仅 Vulkan 后端有 ImGui 渲染实现
+    FEImGuiSkyPanel panel;
 
     /// 变体切换状态(reader 必须存活,变体映射存储在其中)
     FEFormatGLTFReader* pGltfReader =   nullptr;
@@ -165,7 +177,10 @@ int main(int argc, char** argv)
     info._appInst = GetModuleHandle(nullptr);   /// WebGPU surface 创建需要正确的 HINSTANCE
     info._notify = [&](const FEMessage& msg)
     {
-        if (pScene) pScene->onMessage(msg);
+        /// 面板先把鼠标消息喂给 ImGui,并在其捕获鼠标时阻止场景响应
+        const bool blockScene = panel.onMessage(msg);
+        if (!blockScene && pScene)
+            pScene->onMessage(msg);
         if (msg.msgId() == MSG_KEYDOWN && pGltfReader != nullptr)
         {
             auto&   keyMsg  =   static_cast<const MsgKeyDown&>(msg);
@@ -208,6 +223,15 @@ int main(int argc, char** argv)
     {
         std::cerr << "scene setup failed\n";
         scene = nullptr; app->destroy(); return 1;
+    }
+
+    /// ---- 天空参数调试面板(公共实现)----
+    /// 命令行控制启动显隐;运行时仍可通过 FESkyComponent::setPanelVisible() 切换。
+    /// 先同步天空的太阳光强度,使面板调整参数时不会把主方向光重置为默认亮度
+    if (scene->sky() != nullptr)
+    {
+        scene->sky()->setSunLightIntensity(2.0f);
+        scene->sky()->setPanelVisible(skyPanel);
     }
 
     /// 调亮默认平行光并调整方向,呈现车漆层次
@@ -283,6 +307,10 @@ int main(int argc, char** argv)
         scene = nullptr; app->destroy(); return 1;
     }
 
+    /// 资源就绪后再挂接调试面板:此前的失败分支不会遗留 ImGui 后端
+    if (rendererId == RS_VULKAN)
+        panel.attach(ctx, scene.get(), true);
+
     std::cout << "pbr carconcept test ready, entering render loop...\n";
     {
         auto&   names   =   pGltfReader->variantNames();
@@ -296,6 +324,8 @@ int main(int argc, char** argv)
     /// </summary>
     app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
     {
+        /// ImGui 后端持有 device 句柄,必须抢在场景销毁 device 之前释放
+        panel.detach();
         g_envCube   =   nullptr;
         g_irrCube   =   nullptr;
         g_brdfLUT   =   nullptr;
@@ -305,6 +335,7 @@ int main(int argc, char** argv)
     });
     app->run();
 
+    panel.detach();
     scene = nullptr;
     app->destroy();
     return 0;

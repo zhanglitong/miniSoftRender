@@ -63,10 +63,17 @@ namespace   FE
         /// IBL 镜面 split-sum 第二项的 BRDF 积分 LUT(Karis 2013,与 glTF-Sample-Viewer 同款):
         ///   输出 RG float 纹理,x=NdotV、y=roughness,
         ///   R=scale、G=offset,shader 侧 specular = prefiltered * (F * R + G)
-        /// CPU 版 Hammersley 低差异序列 + GGX 重要性采样解析积分,一次性生成
+        /// Hammersley 低差异序列 + GGX 重要性采样解析积分,一次性生成
+        /// (优先 GPU 计算着色器烘焙,Vulkan 之外或失败时回退 CPU 实现)
         /// </summary>
         /// <param name="size">LUT 边长(像素),典型 512</param>
-        static  TexPtr      createBRDFLUT(FEContext& ctx,uint size = 512);
+        /// <param name="samples">每 texel 的积分采样数(256 与 1024 视觉差异可忽略)</param>
+        static  TexPtr      createBRDFLUT(FEContext& ctx,uint size = 512,uint samples = 256);
+        /// <summary>
+        /// BRDF LUT 的 CPU 参考实现(逐 texel 串行积分,启动较慢):
+        /// 保留用于与 GPU 版本做数值校验
+        /// </summary>
+        static  TexPtr      createBRDFLUTCPU(FEContext& ctx,uint size = 512,uint samples = 256);
         /// <summary>
         /// 程序化影棚环境 cubemap(天光渐变 + 三个柔光箱,带 mip 链)
         /// 不依赖外部 HDR 文件,柔光经 mip 预滤波后呈平滑光带,适合车漆/金属展示

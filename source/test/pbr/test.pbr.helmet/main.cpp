@@ -26,8 +26,12 @@
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/FEFileFormatHelper.hpp"
 #include    "../../../inc/material/FEMaterialPBR.hpp"
+#include    "../../../inc/component/FESkyComponent.hpp"
 #include    "../../../core/FEImageHelper.hpp"
 #include    "../../../core/graphic/FETextureHelper.hpp"
+
+/// 公共天空参数调试面板(与 test.sky 共用)
+#include    "../../common/ImGuiSkyPanel.hpp"
 
 using   namespace   FE;
 
@@ -56,6 +60,8 @@ namespace
 int main(int argc, char** argv)
 {
     FEUuid  rendererId  =   RS_VULKAN;
+    /// 天空参数面板启动显隐(命令行控制;运行时仍可用 setPanelVisible 切换)
+    bool    skyPanel    =   true;
     for (int i = 1; i < argc; ++i)
     {
         const char* arg =   argv[i];
@@ -63,14 +69,26 @@ int main(int argc, char** argv)
             rendererId  =   RS_WEBGPU;
         else if (_stricmp(arg,"--vulkan") == 0 || _stricmp(arg,"-vulkan") == 0)
             rendererId  =   RS_VULKAN;
+        else if (_stricmp(arg,"--no-sky-panel") == 0 || _stricmp(arg,"-no-sky-panel") == 0)
+            skyPanel    =   false;
+        else if (_stricmp(arg,"--sky-panel") == 0 || _stricmp(arg,"-sky-panel") == 0)
+            skyPanel    =   true;
     }
     FEContext& ctx = FEContext::instance();
     FEScene* pScene = nullptr;
+    /// 公共天空参数调试面板:仅 Vulkan 后端有 ImGui 渲染实现
+    FEImGuiSkyPanel panel;
 
     FEApp::CreateInfo info{};
     info._width = 1280; info._height = 720;
     info._appInst = GetModuleHandle(nullptr);
-    info._notify = [&](const FEMessage& msg) { if (pScene) pScene->onMessage(msg); };
+    info._notify = [&](const FEMessage& msg)
+    {
+        /// 面板先把鼠标消息喂给 ImGui,并在其捕获鼠标时阻止场景响应
+        const bool blockScene = panel.onMessage(msg);
+        if (!blockScene && pScene)
+            pScene->onMessage(msg);
+    };
     App app = FEAppHelper::create(ctx, info);
     if (!app) { std::cerr << "create app failed\n"; return 1; }
     ctx.setWindow(app.get());
@@ -83,6 +101,15 @@ int main(int argc, char** argv)
     {
         std::cerr << "scene setup failed\n";
         scene = nullptr; app->destroy(); return 1;
+    }
+
+    /// ---- 天空参数调试面板(公共实现)----
+    /// 命令行控制启动显隐;运行时仍可通过 FESkyComponent::setPanelVisible() 切换。
+    /// 先同步天空的太阳光强度,使面板调整参数时不会把主方向光重置为默认亮度
+    if (scene->sky() != nullptr)
+    {
+        scene->sky()->setSunLightIntensity(2.5f);
+        scene->sky()->setPanelVisible(skyPanel);
     }
 
     /// 调亮默认平行光并调整方向,使 PBR 光照层次清晰可见
@@ -145,6 +172,10 @@ int main(int argc, char** argv)
     for (auto& node : nodes)
         applyEnvMap(node, envCube);
 
+    /// 资源就绪后再挂接调试面板:此前的失败分支不会遗留 ImGui 后端
+    if (rendererId == RS_VULKAN)
+        panel.attach(ctx, scene.get(), true);
+
     std::cout << "pbr helmet test ready, entering render loop...\n";
     /// <summary>
     /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
@@ -154,6 +185,8 @@ int main(int argc, char** argv)
     /// </summary>
     app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
     {
+        /// ImGui 后端持有 device 句柄,必须抢在场景销毁 device 之前释放
+        panel.detach();
         reader      =   nullptr;
         nodes.clear();
         objects.clear();
@@ -161,6 +194,7 @@ int main(int argc, char** argv)
     });
     app->run();
 
+    panel.detach();
     scene = nullptr;
     app->destroy();
     return 0;

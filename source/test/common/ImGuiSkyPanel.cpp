@@ -1,14 +1,15 @@
-/// test.sky 的引擎内调试 GUI(Dear ImGui)接入:
-///   1. FEImGuiFactory —— 最上层(USAGE_Overlay)绘制的工厂,把 ImGui 的一帧交给
-///      渲染后端(rs.vulkan 的 VKImGuiBackend)绘制;
-///   2. FEImGuiSkyPanel —— 天空大气参数调节面板。
-/// ImGui 上下文与后端资源生命周期由 main.cpp 管理。
+/// 公共调试 GUI:天空参数面板 + ImGui Overlay 工厂。
+/// 供 test.sky 与 test.pbr.* 共用,各测试只需一次 attach/detach,
+/// 是否显示由 FESkyComponent::panelVisible() 接口控制。
 
-#include    "ImGuiDebugUI.hpp"
-#include    "../../../inc/component/FESkyComponent.hpp"
+#include    "ImGuiSkyPanel.hpp"
+#include    "../../inc/component/FESkyComponent.hpp"
+#include    "../../inc/graphic/FEScene.h"
+#include    "../../inc/FEMessage.hpp"
 
 #include    <imgui.h>
 #include    <cmath>
+#include    <iostream>
 
 namespace   FE
 {
@@ -17,7 +18,7 @@ namespace   FE
         ,_backend(backend)
     {
         /// 在最后一层(Overlay)绘制:场景工厂默认归属 USAGE_Scene,本工厂放到
-        /// 其后的 Overlay 层,保证 UI 绝对最后绘制、不被场景覆盖(见头文件说明)
+        /// 其后的 Overlay 层,保证 UI 绝对最后绘制、不被场景覆盖
         _usages =   ViewerUsage::USAGE_Overlay;
         riority(FEFactory::PT_Render).setPriority(EP_Last).setOrder(int16_t(32767));
         riority(FEFactory::PT_Update).setPriority(EP_Last).setOrder(int16_t(32767));
@@ -115,8 +116,192 @@ namespace   FE
         return  v < mn ? mn : (v > mx ? mx : v);
     }
 
+    bool    FEImGuiSkyPanel::attach(FEContext& ctx,FEScene* scene,bool visible)
+    {
+        detach();
+        if (scene == nullptr || !visible)
+            return  false;
+
+        ImGui::CreateContext();
+        _hasContext =   true;
+        ImGui::StyleColorsDark();
+        ImGuiIO&    io  =   ImGui::GetIO();
+        /// 不落盘 imgui.ini,避免测试产物污染工作目录
+        io.IniFilename  =   nullptr;
+
+        _backend    =   scene->device()->createImGuiBackend();
+        if (_backend == nullptr || !_backend->init(scene->swapchainColorFormat()))
+        {
+            std::cerr << "create ImGui backend failed (sky panel disabled)" << std::endl;
+            detach();
+            return  false;
+        }
+
+        /// 上传字体图集(RGBA8);TexID 仅作占位,后端始终绑定该纹理。
+        /// 先加载宋体作为默认字体以支持中文,失败时回退 ImGui 内置字体
+        ImFont* cnFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\simsun.ttc", 16.0f, nullptr,
+                                                      io.Fonts->GetGlyphRangesChineseFull());
+        if (cnFont)
+            io.FontDefault = cnFont;
+
+        unsigned char*  pixels  =   nullptr;
+        int             texW    =   0;
+        int             texH    =   0;
+        io.Fonts->GetTexDataAsRGBA32(&pixels,&texW,&texH);
+        FEImGuiFontData font;
+        font._pixels    =   pixels;
+        font._width     =   uint32(texW);
+        font._height    =   uint32(texH);
+        _backend->uploadFont(font);
+        io.Fonts->TexID =   (void*)1;
+
+        /// 天空节点由场景默认持有;回调只保存裸指针,场景销毁时工厂一并销毁
+        FESkyComponent* sky =   scene->sky();
+        if  (sky != nullptr)
+        {
+            /// 用天空当前参数初始化滑条,避免面板显示值与实际状态不一致
+            const   UBOSky& u   =   sky->sky();
+            _turbidity      =   u._params.x;
+            _rayleigh       =   u._params.y;
+            _mie            =   u._params.z;
+            _mieG           =   u._params.w;
+            _luminance      =   u._sunDirection.w;
+            _cloudCoverage  =   u._cloud.x;
+            _cloudDensity   =   u._cloud.y;
+            _cloudElevation =   u._cloud.z;
+            _cloudSpeed     =   u._anim.z;
+            _elevation      =   asinf(clampf(u._sunDirection.z,-1.0f,1.0f)) * (180.0f / float(PI));
+            _azimuth        =   atan2f(u._sunDirection.x,u._sunDirection.y) * (180.0f / float(PI));
+            if (_azimuth < 0.0f)
+                _azimuth    +=  360.0f;
+        }
+        _factory    =   new FEImGuiFactory(ctx,_backend);
+        _factory->_buildUI  =   [this,sky]() {   this->draw(sky);   };
+        scene->factoryMgr().addObject(_factory);
+        _attached   =   true;
+        return  true;
+    }
+
+    void    FEImGuiSkyPanel::detach()
+    {
+        /// 先断开回调与后端链接,避免工厂在后续帧继续访问已释放对象
+        if (_factory != nullptr)
+        {
+            _factory->_buildUI  =   nullptr;
+            _factory->invalidateBackend();
+        }
+        _factory    =   nullptr;
+        if (_backend != nullptr)
+        {
+            _backend->destroy();
+            delete  _backend;
+            _backend    =   nullptr;
+        }
+        if (_hasContext)
+        {
+            ImGui::DestroyContext();
+            _hasContext =   false;
+        }
+        _attached   =   false;
+    }
+
+    bool    FEImGuiSkyPanel::onMessage(const FEMessage& msg)
+    {
+        if (!_attached || !_hasContext)
+            return  false;
+
+        ImGuiIO&        io      =   ImGui::GetIO();
+        const   auto    msgId   =   msg.msgId();
+        bool            block   =   false;
+        switch (msgId)
+        {
+        case MSG_MOUSE_MOVE:
+            {
+                const auto& m   =   static_cast<const MsgMouseMove&>(msg)._info;
+                io.MousePos     =   ImVec2(float(m._mouse.x),float(m._mouse.y));
+            }
+            break;
+        case MSG_LBUTTON_DOWN:
+            {
+                const auto& m   =   static_cast<const MsgLButtonDown&>(msg)._info;
+                io.MousePos     =   ImVec2(float(m._mouse.x),float(m._mouse.y));
+                io.MouseDown[0] =   true;
+            }
+            break;
+        case MSG_LBUTTON_UP:
+            {
+                const auto& m   =   static_cast<const MsgLButtonUp&>(msg)._info;
+                io.MousePos     =   ImVec2(float(m._mouse.x),float(m._mouse.y));
+                io.MouseDown[0] =   false;
+            }
+            break;
+        case MSG_RBUTTON_DOWN:
+            {
+                const auto& m   =   static_cast<const MsgRButtonDown&>(msg)._info;
+                io.MousePos     =   ImVec2(float(m._mouse.x),float(m._mouse.y));
+                io.MouseDown[1] =   true;
+            }
+            break;
+        case MSG_RBUTTON_UP:
+            {
+                const auto& m   =   static_cast<const MsgRButtonUp&>(msg)._info;
+                io.MousePos     =   ImVec2(float(m._mouse.x),float(m._mouse.y));
+                io.MouseDown[1] =   false;
+            }
+            break;
+        case MSG_MBUTTON_DOWN:
+            {
+                const auto& m   =   static_cast<const MsgMButtonDown&>(msg)._info;
+                io.MousePos     =   ImVec2(float(m._mouse.x),float(m._mouse.y));
+                io.MouseDown[2] =   true;
+            }
+            break;
+        case MSG_MBUTTON_UP:
+            {
+                const auto& m   =   static_cast<const MsgMButtonUp&>(msg)._info;
+                io.MousePos     =   ImVec2(float(m._mouse.x),float(m._mouse.y));
+                io.MouseDown[2] =   false;
+            }
+            break;
+        case MSG_MOUSE_WHEEL:
+            {
+                const auto& w   =   static_cast<const MsgMouseWheel&>(msg)._info;
+                io.MousePos     =   ImVec2(float(w._mouse.x),float(w._mouse.y));
+                io.MouseWheel   =   float(w._zDelta) / 120.0f;
+            }
+            break;
+        default:
+            break;
+        }
+        /// GUI 捕获鼠标时不把鼠标消息交给场景,避免拖动滑条同时旋转相机
+        if (io.WantCaptureMouse)
+        {
+            switch (msgId)
+            {
+            case MSG_MOUSE_MOVE:
+            case MSG_LBUTTON_DOWN:
+            case MSG_LBUTTON_UP:
+            case MSG_RBUTTON_DOWN:
+            case MSG_RBUTTON_UP:
+            case MSG_MBUTTON_DOWN:
+            case MSG_MBUTTON_UP:
+            case MSG_MOUSE_WHEEL:
+                block   =   true;
+                break;
+            default:
+                break;
+            }
+        }
+        return  block;
+    }
+
     void    FEImGuiSkyPanel::draw(FESkyComponent* sky)
     {
+        /// 代码接口控制显隐:panelVisible()==false 时整个面板不绘制,
+        /// ImGui 上下文与后端仍保留,可随时通过接口重新打开
+        if (sky == nullptr || !sky->panelVisible())
+            return;
+
         /// 自动模式下太阳由组件推进,读回当前角度避免与滑条互相覆盖
         if (_autoSun)
         {
@@ -127,8 +312,11 @@ namespace   FE
                 _azimuth    +=  360.0f;
         }
 
-        /// 调试面板固定在画面右侧,避开控制台窗口
-        ImGui::SetNextWindowPos(ImVec2(780.0f,100.0f),ImGuiCond_Always);
+        /// 固定在画面右侧,避开控制台窗口
+        float   posX    =   ImGui::GetIO().DisplaySize.x - 340.0f;
+        if  (posX < 0.0f)
+            posX    =   0.0f;
+        ImGui::SetNextWindowPos(ImVec2(posX,100.0f),ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(320.0f,470.0f),ImGuiCond_Always);
         ImGui::Begin(u8"天空参数（运行时）");
         if (ImGui::SliderFloat(u8"浑浊度##turbidity",&_turbidity,1.0f,20.0f,"%.2f"))

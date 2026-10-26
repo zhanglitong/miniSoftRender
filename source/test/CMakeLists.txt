@@ -1,3 +1,10 @@
+# ===== Dear ImGui:引擎内调试 GUI(test.sky / test.pbr.* 的天空调试面板共用)=====
+# 只在此处添加一次,避免多个测试各自 add_subdirectory 造成目标重名。
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
+                 "${CMAKE_BINARY_DIR}/imgui")
+# imgui 自带 FOLDER "external",统一改归 3rdparty/imgui
+set_target_properties(imgui PROPERTIES FOLDER "3rdparty/imgui")
+
 add_subdirectory ("test.uuid")
 add_subdirectory ("test.http")
 add_subdirectory ("test.http.page")
