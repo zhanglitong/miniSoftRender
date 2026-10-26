@@ -420,6 +420,8 @@ struct  UBOSky
     float4  _params;
     float4  _up;
     float4  _cloud;
+    /// 动画/全局开关: x=云时间(秒) y=cloudScale z=cloudSpeed
+    /// w=太阳不可见时是否压暗环境光(1=开启,0=关闭)
     float4  _anim;
 #ifdef __cplusplus
     UBOSky()

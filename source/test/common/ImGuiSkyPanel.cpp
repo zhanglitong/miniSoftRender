@@ -174,6 +174,7 @@ namespace   FE
             _azimuth        =   atan2f(u._sunDirection.x,u._sunDirection.y) * (180.0f / float(PI));
             if (_azimuth < 0.0f)
                 _azimuth    +=  360.0f;
+            _darkWhenSunHidden  =   sky->darkWhenSunHidden();
         }
         _factory    =   new FEImGuiFactory(ctx,_backend);
         _factory->_buildUI  =   [this,sky]() {   this->draw(sky);   };
@@ -345,6 +346,8 @@ namespace   FE
         ImGui::Separator();
         if (ImGui::Checkbox(u8"自动太阳",&_autoSun))
             sky->setAutoSun(_autoSun,_elevation,_autoSpeed);
+        if (ImGui::Checkbox(u8"夜间环境压暗",&_darkWhenSunHidden))
+            sky->setDarkWhenSunHidden(_darkWhenSunHidden);
 
         if (ImGui::SliderFloat(u8"太阳高度角##elev",&_elevation,-10.0f,90.0f,"%.1f"))
         {
@@ -365,6 +368,7 @@ namespace   FE
             _turbidity  =   10.0f;  _rayleigh   =   3.0f;  _mie    =   0.005f;
             _mieG       =   0.7f;   _luminance  =   0.05f;
             _elevation  =   65.0f;  _azimuth    =   0.0f;
+            _darkWhenSunHidden  =   true;
             _cloudCoverage  =   0.4f;   _cloudDensity   =   0.4f;
             _cloudElevation =   0.5f;   _cloudSpeed     =   0.00002f;
             sky->setTurbidity(_turbidity);
@@ -372,6 +376,7 @@ namespace   FE
             sky->setMieCoefficient(_mie);
             sky->setMieDirectionalG(_mieG);
             sky->setLuminance(_luminance);
+            sky->setDarkWhenSunHidden(_darkWhenSunHidden);
             sky->setSunElevationAzimuth(_elevation,_azimuth);
             sky->setCloudCoverage(_cloudCoverage);
             sky->setCloudDensity(_cloudDensity);

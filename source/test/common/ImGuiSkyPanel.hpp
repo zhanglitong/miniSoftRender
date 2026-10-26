@@ -56,6 +56,8 @@ namespace   FE
         float   _azimuth    =   0.0f;
         float   _autoSpeed  =   2.0f;
         bool    _autoSun    =   false;
+        /// 太阳不可见时是否压暗 PBR 环境光(解析天空 + HDR 环境贴图)
+        bool    _darkWhenSunHidden  =   true;
         /// 云参数(命名与 three.js SkyMesh / webgpu_sky 面板一致)
         float   _cloudCoverage  =   0.4f;
         float   _cloudDensity   =   0.4f;

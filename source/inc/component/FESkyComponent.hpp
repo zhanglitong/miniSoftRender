@@ -59,6 +59,7 @@ namespace   FE
             _syncSunLight   =   other._syncSunLight;
             _sunLightIntensity  =   other._sunLightIntensity;
             _sunLightColor      =   other._sunLightColor;
+            _darkWhenSunHidden  =   other._darkWhenSunHidden;
             _panelVisible       =   other._panelVisible;
         }
         virtual ~FESkyComponent()
@@ -213,6 +214,17 @@ namespace   FE
             syncSunLight();
         }
         /// <summary>
+        /// 太阳不可见时是否压暗 PBR 环境光(解析天空与 HDR 环境贴图)。
+        /// 压暗曲线与太阳方向光一致(-2°~+8° smoothstep),夜间保留约 2% 微光。
+        /// 默认开启;关闭后环境光不随太阳高度角变化
+        /// </summary>
+        void    setDarkWhenSunHidden(bool enable)
+        {
+            _darkWhenSunHidden  =   enable;
+            apply();
+        }
+        bool    darkWhenSunHidden() const   {   return  _darkWhenSunHidden;    }
+        /// <summary>
         /// 控制天空参数调试面板是否显示(宿主/测试通过此接口开关)。
         /// 仅影响调试 UI 的绘制,不影响天空本身与 PBR 的解析天空 IBL
         /// </summary>
@@ -251,6 +263,8 @@ namespace   FE
         /// </summary>
         void    apply()
         {
+            /// w 分量作为着色器开关:1=太阳不可见时压暗环境光
+            _value._anim.w  =   _darkWhenSunHidden ? 1.0f : 0.0f;
             if  (_ubo != nullptr)
                 _ubo->update(&_value, sizeof(_value), 0);
             /// 天空参数变化(含太阳方向)后,同步驱动场景主方向光
@@ -328,6 +342,10 @@ namespace   FE
         /// 白天基准光色
         /// </summary>
         float3          _sunLightColor      =   float3(1.0f,1.0f,1.0f);
+        /// <summary>
+        /// 太阳不可见时压暗 PBR 环境光(默认开启,夜间保留约 2% 微光)
+        /// </summary>
+        bool            _darkWhenSunHidden  =   true;
         bool            _autoSun    =   false;
         float           _elevation  =   10.0f;
         float           _azimuth    =   180.0f;

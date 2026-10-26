@@ -309,7 +309,7 @@ int main(int argc, char** argv)
     pMat->setEmissiveMap(emissive);
     pMat->setNormalScale(1.0f);
     pMat->setOcclusionStrength(1.0f);
-    pMat->setEmissiveStrength(1.0f);
+    pMat->setEmissiveStrength(0.3f);
     pMat->data().update();
 
     node->setMaterial(pMat);

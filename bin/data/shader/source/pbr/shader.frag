@@ -457,6 +457,10 @@ void main()
     vec3 color = Lo;
     bool hasEnvTex = (texFlags & PBR_TEX_ENVIRONMENT) != 0u;
     float skyExposure = _sky._sunDirection.w;
+    /// 太阳不可见后压暗环境光(解析天空与 HDR 环境贴图同规则),
+    /// 曲线与方向光一致,夜间保留约 2% 微光避免全黑。
+    /// 自发光(第 9 步)同样按此衰减,避免夜间自发光贴图仍全亮刺眼
+    float sunGate = skyAmbientSunGate(_sky,0.02);
     {
         float maxLod = hasEnvTex ? floor(log2(float(textureSize(u_EnvironmentMap, 0).x))) : 0.0;
         vec3 R = reflect(-v, n);
@@ -477,7 +481,6 @@ void main()
         }
         /// 太阳不可见后压暗环境光(解析天空与 HDR 环境贴图同规则),
         /// 曲线与方向光一致,夜间保留约 2% 微光避免全黑
-        float   sunGate =   skyAmbientSunGate(_sky,0.02);
         irradiance  *=  sunGate;
         prefiltered *=  sunGate;
         vec3 Fenv  = fresnelSchlickRoughness(NdotV, F0, roughness);
@@ -564,10 +567,11 @@ void main()
 
     /// 9. 自发光(emissive 贴图同为 sRGB,需解码);
     ///    自发光同样按 1-w 被清漆层衰减(参考 pbr.frag:386)
+    ///    夜间(太阳不可见)自发光按 sunGate 一并压暗,避免贴图中心亮斑刺眼
     vec3 emissive = _pbr._emissive.rgb;
     if ((texFlags & PBR_TEX_EMISSIVE) != 0u)
         emissive *= pow(texture(u_EmissiveTex, applyUvTr(4, inUV)).rgb, vec3(2.2));
-    color += emissive * emissiveStrength * (1.0 - ccWeight);
+    color += emissive * emissiveStrength * (1.0 - ccWeight) * sunGate;
 
     /// 10. 选中高亮
     if (isSelected(inFlagBits))
