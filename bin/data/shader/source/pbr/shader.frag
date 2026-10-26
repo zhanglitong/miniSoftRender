@@ -21,18 +21,16 @@ layout(set = 0, binding = 1) buffer LightsBlock {
     LightData _lights[];
 };
 
-/// 天空参数(binding 3 = SB_Sky,与 sky 管线共用同一份设备 UBO)。
-/// 未挂接环境纹理时,本着色器直接把天空当作无限远环境光源做解析 IBL
-layout(set = 0, binding = 3) uniform SkyBlock {
-    UBOSky _sky;
+/// 引擎全局 UBO(binding 3 = SB_Global,与 sky 管线共用同一份设备 UBO):
+/// EngineState=选中高亮;UBOSky=天空参数/昼夜门控。
+/// 未挂接环境纹理时,直接把天空当作无限远环境光源做解析 IBL
+layout(set = 0, binding = SB_Global) uniform EngineGlobalBlock {
+    UBOSky      _sky;
+    EngineState _engineState;
 };
 
 layout(set = 0, binding = 4) uniform PBRBlock {
     PBRData _pbr;
-};
-
-layout(set = 0, binding = 5) uniform EngineStateBlock {
-    EngineState _engineState;
 };
 
 /// PBR 贴图:绑定到 6~10,与 FEMaterialPBR 中 bind(0, N, ...) 一致
@@ -456,11 +454,11 @@ void main()
     ///    与方向光一致的量级;此时没有 BRDF LUT,brdf 取 (1,0) 等价 F*1+0
     vec3 color = Lo;
     bool hasEnvTex = (texFlags & PBR_TEX_ENVIRONMENT) != 0u;
-    float skyExposure = _sky._sunDirection.w;
+    float skyExposure = _sky._env.z;
     /// 太阳不可见后压暗环境光(解析天空与 HDR 环境贴图同规则),
-    /// 曲线与方向光一致,夜间保留约 2% 微光避免全黑。
+    /// 门控由 CPU 在 SkyUBO 统一算好(与方向光同一曲线,夜间保留约 2% 微光)。
     /// 自发光(第 9 步)同样按此衰减,避免夜间自发光贴图仍全亮刺眼
-    float sunGate = skyAmbientSunGate(_sky,0.02);
+    float sunGate = skyEnvGain(_sky);
     {
         float maxLod = hasEnvTex ? floor(log2(float(textureSize(u_EnvironmentMap, 0).x))) : 0.0;
         vec3 R = reflect(-v, n);

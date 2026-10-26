@@ -9,7 +9,7 @@ namespace   FE
     DEFINE_CLASS_UUID(FEMaterialSky,"{A1C7E5D9-3B42-4F86-9C10-7D2E4A6B8F31}");
     /// <summary>
     /// 天空盒材质:大气散射(Preetham)程序化天空管线(sky/*),
-    /// 相机 UBO 绑定到 SB_Camera,天空参数 UBO 绑定到 SB_Sky,
+    /// 相机 UBO 绑定到 SB_Camera,引擎全局 UBO(含天空参数)绑定到 SB_Global,
     /// 参数由 FESkyComponent 写入并经本材质上传
     /// </summary>
     class   FE_API  FEMaterialSky:public FEMaterial
@@ -22,17 +22,17 @@ namespace   FE
         {
             setup("sky");
             /// <summary>
-            /// 自动关联内置 UBO(camera/engineState 等)
+            /// 自动关联内置 UBO(camera/全局 UBO 等)
             /// </summary>
             autoAttach();
 
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
-            auto    skyUBO      =   ctx.device().queryCache(FEConstUuid::SkyUBOId);
             /// <summary>
-            /// 天空参数块名为 SkyBlock,autoAttach 覆盖不到,这里显式绑定
+            /// 天空参数位于全局 UBO 的 _sky 段(块名 SkyBlock),这里显式绑定
+            /// (统一走材质基类的天空环境绑定)
             /// </summary>
             bind(0,SB_Camera,   {cameraUBO});
-            bind(0,SB_Sky,      {skyUBO});
+            bindSkyEnvironment();
 
             /// <summary>
             /// 同步数据到显卡

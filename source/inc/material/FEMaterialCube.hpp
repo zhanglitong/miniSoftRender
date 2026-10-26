@@ -22,7 +22,7 @@ namespace   FE
         {
             setup("cube");
             /// <summary>
-            /// 自动将内置 UBO(camera/binding5 engineState)与 shader 反射绑定关联
+            /// 自动将内置 UBO(camera/全局 UBO)与 shader 反射绑定关联
             /// </summary>
             autoAttach();
 

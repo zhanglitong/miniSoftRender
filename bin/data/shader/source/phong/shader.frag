@@ -7,8 +7,10 @@ layout (location = 3) flat in uint inFlagBits;
 
 layout (location = 0) out vec4 outFragColor;
 
-layout (binding = SB_EngineState) uniform EngineStateBlock
+/// 引擎全局 UBO:声明完整前缀(_sky 在偏移 0),只使用 EngineState
+layout (binding = SB_Global) uniform EngineStateBlock
 {
+    UBOSky       _sky;
     EngineState  _engineState;
 };
 

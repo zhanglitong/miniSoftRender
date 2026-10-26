@@ -2,7 +2,7 @@
 // 与 sky/shader.vert / shader.frag 的 GLSL 版本行为一致:
 //   移植自 three.js webgl_shaders_sky(Preetham 大气散射),实时计算,不依赖贴图
 //   binding 0: 相机 UBO(块名 _camera,供 autoAttach 名称匹配;仅用其 _offsetVp)
-//   binding 3: 天空参数 UBO(SB_Sky),由 FESkyComponent 写入 UBOSky
+//   binding 3: 引擎全局 UBO 的 UBOSky 段(SB_Global),由 FESkyComponent 写入
 //   顶点属性: 0=pos 1=uv,实例属性: 2=intPart 3=trans 4=scale 5=rot 6=nodeColor 7=flagBits
 //   顶点输出: 0=dir(相机相对方向);裁剪空间 z 强制到远平面(z=w)
 // 入口点名 vs_main/fs_main(WGSL 要求同一模块内函数名唯一)
@@ -28,6 +28,9 @@ struct  UBOSky
     _cloud          : vec4f,
     // 动画: x=累计时间(秒), y=cloudScale 云层缩放, z=cloudSpeed 云速, w=保留
     _anim           : vec4f,
+    // 环境光照全局状态(所有材质共用,CPU 侧算好):
+    // x=环境光门控(线性 0.02~1), y=夜间压暗开关, z=天空曝光, w=保留
+    _env            : vec4f,
 }
 
 struct  SkyBlock

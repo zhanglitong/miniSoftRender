@@ -4,6 +4,7 @@
 #include    "../FEMath.hpp"
 #include    "../graphic/FEConstUuid.h"
 #include    "../graphic/FEDevice.h"
+#include    "../graphic/FEShaderDefine.h"
 #include    "../node/FENode.hpp"
 #include    "../geometry/FEGeometryBox.hpp"
 #include    "../material/FEMaterialSky.hpp"
@@ -16,7 +17,7 @@ namespace   FE
     /// Preetham 大气散射模型),不加载任何图片。
     /// 组件的职责:
     ///   1. 持有天空参数(turbidity/rayleigh/mie/luminance/太阳方向...)并写入
-    ///      引擎缓存的 SkyUBO(绑定槽 SB_Sky),供 sky 管线实时求值;
+    ///      引擎全局 UBO(绑定槽 SB_Global)的 _sky 部分,供 sky 管线实时求值;
     ///   2. 组装天空盒节点(立方体壳 + FEMaterialSky);
     ///   3. 每帧 update() 可自动推进太阳,模拟日升日落。
     /// 用法:
@@ -35,8 +36,8 @@ namespace   FE
             /// 天空参数属于渲染末端,优先级最低、最后执行
             _priority.setPriority(EPriority::EP_Last);
             _priority.setOrder(MaxInt16);
-            /// 缓存引擎注册的天空 UBO(由 FEScene::initializeUBO 写入 device cache)
-            auto    obj =   ctx.device().queryCache(FEConstUuid::SkyUBOId);
+            /// 缓存引擎注册的全局 UBO(由 FEScene::initializeUBO 写入 device cache)
+            auto    obj =   ctx.device().queryCache(FEConstUuid::GlobalUBOId);
             _ubo        =   (obj != nullptr) ? obj->as<FEGPUBuffer>() : nullptr;
             /// 解析场景主方向光,随后 apply() 会把太阳同步过去
             resolveSunLight();
@@ -265,8 +266,18 @@ namespace   FE
         {
             /// w 分量作为着色器开关:1=太阳不可见时压暗环境光
             _value._anim.w  =   _darkWhenSunHidden ? 1.0f : 0.0f;
+            /// 环境光门控在 CPU 侧统一算好写入 SkyUBO,供所有材质直接消费:
+            /// 与主方向光共用同一条 -2°~+8° 曲线,夜间保留约 2% 微光;
+            /// 关闭"夜间环境压暗"时恒为 1(环境光不随太阳高度角变化)
+            const   float   gate    =   sunGate();
+            _value._env.x   =   _darkWhenSunHidden ? (0.02f + 0.98f * gate) : 1.0f;
+            _value._env.y   =   _darkWhenSunHidden ? 1.0f : 0.0f;
+            _value._env.z   =   _value._sunDirection.w;
             if  (_ubo != nullptr)
+            {
+                /// _sky 位于全局 UBO 起始处,只覆盖天空段(后面的 EngineState 段由其它写入方维护)
                 _ubo->update(&_value, sizeof(_value), 0);
+            }
             /// 天空参数变化(含太阳方向)后,同步驱动场景主方向光
             syncSunLight();
         }
@@ -299,6 +310,31 @@ namespace   FE
             }
         }
         /// <summary>
+        /// 太阳可见度门控:方向与天顶夹角在 -2°~+8° 之间平滑过渡,
+        /// 地平线以下为 0。主方向光与环境光共用此值,保证衰减完全一致
+        /// </summary>
+        float   sunGate() const
+        {
+            const   float3  raw =   float3(_value._sunDirection.x,
+                                           _value._sunDirection.y,
+                                           _value._sunDirection.z);
+            const   float   len =   length(raw);
+            if  (len <= 1e-6f)
+                return  1.0f;
+            const   float3  dir =   raw / len;
+            float3  up  =   float3(_value._up.x, _value._up.y, _value._up.z);
+            const   float   upLen   =   length(up);
+            if  (upLen <= 1e-6f)
+                up  =   float3(0.0f, 0.0f, 1.0f);
+            else
+                up  =   up / upLen;
+            const   float   nd  =   dir.x * up.x + dir.y * up.y + dir.z * up.z;
+            const   float   lo  =   sinf(-2.0f * float(PI) / 180.0f);
+            const   float   hi  =   sinf( 8.0f * float(PI) / 180.0f);
+            float   t   =   FE::clamp((nd - lo) / (hi - lo), 0.0f, 1.0f);
+            return  t * t * (3.0f - 2.0f * t);
+        }
+        /// <summary>
         /// 太阳 -> 主方向光:方向直接复用太阳方向(指向光源);
         /// 亮度按太阳仰角在 -2°~+8° 间 smoothstep 过渡,地平线以下为 0。
         /// </summary>
@@ -315,13 +351,8 @@ namespace   FE
             const   float   len =   length(raw);
             if  (len <= 1e-6f)
                 return;
-            const   float3  dir =   raw / len;
-            light->_dir =   dir;
-            const   float   lo  =   sinf(-2.0f * float(PI) / 180.0f);
-            const   float   hi  =   sinf( 8.0f * float(PI) / 180.0f);
-            float   t   =   FE::clamp((dir.z - lo) / (hi - lo), 0.0f, 1.0f);
-            t   =   t * t * (3.0f - 2.0f * t);
-            light->_color   =   _sunLightColor * (t * _sunLightIntensity);
+            light->_dir =   raw / len;
+            light->_color   =   _sunLightColor * (sunGate() * _sunLightIntensity);
         }
     protected:
         UBOSky          _value;

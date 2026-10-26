@@ -14,12 +14,32 @@ struct  PointData
 
 var<immediate> _point : PointData;
 
+/// 引擎全局 UBO 的 sky 子集(SB_Global,偏移 0 起 96 字节):
+/// x=昼夜门控(CPU 统一计算),所有非 UI 材质共用同一份数据
+struct  UBOSky
+{
+    _sunDirection   : vec4f,
+    _params         : vec4f,
+    _up             : vec4f,
+    _cloud          : vec4f,
+    _anim           : vec4f,
+    _env            : vec4f,
+}
+struct  SkyBlock
+{
+    _sky    : UBOSky,
+}
+@group(0) @binding(3) var<uniform> _skyBlock : SkyBlock;
+
 @fragment
 fn  main() -> @location(0) vec4f
 {
     let colorRGBA = unpack4x8unorm(_point._color);
 
+    /// 显示空间天空环境门控:与 GLSL 的 skyEnvGainDisplay 一致
+    let gain = pow(clamp(_skyBlock._sky._env.x, 0.0, 1.0), 1.0 / 2.2);
+
     /// 原始 GLSL 使用 gl_PointCoord 做圆形点测试,WebGPU/WGSL 无 gl_PointCoord 等效内置,
     /// 且 WebGPU 不支持可编程点大小(点默认 1 像素),圆形测试对 1 像素点无意义,这里直接输出颜色。
-    return colorRGBA;
+    return vec4f(colorRGBA.rgb * gain, colorRGBA.a);
 }

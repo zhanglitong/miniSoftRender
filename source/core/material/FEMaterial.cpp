@@ -109,9 +109,10 @@ namespace   FE
                             auto    object  =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
                             dset->setBinding(bind._binding,{object});
                         }
-                        else if (bind._name == "_engineState")
+                        else if (bind._binding == SB_Global)
                         {
-                            auto    object  =   _ctx.device().queryCache(FEConstUuid::EngineStateUBOId);
+                            /// 引擎全局 UBO:天空环境 + 选中高亮,按槽位匹配(块名因着色而异)
+                            auto    object  =   _ctx.device().queryCache(FEConstUuid::GlobalUBOId);
                             dset->setBinding(bind._binding,{object});
                         }
                     }

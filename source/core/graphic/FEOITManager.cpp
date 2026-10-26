@@ -1,6 +1,8 @@
 #include    "graphic/FEOITManager.h"
 #include    "graphic/FEDevice.h"
 #include    "graphic/FECmdBuffer.h"
+#include    "graphic/FEConstUuid.h"
+#include    "graphic/FEShaderDefine.h"
 #include    "mesh/FEPrimitive.hpp"
 #include    "FELog.hpp"
 
@@ -266,8 +268,8 @@ namespace   FE
             bindToDSet(dset);
         };
 
-        // Geometry pipeline DSets：除 OIT SSBO 外，把 camera/lights/engineState/material 也绑上
-        // （与 FEMaterial::autoAttach 同样的按名匹配逻辑）
+        // Geometry pipeline DSets：除 OIT SSBO 外，把 camera/lights/全局 UBO/material 也绑上
+        // （与 FEMaterial::autoAttach 同样的按槽位匹配逻辑）
         {
             DSet dset = _oitDSets[0];
             auto& binds = dset->cInfo()._binds;
@@ -278,8 +280,8 @@ namespace   FE
                 case DT_UNIFORM_BUFFER:
                     if (bind._name == "_camera")
                         dset->setBinding(bind._binding, Objects{ _ctx.device().queryCache(FEConstUuid::CameraUBOId) });
-                    else if (bind._name == "_engineState")
-                        dset->setBinding(bind._binding, Objects{ _ctx.device().queryCache(FEConstUuid::EngineStateUBOId) });
+                    else if (bind._binding == SB_Global)
+                        dset->setBinding(bind._binding, Objects{ _ctx.device().queryCache(FEConstUuid::GlobalUBOId) });
                     else if (bind._objects.empty())
                         dset->setBinding(bind._binding, Objects{ Object(static_cast<FEObject*>(_dummyMaterialUBO.get())) });
                     break;

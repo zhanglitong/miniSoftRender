@@ -6,8 +6,11 @@ layout (location = 0) in        vec4    inColor;
 layout (location = 1) flat  in  uint    inFlagBits;
 layout (location = 0) out       vec4    outFragColor;
 
-layout (binding = SB_EngineState) uniform EngineStateBlock
+/// 引擎全局 UBO(所有非 UI 材质共用):
+/// EngineState=选中高亮;UBOSky=天空参数与 CPU 算好的昼夜门控
+layout (binding = SB_Global) uniform EngineGlobalBlock
 {
+    UBOSky       _sky;
     EngineState  _engineState;
 };
 
@@ -20,4 +23,6 @@ void main()
         vec4    hl          =   unpackColor(_engineState.selectColor);
         outFragColor.rgb    =   mix(outFragColor.rgb, hl.rgb, 0.5);
     }
+    /// LDR 直出:用显示空间门控,与 PBR 夜间观感保持一致
+    outFragColor.rgb    *=  skyEnvGainDisplay(_sky);
 }

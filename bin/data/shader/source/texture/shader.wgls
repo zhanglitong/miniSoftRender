@@ -23,6 +23,23 @@ struct  CameraData
 @group(0) @binding(4) var uTex                  : texture_2d<f32>;
 @group(0) @binding(5) var uTexSampler           : sampler;
 
+/// 引擎全局 UBO 的 sky 子集(SB_Global,偏移 0 起 96 字节):
+/// x=昼夜门控(CPU 统一计算),所有非 UI 材质共用同一份数据
+struct  UBOSky
+{
+    _sunDirection   : vec4f,
+    _params         : vec4f,
+    _up             : vec4f,
+    _cloud          : vec4f,
+    _anim           : vec4f,
+    _env            : vec4f,
+}
+struct  SkyBlock
+{
+    _sky    : UBOSky,
+}
+@group(0) @binding(3) var<uniform> _skyBlock : SkyBlock;
+
 /// 由平移/缩放/旋转(四元数)构造 local 矩阵(真实世界坐标)
 fn  makeTransform(t : vec3f, s : vec3f, q : vec4f) -> mat4x4f
 {
@@ -81,5 +98,8 @@ fn  vs_main(input : VertexInput) -> VertexOutput
 @fragment
 fn  fs_main(input : VertexOutput) -> @location(0) vec4f
 {
-    return textureSample(uTex, uTexSampler, input.uv);
+    /// 显示空间天空环境门控:与 GLSL 的 skyEnvGainDisplay 一致
+    let gain = pow(clamp(_skyBlock._sky._env.x, 0.0, 1.0), 1.0 / 2.2);
+    let c    = textureSample(uTex, uTexSampler, input.uv);
+    return vec4f(c.rgb * gain, c.a);
 }

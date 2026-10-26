@@ -7,12 +7,12 @@
 ///   大气散射模型已抽到 common/FESkyModel.glsl,与 PBR 的解析环境光照共用。
 ///   本着色器对视线方向求值后做 ACES 色调映射 + sRGB 编码写入交换链;
 ///   PBR 侧则直接使用 skyRadiance() 的线性 HDR 结果作为 IBL 输入。
-///   参数来自 SkyBlock(绑定槽 SB_Sky),由 FESkyComponent 写入 UBOSky。
+///   参数来自全局 UBO 的 UBOSky 段(绑定槽 SB_Global),由 FESkyComponent 写入。
 
 layout  (location = 0)  in  vec3    inDir;
 layout  (location = 0)  out vec4    outColor;
 
-layout  (binding = SB_Sky) uniform SkyBlock
+layout  (binding = SB_Global) uniform SkyBlock
 {
     UBOSky  _sky;
 };

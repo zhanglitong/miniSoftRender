@@ -42,7 +42,7 @@ namespace   FE
     protected:
         /// <summary>
         /// 用 OIT geometry 管线替换基类 pbr 管线,并重绑 DSets:
-        /// camera/engineState/lights 自动关联 + 材质 UBO + OIT SSBO(10/11/12)。
+        /// camera/全局 UBO/lights 自动关联 + 材质 UBO + OIT SSBO(10/11/12)。
         /// (基类构造中注册的 lights notify 回调捕获 this->bind,换 dsets 后依然有效)
         /// </summary>
         void    setupOITBindings()
@@ -57,6 +57,8 @@ namespace   FE
             bind(0,SB_Camera,   {cameraUBO});
             bind(0,SB_Light,    {lightSBO},{lights.count() * sizeof(LightData)});
             bind(0,SB_Material, {_pbr._gpu.get()});
+            /// 天空环境(昼夜门控):OIT 几何趟写入的颜色同样随昼夜压暗
+            bindSkyEnvironment();
             /// OIT SSBO (binding 10/11/12)
             if (auto mgr = FEOITManager::active())
             {

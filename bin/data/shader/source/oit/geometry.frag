@@ -48,8 +48,10 @@ layout(std140, binding = SB_Light) readonly buffer LightsBlock
     LightData    _lights[];
 };
 
-layout (binding = SB_EngineState) uniform EngineStateBlock
+/// 引擎全局 UBO(所有非 UI 材质共用):选中高亮 + 天空昼夜门控
+layout (binding = SB_Global) uniform EngineGlobalBlock
 {
+    UBOSky       _sky;
     EngineState  _engineState;
 };
 
@@ -77,6 +79,9 @@ void main()
         vec4    hl = unpackColor(_engineState.selectColor);
         color.rgb  = mix(color.rgb, hl.rgb, 0.5);
     }
+
+    /// 天空环境昼夜门控:LDR 直出材质用显示空间系数,夜间随太阳一起压暗
+    color.rgb   *=  skyEnvGainDisplay(_sky);
 
     // ===== 2. 写入 PPLL 链表 =====
     uint pixelIdx = uint(gl_FragCoord.y) * oitScreenW + uint(gl_FragCoord.x);

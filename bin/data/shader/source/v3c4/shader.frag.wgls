@@ -23,7 +23,25 @@ struct  EngineState
 {
     selectColor : u32,
 }
-@group(0) @binding(5) var<uniform> _engineState : EngineState;
+
+/// 引擎全局 UBO(SB_Global,与 C++ FEGlobalUBO 逐字节一致,共 112 字节):
+///   UBOSky 96B(偏移 0)+ EngineState 4B,尾部由 uniform 布局规则补齐到 16 字节倍数
+/// x=昼夜门控(CPU 统一计算),所有非 UI 材质共用同一份数据
+struct  UBOSky
+{
+    _sunDirection   : vec4f,
+    _params         : vec4f,
+    _up             : vec4f,
+    _cloud          : vec4f,
+    _anim           : vec4f,
+    _env            : vec4f,
+}
+struct  EngineGlobalBlock
+{
+    _sky            : UBOSky,
+    _engineState    : EngineState,
+}
+@group(0) @binding(3) var<uniform> _engineGlobal : EngineGlobalBlock;
 
 struct  FsIn
 {
@@ -36,11 +54,16 @@ struct  FsIn
 @fragment
 fn  main(in : FsIn) -> @location(0) vec4f
 {
+    /// 显示空间天空环境门控:与 GLSL 的 skyEnvGainDisplay 一致
+    /// LDR 直出材质使用 pow(gate, 1/2.2) 保证夜间压暗观感与 PBR 一致
+    let gain = pow(clamp(_engineGlobal._sky._env.x, 0.0, 1.0), 1.0 / 2.2);
+
     /// 选中高亮:与高亮色混合
     if (isSelected(in.inFlagBits))
     {
-        let hl = unpackColor(_engineState.selectColor);
-        return vec4f(mix(in.inColor.rgb, hl.rgb, vec3f(0.5)), in.inColor.a);
+        let hl  = unpackColor(_engineGlobal._engineState.selectColor);
+        let rgb = mix(in.inColor.rgb, hl.rgb, vec3f(0.5));
+        return vec4f(rgb * gain, in.inColor.a);
     }
-    return in.inColor;
+    return vec4f(in.inColor.rgb * gain, in.inColor.a);
 }

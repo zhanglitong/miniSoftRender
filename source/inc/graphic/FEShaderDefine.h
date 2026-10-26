@@ -59,17 +59,16 @@
         SB_Camera       =   0,
         SB_Light        =   1,
         SB_Clip         =   2,
-        SB_Sky          =   3,
+        /// 引擎全局 UBO:EngineState + 天空环境(所有非 UI 材质共用)
+        SB_Global       =   3,
         SB_Material     =   4,
-        SB_EngineState  =   5,
     };
 #else
     #define  SB_Camera      0
     #define  SB_Light       1
     #define  SB_Clip        2
-    #define  SB_Sky         3
+    #define  SB_Global      3
     #define  SB_Material    4
-    #define  SB_EngineState 5
 #endif
 
 
@@ -423,6 +422,12 @@ struct  UBOSky
     /// 动画/全局开关: x=云时间(秒) y=cloudScale z=cloudSpeed
     /// w=太阳不可见时是否压暗环境光(1=开启,0=关闭)
     float4  _anim;
+    /// 环境光照全局状态(所有材质共用,由 FESkyComponent 每帧在 CPU 侧算好):
+    /// x=环境光门控(线性 0.02~1,与主方向光同一曲线)
+    /// y=夜间压暗开关(1=开启,0=关闭)
+    /// z=天空曝光(与 _sunDirection.w 同值,供解析天空 IBL 使用)
+    /// w=保留
+    float4  _env;
 #ifdef __cplusplus
     UBOSky()
     {
@@ -433,9 +438,59 @@ struct  UBOSky
         /// 视觉与参考截图一致
         _cloud          =   float4(0.36f, 0.71f, 0.44f,  0.0f);
         _anim           =   float4(0.0f,  0.0002f, 0.00002f, 0.0f);
+        _env            =   float4(1.0f,  1.0f,  0.05f,  0.0f);
     }
 #endif
 };
+
+#ifndef __cplusplus
+/// <summary>
+/// 环境光门控(线性):1=白天,约 0.02=夜间;关闭夜间压暗时恒为 1。
+/// 所有材质统一读 SkyUBO 的 CPU 计算结果,避免各处重复实现衰减曲线
+/// </summary>
+float   skyEnvGain(UBOSky sky)
+{
+    return  sky._env.x;
+}
+/// <summary>
+/// LDR 直出材质专用:把线性门控换算到显示空间(pow(1/2.2)),
+/// 使其夜间亮度与 PBR(线性 HDR + ACES)观感一致;白天门控为 1 时无变化
+/// </summary>
+float   skyEnvGainDisplay(UBOSky sky)
+{
+    return  pow(clamp(sky._env.x,0.0,1.0),1.0 / 2.2);
+}
+#endif
+
+/// <summary>
+/// 引擎全局 UBO(绑定槽 SB_Global):所有非 UI 材质共用的引擎级数据。
+/// _sky 放在最前(偏移 0),只读天空的着色器可以直接声明 96 字节的 SkyBlock 子集;
+/// 需要选中高亮的着色器声明完整布局:
+///   _sky         : 96 字节
+///   _engineState : 4 字节
+///   _pad0~2      : 12 字节,补齐到 16 字节的整数倍(std140/WGSL uniform 对齐)
+/// </summary>
+struct  FEGlobalUBO
+{
+    UBOSky      _sky;
+    EngineState _engineState;
+    /// 对齐填充:补齐到 112 字节
+    uint        _pad0;
+    uint        _pad1;
+    uint        _pad2;
+#ifdef __cplusplus
+    FEGlobalUBO()
+    {
+        _pad0   =   0;
+        _pad1   =   0;
+        _pad2   =   0;
+    }
+#endif
+};
+#ifdef __cplusplus
+/// 与 GLSL/WGSL 侧 112 字节布局保持一致
+static_assert(sizeof(FEGlobalUBO) == 112, "FEGlobalUBO 必须与 std140/WGSL 布局一致");
+#endif
 
 /// <summary>
 /// OIT(PPLL) 链表节点,geometry/color pass 与 C++ 宿主侧布局必须完全一致

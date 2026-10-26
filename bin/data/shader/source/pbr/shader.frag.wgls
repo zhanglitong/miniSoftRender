@@ -53,7 +53,6 @@ struct LightData
 @group(0) @binding(1) var<storage, read> _lights : array<LightData>;
 
 struct EngineState { selectColor : u32, }
-@group(0) @binding(5) var<uniform> _engineState : EngineState;
 
 /// 相机(仅取 _v 用于反推世界相机位置)
 struct CameraData
@@ -68,6 +67,26 @@ struct CameraData
     _rightDir : vec4f,
 }
 @group(0) @binding(0) var<uniform> _camera : CameraData;
+
+/// 引擎全局 UBO(SB_Global,与 C++ FEGlobalUBO 逐字节一致,共 112 字节):
+///   UBOSky 96B(偏移 0)+ EngineState 4B,尾部由 uniform 布局规则补齐到 16 字节倍数
+/// 昼夜门控与天空曝光由 FESkyComponent 在 CPU 侧统一写入,
+/// 所有材质读同一份数据,避免各处重复实现衰减曲线
+struct  UBOSky
+{
+    _sunDirection   : vec4f,
+    _params         : vec4f,
+    _up             : vec4f,
+    _cloud          : vec4f,
+    _anim           : vec4f,
+    _env            : vec4f,
+}
+struct  EngineGlobalBlock
+{
+    _sky            : UBOSky,
+    _engineState    : EngineState,
+}
+@group(0) @binding(3) var<uniform> _engineGlobal : EngineGlobalBlock;
 
 /// 贴图 + 采样器
 @group(0) @binding(6)  var u_BaseColorTex : texture_2d<f32>;
@@ -422,12 +441,15 @@ fn main(in : FsIn) -> @location(0) vec4f
 
     /// 7. IBL 环境光(同 GLSL 版 split-sum:预滤波 cubemap × BRDF LUT):
     var color = Lo;
+    /// 太阳不可见后压暗环境光(SkyUBO._env.x 由 CPU 统一算好,
+    /// 与主方向光同一曲线,夜间保留约 2% 微光);自发光同样按此衰减
+    let sunGate = _engineGlobal._sky._env.x;
     if ((texFlags & PBR_TEX_ENVIRONMENT) != 0u) {
         let envDim   = textureDimensions(u_EnvironmentMap, 0);
         let maxLod   = floor(log2(f32(envDim.x)));
         let R        = reflect(-v, n);
-        let irradiance  = textureSampleLevel(u_IrradianceMap, uSampler, n, 0.0).rgb;
-        let prefiltered = textureSampleLevel(u_EnvironmentMap, uSampler, R, roughness * maxLod).rgb;
+        let irradiance  = textureSampleLevel(u_IrradianceMap, uSampler, n, 0.0).rgb * sunGate;
+        let prefiltered = textureSampleLevel(u_EnvironmentMap, uSampler, R, roughness * maxLod).rgb * sunGate;
         let Fenv  = fresnelSchlickRoughness(NdotV, F0, roughness);
         let brdf  = textureSample(u_BRDFLUT, uSampler, vec2f(NdotV, roughness)).rg;
         /// 虹彩:IBL 菲涅尔权重同步替换(参考 pbr.frag:219-220)
@@ -445,7 +467,7 @@ fn main(in : FsIn) -> @location(0) vec4f
         /// clearcoat IBL:清漆层镜面 = 按清漆粗糙度预滤波的环境色,
         /// 与基础层按 w 混合(参考 pbr.frag:236;不叠 LUT,外层权重已含菲涅尔)
         if (ccStrength > 0.0) {
-            let ccPrefiltered = textureSampleLevel(u_EnvironmentMap, uSampler, R, ccRoughness * maxLod).rgb;
+            let ccPrefiltered = textureSampleLevel(u_EnvironmentMap, uSampler, R, ccRoughness * maxLod).rgb * sunGate;
             color = mix(color, ccPrefiltered, ccWeight);
         }
     }
@@ -499,11 +521,11 @@ fn main(in : FsIn) -> @location(0) vec4f
     if ((texFlags & PBR_TEX_EMISSIVE) != 0u) {
         emissive = emissive * pow(textureSample(u_EmissiveTex, uSampler, applyUvTr(4u, in.inUV)).rgb, vec3f(2.2));
     }
-    color = color + emissive * emissiveStrength * (1.0 - ccWeight);
+    color = color + emissive * emissiveStrength * (1.0 - ccWeight) * sunGate;
 
     /// 10. selection
     if (isSelected(in.inFlagBits)) {
-        let sel = unpackColor(_engineState.selectColor).rgb;
+        let sel = unpackColor(_engineGlobal._engineState.selectColor).rgb;
         color = mix(color, sel, 0.5);
     }
 

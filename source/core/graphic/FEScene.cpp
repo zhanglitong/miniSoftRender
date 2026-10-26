@@ -776,20 +776,15 @@ namespace   FE
         clipUBO->setObjectId(FEConstUuid::ClipUBOId);
         device.cacheObject(clipUBO.get());
 
-        auto    skyUBO      =   device.createUBO();
-        skyUBO->create({sizeof(UBOSky),         MemoryUsage::DEVICE_DEFAULT_BIT});
-        skyUBO->setObjectId(FEConstUuid::SkyUBOId);
-        device.cacheObject(skyUBO.get());
-
-        /// 引擎渲染状态(高亮颜色等),创建时写入默认值
-        auto    engineStateUBO  =   device.createUBO();
-        engineStateUBO->create({sizeof(EngineState), MemoryUsage::DEVICE_DEFAULT_BIT});
-        engineStateUBO->setObjectId(FEConstUuid::EngineStateUBOId);
+        /// 引擎全局 UBO:渲染状态(选中高亮)+ 天空环境,所有非 UI 材质共用
+        auto    globalUBO   =   device.createUBO();
+        globalUBO->create({sizeof(FEGlobalUBO),  MemoryUsage::DEVICE_DEFAULT_BIT});
+        globalUBO->setObjectId(FEConstUuid::GlobalUBOId);
         {
-            EngineState state;
-            engineStateUBO->update(&state,sizeof(EngineState),0);
+            FEGlobalUBO global;
+            globalUBO->update(&global,sizeof(FEGlobalUBO),0);
         }
-        device.cacheObject(engineStateUBO.get());
+        device.cacheObject(globalUBO.get());
     }
 
     void    FEScene::initializeQueue()

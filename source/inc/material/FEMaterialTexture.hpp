@@ -22,12 +22,14 @@ namespace   FE
         {
             setup("texture");
             /// <summary>
-            /// 自动将内置 UBO(camera/binding5 engineState)与 shader 反射绑定关联
+            /// 自动将内置 UBO(camera/全局 UBO)与 shader 反射绑定关联
             /// </summary>
             autoAttach();
 
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
             bind(0,SB_Camera,   {cameraUBO});
+            /// 天空环境(昼夜门控):与其他非 UI 材质共用同一份 SkyUBO
+            bindSkyEnvironment();
             if (_texture)
                 bind(0,SB_Material, {_texture.get()});
 

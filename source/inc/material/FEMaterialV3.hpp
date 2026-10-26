@@ -18,6 +18,8 @@ namespace   FE
             /// 自动将系统数据与材质所需数据关联起来
             /// </summary>
             autoAttach();
+            /// 天空环境(昼夜门控):与其他非 UI 材质共用同一份 SkyUBO
+            bindSkyEnvironment();
             /// <summary>
             /// 更新数据
             /// </summary>

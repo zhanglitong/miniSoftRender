@@ -14,6 +14,23 @@ struct  PointData
 
 var<immediate> _point : PointData;
 
+/// 引擎全局 UBO 的 sky 子集(SB_Global,偏移 0 起 96 字节):
+/// x=昼夜门控(CPU 统一计算),所有非 UI 材质共用同一份数据
+struct  UBOSky
+{
+    _sunDirection   : vec4f,
+    _params         : vec4f,
+    _up             : vec4f,
+    _cloud          : vec4f,
+    _anim           : vec4f,
+    _env            : vec4f,
+}
+struct  SkyBlock
+{
+    _sky    : UBOSky,
+}
+@group(0) @binding(3) var<uniform> _skyBlock : SkyBlock;
+
 struct  FsIn
 {
     @location(0) inColor : vec4f,
@@ -25,8 +42,12 @@ fn  main(in : FsIn) -> @location(0) vec4f
     let colorRGBA  = unpack4x8unorm(_point._color);
     let overrideF  = f32((_point._point >> 24u) & 0xFFu) / 255.0;
 
+    /// 显示空间天空环境门控:与 GLSL 的 skyEnvGainDisplay 一致
+    let gain = pow(clamp(_skyBlock._sky._env.x, 0.0, 1.0), 1.0 / 2.2);
+
     /// 与 shader.frag 的逻辑对齐:
     ///   fragColor = inColor * (1.0 - override) + color * color;
     /// 注意原 GLSL 是 color*color,这里保持一致。
-    return in.inColor * (1.0 - overrideF) + colorRGBA * colorRGBA;
+    let c = in.inColor * (1.0 - overrideF) + colorRGBA * colorRGBA;
+    return vec4f(c.rgb * gain, c.a);
 }

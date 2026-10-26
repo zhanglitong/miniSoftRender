@@ -25,6 +25,8 @@ namespace   FE
             /// VP 矩阵未定义而整体不可见
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
             bind(0,SB_Camera,   {cameraUBO});
+            /// 天空环境(昼夜门控):与其他非 UI 材质共用同一份 SkyUBO
+            bindSkyEnvironment();
             /// <summary>
             /// 更新数据
             /// </summary>

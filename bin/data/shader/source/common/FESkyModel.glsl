@@ -53,29 +53,6 @@ float   skySunIntensity(float zenithAngleCos)
     return  SKY_EE * max(0.0, 1.0 - exp(-((SKY_CUTOFF_ANGLE - acos(zenithAngleCos)) / SKY_STEEPNESS)));
 }
 
-/// <summary>
-/// 太阳可见度门控:返回 PBR 环境光的压暗系数。
-/// 曲线与 FESkyComponent::syncSunLight 的方向光完全一致(-2°~+8° smoothstep),
-/// 太阳落到地平线附近时收敛到 nightFloor(默认约 2% 夜光)。
-/// UBOSky._anim.w < 0.5 表示关闭压暗(保持旧行为)。
-/// </summary>
-float   skyAmbientSunGate(UBOSky sky,float nightFloor)
-{
-    if  (sky._anim.w < 0.5)
-        return  1.0;
-    vec3    sunDir  =   sky._sunDirection.xyz;
-    float   sunLen  =   length(sunDir);
-    if  (sunLen < 1e-6)
-        return  1.0;    /// 无有效太阳方向时不压暗,避免 normalize(0)
-    sunDir          =   sunDir / sunLen;
-    vec3    up      =   normalize(sky._up.xyz);
-    const   float   lo  =   sin(radians(-2.0));
-    const   float   hi  =   sin(radians(8.0));
-    float   t   =   clamp((dot(sunDir,up) - lo) / (hi - lo),0.0,1.0);
-    t   =   t * t * (3.0 - 2.0 * t);
-    return  mix(nightFloor,1.0,t);
-}
-
 /// ---- 云层噪声(移植 three.js Sky.js,源码逐行等价)----
 /// 栅格角点上的梯度;使用无 sin 的哈希,保证各 GPU 输出一致
 vec2    skyGradient(vec2 i)

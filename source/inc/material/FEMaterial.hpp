@@ -3,6 +3,7 @@
 #include    "graphic/FEDSet.h"
 #include    "graphic/FEPipeline.h"
 #include    "graphic/FEDevice.h"
+#include    "graphic/FEConstUuid.h"
 #include    "graphic/FEShaderDefine.h"
 
 
@@ -202,6 +203,18 @@ namespace   FE
         /// <param name="objects"></param>
         /// <returns></returns>
         bool    bind(uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges = {},const uint64s& offsets = {});
+        /// <summary>
+        /// 绑定引擎全局 UBO(GlobalUBOId)到 SB_Global。
+        /// 昼夜衰减、解析天空 IBL、选中高亮等所有材质共用的引擎级状态都从这里读取;
+        /// 着色器未声明该绑定时返回 false,不影响其余资源
+        /// </summary>
+        bool    bindSkyEnvironment()
+        {
+            auto    globalUBO   =   _ctx.device().queryCache(FEConstUuid::GlobalUBOId);
+            if  (globalUBO == nullptr)
+                return  false;
+            return  bind(0,SB_Global,   {globalUBO});
+        }
         /// <summary>
         /// 数据上传到显卡，需要手动调用
         /// </summary>

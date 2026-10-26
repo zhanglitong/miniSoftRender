@@ -8,6 +8,11 @@ layout(push_constant) uniform   PushConsts
 {
     PointData   _point;
 };
+/// 天空环境(所有非 UI 材质共用):昼夜门控
+layout (binding = SB_Global) uniform SkyBlock
+{
+    UBOSky  _sky;
+};
 
 void main() 
 {
@@ -22,4 +27,6 @@ void main()
     if(dist > 0.5)
         discard;
     fragColor   =   inColor * (1.0 - override) + color * color;
+    /// LDR 直出:用显示空间门控,与 PBR 夜间观感保持一致
+    fragColor.rgb   *=  skyEnvGainDisplay(_sky);
 }
