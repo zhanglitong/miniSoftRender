@@ -5,7 +5,7 @@
 /// 纹理测试 shader(与 pbr 同约定,纹理材质):
 ///   顶点属性: 0=pos 1=uv,实例属性: 2~7 与 pbr 一致
 ///   binding 0: 相机 UBO(SB_Camera)
-///   顶点输出: 0=uv 1=flagBits(flat)
+///   顶点输出: 0=uv
 layout  (location = 0)  in  vec3    inPos;
 /// 纹理坐标
 layout  (location = 1)  in  vec2    inUV;
@@ -26,7 +26,6 @@ layout (binding = SB_Camera) uniform CameraBlock
 };
 
 layout (location =  0)          out vec2    outUV;
-layout (location =  1)  flat    out uint    outFlagBits;
 
 void main()
 {
@@ -36,6 +35,5 @@ void main()
 
     gl_PointSize        =   1;
     outUV               =   inUV;
-    outFlagBits         =   flagBits;
     gl_Position         =   _camera._offsetVp * localOffset * vec4(inPos.xyz, 1.0);
 }
