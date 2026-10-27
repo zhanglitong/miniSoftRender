@@ -46,3 +46,16 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -static-libstdc++
     )
 endif()
+
+# -------------------------------------------------------------------------
+# 自动化测试:验证 .fers / .cpp 生成产物与错误返回码
+#   运行: ctest -C Debug -R tool.resource.cc --output-on-failure
+# -------------------------------------------------------------------------
+add_test(NAME tool.resource.cc.test
+         COMMAND ${CMAKE_COMMAND}
+                 -DTOOL=$<TARGET_FILE:${TARGET_NAME}>
+                 -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/test/fixtures
+                 -DOUT=${CMAKE_CURRENT_BINARY_DIR}/test_out
+                 -P ${CMAKE_CURRENT_SOURCE_DIR}/test/run_tests.cmake
+)
+set_tests_properties(tool.resource.cc.test PROPERTIES LABELS "tool.resource.cc")

@@ -1,8 +1,19 @@
 
+#include    <algorithm>
+#include    <cctype>
+#include    <cstdio>
+#include    <cstdlib>
+#include    <cstring>
 #include    <iostream>
+#include    <string>
 #include    <vector>
-#include    <map>
 #include    <filesystem>
+
+/// std::codecvt / std::wstring_convert 在 C++17 中已弃用，
+/// 本工具仅用它们做 GBK 与 UTF-8 互转，这里屏蔽 MSVC 的弃用提醒
+#ifndef _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+    #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#endif
 #include    <codecvt>
 
 namespace   fs  =   std::filesystem;
@@ -14,34 +25,64 @@ namespace   fs  =   std::filesystem;
 
 using   namespace   FE;
 
+using   WString     =   std::wstring;
+using   String      =   std::string;
 using   ArrayString =   std::vector<std::string>;
+/// <summary>
+/// 文件内容缓冲区，末尾额外保留一个 '\0'，便于按字符串解析
+/// </summary>
+using   FileBuffer  =   std::vector<char>;
 
 const char g_map[] ="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
-char*   replaceDot(char* pStr)
+
+/// <summary>
+/// 将名称中不合法的 C++ 标识符字符替换为合法字符
+/// </summary>
+/// <param name="str">待处理的名称</param>
+/// <returns>处理后的名称</returns>
+static  String& replaceDot(String& str)
 {
-    for ( int i = 0; pStr[i] != '\0' ; ++i)
+    const   size_t  nMap    =   sizeof(g_map) - 1;
+    for (char& ch : str)
     {
-        if (pStr[i] >= 'A' && pStr[i] <= 'Z')
+        const   unsigned char   value   =   static_cast<unsigned char>(ch);
+        if (   (value >= 'A' && value <= 'Z')
+            || (value >= 'a' && value <= 'z')
+            || (value >= '0' && value <= '9')
+            || value == '_')
             continue;
-        if (pStr[i] >= 'a' && pStr[i] <= 'z')
-            continue;
-        if (pStr[i] >= '0' && pStr[i] <= '9')
-            continue;
-        if (pStr[i]  == '_')
-            continue;
-        pStr[i]     =   g_map[int(pStr[i]) % sizeof(g_map)];
+        ch  =   g_map[value % nMap];
     }
-    return  pStr;
+    /// 标识符不能以数字开头
+    if (!str.empty() && str[0] >= '0' && str[0] <= '9')
+        str.insert(str.begin(),'_');
+    return  str;
 }
+
+/// <summary>
+/// 将路径中的反斜杠统一替换为正斜杠
+/// </summary>
+/// <param name="str">待处理的路径</param>
+/// <returns>处理后的路径</returns>
+static  String& replacePath(String& str)
+{
+    for (char& ch : str)
+    {
+        if (ch == '\\')
+            ch = '/';
+    }
+    return  str;
+}
+
 /// <summary>
 /// 获取相对于给定跟目录的相对目录，即 rootPath - path
 /// </summary>
-/// <param name="rootPath"></param>
-/// <param name="path"></param>
-/// <returns></returns>
+/// <param name="rootPath">根目录</param>
+/// <param name="path">完整路径</param>
+/// <returns>相对路径；不匹配时返回空字符串</returns>
 const char* getRelPath(const std::string& rootPath,const char* path)
 {
-    if (path == nullptr)
+    if (path == nullptr || rootPath.empty())
         return  "";
 
     size_t  nLen    =   strlen(path);
@@ -49,52 +90,74 @@ const char* getRelPath(const std::string& rootPath,const char* path)
         return  "";
     for (size_t i = 0; i < rootPath.size(); i++)
     {
-        auto    ch1 =   toupper(path[i]);
-        auto    ch2 =   toupper(rootPath[i]);
-        if (ch1 == ch2)
+        const   unsigned char   ch1 =   static_cast<unsigned char>(path[i]);
+        const   unsigned char   ch2 =   static_cast<unsigned char>(rootPath[i]);
+        if (std::toupper(ch1) == std::toupper(ch2))
             continue;
-        else if(ch1 == '/'  && ch2 == '\\')
-            continue;
-        else if(ch1 == '\\' && ch2 == '/')
+        if (   (ch1 == '/' || ch1 == '\\')
+            && (ch2 == '/' || ch2 == '\\'))
             continue;
         return  "";
     }
-    auto    relName =   path + rootPath.size();
-    if (relName && relName[0] == '/')
-        return  relName + 1;
-    else
-        return  relName;
+    /// 前缀必须落在目录分隔处，避免 d:/work 误匹配 d:/work2
+    const char* relName =   path + rootPath.size();
+    if (*relName != '\0' && *relName != '/' && *relName != '\\')
+        return  "";
+    while (*relName == '/' || *relName == '\\')
+        ++relName;
+    return  relName;
 }
 
 
 static  String  fileExtension(const char* fileName)
 {
+    if (fileName == nullptr || *fileName == '\0')
+        return  "";
     if (*fileName == '.')
         return  fileName;
     fs::path filePath(fileName);
     return  filePath.extension().string();
 }
-static  String  getFileName(const char* fullPath)
+static  String  getFileName(const String& fullPath)
 {
     fs::path filePath(fullPath);
     return  filePath.filename().string();
 }
 
-static  String  filePath(const char* fileName)
+static  String  filePath(const String& fileName)
 {
     fs::path filePath(fileName);
     return  filePath.parent_path().string();
 }
-static  bool    makeDir(const char* dir)
+
+/// <summary>
+/// 忽略大小写比较两个字符串
+/// </summary>
+/// <param name="left">左字符串</param>
+/// <param name="right">右字符串</param>
+/// <returns>相等返回 true</returns>
+static  bool    equalIgnoreCase(const char* left,const char* right)
 {
-    namespace   fs  =   std::filesystem;
+    if (left == nullptr || right == nullptr)
+        return  left == right;
+    for ( ; *left != '\0' && *right != '\0'; ++left,++right)
+    {
+        const   unsigned char   ch1 =   static_cast<unsigned char>(*left);
+        const   unsigned char   ch2 =   static_cast<unsigned char>(*right);
+        if (std::toupper(ch1) != std::toupper(ch2))
+            return  false;
+    }
+    return  *left == *right;
+}
+
+static  bool    makeDir(const String& dir)
+{
+    if (dir.empty())
+        return  false;
     try
     {
-        /// 成功, 失败，则是已经存在
-        if (fs::create_directory(dir))
-            return  true;
-        else
-            return  false;
+        /// 目录不存在则逐级创建；已存在返回 false
+        return  fs::create_directories(dir);
     }
     catch (const fs::filesystem_error& e)
     {
@@ -116,8 +179,6 @@ public:
     WCHAR_GBK(const char* name) : codecvt_byname(name){}
 };
 
-using   WString =   std::wstring;
-using   String  =   std::string;
 inline  String  utf8_2_gbk(const char* utf8)
 {
     try
@@ -163,46 +224,105 @@ inline  String  gbk_2_utf8(const char* gbk)
         return gbk;
     }
 }
+
+/// <summary>
+/// 读取文件全部内容到缓冲区，并在末尾补 '\0'
+/// </summary>
+/// <param name="fileName">文件路径</param>
+/// <param name="buffer">输出的文件内容</param>
+/// <returns>成功返回 true</returns>
+static  bool    readFile(const char* fileName,FileBuffer& buffer)
+{
+    if (fileName == nullptr)
+        return  false;
+
+    FILE*   pFile   =   fopen(fileName,"rb");
+    if (pFile == nullptr)
+    {
+        /// 兼容路径编码差异:先尝试 UTF-8 -> GBK，再尝试 GBK -> UTF-8
+        String  gbkFile =   utf8_2_gbk(fileName);
+        pFile   =   fopen(gbkFile.c_str(),"rb");
+    }
+    if (pFile == nullptr)
+    {
+        String  utfFile =   gbk_2_utf8(fileName);
+        pFile   =   fopen(utfFile.c_str(),"rb");
+    }
+    if (pFile == nullptr)
+    {
+        printf("open file(%s) error !\n",fileName);
+        return  false;
+    }
+
+    fseek(pFile,0,SEEK_END);
+    long    nLen    =   ftell(pFile);
+    if (nLen < 0)
+    {
+        fclose(pFile);
+        printf("get file(%s) size error !\n",fileName);
+        return  false;
+    }
+    fseek(pFile,0,SEEK_SET);
+    buffer.resize(size_t(nLen) + 1);
+    if (nLen > 0)
+    {
+        size_t  nRead   =   fread(buffer.data(),1,size_t(nLen),pFile);
+        if (nRead != size_t(nLen))
+        {
+            fclose(pFile);
+            printf("read file(%s) error !\n",fileName);
+            return  false;
+        }
+    }
+    fclose(pFile);
+    buffer[size_t(nLen)]    =   '\0';
+    return  true;
+}
+
 /// <summary>
 /// 获取名称
 /// </summary>
-/// <param name="rootPath"> 根目录</param>
+/// <param name="workPath">工作目录，用于提取资源相对名称</param>
+/// <param name="rootPath">当前遍历的文件或目录</param>
 /// <param name="doc">xml doc 对象</param>
 /// <param name="parent">根节点</param>
 void    findFileToXML(const char* workPath,const char* rootPath,XMLDoc& doc,XMLNode* parent)
 {
-    std::string     rootDir =   rootPath;
-    std::string     path    =   rootPath;
-    if (!fs::exists(path))
+    String      path    =   rootPath;
+    if (path.empty() || !fs::exists(path))
         return;
-    
+
     if(fs::is_directory(path))
     {
         XMLNode*    nodePath        =   doc.allocate_node(rapidxml::node_element, "folder", 0);
-        fs::path    filePath(path);
-        auto        name            =   filePath.stem().string();
+        String      name            =   fs::path(path).stem().string();
         XMLAttr*    aPath           =   doc.allocate_attribute("path", doc.allocate_string(name.c_str()));
         nodePath->append_attribute(aPath);
         parent->append_node(nodePath);
-        for ( auto entry : fs::directory_iterator(path))
+
+        /// 目录内容排序后再遍历，保证生成的资源文件稳定可复现
+        ArrayString children;
+        for (const auto& entry : fs::directory_iterator(path))
+            children.push_back(entry.path().generic_string());
+        std::sort(children.begin(),children.end());
+        for (const auto& file : children)
         {
-            String  file    =   entry.path().generic_string();
             findFileToXML(workPath,file.c_str(),doc,nodePath);
         }
     }
     else
     {
-        auto    ext =   fileExtension(rootPath);
-        if (   _stricmp(ext.c_str(),".fers") == 0 
-            || _stricmp(ext.c_str(),".prrs") == 0 
-            || _stricmp(ext.c_str(),".cpp")  == 0)
+        String  ext =   fileExtension(rootPath);
+        if (   equalIgnoreCase(ext.c_str(),".fers")
+            || equalIgnoreCase(ext.c_str(),".prrs")
+            || equalIgnoreCase(ext.c_str(),".cpp"))
         {
             return  ;
         }
         XMLNode*    nodeFile    =   doc.allocate_node(rapidxml::node_element,"file", 0);
-        auto        pName       =   getFileName(rootPath);
+        String      pName       =   getFileName(rootPath);
         XMLAttr*    aFileName   =   doc.allocate_attribute("input",doc.allocate_string(pName.c_str()));
-            
+
         String      relPath     =   getRelPath(workPath,rootPath);
         if (relPath.empty())
             relPath =   rootPath;
@@ -213,17 +333,6 @@ void    findFileToXML(const char* workPath,const char* rootPath,XMLDoc& doc,XMLN
     }
 }
 
-
-char*   replacePath(char* pStr)
-{
-    for (int i = 0; pStr[i] != '\0'; ++i)
-    {
-        if (pStr[i] == '\\')
-            pStr[i] = '/';
-    }
-    return  pStr;
-}
-
 struct  Header
 {
     std::string     _srcFileName;
@@ -232,16 +341,16 @@ struct  Header
 
     std::string     _declareDataName;
     std::string     _declareDataLenName;
-    size_t          _dataLen;
-    const void*     _data;
 };
 
 using   Headers =   std::vector<Header>;
 
-
 void    outFileBody(const char* className,FILE* file,const Headers& headers)
 {
-    std::string     clsName =   std::string("CLASS_") + className;
+    if (file == nullptr)
+        return;
+
+    const   String  clsName =   std::string("CLASS_") + className;
 
     std::string     res;
     res +=  "\n";
@@ -253,38 +362,44 @@ void    outFileBody(const char* className,FILE* file,const Headers& headers)
     res +=  "   class   " + clsName + "\n";
     res +=  "   {\n";
     res +=  "   public:\n";
-    res +=  "       "+ clsName +"()\n";
+    res +=  "       " + clsName + "()\n";
     res +=  "       {\n";
-    for (auto h : headers)
+    for (const auto& h : headers)
     {
-        char     szBuf[1024] = { 0 };
-        sprintf(szBuf, "            FE::FEAssetsMgr::instance().addBuffer(\"%s\",%s,%s,false);\n", h._srcFileName.c_str(), h._declareDataName.c_str(), h._declareDataLenName.c_str());
-        res += szBuf;
-        res +=  "\n";
+        res +=  "            FE::FEAssetsMgr::instance().addBuffer(\"";
+        res +=  h._srcFileName;
+        res +=  "\",";
+        res +=  h._declareDataName;
+        res +=  ",";
+        res +=  h._declareDataLenName;
+        res +=  ",false);\n\n";
     }
     res +=  "       }\n";
     res +=  "   };\n";
     res +=  "   static  "   +   clsName + "    _" + className + ";\n";
     res +=  "}\n";
     fputs(res.c_str(),file);
-    
-
 }
 void    outFileHeader(FILE* file)
 {
+    if (file == nullptr)
+        return;
+
     FEDateTime      dateTime;
     char            szTimeFormat[256] = { 0 };
     dateTime.toDateTimeString(szTimeFormat);
     fputs("/// tool.resource.cc Compiler V1.0.0.0\n", file);
-    fputs("/// tool.resource.cc Copyright 2018-2024 PR Inc All rights reserved !\n", file);
+    fputs("/// tool.resource.cc Copyright 2018-2026 FE Inc All rights reserved !\n", file);
     fputs("/// Warning! All changes made in this file will be lost!\n", file);
     fputs("/// Build Time ", file);
     fputs(szTimeFormat, file);
 
     fputs("\n\n", file);
     fputs("#include \"../inc/FEAssetsMgr.h\"\n", file);
+#ifdef _MSC_VER
     fputs("#pragma warning(push)\n", file);
     fputs("#pragma warning(disable:4828)\n", file);
+#endif
 
 
     fputs("\n\n", file);
@@ -293,8 +408,23 @@ void    outFileHeader(FILE* file)
 
 void    outFileTrail(FILE* file)
 {
+    if (file == nullptr)
+        return;
+#ifdef _MSC_VER
     fputs("#pragma warning(pop)\n", file);
+#endif
 }
+
+/// <summary>
+/// 编译单个资源文件，生成字节数组源码并登记到 header
+/// </summary>
+/// <param name="srcFile">源文件路径</param>
+/// <param name="dstFile">输出文件路径，仅 pDstFile 为空时使用</param>
+/// <param name="dstName">数据变量名，会自动转换为合法标识符</param>
+/// <param name="sName">资源名称，注册到 FEAssetsMgr 的 key</param>
+/// <param name="header">输出的登记信息</param>
+/// <param name="pDstFile">汇总输出文件，为空时单独输出到 dstFile</param>
+/// <returns>成功返回 true</returns>
 bool    compile( const char* srcFile
                 ,const char* dstFile
                 ,const char* dstName
@@ -302,84 +432,33 @@ bool    compile( const char* srcFile
                 ,Header&     header
                 ,FILE*       pDstFile = nullptr)
 {
-    FILE*   pFile   =   fopen(srcFile,"rb");
-    if (pFile == nullptr)
-    {
-        std::string     gbkFile =   utf8_2_gbk(srcFile);
-        pFile   =   fopen(gbkFile.c_str(),"rb");       
-    }
-    if (pFile == nullptr)
-    {
-        std::string     utfFile =   gbk_2_utf8(srcFile);
-        pFile   =   fopen(utfFile.c_str(),"rb");       
-    }
-    if (pFile == nullptr)
-    {
-        printf("open file(%s) error !\n",srcFile);
+    FileBuffer  buffer;
+    if (!readFile(srcFile,buffer))
         return  false;
-    }
-    else
-    {
-        printf("start compile file(%s) !\n",srcFile);
-    }
-    fseek(pFile,0,SEEK_END);
-    size_t  nLen    =   ftell(pFile);
-    fseek(pFile,0,SEEK_SET);
-    unsigned char*   pBuf   =   new unsigned char[nLen + 1];
-    fread(pBuf,1,nLen,pFile);
-    pBuf[nLen]  =   '\0';
-    fclose(pFile);
-    /// 使用文件内容生成一个唯一MD5
-    FEMd5Key    classId         =   FEMD5::fromBuffer(pBuf,(uint)nLen);
+    printf("start compile file(%s) !\n",srcFile);
 
+    const   size_t  nLen    =   buffer.size() - 1;
 
-    std::string     legalName       =   dstName;
-    replaceDot(legalName.data());
-    
-    std::string     outDataName     =   std::string("_") + legalName;
-    std::string     outDataLenName  =   outDataName;
-                    outDataLenName  +=  "_len";
+    String  legalName   =   dstName;
+    replaceDot(legalName);
+
+    const   String  outDataName     =   std::string("_") + legalName;
+    const   String  outDataLenName  =   outDataName + "_len";
+
     std::string     result;
-    result.reserve(nLen * 4 + 1024);
-
-    char    defDataVar[1024]        =   {0};
-    char    defDataLenVar[1024]     =   {0};
-
-    
-    char    declareDataVar[1024]    =   {0};
-    char    declareDataLenVar[1024] =   {0};
-
-    char    dataLen[16]             =   {0};
-    sprintf(dataLen, "%d;\n", int(nLen));
-
-    replaceDot(outDataLenName.data());
-    replaceDot(outDataName.data());
-   
-    sprintf(defDataLenVar,      "   unsigned int    %s      =   %d;\n",outDataLenName.c_str()      ,int(nLen));
-    sprintf(defDataVar,         "   unsigned char   %s[]    =   \n",   outDataName.c_str());
-
-    sprintf(declareDataLenVar,  "   unsigned int    %s;",              outDataLenName.c_str());
-    sprintf(declareDataVar,     "   unsigned char   %s[];",            outDataName.c_str());
-
-
-    header._declareDataLenVar   =   declareDataLenVar;
-    header._declareDataVar      =   declareDataVar;
-
-    header._declareDataName     =   outDataName;
-    header._declareDataLenName  =   outDataLenName;
-    header._dataLen             =   nLen;
-    header._srcFileName         =   sName;
-
-    result  =   "namespace  FE\n";
+    /// 每个字节输出 "0x00," 共 5 个字符，另预留换行与缩进
+    result.reserve(nLen * 6 + 1024);
+    result  +=  "namespace  FE\n";
     result  +=  "{\n";
-    result  +=  defDataLenVar;
-    result  +=  defDataVar;
+    result  +=  "   unsigned int    " + outDataLenName + "      =   " + std::to_string(nLen) + ";\n";
+    result  +=  "   unsigned char   " + outDataName + "[]    =   \n";
     result  +=  "   { \n";
     result  +=  "       ";
     for (size_t i = 0 ;i < nLen + 1; ++ i)
     {
-        char    szBuf[8]    =   {0};
-        sprintf(szBuf,"0x%02x,",pBuf[i]);
+        char            szBuf[8]    =   {0};
+        const unsigned  value       =   static_cast<unsigned char>(buffer[i]);
+        snprintf(szBuf,sizeof(szBuf),"0x%02x,",value);
         if (i && i%64 == 0)
         {
             result  +=  "\n       ";
@@ -390,37 +469,40 @@ bool    compile( const char* srcFile
     result  +=  "   };\n";
     result  +=  "};\n";
 
+    header._declareDataLenVar   =   "   unsigned int    " + outDataLenName + ";";
+    header._declareDataVar      =   "   unsigned char   " + outDataName + "[];";
+    header._declareDataName     =   outDataName;
+    header._declareDataLenName  =   outDataLenName;
+    header._srcFileName         =   sName;
+
     /// 如果有输入文件，则使用
     FILE*   pOutFile    =   pDstFile;
-    if (pOutFile == nullptr)
+    const   bool    bOwnFile    =   (pOutFile == nullptr);
+    if (bOwnFile)
     {
-        if (dstFile == nullptr || strlen(dstFile) < 3)
+        String  outFileName =   String(srcFile) + std::string(".cpp");
+        if (dstFile != nullptr && strlen(dstFile) >= 3)
+            outFileName =   dstFile;
+        pOutFile    =   fopen(outFileName.c_str(), "wt+");
+        if (pOutFile == nullptr)
         {
-            char    szFile[1024] = { 0 };
-            sprintf(szFile, "%s.cpp", srcFile);
-            pOutFile    =   fopen(szFile, "wt+");
-        }
-        else
-        {
-            pOutFile = fopen(dstFile, "wt+");
+            printf("open file(%s) error !\n",outFileName.c_str());
+            return  false;
         }
         outFileHeader(pOutFile);
     }
     fwrite(result.c_str(),1,result.size(),pOutFile);
     /// pDstFile == nullptr 则说明 pOutFile 是创建的，不是自建的
     /// 需要关闭，否则不关闭
-    if (pDstFile == nullptr)
+    if (bOwnFile)
     {
-        std::string     className   =   dstName;
-        replaceDot(className.data());
-        Headers         headers;
+        Headers     headers;
         headers.push_back(header);
-        outFileBody(className.c_str(),pOutFile,headers);
+        outFileBody(legalName.c_str(),pOutFile,headers);
         outFileTrail(pOutFile);
         fclose(pOutFile);
     }
     printf("end compile file(%s) !\n",srcFile);
-    delete  []pBuf;
     return  true;
 }
 
@@ -475,7 +557,7 @@ std::string     toClassBody(const Headers& headers)
     clsStr += "     const   FEAssetsMgr::Resource*  FEAssetsMgr::getResource(const char* fileName)\n";
     clsStr += "     {\n";
     clsStr += "         auto    itr = _resource.find(fileName);\n";
-    clsStr += "         if (itr == _resource.end())\n";
+    clsStr += "         if (itr != _resource.end())\n";
     clsStr += "             return  &itr->second;\n";
     clsStr += "         else\n";
     clsStr += "             return  nullptr;\n";
@@ -526,31 +608,33 @@ void    procNode(
     XMLNode* child  =   node->first_node();
     if (child)
     {
+        /// path 属性属于当前节点，循环外只取一次
+        XMLAttr*    pPath   =   node->first_attribute("path");
+        std::string path    =   workPath;
+        if (pPath)
+            path    +=  std::string("/") + pPath->value();
+
         for ( ; child ; child = child->next_sibling())
         {
-            XMLAttr*    pPath   =   node->first_attribute("path");
-            std::string path    =   workPath;
-            if (pPath)
-                path    =   workPath + std::string("/") + pPath->value();
-
-            procNode(child, rootDir,path.c_str(), resFile, headers, pOutFile);
+            procNode(child, rootDir,path, resFile, headers, pOutFile);
         }
     }
     else
     {
-        Header      header;
         XMLAttr*    aInput  =   node->first_attribute("input");
         if (aInput == nullptr)
             return;
-        std::string srcFile     =   workPath + "/" + aInput->value();
-        std::string dstFile     =   resFile;
-        std::string sName       =   srcFile.substr(rootDir.size() + 1);
-       
+        const   std::string srcFile =   workPath + "/" + aInput->value();
+        const   std::string sName   =   (srcFile.size() > rootDir.size() + 1)
+                                        ? srcFile.substr(rootDir.size() + 1)
+                                        : getFileName(srcFile);
+
         std::string dstNames    =   srcFile;
 
-        replacePath((char*)dstNames.c_str());
-        replaceDot((char*)dstNames.c_str());
-            
+        replacePath(dstNames);
+        replaceDot(dstNames);
+
+        Header      header;
         if (pOutFile)
         {
             fputs("\n\n", pOutFile);
@@ -559,7 +643,7 @@ void    procNode(
             fputs("\n", pOutFile);
 
             if(compile( srcFile.c_str()
-                    ,dstFile.c_str()
+                    ,resFile.c_str()
                     ,dstNames.c_str()
                     ,sName.c_str()
                     ,header
@@ -571,13 +655,13 @@ void    procNode(
         }
         else
         {
-            dstFile =   std::string(srcFile) + std::string(".cpp");
+            const   std::string     dstFile =   srcFile + std::string(".cpp");
             if(compile( srcFile.c_str()
                     ,dstFile.c_str()
                     ,dstNames.c_str()
                     ,sName.c_str()
                     ,header
-                    ,pOutFile
+                    ,nullptr
                     ))
             {
                 headers.push_back(header);
@@ -593,61 +677,46 @@ bool    processXML(
     ,const char* outFile
     ,Headers& headers)
 {
-    FILE*   pFile   =   fopen(srcFile,"rb");
-    if (pFile == nullptr)
-    {
-        printf("open file(%s) failed!\n",srcFile);
+    FileBuffer  buffer;
+    if (!readFile(srcFile,buffer))
         return  false;
-    }
-    fseek(pFile,0,SEEK_END);
-    size_t  nLen    =   ftell(pFile);
-    fseek(pFile,0,SEEK_SET);
-    char*   pData   =   new char[nLen + 1];
-    pData[nLen]     =   '\0';
-    fread(pData,1,nLen,pFile);
-    fclose(pFile);
 
     std::string     className   =   getFileName(srcFile);
-    replaceDot(className.data());
+    replaceDot(className);
+
+    FILE*       pOutFile    =   nullptr;
     try
     {
         XMLDoc      doc;
-        XMLNode*    rootNode = 0;
-        doc.parse<0>(pData);
-        rootNode = doc.first_node();
+        doc.parse<0>(buffer.data());
+        XMLNode*    rootNode =   doc.first_node();
         if (rootNode == 0)
         {
+            printf("parse file(%s) failed!\n",srcFile);
             return false;
         }
-        std::string     dataPath;
-        std::string     outPath;
         /// $Work,$This
         XMLAttr*        pDataPath   =   rootNode->first_attribute("dataPath");
-        XMLAttr*        pOutPath    =   rootNode->first_attribute("outPath");
         XMLAttr*        pSingleOut  =   rootNode->first_attribute("singleOut");
-        
-        if (pDataPath == 0)
+
+        std::string     dataPath;
+        if (pDataPath == 0 || strcmp(pDataPath->value(),"$Work") == 0)
             dataPath    =   workPath;
-        else if(strcmp(pDataPath->value(),"$Work") == 0)
-            dataPath    =   workPath;
-        else if(strcmp(pDataPath->value(),"$This") == 0)
+        else if (strcmp(pDataPath->value(),"$This") == 0)
             dataPath    =   ccPath;
         else
             dataPath    =   pDataPath->value();
-        if (pOutPath)   
-            outPath     =   pOutPath->value();
 
-        FILE*       pOutFile    =   nullptr;
         if (pSingleOut && atoi(pSingleOut->value()) != 0)
-            pOutFile    =   fopen(outFile,"w+");
-        else
-            pOutFile    =   nullptr;
-
-        if (pOutFile)
         {
+            pOutFile    =   fopen(outFile,"w+");
+            if (pOutFile == nullptr)
+            {
+                printf("open file(%s) error !\n",outFile);
+                return  false;
+            }
             outFileHeader(pOutFile);
         }
-        replacePath((char*)outFile);
 
         XMLNode*    nodeFile    =   rootNode->first_node();
 
@@ -660,12 +729,17 @@ bool    processXML(
             outFileBody(className.c_str(),pOutFile,headers);
             outFileTrail(pOutFile);
             fclose(pOutFile);
+            pOutFile    =   nullptr;
         }
 
         printf("compile finished !\n");
     }
-    catch (...)
+    catch (const std::exception& exc)
     {
+        printf("XML Parse Exception(%s): %s\n",srcFile,exc.what());
+        if (pOutFile)
+            fclose(pOutFile);
+        return  false;
     }
     return  true;
 }
@@ -680,85 +754,87 @@ bool    processQRC(
 {
     (void)ccPath;
     (void)workPath;
-    FILE*   pFile   =   fopen(srcFileName,"rb");
-    if (pFile == nullptr)
-    {
-        printf("open file(%s) failed!\n",srcFileName);
-        return  false;
-    }
-    fseek(pFile,0,SEEK_END);
-    size_t  nLen    =   ftell(pFile);
-    fseek(pFile,0,SEEK_SET);
-    char*   pData   =   new char[nLen + 1];
-    pData[nLen]     =   '\0';
-    fread(pData,1,nLen,pFile);
-    fclose(pFile);
 
+    FileBuffer  buffer;
+    if (!readFile(srcFileName,buffer))
+        return  false;
 
     std::string     className   =   srcFileName;
-    replaceDot(className.data());
+    replaceDot(className);
+
+    FILE*       pOutFile    =   nullptr;
     try
     {
         XMLDoc      doc;
-        XMLNode*    rootNode = 0;
-        doc.parse<0>(pData);
-        rootNode = doc.first_node();
+        doc.parse<0>(buffer.data());
+        XMLNode*    rootNode =   doc.first_node();
         if (rootNode == 0)
         {
+            printf("parse file(%s) failed!\n",srcFileName);
             return false;
         }
         std::string     path        =   filePath(srcFileName);
-        std::string     outPath     =   path;
 
-        FILE*           pOutFile    =   fopen(dstFile,"w+");
-        if (pOutFile)
+        pOutFile    =   fopen(dstFile,"w+");
+        if (pOutFile == nullptr)
         {
-            outFileHeader(pOutFile);
+            printf("open file(%s) error !\n",dstFile);
+            return  false;
         }
+        outFileHeader(pOutFile);
+
         XMLNode*    nodeQRC     =   rootNode->first_node("qresource");
         for ( ; nodeQRC ; nodeQRC   =   nodeQRC->next_sibling("qresource"))
         {
             XMLNode*    nodeFile    =   nodeQRC->first_node();
             for ( ; nodeFile ; nodeFile = nodeFile->next_sibling())
             {
-                Header      header;
                 std::string aInput  =   nodeFile->value();
                 if (aInput.empty())
                     continue;
                 std::string srcFile =   path + "/" + aInput;
-            
-                replacePath((char*)srcFile.c_str());
+
+                replacePath(srcFile);
 
                 std::string dstNames =   aInput + std::string(".cpp");
-                replacePath((char*)dstNames.c_str());
-                replaceDot((char*)dstNames.c_str());
-            
-                if (pOutFile)
+                replacePath(dstNames);
+                replaceDot(dstNames);
+
+                fputs("\n\n", pOutFile);
+                fputs("/// ", pOutFile);
+                fputs(srcFile.c_str(), pOutFile);
+                fputs("\n", pOutFile);
+
+                Header      header;
+                if(compile(srcFile.c_str(),dstFile,dstNames.c_str(),aInput.c_str(),header,pOutFile))
                 {
-                    fputs("\n\n", pOutFile);
-                    fputs("/// ", pOutFile);
-                    fputs(srcFile.c_str(), pOutFile);
-                    fputs("\n", pOutFile);
+                    headers.push_back(header);
                 }
-                compile(srcFile.c_str(),dstFile,dstNames.c_str(),aInput.c_str(),header,pOutFile);
-                headers.push_back(header);
             }
         }
-        
-        if (pOutFile)
-        {
-            outFileBody(className.c_str(),pOutFile,headers);
-            outFileTrail(pOutFile);
-            fclose(pOutFile);
-        }
+
+        outFileBody(className.c_str(),pOutFile,headers);
+        outFileTrail(pOutFile);
+        fclose(pOutFile);
+        pOutFile    =   nullptr;
+        printf("compile finished !\n");
     }
-    catch (...)
+    catch (const std::exception& exc)
     {
-        printf("XML Parse Exception!\n");
+        printf("XML Parse Exception(%s): %s\n",srcFileName,exc.what());
+        if (pOutFile)
+            fclose(pOutFile);
+        return  false;
     }
     return  true;
 }
 
+/// <summary>
+/// 程序入口
+/// </summary>
+/// <param name="argc">参数个数</param>
+/// <param name="argv">参数列表</param>
+/// <returns>0 成功，非 0 失败</returns>
 int     main(int argc,char** argv)
 {
     CMDLine::Parser a;
@@ -777,10 +853,10 @@ int     main(int argc,char** argv)
     
     bool ok = a.parse(argc, argv);
 
-    if (!ok || argc < 6 ) 
+    if (!ok)
     {
-        std::cout << a.usage() ;
-        return 0;
+        std::cerr << a.error_full() << a.usage();
+        return 1;
     }
 
     /// 1:是工作目录，重要，定位资源的位置
@@ -788,13 +864,10 @@ int     main(int argc,char** argv)
     /// 3 -out
     /// 4 输出的文件
     
-    ArrayString     files;
     Headers         headers;
     /// 编译器的路径
-    char            szCCPath[FE_PATH_LENGTH]  =   {0};
-    strcpy(szCCPath,argv[0]);
-
-    std::string     ccPath  =   filePath(szCCPath);
+    std::string     ccPath  =   (argc > 0 && argv[0] != nullptr) ? argv[0] : "";
+                    ccPath  =   filePath(ccPath);
     
     /// 工作目录
     std::string     workPath    =   a.get<std::string>("work");
@@ -803,27 +876,20 @@ int     main(int argc,char** argv)
     std::string     fersFile    =   a.get<std::string>("fers");
     std::string     outDefine   =   a.get<std::string>("out");
     
-    std::string     outPath     =   workPath;
-    
-    std::string     srcFile     =   std::string(packPath.data());
-    std::string     outFile     =   a.get<std::string>("out");
+    std::string     srcFile     =   packPath;
+    std::string     outFile     =   outDefine;
 
     if (fersFile.empty())
         fersFile =   srcFile + ".fers";
 
     if (outFile.empty())
         outFile =   fersFile + ".cpp";
-    
-    std::string     outName =   srcFile;
-   
-    replacePath((char*)ccPath.c_str());
-    replacePath((char*)outPath.c_str());
-    replacePath((char*)workPath.c_str());
-    replacePath((char*)srcFile.c_str());
-    replacePath((char*)outFile.c_str());
 
-    replacePath((char*)outName.c_str());
-    replaceDot((char*)outName.c_str());
+    replacePath(ccPath);
+    replacePath(workPath);
+    replacePath(packPath);
+    replacePath(srcFile);
+    replacePath(outFile);
 
     /// 文件夹
     if (mode == "dir")
@@ -838,7 +904,7 @@ int     main(int argc,char** argv)
         doc.append_node(xmlinfo);
         doc.append_node(root);
         
-        XMLAttr*    aDataPath   =   doc.allocate_attribute("dataPath",  workPath.c_str());
+        XMLAttr*    aDataPath   =   doc.allocate_attribute("dataPath",  doc.allocate_string(workPath.c_str()));
         XMLAttr*    aOutPath    =   doc.allocate_attribute("outPath",   "");
         XMLAttr*    aSingleOut  =   doc.allocate_attribute("singleOut", "1");
 
@@ -853,34 +919,39 @@ int     main(int argc,char** argv)
         printf("Save... %s \n",fersFile.c_str());
 
         
-        makeDir(filePath(fersFile.c_str()).c_str());
+        makeDir(filePath(fersFile));
 
         FILE*       pFile       =   fopen(fersFile.c_str(),"w+");
-        if (pFile)
-        {
-            fputs(xmlResult.c_str(),pFile);
-            fclose(pFile);
-        }
-        else
+        if (pFile == nullptr)
         {
             printf("Save %s error !\n",fersFile.c_str());
+            return 1;
         }
+        fputs(xmlResult.c_str(),pFile);
+        fclose(pFile);
 
         if (!outDefine.empty())
         {
             printf("parse %s \n",fersFile.c_str());
-            processXML(outPath.c_str(), ccPath.c_str(), fersFile.c_str(), outFile.c_str(),headers);
+            if (!processXML(workPath.c_str(), ccPath.c_str(), fersFile.c_str(), outFile.c_str(),headers))
+                return 1;
         }
+        return  0;
     }
-    else if (mode =="qrc")
+
+    if (mode =="qrc")
     {
         printf("parse %s \n",srcFile.c_str());
-        processQRC(outPath.c_str(), ccPath.c_str(), srcFile.c_str(), outFile.c_str(),headers);
+        return  processQRC(workPath.c_str(), ccPath.c_str(), srcFile.c_str(), outFile.c_str(),headers) ? 0 : 1;
     }
-    else if (mode =="fers")
+
+    if (mode =="fers")
     {
         printf("parse %s \n",srcFile.c_str());
-        processXML(outPath.c_str(), ccPath.c_str(), srcFile.c_str(), outFile.c_str(),headers);
+        return  processXML(workPath.c_str(), ccPath.c_str(), srcFile.c_str(), outFile.c_str(),headers) ? 0 : 1;
     }
-    return  0;
+
+    printf("unknown mode(%s), support: dir,fers,qrc\n",mode.c_str());
+    std::cerr << a.usage();
+    return  1;
 }
