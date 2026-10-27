@@ -1,7 +1,8 @@
 /// <summary>
 /// FESceneEditor 主界面实现:
 ///   - ImGui 上下文 / 渲染后端 / 字体图集 / Overlay 工厂的一次性挂接;
-///   - Ribbon 风格功能区(标签页 + 分组大按钮)、关于窗口与 .ui 预览窗口;
+///   - 以 bin/data/ui/MainWindow.ui 作为界面定义,Ribbon 功能区由其中的
+///     菜单栏生成:主菜单为 Page,子菜单为分组,动作(QAction)为按钮;
 ///   - 鼠标消息转发,功能区被操作时宿主跳过场景处理。
 /// </summary>
 
@@ -9,9 +10,29 @@
 
 #include    "../../../inc/FEMessage.hpp"
 #include    "../../../inc/graphic/FEScene.h"
+#include    "../../../inc/node/FENode.hpp"
+#include    "../../../inc/material/FEMaterialPBR.hpp"
+#include    "../../../inc/geometry/FEGeometryBox.hpp"
+#include    "../../../inc/geometry/FEGeometrySphere.hpp"
+#include    "../../../inc/geometry/FEGeometryCylinder.hpp"
+#include    "../../../inc/geometry/FEGeometryPyramid.hpp"
+#include    "../../../inc/geometry/FEGeometryTorus.hpp"
+#include    "../../../inc/geometry/FEGeometryTorusKnot.hpp"
+#include    "../../../inc/geometry/FEGeometryPRCP.hpp"
+#include    "../../../inc/geometry/FEGeometryPRCN.hpp"
+#include    "../../../inc/geometry/FEGeometryPRPY.hpp"
+#include    "../../../inc/geometry/FEGeometryPRRT.hpp"
+#include    "../../../inc/geometry/FEGeometryPRDH.hpp"
 
+#include    <algorithm>
+#include    <cctype>
+#include    <cstdio>
+#include    <cstdlib>
+#include    <cstring>
 #include    <imgui.h>
 #include    <iostream>
+#include    <string>
+#include    <vector>
 
 namespace
 {
@@ -34,17 +55,41 @@ namespace
     /// </summary>
     const   float   kGroupRowY  =   36.0f;
     /// <summary>
-    /// 大按钮宽
+    /// 分组内容高度(按钮行的总高度)
     /// </summary>
-    const   float   kButtonW    =   72.0f;
+    const   float   kContentH   =   64.0f;
     /// <summary>
-    /// 大按钮高
+    /// 按钮最小宽(同一分组内所有按钮等宽)
     /// </summary>
-    const   float   kButtonH    =   46.0f;
+    const   float   kMinButtonW =   64.0f;
     /// <summary>
-    /// 功能区总高
+    /// 按钮最大宽
     /// </summary>
-    const   float   kRibbonH    =   110.0f;
+    const   float   kButtonMaxW =   200.0f;
+    /// <summary>
+    /// 分组内左右留白
+    /// </summary>
+    const   float   kGroupPadX  =   6.0f;
+    /// <summary>
+    /// 分组之间的间距(竖线居中)
+    /// </summary>
+    const   float   kGroupGap   =   10.0f;
+    /// <summary>
+    /// 功能区内容的左起始位置
+    /// </summary>
+    const   float   kGroupStartX    =   6.0f;
+    /// <summary>
+    /// 功能区总高(分组内容 64 + 标题行,留出上下边距)
+    /// </summary>
+    const   float   kRibbonH    =   128.0f;
+    /// <summary>
+    /// 内容放不下时,左右滚动箭头的宽度
+    /// </summary>
+    const   float   kArrowW     =   18.0f;
+    /// <summary>
+    /// 点击滚动箭头时每次滚动的像素数
+    /// </summary>
+    const   float   kScrollStep =   160.0f;
 
     /// <summary>
     /// Windows 虚拟键码(只用到这几种;不把 windows.h 引进 UI 层)
@@ -129,51 +174,367 @@ namespace
 
 
     /// <summary>
-    /// Font Awesome 图标字体(Free Solid 6.x)的码位:九宫格(table-cells-large)
-    /// </summary>
-    const   char*   kIconGrid   =   u8"\uf009";
-    /// <summary>
-    /// Font Awesome 图标字体(Free Solid 6.x)的码位:相机
-    /// </summary>
-    const   char*   kIconCamera =   u8"\uf030";
-    /// <summary>
-    /// Font Awesome 图标字体(Free Solid 6.x)的码位:退出(power-off)
-    /// </summary>
-    const   char*   kIconPower  =   u8"\uf011";
-    /// <summary>
-    /// Font Awesome 图标字体(Free Solid 6.x)的码位:关于(circle-info)
-    /// </summary>
-    const   char*   kIconInfo   =   u8"\uf05a";
-    /// <summary>
-    /// Font Awesome 图标字体(Free Solid 6.x)的码位:界面预览(window-maximize)
-    /// </summary>
-    const   char*   kIconWindow =   u8"\uf2d0";
-    /// <summary>
-    /// Font Awesome 图标字体(Free Solid 6.x)的码位:模型树(cube)
-    /// </summary>
-    const   char*   kIconCube   =   u8"\uf1b2";
-    /// <summary>
-    /// 图标字号(像素)
+    /// 按钮里的图标字号(像素)
     /// </summary>
     const   float   kIconFontSize   =   24.0f;
+    /// <summary>
+    /// 图标与文字之间的间距
+    /// </summary>
+    const   float   kIconTextGap    =   4.0f;
+    /// <summary>
+    /// .ui 里未登记的图标统一回退到该字形(shapes)
+    /// </summary>
+    const   unsigned int    kIconDefault    =   0xF61F;
 
     /// <summary>
-    /// 用图标字体在 center 处居中绘制一个图标
+    /// 图标文件名(不含目录与扩展名)到 Font Awesome 码位的映射。
+    /// 键取自 bin/data/ui/res 下的图标文件名,新增图标时在此登记即可
     /// </summary>
-    /// <param name="dl">绘制列表</param>
-    /// <param name="font">图标字体</param>
-    /// <param name="center">中心点</param>
-    /// <param name="col">颜色</param>
-    /// <param name="glyph">字形</param>
-    void    drawRibbonIcon(ImDrawList* dl,ImFont* font,const ImVec2& center,ImU32 col,const char* glyph)
+    struct  FEIconGlyph
     {
-        if (font == nullptr || glyph == nullptr)
-            return;
-        const   ImVec2  textSize    =   font->CalcTextSizeA(kIconFontSize,4096.0f,0.0f,glyph);
-        dl->AddText(font,kIconFontSize,
-                    ImVec2(center.x - textSize.x * 0.5f,center.y - textSize.y * 0.5f),col,glyph);
+        /// <summary>
+        /// 图标文件名(不含 .png),对应 .ui 里 :/EditorRes/res/&lt;name&gt;.png
+        /// </summary>
+        const   char*           _name;
+        /// <summary>
+        /// Font Awesome 私有区码位
+        /// </summary>
+        unsigned int            _code;
+    };
+
+    const   FEIconGlyph     kIconGlyphs[]   =
+    {
+        { "about",              0xF05A },   ///< info-circle
+        { "align_back",         0xF070 },   ///< eye-slash
+        { "align_bottom",       0xF063 },   ///< arrow-down
+        { "align_front",        0xF06E },   ///< eye
+        { "align_left",         0xF036 },   ///< align-left
+        { "align_right",        0xF038 },   ///< align-right
+        { "align_rotate",       0xF2F1 },   ///< sync-alt
+        { "align_scale",        0xF31E },   ///< expand-arrows-alt
+        { "align_top",          0xF062 },   ///< arrow-up
+        { "align_x",            0xF337 },   ///< arrows-alt-h
+        { "align_y",            0xF338 },   ///< arrows-alt-v
+        { "align_z",            0xF14E },   ///< compass
+        { "bbox_center",        0xF140 },   ///< bullseye
+        { "cone_frustum",       0xF1CE },   ///< circle-notch
+        { "cover.reset",        0xF2EA },   ///< undo-alt
+        { "cube",               0xF1B2 },   ///< cube
+        { "cylinder",           0xF1C0 },   ///< database
+        { "hyperboloid",        0xF5FD },   ///< layer-group
+        { "ico_FirstFrame",     0xF048 },   ///< step-backward
+        { "ico_LastFrame",      0xF051 },   ///< step-forward
+        { "ico_Move",           0xF0B2 },   ///< arrows-alt
+        { "ico_NextFrame",      0xF04E },   ///< forward
+        { "ico_Pause",          0xF04C },   ///< pause
+        { "ico_PreFrame",       0xF04A },   ///< backward
+        { "ico_Redo",           0xF01E },   ///< redo
+        { "ico_Rotate",         0xF021 },   ///< refresh
+        { "ico_RunBack",        0xF049 },   ///< fast-backward
+        { "ico_RunFront",       0xF050 },   ///< fast-forward
+        { "ico_Scale",          0xF065 },   ///< expand
+        { "ico_Undo",           0xF0E2 },   ///< undo
+        { "mark",               0xF3C5 },   ///< map-marker-alt
+        { "maximum",            0xF102 },   ///< angle-double-up
+        { "minimum",            0xF103 },   ///< angle-double-down
+        { "model_load",         0xF56F },   ///< file-import
+        { "node_close",         0xF00D },   ///< times
+        { "pyramid_frustum",    0xF61F },   ///< shapes
+        { "scene_open",         0xF07C },   ///< folder-open
+        { "scene_save",         0xF0C7 },   ///< save
+        { "sphere",             0xF111 },   ///< circle
+        { "spherical_cap",      0xF192 },   ///< dot-circle
+        { "square_pyramid",     0xF0D8 },   ///< caret-up
+        { "torus",              0xF1CE },   ///< circle-notch
+        { "torus_knot",         0xF126 },   ///< code-branch
+        { "torus_sector",       0xF200 },   ///< chart-pie
+        { "torus_solid",        0xF111 },   ///< circle
+    };
+
+    /// <summary>
+    /// 从图标路径中取出文件名(去掉目录与扩展名)
+    /// </summary>
+    /// <param name="path">.ui 中的图标路径,例如 :/EditorRes/res/cube.png</param>
+    /// <returns>文件名,例如 cube</returns>
+    std::string iconBaseName(const std::string& path)
+    {
+        const   size_t  slash   =   path.find_last_of("/\\");
+        const   size_t  begin   =   (slash == std::string::npos) ? 0 : (slash + 1);
+        size_t          end     =   path.find_last_of('.');
+        if (end == std::string::npos || end < begin)
+            end =   path.size();
+        return  path.substr(begin,end - begin);
     }
 
+    /// <summary>
+    /// 图标路径 -> Font Awesome 码位;未登记时回退到默认字形
+    /// </summary>
+    /// <param name="path">.ui 中的图标路径</param>
+    /// <returns>码位</returns>
+    unsigned int    iconCodepoint(const std::string& path)
+    {
+        const   std::string name    =   iconBaseName(path);
+        for (const auto& glyph : kIconGlyphs)
+        {
+            if (name == glyph._name)
+                return  glyph._code;
+        }
+        return  kIconDefault;
+    }
+
+    /// <summary>
+    /// 码位转 UTF-8 文本(最多 4 字节,含结束符共 5 字节)
+    /// </summary>
+    /// <param name="code">Unicode 码位</param>
+    /// <param name="out">输出缓冲,至少 5 字节</param>
+    void    codepointToUtf8(unsigned int code,char* out)
+    {
+        if (code < 0x80)
+        {
+            out[0]  =   char(code);
+            out[1]  =   '\0';
+        }
+        else if (code < 0x800)
+        {
+            out[0]  =   char(0xC0 | (code >> 6));
+            out[1]  =   char(0x80 | (code & 0x3F));
+            out[2]  =   '\0';
+        }
+        else if (code < 0x10000)
+        {
+            out[0]  =   char(0xE0 | (code >> 12));
+            out[1]  =   char(0x80 | ((code >> 6) & 0x3F));
+            out[2]  =   char(0x80 | (code & 0x3F));
+            out[3]  =   '\0';
+        }
+        else
+        {
+            out[0]  =   char(0xF0 | (code >> 18));
+            out[1]  =   char(0x80 | ((code >> 12) & 0x3F));
+            out[2]  =   char(0x80 | ((code >> 6) & 0x3F));
+            out[3]  =   char(0x80 | (code & 0x3F));
+            out[4]  =   '\0';
+        }
+    }
+
+    /// <summary>
+    /// UTF-8 路径转本地(native)窄字符串。
+    /// 引擎的文件接口按本机窄编码解释文件名(Windows 为 ANSI,类 Unix 即 UTF-8),
+    /// 与标准库 path 的本地编码一致,故交给 std::filesystem 完成转换
+    /// </summary>
+    /// <param name="utf8Path">UTF-8 路径</param>
+    /// <returns>本地窄编码路径</returns>
+    std::string toNativePath(const std::string& utf8Path)
+    {
+        return  std::filesystem::u8path(utf8Path).string();
+    }
+
+    /// <summary>
+    /// 本地(native)窄字符串路径转 UTF-8(ImGui 与对话框内部统一 UTF-8)
+    /// </summary>
+    /// <param name="nativePath">本地窄编码路径</param>
+    /// <returns>UTF-8 路径</returns>
+    std::string toUtf8Path(const std::string& nativePath)
+    {
+        return  std::filesystem::path(nativePath).u8string();
+    }
+
+    /// <summary>
+    /// Ribbon 里的动作按钮集合(来自 .ui 菜单树的叶子)
+    /// </summary>
+    using   RibbonActions   =   std::vector<const FEUiMenuItem*>;
+
+    /// <summary>
+    /// 一个分组的按钮排布参数
+    /// </summary>
+    struct  FERibbonMetrics
+    {
+        /// <summary>
+        /// 按钮列数
+        /// </summary>
+        int     _cols   =   1;
+        /// <summary>
+        /// 按钮宽
+        /// </summary>
+        float   _btnW   =   0.0f;
+        /// <summary>
+        /// 按钮高
+        /// </summary>
+        float   _btnH   =   0.0f;
+        /// <summary>
+        /// 分组占用宽度(含左右留白)
+        /// </summary>
+        float   _groupW =   0.0f;
+    };
+
+    /// <summary>
+    /// 计算分组内的按钮排布:所有按钮等宽、单行排列(图标在上、文字在下)
+    /// </summary>
+    /// <param name="actions">分组内的动作</param>
+    /// <returns>排布参数</returns>
+    FERibbonMetrics ribbonMetrics(const RibbonActions& actions)
+    {
+        FERibbonMetrics     metrics;
+        const   int         count   =   int(actions.size());
+        metrics._cols   =   (count > 0) ? count : 1;
+        float   textW   =   0.0f;
+        for (const auto* action : actions)
+            textW   =   std::max(textW,ImGui::CalcTextSize(action->_text.c_str()).x);
+        metrics._btnW   =   std::min(std::max(kMinButtonW,std::max(textW,kIconFontSize) + 12.0f),kButtonMaxW);
+        metrics._btnH   =   kContentH;
+        metrics._groupW =   float(metrics._cols) * metrics._btnW + kGroupPadX * 2.0f;
+        return  metrics;
+    }
+
+    /// <summary>
+    /// 把文本按 UTF-8 字符边界均分成两行(大按钮最多显示两行)
+    /// </summary>
+    /// <param name="text">原文本</param>
+    /// <param name="first">第一行</param>
+    /// <param name="second">第二行</param>
+    void    splitTwoLines(const std::string& text,std::string& first,std::string& second)
+    {
+        std::vector<size_t> offsets;
+        offsets.reserve(text.size());
+        for (size_t i = 0; i < text.size(); ++i)
+        {
+            if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80)
+                offsets.push_back(i);
+        }
+        if (offsets.size() <= 1)
+        {
+            first   =   text;
+            return;
+        }
+        const   size_t  mid =   offsets.size() / 2;
+        first   =   text.substr(0,offsets[mid]);
+        second  =   text.substr(offsets[mid]);
+    }
+
+    /// <summary>
+    /// 动作按钮:hover 有底色,图标在上、文字居中在下方(过长折两行);
+    /// 图标来自 .ui,未登记的用默认字形
+    /// </summary>
+    /// <param name="action">动作(提供文本、图标与快捷键)</param>
+    /// <param name="pos">按钮左上角(屏幕坐标)</param>
+    /// <param name="size">按钮尺寸</param>
+    /// <param name="iconFont">Font Awesome 图标字体;为空时不画图标</param>
+    /// <returns>true 表示本帧被点击</returns>
+    bool    ribbonActionButton(const FEUiMenuItem* action,const ImVec2& pos,const ImVec2& size,
+                               ImFont* iconFont)
+    {
+        /// <summary>
+        /// 用动作名做 ImGui ID,菜单里动作名唯一
+        /// </summary>
+        ImGui::SetCursorScreenPos(pos);
+        const   bool    pressed =   ImGui::InvisibleButton(action->_name.c_str(),size);
+        const   bool    hovered =   ImGui::IsItemHovered();
+        ImDrawList*     dl      =   ImGui::GetWindowDrawList();
+        const   ImVec2  end     =   ImVec2(pos.x + size.x,pos.y + size.y);
+        if (hovered)
+        {
+            dl->AddRectFilled(pos,end,IM_COL32(255,255,255,20),3.0f);
+            dl->AddRect(pos,end,IM_COL32(255,255,255,40),3.0f);
+        }
+        const   ImU32   fg      =   !action->_enabled ? IM_COL32(120,124,134,255)
+                                    : (hovered ? IM_COL32(255,255,255,255) : kTextColor);
+        /// <summary>
+        /// 图标通路:所有动作都画图标,.ui 未登记时回退默认字形
+        /// </summary>
+        char    glyph[5]    =   {};
+        if (iconFont != nullptr)
+            codepointToUtf8(iconCodepoint(action->_icon),glyph);
+        std::string     first   =   action->_text;
+        std::string     second;
+        if (ImGui::CalcTextSize(action->_text.c_str()).x > size.x - 8.0f)
+            splitTwoLines(action->_text,first,second);
+        const   float   lineH   =   ImGui::GetTextLineHeight();
+        const   float   textH   =   second.empty() ? lineH : lineH * 2.0f;
+        const   bool    hasIcon =   (glyph[0] != '\0');
+        const   float   gap     =   hasIcon ? kIconTextGap : 0.0f;
+        const   float   iconH   =   hasIcon ? kIconFontSize : 0.0f;
+        float           ty      =   pos.y + (size.y - (iconH + gap + textH)) * 0.5f;
+        /// <summary>
+        /// 图标与文字均水平居中;文字过长时从左侧起画,由裁剪矩形收边
+        /// </summary>
+        dl->PushClipRect(pos,end,true);
+        if (hasIcon)
+        {
+            const   ImVec2  glyphSize   =   iconFont->CalcTextSizeA(kIconFontSize,FLT_MAX,0.0f,glyph);
+            dl->AddText(iconFont,kIconFontSize,
+                        ImVec2(pos.x + (size.x - glyphSize.x) * 0.5f,ty),fg,glyph);
+            ty  +=  kIconFontSize + gap;
+        }
+        const   ImVec2  firstSize   =   ImGui::CalcTextSize(first.c_str());
+        dl->AddText(ImVec2(std::max(pos.x + 2.0f,pos.x + (size.x - firstSize.x) * 0.5f),ty),
+                    fg,first.c_str());
+        if (!second.empty())
+        {
+            const   ImVec2  secondSize  =   ImGui::CalcTextSize(second.c_str());
+            dl->AddText(ImVec2(std::max(pos.x + 2.0f,pos.x + (size.x - secondSize.x) * 0.5f),ty + lineH),
+                        fg,second.c_str());
+        }
+        dl->PopClipRect();
+        if (hovered && !action->_shortcut.empty())
+            ImGui::SetTooltip("%s  (%s)",action->_text.c_str(),action->_shortcut.c_str());
+        return  pressed;
+    }
+
+    /// <summary>
+    /// 递归收集分组内的叶子动作(子菜单更深时直接展平到当前分组)
+    /// </summary>
+    /// <param name="menu">分组菜单</param>
+    /// <param name="actions">输出的动作列表</param>
+    void    collectGroupActions(const FEUiMenuItem* menu,RibbonActions& actions)
+    {
+        for (const auto* child : menu->_children)
+        {
+            if (child->_type == kUiAction)
+                actions.push_back(child);
+            else if (child->_type == kUiMenu)
+                collectGroupActions(child,actions);
+        }
+    }
+
+    /// <summary>
+    /// 绘制一个 Ribbon 分组:按钮 + 分组标题 + 右侧分隔竖线
+    /// </summary>
+    /// <param name="actions">分组内的动作</param>
+    /// <param name="title">分组标题</param>
+    /// <param name="x">分组左边界(窗口内坐标)</param>
+    /// <param name="iconFont">Font Awesome 图标字体</param>
+    /// <param name="triggered">本帧被点击的动作(输出);已有值时不被覆盖</param>
+    /// <returns>分组占用宽度(含组间间距)</returns>
+    float   drawRibbonGroup(const RibbonActions& actions,const char* title,float x,ImFont* iconFont,
+                            const FEUiMenuItem** triggered)
+    {
+        ImDrawList*         dl      =   ImGui::GetWindowDrawList();
+        const   ImVec2      wp      =   ImGui::GetWindowPos();
+        const   FERibbonMetrics metrics   =   ribbonMetrics(actions);
+        int     index   =   0;
+        for (const auto* action : actions)
+        {
+            const   ImVec2  pos     =   ImVec2(wp.x + x + kGroupPadX + float(index) * metrics._btnW,
+                                               wp.y + kGroupRowY);
+            if (ribbonActionButton(action,pos,ImVec2(metrics._btnW,metrics._btnH),iconFont)
+                && triggered != nullptr && *triggered == nullptr)
+                *triggered  =   action;
+            ++index;
+        }
+        /// <summary>
+        /// 分组标题居中于按钮区下方(标题行占功能区剩余高度)
+        /// </summary>
+        const   ImVec2  titleSize   =   ImGui::CalcTextSize(title);
+        dl->AddText(ImVec2(wp.x + x + (metrics._groupW - titleSize.x) * 0.5f,wp.y + kGroupRowY + kContentH + 3.0f),
+                    kTextMuted,title);
+        /// <summary>
+        /// 组间分隔竖线
+        /// </summary>
+        const   float   lineX   =   wp.x + x + metrics._groupW + kGroupGap * 0.5f;
+        dl->AddLine(ImVec2(lineX,wp.y + kGroupRowY),
+                    ImVec2(lineX,wp.y + kGroupRowY + kContentH + 3.0f + titleSize.y),IM_COL32(255,255,255,26));
+        return  metrics._groupW + kGroupGap;
+    }
     /// <summary>
     /// 标签页按钮:选中项与功能区同色,并在底部画强调线
     /// </summary>
@@ -203,37 +564,400 @@ namespace
     }
 
     /// <summary>
-    /// 功能区大按钮:图标在上、文字在下,支持选中态
+    /// 内容放不下时左右两侧的滚动箭头;已在端点时画灰色且不可点
     /// </summary>
-    /// <param name="id">ImGui ID</param>
-    /// <param name="iconFont">图标字体</param>
-    /// <param name="glyph">图标字形</param>
-    /// <param name="label">按钮文本</param>
-    /// <param name="selected">是否选中</param>
+    /// <param name="pos">箭头左上角(屏幕坐标)</param>
+    /// <param name="size">箭头边长</param>
+    /// <param name="enabled">是否可点</param>
+    /// <param name="right">true 画右箭头,false 画左箭头</param>
     /// <returns>true 表示本帧被点击</returns>
-    bool    ribbonBigButton(const char* id,ImFont* iconFont,const char* glyph,const char* label,bool selected)
+    bool    scrollArrow(const ImVec2& pos,float size,bool enabled,bool right)
     {
-        const   ImVec2  size    =   ImVec2(kButtonW,kButtonH);
-        const   ImVec2  pos     =   ImGui::GetCursorScreenPos();
-        const   ImVec2  end     =   ImVec2(pos.x + size.x,pos.y + size.y);
-        const   bool    pressed =   ImGui::InvisibleButton(id,size);
+        ImGui::SetCursorScreenPos(pos);
+        const   bool    pressed =   ImGui::InvisibleButton(right ? "##fesr_scroll_right" : "##fesr_scroll_left",
+                                                           ImVec2(size,size));
         const   bool    hovered =   ImGui::IsItemHovered();
         ImDrawList*     dl      =   ImGui::GetWindowDrawList();
-        if (selected)
-        {
-            dl->AddRectFilled(pos,end,IM_COL32(74,144,226,80),3.0f);
-            dl->AddRect(pos,end,kAccent,3.0f);
-        }
-        else if (hovered)
+        const   ImVec2  end     =   ImVec2(pos.x + size,pos.y + size);
+        if (hovered && enabled)
         {
             dl->AddRectFilled(pos,end,IM_COL32(255,255,255,20),3.0f);
             dl->AddRect(pos,end,IM_COL32(255,255,255,40),3.0f);
         }
-        const   ImU32   fg      =   selected ? IM_COL32(255,255,255,255) : kIconColor;
-        drawRibbonIcon(dl,iconFont,ImVec2(pos.x + size.x * 0.5f,pos.y + 15.0f),fg,glyph);
-        const   ImVec2  textSize=   ImGui::CalcTextSize(label);
-        dl->AddText(ImVec2(pos.x + (size.x - textSize.x) * 0.5f,pos.y + size.y - textSize.y - 4.0f),fg,label);
-        return  pressed;
+        const   ImU32   color   =   enabled ? (hovered ? IM_COL32(255,255,255,255) : kTextColor)
+                                            : IM_COL32(92,96,106,255);
+        const   float   cx      =   pos.x + size * 0.5f;
+        const   float   cy      =   pos.y + size * 0.5f;
+        const   float   dx      =   right ? 3.5f : -3.5f;
+        dl->AddLine(ImVec2(cx - dx,cy - 4.5f),ImVec2(cx + dx,cy),color,1.6f);
+        dl->AddLine(ImVec2(cx + dx,cy),ImVec2(cx - dx,cy + 4.5f),color,1.6f);
+        return  pressed && enabled;
+    }
+}
+
+namespace   FE
+{
+    void    FEFileDialog::open(Mode mode,const std::string& title,const std::string& ext,
+                               const std::string& dir,const std::string& defaultName)
+    {
+        _mode   =   mode;
+        _title  =   title;
+        _ext    =   ext;
+        _notice.clear();
+        _selected   =   -1;
+        _nameBuf[0] =   '\0';
+        if (!defaultName.empty())
+        {
+            strncpy(_nameBuf,defaultName.c_str(),sizeof(_nameBuf) - 1);
+            _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
+        }
+        /// <summary>
+        /// 初始目录不存在时回落到当前工作目录
+        /// </summary>
+        std::error_code ec;
+        std::filesystem::path   start   =   std::filesystem::u8path(dir);
+        if (dir.empty() || !std::filesystem::is_directory(start,ec))
+            start   =   std::filesystem::current_path(ec);
+        enter(start);
+        buildQuickItems(dir);
+        _firstFrame =   true;
+    }
+
+    void    FEFileDialog::close()
+    {
+        _mode   =   kNone;
+        _entries.clear();
+        _dirty  =   true;
+    }
+
+    void    FEFileDialog::buildQuickItems(const std::string& startDir)
+    {
+        _quickItems.clear();
+        /// <summary>
+        /// 只收录真实存在的目录,避免点到无效位置
+        /// </summary>
+        auto    add =   [this](const std::string& label,const std::filesystem::path& path)
+        {
+            std::error_code ec;
+            if (!std::filesystem::is_directory(path,ec) || ec)
+                return;
+            _quickItems.push_back({label,path});
+        };
+
+        /// <summary>
+        /// 用户主目录及其常用子目录(Windows 取 USERPROFILE,类 Unix 取 HOME)
+        /// </summary>
+        const   char*   home    =   std::getenv("USERPROFILE");
+        if (home == nullptr || home[0] == '\0')
+            home    =   std::getenv("HOME");
+        if (home != nullptr && home[0] != '\0')
+        {
+            const   std::filesystem::path   homeDir(home);
+            add("桌面",     homeDir / "Desktop");
+            add("下载",     homeDir / "Downloads");
+            add("文档",     homeDir / "Documents");
+            add("主文件夹", homeDir);
+        }
+
+        /// <summary>
+        /// 程序目录(与 Qt 版文件对话框的起始位置一致)
+        /// </summary>
+        if (!startDir.empty())
+            add("程序目录",std::filesystem::u8path(startDir));
+
+        /// <summary>
+        /// 各盘符根:类 Unix 上 "X:\" 都不存在,循环自然为空,再补上根目录
+        /// </summary>
+        int rootCount   =   0;
+        for (char c = 'A'; c <= 'Z'; ++c)
+        {
+            std::string root;
+            root    +=  c;
+            root    +=  ':';
+            root    +=  std::filesystem::path::preferred_separator;
+            const   std::filesystem::path   drive(root);
+            std::error_code ec;
+            if (!std::filesystem::is_directory(drive,ec) || ec)
+                continue;
+            _quickItems.push_back({std::string(1,c) + ":",drive});
+            ++rootCount;
+        }
+        if (rootCount == 0)
+            add("/",std::filesystem::path("/"));
+    }
+
+    void    FEFileDialog::enter(const std::filesystem::path& dir)
+    {
+        std::error_code ec;
+        std::filesystem::path   target  =   std::filesystem::absolute(dir,ec);
+        if (ec)
+            target  =   dir;
+        _dir    =   target.lexically_normal();
+        _dirty  =   true;
+        _selected   =   -1;
+        setPathBuf(_dir.u8string());
+    }
+
+    void    FEFileDialog::setPathBuf(const std::string& utf8Path)
+    {
+        strncpy(_pathBuf,utf8Path.c_str(),sizeof(_pathBuf) - 1);
+        _pathBuf[sizeof(_pathBuf) - 1]  =   '\0';
+    }
+
+    void    FEFileDialog::gotoPath(const std::string& text)
+    {
+        /// <summary>
+        /// 去掉首尾空白与从资源管理器复制路径时携带的引号
+        /// </summary>
+        std::string     input   =   text;
+        while (!input.empty() && (input.front() == ' ' || input.front() == '"'))
+            input.erase(input.begin());
+        while (!input.empty() && (input.back() == ' ' || input.back() == '"'))
+            input.pop_back();
+        if (input.empty())
+        {
+            setPathBuf(_dir.u8string());
+            return;
+        }
+
+        std::filesystem::path   target  =   std::filesystem::u8path(input);
+        /// <summary>
+        /// 只输入盘符(如 D:)时补上分隔符,否则无法作为目录打开
+        /// </summary>
+        const   std::string     native  =   target.string();
+        if (native.size() == 2 && native[1] == ':')
+            target  +=  std::filesystem::path::preferred_separator;
+
+        std::error_code ec;
+        if (std::filesystem::is_directory(target,ec) && !ec)
+        {
+            enter(target);
+            return;
+        }
+        ec.clear();
+        /// <summary>
+        /// 输入的是文件:跳到其所在目录并填入文件名
+        /// </summary>
+        if (std::filesystem::is_regular_file(target,ec) && !ec)
+        {
+            strncpy(_nameBuf,target.filename().u8string().c_str(),sizeof(_nameBuf) - 1);
+            _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
+            enter(target.parent_path());
+            return;
+        }
+        /// <summary>
+        /// 路径无效:提示并把地址栏恢复成当前目录,浏览位置不变
+        /// </summary>
+        _notice =   "路径不存在:" + input;
+        setPathBuf(_dir.u8string());
+    }
+
+    void    FEFileDialog::refresh()
+    {
+        _entries.clear();
+        _dirty      =   false;
+        _notice.clear();
+        std::error_code ec;
+        std::filesystem::directory_iterator   itr(_dir,ec);
+        if (ec)
+        {
+            _notice =   "无法读取目录:" + ec.message();
+            return;
+        }
+        std::string lowerExt    =   _ext;
+        std::transform(lowerExt.begin(),lowerExt.end(),lowerExt.begin(),
+                       [](unsigned char c) {   return  char(std::tolower(c));   });
+        for (const auto& item : itr)
+        {
+            std::error_code ecItem;
+            const   bool    isDir   =   item.is_directory(ecItem);
+            if (ecItem)
+                continue;
+            std::string     name    =   item.path().filename().u8string();
+            if (isDir)
+            {
+                _entries.push_back({name,true});
+                continue;
+            }
+            if (!lowerExt.empty())
+            {
+                std::string ext     =   item.path().extension().u8string();
+                std::transform(ext.begin(),ext.end(),ext.begin(),
+                               [](unsigned char c) {   return  char(std::tolower(c));   });
+                if (ext != lowerExt)
+                    continue;
+            }
+            _entries.push_back({name,false});
+        }
+        /// <summary>
+        /// 目录在前、同类按名称升序(与系统文件对话框一致)
+        /// </summary>
+        std::sort(_entries.begin(),_entries.end(),[](const Entry& l,const Entry& r)
+        {
+            if (l._dir != r._dir)
+                return  l._dir;
+            return  l._name < r._name;
+        });
+    }
+
+    bool    FEFileDialog::draw(ImFont* iconFont,std::string& resultPath)
+    {
+        UNUSED(iconFont);
+        if (_mode == kNone)
+            return  false;
+        if (_dirty)
+            refresh();
+
+        bool    confirmed   =   false;
+        bool    cancelled   =   false;
+        std::string picked;
+        bool    opened      =   true;
+        /// <summary>
+        /// 对话框居中,首次绘制定位置与大小,之后允许用户拖动
+        /// </summary>
+        const   ImGuiIO&    io  =   ImGui::GetIO();
+        if (_firstFrame)
+        {
+            const   ImVec2  dlgSize =   ImVec2(std::min(720.0f,io.DisplaySize.x - 40.0f),
+                                               std::min(460.0f,io.DisplaySize.y - 40.0f));
+            ImGui::SetNextWindowPos(ImVec2((io.DisplaySize.x - dlgSize.x) * 0.5f,
+                                          (io.DisplaySize.y - dlgSize.y) * 0.5f),ImGuiCond_Always);
+            ImGui::SetNextWindowSize(dlgSize,ImGuiCond_Always);
+        }
+        if (ImGui::Begin(_title.c_str(),&opened,ImGuiWindowFlags_NoCollapse))
+        {
+            const   float   rowH    =   ImGui::GetFrameHeightWithSpacing();
+            const   float   listH   =   std::max(80.0f,ImGui::GetWindowHeight() - rowH * 4.5f);
+
+            /// <summary>
+            /// 位置栏:上级目录 + 可编辑地址栏(可直接输入路径或盘符,回车跳转) + 转到
+            /// </summary>
+            const   ImGuiStyle& style   =   ImGui::GetStyle();
+            if (ImGui::Button("上级目录") && _dir.has_parent_path())
+                enter(_dir.parent_path());
+            ImGui::SameLine();
+            const   float   upW     =   ImGui::CalcTextSize("上级目录").x + style.FramePadding.x * 2.0f;
+            const   float   goW     =   ImGui::CalcTextSize("转到").x + style.FramePadding.x * 2.0f;
+            ImGui::PushItemWidth(ImGui::GetWindowWidth() - upW - goW - style.ItemSpacing.x * 3.0f
+                                 - style.WindowPadding.x * 2.0f);
+            const   bool    go      =   ImGui::InputText("##fesr_fd_path",_pathBuf,sizeof(_pathBuf),
+                                                         ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            if (ImGui::Button("转到") || go)
+                gotoPath(_pathBuf);
+            ImGui::Separator();
+
+            /// <summary>
+            /// 左侧导航栏 + 右侧文件列表(仿资源管理器的双栏布局)
+            /// </summary>
+            const   float   navW    =   132.0f;
+            const   float   listW   =   std::max(200.0f,ImGui::GetWindowWidth() - navW
+                                                 - style.ItemSpacing.x - style.WindowPadding.x * 2.0f);
+            ImGui::BeginChild("##fesr_fd_nav",ImVec2(navW,listH),true);
+            for (const auto& item : _quickItems)
+            {
+                if (ImGui::Selectable(item._label.c_str(),item._path == _dir))
+                    enter(item._path);
+            }
+            ImGui::EndChild();
+            ImGui::SameLine();
+
+            /// <summary>
+            /// 文件与目录列表:单击选中,双击进入目录或确认文件
+            /// </summary>
+            ImGui::BeginChild("##fesr_fd_list",ImVec2(listW,listH),true);
+            for (int i = 0; i < int(_entries.size()); ++i)
+            {
+                const   Entry&  entry   =   _entries[size_t(i)];
+                ImGui::PushID(i);
+                const   std::string label   =   entry._dir ? ("[ 目录 ] " + entry._name) : entry._name;
+                if (ImGui::Selectable(label.c_str(),_selected == i,
+                                      ImGuiSelectableFlags_AllowDoubleClick))
+                {
+                    _selected   =   i;
+                    if (entry._dir)
+                    {
+                        if (ImGui::IsMouseDoubleClicked(0))
+                            enter(_dir / std::filesystem::u8path(entry._name));
+                    }
+                    else
+                    {
+                        strncpy(_nameBuf,entry._name.c_str(),sizeof(_nameBuf) - 1);
+                        _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
+                        if (ImGui::IsMouseDoubleClicked(0))
+                            confirmed   =   true;
+                    }
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndChild();
+            if (!_notice.empty())
+                ImGui::TextDisabled("%s",_notice.c_str());
+
+            /// <summary>
+            /// 文件名输入框:回车等同确认
+            /// </summary>
+            ImGui::PushItemWidth(-1.0f);
+            if (ImGui::InputText("##fesr_fd_name",_nameBuf,sizeof(_nameBuf),
+                                 ImGuiInputTextFlags_EnterReturnsTrue))
+                confirmed   =   true;
+            ImGui::PopItemWidth();
+
+            /// <summary>
+            /// 底部按钮:确定 / 取消(文件名为空时"确定"淡显且不可用)
+            /// </summary>
+            const   bool    hasName =   (_nameBuf[0] != '\0');
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha,hasName ? 1.0f : 0.45f);
+            if (ImGui::Button(_mode == kSave ? "保存" : "打开",ImVec2(96.0f,0.0f)) && hasName)
+                confirmed   =   true;
+            ImGui::PopStyleVar();
+            ImGui::SameLine();
+            if (ImGui::Button("取消",ImVec2(96.0f,0.0f)))
+                cancelled   =   true;
+
+            /// <summary>
+            /// 确认:输入的是文件夹则进入;否则拼接完整路径,
+            /// 另存为时缺扩展名自动补上
+            /// </summary>
+            if (confirmed && hasName)
+            {
+                std::filesystem::path   file    =   std::filesystem::u8path(_nameBuf);
+                std::error_code         ec;
+                if (std::filesystem::is_directory(_dir / file,ec) && !ec)
+                {
+                    enter(_dir / file);
+                }
+                else
+                {
+                    if (_mode == kSave && !_ext.empty() && file.extension() != _ext)
+                        file    +=  _ext;
+                    picked  =   (_dir / file).u8string();
+                }
+            }
+        }
+        ImGui::End();
+        _firstFrame =   false;
+
+        /// <summary>
+        /// 取消按钮 / 标题栏关闭按钮:结束对话框,不产出结果
+        /// </summary>
+        if (cancelled || !opened)
+        {
+            close();
+            return  true;
+        }
+        /// <summary>
+        /// 未确认(或确认时文件名为空):保持打开,继续浏览
+        /// </summary>
+        if (!confirmed || picked.empty())
+            return  false;
+        /// <summary>
+        /// 确认:产出完整路径并结束
+        /// </summary>
+        resultPath  =   picked;
+        close();
+        return  true;
     }
 }
 
@@ -382,14 +1106,21 @@ namespace   FE
             io.FontDefault  =   cnFont;
 
         /// <summary>
-        /// Ribbon 大按钮图标:Font Awesome 实心图标字体,
-        /// 只加载用到的 4 个私有区码位,避免字体图集被整套图标撑大
+        /// Ribbon 图标:Font Awesome 实心图标字体,只加载 kIconGlyphs 里用到的码位,
+        /// 避免字体图集被整套图标(上千个字形)撑大
         /// </summary>
         {
             static  const   ImWchar kIconRanges[]   =
                 {
-                    0xF009,0xF009,  0xF011,0xF011,  0xF030,0xF030,  0xF05A,0xF05A,
-                    0xF06E,0xF06E,  0xF070,0xF070,  0xF1B2,0xF1B2,  0xF2D0,0xF2D0,  0
+                    0xF00D,0xF00D,  0xF01E,0xF021,  0xF036,0xF038,  0xF048,0xF04A,
+                    0xF04C,0xF04C,  0xF04E,0xF04E,  0xF050,0xF051,  0xF05A,0xF05A,
+                    0xF062,0xF063,  0xF065,0xF065,  0xF06E,0xF06E,  0xF070,0xF070,
+                    0xF07C,0xF07C,  0xF0B2,0xF0B2,  0xF0C7,0xF0C7,  0xF0D8,0xF0D8,
+                    0xF0E2,0xF0E2,  0xF102,0xF103,  0xF111,0xF111,  0xF126,0xF126,
+                    0xF140,0xF140,  0xF14E,0xF14E,  0xF192,0xF192,  0xF1B2,0xF1B2,
+                    0xF1C0,0xF1C0,  0xF1CE,0xF1CE,  0xF200,0xF200,  0xF2EA,0xF2EA,
+                    0xF2F1,0xF2F1,  0xF31E,0xF31E,  0xF337,0xF338,  0xF3C5,0xF3C5,
+                    0xF56F,0xF56F,  0xF5FD,0xF5FD,  0xF61F,0xF61F,  0
                 };
             ImFontConfig    iconCfg =   {};
             iconCfg.PixelSnapH      =   true;
@@ -411,9 +1142,17 @@ namespace   FE
         io.Fonts->TexID =   (void*)1;
 
         _scene      =   scene;
+        _ctx        =   &ctx;
         _showGrid   =   true;
-        _activeTab  =   1;
+        _activeTab  =   0;
         _guiDrag[0] =   _guiDrag[1] = _guiDrag[2] = false;
+        /// <summary>
+        /// 工程相关状态:文件对话框默认从程序目录开始(与 Qt 版一致)
+        /// </summary>
+        _projectName.clear();
+        _statusText.clear();
+        _pendingActions.clear();
+        _startDir   =   toUtf8Path(ctx.workPath());
         /// <summary>
         /// 预加载 .ui 预览文档(bin/data/ui/MainWindow.ui)
         /// </summary>
@@ -437,6 +1176,7 @@ namespace   FE
         /// <summary>
         /// 先断开回调与后端链接,避免工厂在后续帧继续访问已释放对象
         /// </summary>
+        _modelTree.unbind();
         if (_factory != nullptr)
         {
             _factory->_buildUI  =   nullptr;
@@ -444,7 +1184,9 @@ namespace   FE
         }
         _factory    =   nullptr;
         _scene      =   nullptr;
+        _ctx        =   nullptr;
         _iconFont   =   nullptr;
+        _fileDialog.close();
         _uiDoc.clear();
         _uiError.clear();
         _uiPreviewOpen  =   false;
@@ -480,6 +1222,10 @@ namespace   FE
                                             |   ImGuiWindowFlags_NoMove             |   ImGuiWindowFlags_NoScrollbar
                                             |   ImGuiWindowFlags_NoScrollWithMouse  |   ImGuiWindowFlags_NoCollapse
                                             |   ImGuiWindowFlags_NoSavedSettings    |   ImGuiWindowFlags_NoBringToFrontOnFocus;
+        /// <summary>
+        /// 本帧被点击的动作:窗口结束后统一分发
+        /// </summary>
+        const   FEUiMenuItem*   triggered   =   nullptr;
         if (ImGui::Begin("##fesr_ribbon",nullptr,flags))
         {
             ImDrawList*     dl          =   ImGui::GetWindowDrawList();
@@ -492,105 +1238,160 @@ namespace   FE
             dl->AddRectFilled(ImVec2(wp.x,wp.y + barBottom),ImVec2(wp.x + width,wp.y + kRibbonH),kRibbonBg);
 
             /// <summary>
-            /// 标签页行
+            /// 标签页行:MainWindow.ui 的主菜单即 Ribbon 的 Page
             /// </summary>
-            ImGui::SetCursorPos(ImVec2(6.0f,kTabRowY));
-            auto    tab =   [this](const char* label,int index)
+            std::vector<const FEUiMenuItem*>    pages;
+            if (_uiDoc.menuBar() != nullptr)
             {
-                if (ribbonTab(label,_activeTab == index))
-                    _activeTab  =   index;
-                ImGui::SameLine(0.0f,2.0f);
-            };
-            tab("文件",0);
-            tab("开始",1);
-            tab("视图",2);
-            tab("帮助",3);
-            tab("界面",4);
-
-            /// <summary>
-            /// 右上角:程序名与帧率
-            /// </summary>
-            const   float   infoX   =   (width > 460.0f) ? (width - 196.0f) : 240.0f;
-            ImGui::SetCursorPos(ImVec2(infoX,kTabRowY + 5.0f));
-            ImGui::TextDisabled("FESceneEditor   %.1f FPS",io.Framerate);
-
-            /// <summary>
-            /// 功能区:组标题与组间竖线,纯绘制,不参与布局
-            /// </summary>
-            auto    frame       =   [&](float x,float groupW,const char* caption)
-            {
-                ImDrawList*     dl      =   ImGui::GetWindowDrawList();
-                const   ImVec2  ts      =   ImGui::CalcTextSize(caption);
-                dl->AddText(ImVec2(wp.x + x + (groupW - ts.x) * 0.5f,wp.y + kGroupRowY + kButtonH + 6.0f),
-                            kTextMuted,caption);
-                const   float   lineX   =   wp.x + x + groupW + 5.0f;
-                dl->AddLine(ImVec2(lineX,wp.y + kGroupRowY - 2.0f),
-                            ImVec2(lineX,wp.y + kGroupRowY + kButtonH + 16.0f),IM_COL32(255,255,255,26));
-            };
-            /// <summary>
-            /// 在功能区指定位置放大按钮
-            /// </summary>
-            auto    bigAt       =   [this](float x,const char* id,const char* glyph,const char* label,bool selected)
-            {
-                ImGui::SetCursorPos(ImVec2(x,kGroupRowY + 2.0f));
-                return  ribbonBigButton(id,_iconFont,glyph,label,selected);
-            };
-
-            switch (_activeTab)
-            {
-            /// <summary>
-            /// 文件
-            /// </summary>
-            case 0:
-                if (bigAt(8.0f,"###quit",kIconPower,"退出",false))
+                for (const auto* page : _uiDoc.menuBar()->_children)
                 {
-                    if (_onQuit)
-                        _onQuit();
+                    if (page->_type == kUiMenu)
+                        pages.push_back(page);
                 }
-                frame(6.0f,76.0f,"文件");
-                break;
+            }
+            if (_activeTab < 0 || _activeTab >= int(pages.size()))
+                _activeTab  =   0;
+            ImGui::SetCursorPos(ImVec2(6.0f,kTabRowY));
+            for (int i = 0; i < int(pages.size()); ++i)
+            {
+                if (ribbonTab(pages[size_t(i)]->_text.c_str(),_activeTab == i))
+                {
+                    _activeTab      =   i;
+                    /// <summary>
+                    /// 换页后内容整体变化,滚动位置回到最左
+                    /// </summary>
+                    _ribbonScrollX  =   0.0f;
+                }
+                ImGui::SameLine(0.0f,2.0f);
+            }
             /// <summary>
-            /// 视图
+            /// 标签行右边界:右上角信息从这里开始,避免与标签重叠
             /// </summary>
-            case 2:
-                if (bigAt(8.0f,"###view_grid",kIconGrid,"显示网格",_showGrid))
-                    toggleGrid();
-                frame(6.0f,76.0f,"显示");
-                break;
+            const   float   tabRight    =   ImGui::GetCursorPosX();
+
             /// <summary>
-            /// 帮助
+            /// 右上角:当前工程名、状态提示与帧率(右对齐,超出部分裁剪)
             /// </summary>
-            case 3:
-                if (bigAt(8.0f,"###about",kIconInfo,"关于",false))
-                    _aboutOpen  =   true;
-                frame(6.0f,76.0f,"支持");
-                break;
+            {
+                const   std::string projectName =   _projectName.empty() ? std::string("未命名工程")
+                                                                         : _projectName;
+                char    info[1200]  =   {};
+                if (_statusText.empty())
+                    snprintf(info,sizeof(info),"%s   %.1f FPS",projectName.c_str(),io.Framerate);
+                else
+                    snprintf(info,sizeof(info),"%s   %.1f FPS   |   %s",projectName.c_str(),io.Framerate,
+                             _statusText.c_str());
+                const   ImVec2  infoSize    =   ImGui::CalcTextSize(info);
+                const   float   infoRight   =   width - 8.0f;
+                const   float   infoLeft    =   std::max(tabRight,8.0f);
+                dl->PushClipRect(ImVec2(wp.x + infoLeft,wp.y),ImVec2(wp.x + infoRight,wp.y + barBottom),true);
+                ImGui::SetCursorPos(ImVec2(std::max(infoLeft,infoRight - infoSize.x),kTabRowY + 5.0f));
+                ImGui::TextDisabled("%s",info);
+                dl->PopClipRect();
+            }
+
             /// <summary>
-            /// 界面
+            /// 功能区:Page 下的子菜单为分组,分组内的动作为按钮;
+            /// Page 下直接挂的动作归入以 Page 标题命名的分组
             /// </summary>
-            case 4:
-                if (bigAt(8.0f,"###model_tree",kIconCube,"模型树",_treeOpen))
-                    _treeOpen   =   !_treeOpen;
-                frame(6.0f,76.0f,"面板");
-                if (bigAt(94.0f,"###ui_preview",kIconWindow,"UI 预览",_uiPreviewOpen))
-                    _uiPreviewOpen  =   !_uiPreviewOpen;
-                frame(92.0f,76.0f,"界面");
-                break;
-            /// <summary>
-            /// 开始
-            /// </summary>
-            default:
-                if (bigAt(8.0f,"###home_grid",kIconGrid,"显示网格",_showGrid))
-                    toggleGrid();
-                frame(6.0f,76.0f,"场景");
-                if (bigAt(94.0f,"###home_reset",kIconCamera,"重置视图",false))
-                    resetCamera();
-                frame(92.0f,76.0f,"相机");
-                break;
+            if (!pages.empty())
+            {
+                const   FEUiMenuItem*   page    =   pages[size_t(_activeTab)];
+
+                /// <summary>
+                /// 先按 .ui 中 addaction 的原始顺序组装分组列表:
+                /// Page 下直接挂的动作按出现顺序成组,遇到子菜单则另起一个分组
+                /// </summary>
+                struct  FERibbonGroup
+                {
+                    RibbonActions           _actions;
+                    /// <summary>
+                    /// 分组菜单;为空表示这组来自 Page 下直接挂的动作
+                    /// </summary>
+                    const   FEUiMenuItem*   _menu   =   nullptr;
+                };
+                std::vector<FERibbonGroup>  groups;
+                RibbonActions   direct;
+                auto    flushDirect =   [&]()
+                {
+                    if (direct.empty())
+                        return;
+                    FERibbonGroup   group;
+                    group._actions  =   direct;
+                    groups.push_back(group);
+                    direct.clear();
+                };
+                for (const auto* child : page->_children)
+                {
+                    if (child->_type == kUiAction)
+                    {
+                        direct.push_back(child);
+                    }
+                    else if (child->_type == kUiMenu)
+                    {
+                        flushDirect();
+                        FERibbonGroup   group;
+                        group._menu =   child;
+                        collectGroupActions(child,group._actions);
+                        if (!group._actions.empty())
+                            groups.push_back(group);
+                    }
+                }
+                flushDirect();
+
+                /// <summary>
+                /// 内容总宽 = 各分组宽度之和(含组间间距)
+                /// </summary>
+                float   contentW    =   0.0f;
+                for (const auto& group : groups)
+                    contentW    +=  ribbonMetrics(group._actions)._groupW + kGroupGap;
+
+                /// <summary>
+                /// 放不下时左右各留出箭头宽度,可视区间相应收窄
+                /// </summary>
+                const   bool    overflow    =   (contentW > width - kGroupStartX * 2.0f);
+                const   float   viewL       =   overflow ? kArrowW : kGroupStartX;
+                const   float   viewR       =   overflow ? (width - kArrowW) : (width - kGroupStartX);
+                const   float   maxScroll   =   std::max(0.0f,contentW - (viewR - viewL));
+                _ribbonScrollX  =   std::max(0.0f,std::min(_ribbonScrollX,maxScroll));
+
+                /// <summary>
+                /// 按钮内容整体左移 scrollX,并裁剪到可视区间
+                /// </summary>
+                dl->PushClipRect(ImVec2(wp.x + viewL,wp.y + barBottom),
+                                 ImVec2(wp.x + viewR,wp.y + kRibbonH),true);
+                float   x   =   viewL - _ribbonScrollX;
+                for (const auto& group : groups)
+                {
+                    const   char*   title   =   (group._menu != nullptr) ? group._menu->_text.c_str()
+                                                                        : page->_text.c_str();
+                    x   +=  drawRibbonGroup(group._actions,title,x,_iconFont,&triggered);
+                }
+                dl->PopClipRect();
+
+                /// <summary>
+                /// 放不下时在左右两侧画滚动箭头,点击按 kScrollStep 步进
+                /// </summary>
+                if (overflow)
+                {
+                    const   float   arrowY  =   wp.y + kGroupRowY + (kContentH - kArrowW) * 0.5f;
+                    if (scrollArrow(ImVec2(wp.x,arrowY),kArrowW,_ribbonScrollX > 0.0f,false))
+                        _ribbonScrollX  =   std::max(0.0f,_ribbonScrollX - kScrollStep);
+                    if (scrollArrow(ImVec2(wp.x + width - kArrowW,arrowY),kArrowW,
+                                    _ribbonScrollX < maxScroll,true))
+                        _ribbonScrollX  =   std::min(maxScroll,_ribbonScrollX + kScrollStep);
+                }
             }
         }
         ImGui::End();
         ImGui::PopStyleVar(3);
+
+        /// <summary>
+        /// Ribbon 按钮动作分发。文件对话框是普通的 ImGui 窗口(非系统模态),
+        /// 在帧内处理不会引起消息重入
+        /// </summary>
+        if (triggered != nullptr)
+            onAction(triggered);
 
         /// <summary>
         /// 关于窗口
@@ -612,8 +1413,311 @@ namespace   FE
             ImGui::End();
         }
 
+        drawFileDialog();
         drawModelTree();
         drawUiPreview();
+    }
+
+    void    FEEditorUi::drawFileDialog()
+    {
+        if (!_fileDialog.isOpen())
+            return;
+        std::string file;
+        if (!_fileDialog.draw(_iconFont,file))
+            return;
+        if (file.empty())
+            return;
+
+        /// <summary>
+        /// 另存为模式走保存,打开模式走打开。
+        /// 两者都改场景(open 会新建渲染工厂),必须推迟到渲染趟之外执行
+        /// </summary>
+        if (_fileDialogSaveMode)
+            _pendingActions.push_back([this,file]() {   saveProjectTo(file);    });
+        else
+            _pendingActions.push_back([this,file]() {   openProject(file);  });
+    }
+
+    void    FEEditorUi::onAction(const FEUiMenuItem* action)
+    {
+        if (action == nullptr)
+            return;
+        const   std::string&    name    =   action->_name;
+        if (name == "action_openPrj")
+        {
+            /// <summary>
+            /// 打开工程:与 Qt 版一致,默认从程序目录开始
+            /// </summary>
+            _fileDialogSaveMode =   false;
+            _fileDialog.open(FEFileDialog::kOpen,"打开工程",".fepj",_startDir,"");
+        }
+        else if (name == "action_savePrj")
+        {
+            _pendingActions.push_back([this]() {    saveProject();  });
+        }
+        else if (name == "actionReset")
+        {
+            _pendingActions.push_back([this]() {    resetScene();   });
+        }
+        else if (name.rfind("action_add",0) == 0)
+        {
+            /// <summary>
+            /// "模型"分组下的几何体/空节点创建按钮(action_addBox … action_addEmpty);
+            /// 相机节点名为 action_AddCameraNode,不会被此前缀匹配。
+            /// 这里只登记动作,真正的创建推迟到下一帧 MSG_UPDATE(见 onMessage),
+            /// 因为本函数由 Ribbon 绘制调用,而绘制发生在渲染趟内部:此刻新建渲染工厂
+            /// 会赶在同一帧被渲染,而工厂的 update 尚未执行、索引缓冲尚未生成
+            /// </summary>
+            _pendingActions.push_back([this,name]() {   createModelNode(name);  });
+        }
+    }
+
+    void    FEEditorUi::openProject(const std::string& path)
+    {
+        if (_scene == nullptr)
+            return;
+        if (_scene->open(toNativePath(path).c_str()))
+        {
+            _projectName    =   path;
+            _startDir       =   std::filesystem::u8path(path).parent_path().u8string();
+            _statusText     =   "打开工程成功";
+        }
+        else
+        {
+            _statusText     =   "打开工程失败:" + path;
+        }
+    }
+
+    void    FEEditorUi::saveProject()
+    {
+        if (_scene == nullptr)
+            return;
+        /// <summary>
+        /// 与 Qt 版一致:节点树为空时不做任何处理
+        /// </summary>
+        if (_scene->nodeTree().topLevelNodes().empty())
+        {
+            _statusText =   "场景为空,没有可保存的内容";
+            return;
+        }
+        if (_projectName.empty())
+        {
+            _fileDialogSaveMode =   true;
+            _fileDialog.open(FEFileDialog::kSave,"另存为",".fepj",_startDir,"unname");
+            return;
+        }
+        saveProjectTo(_projectName);
+    }
+
+    void    FEEditorUi::saveProjectTo(const std::string& path)
+    {
+        if (_scene == nullptr)
+            return;
+        if (_scene->save(toNativePath(path).c_str()))
+        {
+            _projectName    =   path;
+            _startDir       =   std::filesystem::u8path(path).parent_path().u8string();
+            _statusText     =   "保存工程成功";
+        }
+        else
+        {
+            _statusText     =   "保存工程失败:" + path;
+        }
+    }
+
+    void    FEEditorUi::resetScene()
+    {
+        if (_scene == nullptr)
+            return;
+        /// <summary>
+        /// 与 Qt 版 slotReset 一致:清空场景与工程名,不退出程序。
+        /// 模型树订阅了节点树的清空事件,下一帧自动刷新
+        /// </summary>
+        _scene->clear();
+        _projectName.clear();
+        _statusText =   "已重置";
+    }
+
+    namespace
+    {
+        /// <summary>
+        /// 编辑器创建几何体时统一使用的属性流(位置/法线/UV),
+        /// 与脚本绑定及 MCP 工具的默认流一致
+        /// </summary>
+        Attrs   editorGeoAttrs()
+        {
+            return  Attrs({{IS_VERTEX_POS,         FMT_R32G32B32_FLOAT},
+                           {IS_VERTEX_NOR,         FMT_R32G32B32_FLOAT},
+                           {IS_VERTEX_TEXCOORD0,   FMT_R32G32_FLOAT}});
+        }
+
+        /// <summary>
+        /// 生成不与现有顶层节点重名的新名字:重名时追加 " 2"、" 3" 依次递增
+        /// </summary>
+        /// <param name="scene">场景(取其顶层节点名)</param>
+        /// <param name="base">期望的基础名字</param>
+        /// <returns>可用的节点名</returns>
+        std::string editorUniqueName(FEScene& scene,const std::string& base)
+        {
+            std::string name    =   base;
+            for (int index = 2; ; ++index)
+            {
+                bool    used    =   false;
+                for (auto&  n   :   scene.nodeTree().topLevelNodes())
+                {
+                    if (n != nullptr && name == n->name())
+                    {
+                        used    =   true;
+                        break;
+                    }
+                }
+                if (!used)
+                    return  name;
+                name    =   base + " " + std::to_string(index);
+            }
+        }
+    }
+
+    void    FEEditorUi::addNodeToScene(Node node,const std::string& nodeName)
+    {
+        if (_scene == nullptr || node == nullptr)
+            return;
+        node->setName(editorUniqueName(*_scene,nodeName));
+        /// <summary>
+        /// 加入节点树(模型树显示)后,再分发到渲染工厂与各系统(真正进入渲染),
+        /// 两者缺一不可
+        /// </summary>
+        _scene->addNodesToTree({node});
+        _scene->dispatchNodesToSystem({node});
+    }
+
+    void    FEEditorUi::createModelNode(const std::string& actionName)
+    {
+        if (_scene == nullptr || _ctx == nullptr)
+            return;
+
+        /// <summary>
+        /// 按动作名生成网格;每种几何体用默认参数即可获得合理的初始形状
+        /// </summary>
+        Mesh        mesh;
+        std::string label;
+        if (actionName == "action_addBox")
+        {
+            FEGeometryBox   geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "正方体";
+        }
+        else if (actionName == "action_addSphere")
+        {
+            FEGeometrySphere    geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "球体";
+        }
+        else if (actionName == "action_addCylinder")
+        {
+            FEGeometryCylinder  geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "圆柱";
+        }
+        else if (actionName == "action_addSphericalCap")
+        {
+            FEGeometryPRCP  geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "球冠体";
+        }
+        else if (actionName == "action_addConeFrustum")
+        {
+            FEGeometryPRCN  geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "圆锥台";
+        }
+        else if (actionName == "action_addPyramidFrustum")
+        {
+            FEGeometryPRPY  geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "棱锥台";
+        }
+        else if (actionName == "action_addTorusSector")
+        {
+            /// <summary>
+            /// 圆环扇形:取四分之一圆的弧段
+            /// </summary>
+            FEGeometryTorus geo(*_ctx);
+            geo.param().arc    =   float(TWO_PI) * 0.25f;
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "圆环扇形";
+        }
+        else if (actionName == "action_addTorus")
+        {
+            FEGeometryTorus geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "圆环";
+        }
+        else if (actionName == "action_addHyperboloid")
+        {
+            /// <summary>
+            /// 引擎暂无独立的双曲面实现,用椭球体(PRDH)代替
+            /// </summary>
+            FEGeometryPRDH  geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "双曲面";
+        }
+        else if (actionName == "action_addPyramid")
+        {
+            /// <summary>
+            /// 四棱锥:FEGeometryPyramid 默认即为 radiusTop=0、radialSegments=4
+            /// </summary>
+            FEGeometryPyramid   geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "四棱锥";
+        }
+        else if (actionName == "action_addTorusSolid")
+        {
+            FEGeometryPRRT  geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "圆环体";
+        }
+        else if (actionName == "action_addTorusKnot")
+        {
+            FEGeometryTorusKnot geo(*_ctx);
+            mesh    =   geo.triangular(editorGeoAttrs());
+            label   =   "圆环扭结";
+        }
+        else if (actionName == "action_addEmpty")
+        {
+            /// <summary>
+            /// 空节点:只有名字,没有网格与材质
+            /// </summary>
+            Node    empty   =   new FENode(*_ctx);
+            addNodeToScene(empty,"空节点");
+            _statusText =   "已创建空节点";
+            return;
+        }
+        else
+        {
+            return;
+        }
+
+        if (mesh == nullptr)
+        {
+            _statusText =   "几何体生成失败:" + label;
+            return;
+        }
+
+        Node    node    =   new FENode(*_ctx);
+        node->setMesh(mesh);
+
+        /// <summary>
+        /// 普通 PBR 材质:明亮的漫反射与自发光,使新对象在默认光照下清晰可见
+        /// </summary>
+        FEMaterialPBR*  mat =   new FEMaterialPBR(*_ctx);
+        mat->data()._value._diffuse     =   float4(0.35f,0.55f,0.85f,1.0f);
+        mat->data()._value._emissive    =   float4(0.08f,0.16f,0.28f,1.0f);
+        mat->data().update();
+        node->setMaterial(mat);
+
+        addNodeToScene(node,label);
+        _statusText =   "已创建" + label;
     }
 
     void    FEEditorUi::drawModelTree()
@@ -624,7 +1728,10 @@ namespace   FE
         ImGui::SetNextWindowSize(ImVec2(300.0f,420.0f),ImGuiCond_FirstUseEver);
         if (ImGui::Begin("模型树",&_treeOpen))
         {
-            _modelTree.draw(_scene,_iconFont);
+            /// <summary>
+            /// 模型树的数据来源是场景的 FENodeTree
+            /// </summary>
+            _modelTree.draw(_scene ? &_scene->nodeTree() : nullptr,_iconFont);
         }
         ImGui::End();
     }
@@ -772,6 +1879,22 @@ namespace   FE
                 if (c._char >= 32)
                     io.AddInputCharacter(ImWchar(c._char));
                 block   =   io.WantCaptureKeyboard;
+            }
+            break;
+        case MSG_UPDATE:
+            /// <summary>
+            /// 本消息先于场景到达(宿主 main 的 notify 先调 ui.onMessage 再转发场景),
+            /// 而场景在此消息中才执行 onFrameStart/onFrameUpdate:
+            /// 在此刻执行排队的场景操作,新建的渲染工厂能在同一帧的 update 中生成
+            /// VBO/IBO,避免其赶在 update 之前被渲染而导致空索引缓冲崩溃。
+            /// 先整体取出再执行,避免执行过程中新压入的动作在同一次循环里被重复处理
+            /// </summary>
+            if (!_pendingActions.empty())
+            {
+                std::vector<std::function<void()>>  actions;
+                actions.swap(_pendingActions);
+                for (auto& fn : actions)
+                    fn();
             }
             break;
         default:

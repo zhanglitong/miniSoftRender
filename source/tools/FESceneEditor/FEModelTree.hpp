@@ -6,13 +6,12 @@
 ///   - 箭头展开/折叠(FLAG_EXPAND),眼睛图标切换显隐;
 ///   - 右键菜单:重命名、显示/隐藏子树、展开/折叠子树;
 ///   - 拖拽挂接:拖到目标行中部成为子节点,拖到上/下缘插入到目标前/后。
-/// 数据直接读写 FEObject 的 flags 与场景节点树,不额外保存树状态。
+/// 数据直接来自 FENodeTree 的顶层节点,读写 FEObject 的 flags 与节点树,不额外保存树状态。
 /// </summary>
 
 #pragma     once
 
-#include    "../../../inc/node/FENode.hpp"
-#include    "../../../inc/graphic/FEScene.h"
+#include    "../../../inc/node/FENodeTree.hpp"
 
 #include    <imgui.h>
 
@@ -24,17 +23,54 @@ namespace   FE
     class   FEModelTree
     {
     public:
+        FEModelTree() = default;
+        /// <summary>
+        /// 析构时解除对节点树事件的订阅
+        /// </summary>
+        ~FEModelTree();
         /// <summary>
         /// 在调用方已 Begin 的窗口内绘制模型树
         /// </summary>
-        /// <param name="scene">场景</param>
+        /// <param name="nodeTree">节点树,可为 nullptr</param>
         /// <param name="iconFont">图标字体,可为 nullptr</param>
-        void    draw(Scene scene,ImFont* iconFont);
+        void    draw(FENodeTree* nodeTree,ImFont* iconFont);
+        /// <summary>
+        /// 解除对当前节点树的订阅(场景释放前调用)
+        /// </summary>
+        void    unbind();
         /// <summary>
         /// 当前选中对象
         /// </summary>
         Object  selected() const    {   return  _selected;  }
     protected:
+        /// <summary>
+        /// 绑定节点树,并订阅 add/remove 事件用于驱动刷新
+        /// </summary>
+        /// <param name="nodeTree">节点树,可为 nullptr</param>
+        void    bindNodeTree(FENodeTree* nodeTree);
+        /// <summary>
+        /// 按当前节点树重建行列表
+        /// </summary>
+        void    rebuildRows();
+        /// <summary>
+        /// 节点新增通知:标记行列表需要重建
+        /// </summary>
+        /// <param name="node">新增节点</param>
+        void    onNodeAdded(const FENode* node);
+        /// <summary>
+        /// 节点移除通知:标记行列表需要重建
+        /// </summary>
+        /// <param name="node">移除节点</param>
+        void    onNodeRemoved(const FENode* node);
+        /// <summary>
+        /// 节点变更通知:标记行列表需要重建
+        /// </summary>
+        /// <param name="node">变更节点</param>
+        void    onNodeChanged(const FENode* node);
+        /// <summary>
+        /// 节点树清空通知:标记行列表需要重建
+        /// </summary>
+        void    onTreeCleared();
         /// <summary>
         /// 一行树节点的数据
         /// </summary>
@@ -91,8 +127,15 @@ namespace   FE
         /// <param name="node">节点指针</param>
         Node    topLevelNode(FENode* node) const;
     protected:
-        Scene                   _scene;
+        /// <summary>
+        /// 数据来源:节点树
+        /// </summary>
+        FENodeTree*             _nodeTree   =   nullptr;
         Rows                    _rows;
+        /// <summary>
+        /// 行列表是否需要重建(由 add/remove 事件与本地结构变更置位)
+        /// </summary>
+        bool                    _rowsDirty  =   true;
         ImFont*                 _iconFont   =   nullptr;
         Object                  _selected;
         /// <summary>

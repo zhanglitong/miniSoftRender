@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>alpha.txt</file>
+        <file>alpha.txt</file>
+    </qresource>
+</RCC>

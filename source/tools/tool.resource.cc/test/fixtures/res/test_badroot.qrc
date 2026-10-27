@@ -1,0 +1,5 @@
+<resources>
+    <qresource prefix="/">
+        <file>alpha.txt</file>
+    </qresource>
+</resources>

@@ -270,6 +270,10 @@ namespace   FE
         /// 创建工具
         /// </summary>
         void    createTools();
+        /// <summary>
+        /// 把场景自带的输入工具登记到输入系统(setup 与 clear 之后都需要)
+        /// </summary>
+        void    registerInputTools();
     protected:
         App                 _app;  
         FETimestamp         _timestamp;
@@ -289,6 +293,11 @@ namespace   FE
         /// 管理所有系统，例如动画系统，物理系统，脚本系统,粒子系统
         /// </summary>
         FEComponentSysMgr   _comSysMgr;
+        /// <summary>
+        /// 场景自带的输入工具(浏览/移动/旋转/缩放):clear() 会清空输入系统,
+        /// 需要靠这份引用把它们重新登记回去
+        /// </summary>
+        std::vector<Component>  _inputTools;
         FEUpdateQueue       _updateQueue;
         Camera              _camera;
         FrustumCull         _frustCull;

@@ -84,27 +84,6 @@ int     main()
     scene->showGrid(true);
 
     /// <summary>
-    /// 编辑器暂未提供新建节点的入口,这里构造一份示例节点树让模型树可见
-    /// </summary>
-    {
-        Node    root    =   new FENode(ctx);
-        root->setName("示例场景");
-        Node    role    =   new FENode(ctx);
-        role->setName("角色");
-        Node    env     =   new FENode(ctx);
-        env->setName("环境");
-        Node    ground  =   new FENode(ctx);
-        ground->setName("地面");
-        Node    prop    =   new FENode(ctx);
-        prop->setName("道具");
-        env->addChild(ground);
-        env->addChild(prop);
-        root->addChild(role);
-        root->addChild(env);
-        scene->addNodesToTree({root});
-    }
-
-    /// <summary>
     /// 功能区"退出":直接向引擎窗口投递关闭消息
     /// (不能用 GetActiveWindow,编辑器带控制台窗口时可能取到控制台)
     /// </summary>

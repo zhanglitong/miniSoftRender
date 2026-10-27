@@ -643,6 +643,12 @@ namespace   FE
             LOG_ERR("FEScene.open/nodes.empty().",fepj);
             return  false;
         }
+        /// <summary>
+        /// 打开工程语义为"替换"而非"追加":先清空当前场景再装载新内容。
+        /// 文件读取与节点构建都在 clear() 之前完成,读取失败时不会破坏当前场景。
+        /// 注意 clear() 会重置输入系统,内部已重新登记场景自带的浏览/编辑工具
+        /// </summary>
+        clear();
         dispatchNodesToSystem(nodes);
         addNodesToTree(nodes);
 
@@ -716,6 +722,12 @@ namespace   FE
         }
         LOG_INF("_factorys.clear()");
         _factorys.clear();
+        /// <summary>
+        /// 上面清空输入系统时,会把场景自带的浏览/编辑工具(移动/旋转/缩放)一并移除,
+        /// 它们不属于节点,不应随场景数据被清掉;这里重新登记,
+        /// 否则重置后鼠标无法浏览场景
+        /// </summary>
+        registerInputTools();
     }
 
     void    FEScene::addNodesToFactory(const Nodes& nodeList,DispatchResult* result)
@@ -1168,11 +1180,29 @@ namespace   FE
        facotryScl->inputComponent()->setObjectId(facotryScl->inputComponent()->classId());
 
        /// 加入到input system 接收 键盘鼠标等外设消息
-       inputSys->addObject(facotryMov->inputComponent().get());
-       inputSys->addObject(facotryRot->inputComponent().get());
-       inputSys->addObject(facotryScl->inputComponent().get());
+       /// 记录场景自带的输入工具:clear() 会清空输入系统,届时要靠这份引用重新登记
+       _inputTools.clear();
+       _inputTools.push_back(facotryMov->inputComponent().get());
+       _inputTools.push_back(facotryRot->inputComponent().get());
+       _inputTools.push_back(facotryScl->inputComponent().get());
        /// 浏览工具
-       SceneBrowse     browseTool  =   new FESceneBrowse(_ctx);
-       inputSys->addObject(browseTool.get());
+       _inputTools.push_back(new FESceneBrowse(_ctx));
+
+       registerInputTools();
+    }
+
+    void    FEScene::registerInputTools()
+    {
+        auto    inputSys    =   _comSysMgr.query(UUIDOF(FEInputSystem));
+        if (inputSys == nullptr)
+        {
+            LOG_ERR("registerInputTools/without an input module, you can't build any interactive features!");
+            return;
+        }
+        for (auto& var : _inputTools)
+        {
+            if (var != nullptr)
+                inputSys->addObject(var.get());
+        }
     }
 }

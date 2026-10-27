@@ -185,9 +185,25 @@ expect_rc(0 "qrc 模式生成 .cpp")
 
 if(EXISTS "${OUT}/test.qrc.cpp")
     file(READ "${OUT}/test.qrc.cpp" QRC_TEXT)
-    expect_text("${QRC_TEXT}" "FE::FEAssetsMgr::instance().addBuffer(\"alpha.txt\"," "注册 alpha.txt")
-    expect_text("${QRC_TEXT}" "FE::FEAssetsMgr::instance().addBuffer(\"beta.txt\"," "注册 beta.txt")
-    expect_count("${QRC_TEXT}" "addBuffer\\(" 2 "qrc addBuffer 注册数量")
+    # prefix 与资源 key 规范: :/prefix/name
+    expect_text("${QRC_TEXT}" "addBuffer(\":/EditorRes/alpha.txt\"," "prefix + 相对路径 -> :/EditorRes/alpha.txt")
+    expect_text("${QRC_TEXT}" "addBuffer(\":/EditorRes/renamed.txt\"," "alias 覆盖资源名 -> :/EditorRes/renamed.txt")
+    expect_text("${QRC_TEXT}" "addBuffer(\":/Lang/alpha.txt@fr\"," "qresource 级 lang 追加 @fr")
+    expect_text("${QRC_TEXT}" "addBuffer(\":/Trim/sub/gamma.txt\"," "跨行 <file> 文本被 trim")
+    expect_count("${QRC_TEXT}" "addBuffer\\(" 4 "qrc addBuffer 注册数量")
+
+    # alias 指向 beta.txt,内容应来自 beta.txt
+    file(READ "${RES_DIR}/beta.txt" BETA_HEX HEX)
+    string(TOLOWER "${BETA_HEX}" BETA_HEX)
+    string(REGEX MATCHALL "0x[0-9a-fA-F][0-9a-fA-F]" QRC_BYTES "${QRC_TEXT}")
+    list(JOIN QRC_BYTES "" QRC_HEX)
+    string(REGEX REPLACE "0x" "" QRC_HEX "${QRC_HEX}")
+    string(TOLOWER "${QRC_HEX}" QRC_HEX)
+    if(QRC_HEX MATCHES "${BETA_HEX}00")
+        pass("alias 资源内容来自被引用文件 beta.txt")
+    else()
+        fail("alias 资源内容与 beta.txt 不一致")
+    endif()
 else()
     fail("qrc 模式输出文件不存在")
 endif()
@@ -220,6 +236,24 @@ if(EXISTS "${OUT}/not_exists.cpp")
 else()
     pass("输入文件不存在时无残留 .cpp")
 endif()
+
+# 重复资源 key: 应返回非 0 并提示 duplicate resource key
+run_tool(-w "${FIXTURE}" -m qrc -i "${RES_DIR}/test_dup.qrc" -o "${OUT}/test_dup.qrc.cpp")
+if("${RUN_RC}" STREQUAL "0")
+    fail("重复资源 key 未返回非 0")
+else()
+    pass("重复资源 key 返回非 0(${RUN_RC})")
+endif()
+expect_text("${RUN_OUT}" "duplicate resource key" "重复资源 key 有错误提示")
+
+# 根标签不是 RCC: 应返回非 0 并提示 root element must be <RCC>
+run_tool(-w "${FIXTURE}" -m qrc -i "${RES_DIR}/test_badroot.qrc" -o "${OUT}/test_badroot.qrc.cpp")
+if("${RUN_RC}" STREQUAL "0")
+    fail("错误的根标签未返回非 0")
+else()
+    pass("错误的根标签返回非 0(${RUN_RC})")
+endif()
+expect_text("${RUN_OUT}" "root element must be <RCC>" "错误的根标签有错误提示")
 
 # ---------------------------------------------------------------- 汇总
 get_property(PASSED GLOBAL PROPERTY TEST_PASSED)

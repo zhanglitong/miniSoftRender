@@ -1,6 +1,14 @@
 <RCC>
-    <qresource prefix="/">
+    <qresource prefix="/EditorRes">
         <file>alpha.txt</file>
-        <file>beta.txt</file>
+        <file alias="renamed.txt">beta.txt</file>
+    </qresource>
+    <qresource prefix="Lang" lang="fr">
+        <file>alpha.txt</file>
+    </qresource>
+    <qresource prefix="/Trim">
+        <file>
+            sub/gamma.txt
+        </file>
     </qresource>
 </RCC>

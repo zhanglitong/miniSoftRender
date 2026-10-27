@@ -7,6 +7,8 @@
 ///   - 布局:QHBoxLayout / QVBoxLayout / QGridLayout
 ///   - 控件:QPushButton / QToolButton / QCheckBox / QComboBox / QLineEdit /
 ///          QLabel / QScrollBar / QGroupBox
+///   - 菜单:QMenuBar / QMenu / QAction(含 addaction 引用、图标、快捷键、checkable),
+///          供 Ribbon 按 Page(主菜单) / 分组(子菜单) / 按钮(动作) 渲染
 ///   - 未识别的类按"自定义提升控件"处理,由渲染层占位并交给注册的回调。
 /// </summary>
 
@@ -113,6 +115,50 @@ namespace   FE
     };
 
     /// <summary>
+    /// 菜单节点类型
+    /// </summary>
+    enum    FEUiMenuItemType
+    {
+        /// <summary>
+        /// 子菜单(QMenu),在 Ribbon 中作为分组
+        /// </summary>
+        kUiMenu         =   0,
+        /// <summary>
+        /// 动作(QAction),在 Ribbon 中作为按钮
+        /// </summary>
+        kUiAction       =   1,
+        /// <summary>
+        /// 分隔线(separator)
+        /// </summary>
+        kUiSeparator    =   2,
+    };
+
+    /// <summary>
+    /// Qt 菜单/动作节点,保留 .ui 中的菜单层级与动作属性
+    /// </summary>
+    class   FEUiMenuItem
+    {
+    public:
+        ~FEUiMenuItem();
+    public:
+        FEUiMenuItemType            _type       =   kUiAction;
+        std::string                 _name;
+        std::string                 _text;
+        /// <summary>
+        /// 图标资源路径,例如 :/EditorRes/res/ico_Add.png
+        /// </summary>
+        std::string                 _icon;
+        /// <summary>
+        /// 快捷键文本,例如 Shift+I
+        /// </summary>
+        std::string                 _shortcut;
+        bool                        _checkable  =   false;
+        bool                        _checked    =   false;
+        bool                        _enabled    =   true;
+        std::vector<FEUiMenuItem*>  _children;
+    };
+
+    /// <summary>
     /// 解析后的 .ui 文档
     /// </summary>
     class   FEUiDocument
@@ -127,6 +173,10 @@ namespace   FE
         bool            load(const std::string& file);
         void            clear();
         FEUiWidget*     root()  const   {   return  _root;  }
+        /// <summary>
+        /// 菜单栏根节点:子节点为主菜单(Page),其子节点为分组(QMenu)或动作(QAction)
+        /// </summary>
+        FEUiMenuItem*   menuBar()   const   {   return  _menuBar;    }
         const   std::string&    error() const   {   return  _error;    }
         /// <summary>
         /// 按控件名递归查找
@@ -146,6 +196,10 @@ namespace   FE
         void            parseProperty(FEUiWidget* widget,void* property);
     protected:
         FEUiWidget*             _root   =   nullptr;
+        /// <summary>
+        /// 菜单栏根节点(Page/Group/Button 数据源)
+        /// </summary>
+        FEUiMenuItem*           _menuBar=   nullptr;
         std::string             _error;
         /// <summary>
         /// rapidxml 就地解析缓冲区

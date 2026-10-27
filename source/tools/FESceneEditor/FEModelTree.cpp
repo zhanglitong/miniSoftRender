@@ -25,11 +25,32 @@ namespace
 
     const   ImU32   kRowSelected   =   IM_COL32(74,144,226,72);
     const   ImU32   kRowHover      =   IM_COL32(255,255,255,14);
+    /// <summary>
+    /// 隔行背景色(奇数行叠加的淡白色,偶数行保持窗口底色)
+    /// </summary>
+    const   ImU32   kRowAlt        =   IM_COL32(255,255,255,10);
+    /// <summary>
+    /// 选中行的矩形线框颜色
+    /// </summary>
+    const   ImU32   kRowSelBorder  =   IM_COL32(74,144,226,220);
     const   ImU32   kTextColor     =   IM_COL32(214,219,229,255);
+    /// <summary>
+    /// 选中行的高亮前景色
+    /// </summary>
+    const   ImU32   kTextSelected  =   IM_COL32(235,245,255,255);
     const   ImU32   kTextHidden    =   IM_COL32(140,146,158,255);
     const   ImU32   kIconHidden    =   IM_COL32(110,116,128,255);
     const   ImU32   kAccent        =   IM_COL32(74,144,226,255);
     const   ImU32   kArrowColor    =   IM_COL32(150,156,168,255);
+
+    /// <summary>
+    /// 行距相对字体大小的倍数:行距 = 字体大小 × 2
+    /// </summary>
+    const   float   kRowLineScale  =   2.4f;
+    /// <summary>
+    /// 行与行之间的留白(像素)
+    /// </summary>
+    const   float   kRowGap        =   4.0f;
 
     /// <summary>
     /// 从 const 引用取节点指针(FEObject::cast 在 const 上返回 const 指针)
@@ -45,21 +66,86 @@ namespace
 
 namespace   FE
 {
-    void    FEModelTree::draw(Scene scene,ImFont* iconFont)
+    FEModelTree::~FEModelTree()
     {
-        _scene      =   scene;
-        _iconFont   =   iconFont;
+        unbind();
+    }
 
-        _rows.clear();
-        if (_scene != nullptr)
+    void    FEModelTree::unbind()
+    {
+        if (_nodeTree == nullptr)
+            return;
+        _nodeTree->eventsAddNode()      -=  this;
+        _nodeTree->eventsRemoveNode()   -=  this;
+        _nodeTree->eventsChangedNode()  -=  this;
+        _nodeTree->eventsClear()        -=  this;
+        _nodeTree   =   nullptr;
+        _rowsDirty  =   true;
+    }
+
+    void    FEModelTree::bindNodeTree(FENodeTree* nodeTree)
+    {
+        if (_nodeTree == nodeTree)
+            return;
+        unbind();
+        _nodeTree   =   nodeTree;
+        if (_nodeTree != nullptr)
         {
-            for (const auto& node : _scene->nodeTree().topLevelNodes())
+            /// 节点树增删/变更/清空时只置脏标记,行列表在下一帧统一重建
+            _nodeTree->eventsAddNode()      +=  {this,&FEModelTree::onNodeAdded};
+            _nodeTree->eventsRemoveNode()   +=  {this,&FEModelTree::onNodeRemoved};
+            _nodeTree->eventsChangedNode()  +=  {this,&FEModelTree::onNodeChanged};
+            _nodeTree->eventsClear()        +=  {this,&FEModelTree::onTreeCleared};
+        }
+        _rowsDirty  =   true;
+    }
+
+    void    FEModelTree::rebuildRows()
+    {
+        _rows.clear();
+        if (_nodeTree != nullptr)
+        {
+            for (const auto& node : _nodeTree->topLevelNodes())
                 collectRows(Object(const_cast<FENode*>(node.get())),0);
         }
+        _rowsDirty  =   false;
+    }
+
+    void    FEModelTree::onNodeAdded(const FENode*)
+    {
+        _rowsDirty  =   true;
+    }
+
+    void    FEModelTree::onNodeRemoved(const FENode*)
+    {
+        _rowsDirty  =   true;
+    }
+
+    void    FEModelTree::onNodeChanged(const FENode*)
+    {
+        _rowsDirty  =   true;
+    }
+
+    void    FEModelTree::onTreeCleared()
+    {
+        _rowsDirty  =   true;
+    }
+
+    void    FEModelTree::draw(FENodeTree* nodeTree,ImFont* iconFont)
+    {
+        bindNodeTree(nodeTree);
+        _iconFont   =   iconFont;
+
+        if (_rowsDirty)
+            rebuildRows();
 
         drawToolbar();
 
-        const   float   rowHeight   =   ImGui::GetTextLineHeight() + 8.0f;
+        /// <summary>
+        /// 行距 = 字体大小 × 2,扣除留白后即为行高
+        /// </summary>
+        const   float   rowStep     =   ImGui::GetFontSize() * kRowLineScale;
+        const   float   rowHeight   =   std::max(1.0f,rowStep - kRowGap);
         std::vector<float>  rowTops;
         rowTops.reserve(_rows.size());
 
@@ -143,18 +229,18 @@ namespace   FE
     {
         if (ImGui::Button("展开全部"))
         {
-            if (_scene != nullptr)
+            if (_nodeTree != nullptr)
             {
-                for (const auto& node : _scene->nodeTree().topLevelNodes())
+                for (const auto& node : _nodeTree->topLevelNodes())
                     setExpanded(Object(const_cast<FENode*>(node.get())),true,true);
             }
         }
         ImGui::SameLine();
         if (ImGui::Button("折叠全部"))
         {
-            if (_scene != nullptr)
+            if (_nodeTree != nullptr)
             {
-                for (const auto& node : _scene->nodeTree().topLevelNodes())
+                for (const auto& node : _nodeTree->topLevelNodes())
                     setExpanded(Object(const_cast<FENode*>(node.get())),false,true);
             }
         }
@@ -196,8 +282,21 @@ namespace   FE
 
         ImDrawList*     dl      =   ImGui::GetWindowDrawList();
         const   bool    selected=   row._object->flags().hasFlag(FLAG_SELECTED);
+        /// <summary>
+        /// 隔行背景:奇数行绘制淡白底色,偶数行保留窗口底色
+        /// </summary>
+        if ((index & 1) != 0)
+            dl->AddRectFilled(pos,end,kRowAlt);
+        /// <summary>
+        /// 选中行整行高亮:矩形填充 + 矩形线框,同时文字使用高亮前景色
+        /// </summary>
         if (selected)
+        {
             dl->AddRectFilled(pos,end,kRowSelected);
+            dl->AddRect(ImVec2(pos.x + 0.5f,pos.y + 0.5f),
+                        ImVec2(end.x - 0.5f,end.y - 0.5f),
+                        kRowSelBorder,0.0f,0,1.0f);
+        }
         else if (rowHover)
             dl->AddRectFilled(pos,end,kRowHover);
 
@@ -272,7 +371,9 @@ namespace   FE
         const   bool            visible =   row._object->flags().hasFlag(FLAG_VISIBLE);
         const   std::string     name    =   objectName(row._object);
         ImGui::PushClipRect(ImVec2(textX,pos.y),ImVec2(eyeX - 4.0f,pos.y + rowHeight),true);
-        dl->AddText(ImVec2(textX,iconY),visible ? kTextColor : kTextHidden,name.c_str());
+        dl->AddText(ImVec2(textX,iconY),
+                    selected ? kTextSelected : (visible ? kTextColor : kTextHidden),
+                    name.c_str());
         ImGui::PopClipRect();
 
         if (_iconFont != nullptr)
@@ -280,7 +381,7 @@ namespace   FE
                         visible ? kArrowColor : kIconHidden,
                         visible ? kGlyphEye : kGlyphEyeOff);
 
-        ImGui::SetCursorScreenPos(ImVec2(pos.x,pos.y + rowHeight));
+        ImGui::SetCursorScreenPos(ImVec2(pos.x,pos.y + rowHeight + kRowGap));
         ImGui::PopID();
     }
 
@@ -436,6 +537,8 @@ namespace   FE
     {
         if (!object)
             return;
+        /// 展开/折叠会改变行列表结构,需重建
+        _rowsDirty  =   true;
         FEObject*   raw =   const_cast<FEObject*>(object.get());
         if (expanded)
             raw->flags().addFlag(FLAG_EXPAND);
@@ -482,9 +585,9 @@ namespace   FE
 
     Node    FEModelTree::topLevelNode(FENode* node) const
     {
-        if (_scene == nullptr || node == nullptr)
+        if (_nodeTree == nullptr || node == nullptr)
             return  Node();
-        for (const auto& top : _scene->nodeTree().topLevelNodes())
+        for (const auto& top : _nodeTree->topLevelNodes())
         {
             if (top.get() == node)
                 return  top;
@@ -494,16 +597,18 @@ namespace   FE
 
     void    FEModelTree::moveNode(FENode* source,FENode* target,int mode)
     {
-        if (_scene == nullptr || source == nullptr || target == nullptr)
+        if (_nodeTree == nullptr || source == nullptr || target == nullptr)
             return;
         if (!canDrop(source,target,mode))
             return;
 
+        /// 拖拽会改变父子结构,需重建行列表
+        _rowsDirty  =   true;
         Node    src =   topLevelNode(source);
         if (source->parent() == nullptr)
         {
             if (src)
-                _scene->nodeTree().removeToplevelNode(src);
+                _nodeTree->removeToplevelNode(src);
         }
 
         if (mode == 1)
