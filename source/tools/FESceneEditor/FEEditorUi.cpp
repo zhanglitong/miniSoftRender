@@ -8,6 +8,8 @@
 
 #include    "FEEditorUi.hpp"
 
+#include    "FEEditorUndoCmds.hpp"
+
 #include    "../../../inc/FEMessage.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/node/FENode.hpp"
@@ -1183,6 +1185,10 @@ namespace   FE
             _factory->invalidateBackend();
         }
         _factory    =   nullptr;
+        /// <summary>
+        /// 在场景销毁之前释放命令持有的节点引用,避免析构晚于场景
+        /// </summary>
+        _undoStack.clear();
         _scene      =   nullptr;
         _ctx        =   nullptr;
         _iconFont   =   nullptr;
@@ -1204,12 +1210,35 @@ namespace   FE
         _attached   =   false;
     }
 
+    void    FEEditorUi::processShortcuts()
+    {
+        ImGuiIO&    io  =   ImGui::GetIO();
+        /// <summary>
+        /// 文本输入框获得焦点时按键属于输入(InputText 内部已有自己的撤销),
+        /// 不能再触发场景的撤销/重做
+        /// </summary>
+        if (io.WantTextInput)
+            return;
+        if (!io.KeyCtrl || io.KeyAlt || _scene == nullptr)
+            return;
+        /// <summary>
+        /// 与 Ribbon 按钮一致:压入 _pendingActions,推迟到下一帧 MSG_UPDATE 执行
+        /// (撤销会增删场景节点,不能在本帧的绘制中途改渲染工厂)
+        /// </summary>
+        if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Z],false))
+            _pendingActions.push_back([this]() {    _undoStack.undo();  });
+        else if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Y],false))
+            _pendingActions.push_back([this]() {    _undoStack.redo();  });
+    }
+
     void    FEEditorUi::drawRibbon()
     {
         ImGuiIO&    io      =   ImGui::GetIO();
         const float width   =   io.DisplaySize.x;
         if (width < 1.0f)
             return;
+
+        processShortcuts();
 
         ImGui::SetNextWindowPos(ImVec2(0.0f,0.0f),ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(width,kRibbonH),ImGuiCond_Always);
@@ -1459,6 +1488,17 @@ namespace   FE
         {
             _pendingActions.push_back([this]() {    resetScene();   });
         }
+        else if (name == "action_undo")
+        {
+            /// <summary>
+            /// 撤销会移除场景节点(改渲染工厂),与创建一样必须推迟到 MSG_UPDATE
+            /// </summary>
+            _pendingActions.push_back([this]() {    _undoStack.undo();  });
+        }
+        else if (name == "action_redo")
+        {
+            _pendingActions.push_back([this]() {    _undoStack.redo();  });
+        }
         else if (name.rfind("action_add",0) == 0)
         {
             /// <summary>
@@ -1478,6 +1518,10 @@ namespace   FE
             return;
         if (_scene->open(toNativePath(path).c_str()))
         {
+            /// <summary>
+            /// 场景已被整体替换,旧命令引用的节点不再属于当前工程
+            /// </summary>
+            _undoStack.clear();
             _projectName    =   path;
             _startDir       =   std::filesystem::u8path(path).parent_path().u8string();
             _statusText     =   "打开工程成功";
@@ -1534,6 +1578,7 @@ namespace   FE
         /// 模型树订阅了节点树的清空事件,下一帧自动刷新
         /// </summary>
         _scene->clear();
+        _undoStack.clear();
         _projectName.clear();
         _statusText =   "已重置";
     }
@@ -1578,23 +1623,25 @@ namespace   FE
         }
     }
 
-    void    FEEditorUi::addNodeToScene(Node node,const std::string& nodeName)
-    {
-        if (_scene == nullptr || node == nullptr)
-            return;
-        node->setName(editorUniqueName(*_scene,nodeName));
-        /// <summary>
-        /// 加入节点树(模型树显示)后,再分发到渲染工厂与各系统(真正进入渲染),
-        /// 两者缺一不可
-        /// </summary>
-        _scene->addNodesToTree({node});
-        _scene->dispatchNodesToSystem({node});
-    }
-
     void    FEEditorUi::createModelNode(const std::string& actionName)
     {
         if (_scene == nullptr || _ctx == nullptr)
             return;
+
+        /// <summary>
+        /// 统一入口:节点名先唯一化(命令重做时沿用它,避免因场景已有同名节点而改名),
+        /// 再压入撤销栈;push() 会立即执行一次 redo(),把节点加入节点树并分发到
+        /// 渲染工厂与各系统(模型树显示与真正进入渲染)。
+        /// 本函数运行在 MSG_UPDATE(见 onAction),此时新建工厂能在同一帧的 update
+        /// 中生成 VBO/IBO,不会出现空索引缓冲
+        /// </summary>
+        auto    addWithUndo =   [this](Node node,const std::string& name)
+        {
+            if (node == nullptr)
+                return;
+            node->setName(editorUniqueName(*_scene,name));
+            _undoStack.push(new FEEditorCreateNodeCmd(*_scene,node,"创建" + name));
+        };
 
         /// <summary>
         /// 按动作名生成网格;每种几何体用默认参数即可获得合理的初始形状
@@ -1689,7 +1736,7 @@ namespace   FE
             /// 空节点:只有名字,没有网格与材质
             /// </summary>
             Node    empty   =   new FENode(*_ctx);
-            addNodeToScene(empty,"空节点");
+            addWithUndo(empty,"空节点");
             _statusText =   "已创建空节点";
             return;
         }
@@ -1716,7 +1763,7 @@ namespace   FE
         mat->data().update();
         node->setMaterial(mat);
 
-        addNodeToScene(node,label);
+        addWithUndo(node,label);
         _statusText =   "已创建" + label;
     }
 

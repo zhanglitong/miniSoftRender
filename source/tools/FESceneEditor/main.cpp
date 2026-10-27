@@ -23,6 +23,32 @@ using   namespace   FE;
 USING_PLUGIN(rs_vulkan);
 USING_PLUGIN(rs_webgpu);
 
+namespace
+{
+    /// <summary>
+    /// 渲染窗口句柄与"清理完成"事件,供控制台事件处理线程使用
+    /// </summary>
+    HWND    g_renderWnd =   nullptr;
+    HANDLE  g_cleaned   =   nullptr;
+
+    /// <summary>
+    /// 关闭控制台窗口 / Ctrl+C / Ctrl+Break 时先把关闭消息转发给渲染窗口,
+    /// 走正常流程在 device 销毁前归还 GPU 资源。控制台事件处理函数返回后
+    /// 系统会直接结束进程,故这里要等清理完成,否则 Vulkan 对象来不及销毁
+    /// (驱动与验证层会报 "Object has not been destroyed")
+    /// </summary>
+    BOOL    WINAPI    onConsoleCtrl(DWORD type)
+    {
+        if (type != CTRL_CLOSE_EVENT && type != CTRL_C_EVENT && type != CTRL_BREAK_EVENT)
+            return  FALSE;
+        if (g_renderWnd != nullptr)
+            PostMessageA(g_renderWnd,WM_CLOSE,0,0);
+        if (g_cleaned != nullptr)
+            WaitForSingleObject(g_cleaned,4500);
+        return  TRUE;
+    }
+}
+
 int     main()
 {
     FEContext&  ctx         =   FEContext::instance();
@@ -88,6 +114,14 @@ int     main()
     /// (不能用 GetActiveWindow,编辑器带控制台窗口时可能取到控制台)
     /// </summary>
     const   HWND    hwnd    =   (HWND)app->cInfo()._window;
+
+    /// <summary>
+    /// 控制台窗口被关闭时也走正常关闭流程(见 onConsoleCtrl)
+    /// </summary>
+    g_renderWnd =   hwnd;
+    g_cleaned   =   CreateEventA(nullptr,TRUE,FALSE,nullptr);
+    SetConsoleCtrlHandler(onConsoleCtrl,TRUE);
+
     ui._onQuit  =   [hwnd]()
     {
         PostMessageA(hwnd,WM_CLOSE,0,0);
@@ -99,11 +133,25 @@ int     main()
     app->run();
 
     /// <summary>
-    /// 正常关闭时后端已在 MSG_CLOSE 中先行释放;此处兜底
+    /// 正常关闭时场景已在 MSG_CLOSE 中销毁(ImGui 后端先于 device 释放);
+    /// 若循环因其它原因退出而没走 MSG_CLOSE,这里补一次 destroy(幂等),
+    /// 保证 GPU 资源在 app->destroy() 与进程退出前全部归还
     /// </summary>
     ui.detach();
+    if (scene != nullptr)
+        scene->destroy();
     scene   =   nullptr;
     pScene  =   nullptr;
     app->destroy();
+
+    /// <summary>
+    /// 通知可能仍在等待的控制台事件处理线程:清理已完成
+    /// </summary>
+    if (g_cleaned != nullptr)
+    {
+        SetEvent(g_cleaned);
+        CloseHandle(g_cleaned);
+        g_cleaned   =   nullptr;
+    }
     return  0;
 }

@@ -2,6 +2,7 @@
 
 #include    "../../../inc/graphic/FEFactoryRender.hpp"
 #include    "../../../inc/graphic/FEImGuiBackend.h"
+#include    "../../../inc/FEUndoStack.hpp"
 
 #include    "FEUiDocument.hpp"
 #include    "FEUiRenderer.hpp"
@@ -233,6 +234,11 @@ namespace   FE
         /// </summary>
         void    drawRibbon();
         /// <summary>
+        /// 处理撤销/重做快捷键(Ctrl+Z / Ctrl+Y)。
+        /// ImGui 1.65 没有 ImGui::Shortcut,这里用按键原语自行分发
+        /// </summary>
+        void    processShortcuts();
+        /// <summary>
         /// 文件选择对话框(打开工程 / 保存工程)
         /// </summary>
         void    drawFileDialog();
@@ -265,12 +271,6 @@ namespace   FE
         /// </summary>
         /// <param name="actionName">.ui 中的动作名,例如 action_addBox</param>
         void    createModelNode(const std::string& actionName);
-        /// <summary>
-        /// 把新建节点挂到场景:加入节点树并分发到渲染工厂与各系统
-        /// </summary>
-        /// <param name="node">新建的节点</param>
-        /// <param name="nodeName">节点名(用于模型树显示与唯一化)</param>
-        void    addNodeToScene(Node node,const std::string& nodeName);
         /// <summary>
         /// .ui 文件预览窗口(用 ImGui 渲染解析出的控件树)
         /// </summary>
@@ -366,5 +366,11 @@ namespace   FE
         /// 故把动作压入队列,推迟到下一帧 MSG_UPDATE 统一执行
         /// </summary>
         std::vector<std::function<void()>>  _pendingActions;
+        /// <summary>
+        /// 撤销/重做栈。命令的 redo/undo 会增删场景节点,所以按钮触发的撤销/重做
+        /// 同样要经 _pendingActions 推迟到 MSG_UPDATE 执行。
+        /// 打开/重置工程会替换整个场景,此时清空历史(命令引用的旧节点已无意义)
+        /// </summary>
+        FEUndoStack                         _undoStack;
     };
 }

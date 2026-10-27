@@ -13,9 +13,9 @@ namespace   FE
     using   NotifyClears    =   FETMultiDelegate<void()>;
 
     /// <summary>
-    /// 节点树管理
-    /// 没有选择通知(使用NChangedNodes);
-    /// 当节点修改了状态，会触发NChangedNodes
+    /// 节点树管理:持有场景的顶层节点列表,并向订阅者广播节点增删、属性变更与清空事件。
+    /// 只有顶层节点登记在本对象中,子节点的增删由 FENode 自身转发到同一组事件;
+    /// 没有单独的选择通知(选中状态由外部维护),节点状态改变时触发 eventsChangedNode
     /// </summary>
     class   FENodeTree :public FEObject
     {
@@ -30,18 +30,34 @@ namespace   FE
         {
             _topLevelNodes  =   other._topLevelNodes;
         }
+        /// <summary>
+        /// 获取节点添加通知对象(读写):顶层节点加入或子节点挂到父节点时触发
+        /// </summary>
+        /// <returns>节点添加通知集合</returns>
         inline  auto&   eventsAddNode()
         {
             return  _NAddNodes;
         }
+        /// <summary>
+        /// 获取节点添加通知对象(只读)
+        /// </summary>
+        /// <returns>节点添加通知集合</returns>
         const   auto&   eventsAddNode() const
         {
             return  _NAddNodes;
         }
+        /// <summary>
+        /// 获取节点移除通知对象(读写):顶层节点移除或子节点从父节点摘除时触发
+        /// </summary>
+        /// <returns>节点移除通知集合</returns>
         inline  auto&   eventsRemoveNode()
         {
             return  _NRemoveNodes;  
         }
+        /// <summary>
+        /// 获取节点移除通知对象(只读)
+        /// </summary>
+        /// <returns>节点移除通知集合</returns>
         const   auto&   eventsRemoveNode() const
         {
             return  _NRemoveNodes;  
@@ -63,33 +79,61 @@ namespace   FE
             return  _NChangedNodes;  
         }
         
+        /// <summary>
+        /// 获取节点树清空通知对象(读写):clear() 开头触发
+        /// </summary>
+        /// <returns>清空通知集合</returns>
         inline  auto&   eventsClear()
         {
             return  _NotifyClears;
         }
+        /// <summary>
+        /// 获取节点树清空通知对象(只读)
+        /// </summary>
+        /// <returns>清空通知集合</returns>
         const   auto&   eventsClear() const
         {
             return  _NotifyClears;
         }
         
     public:
+        /// <summary>
+        /// 获取所有顶层节点(只读)
+        /// </summary>
+        /// <returns>顶层节点列表</returns>
         const   Nodes&  topLevelNodes() const
         {
             return  _topLevelNodes;
         }
+        /// <summary>
+        /// 追加一个顶层节点,并触发 eventsAddNode;空指针或已在列表中则直接忽略
+        /// </summary>
+        /// <param name="node">要添加的节点</param>
         inline  void    addToplevelNode(const Node& node)
         {
+            if (node == nullptr)
+                return;
+            if (std::find(_topLevelNodes.begin(), _topLevelNodes.end(), node) != _topLevelNodes.end())
+                return;
             _topLevelNodes.push_back(node);
             _NAddNodes(node.get());
         }
+        /// <summary>
+        /// 批量追加顶层节点:逐个走 addToplevelNode,每成功加入一个触发一次 eventsAddNode,
+        /// 空指针与重复项被跳过
+        /// </summary>
+        /// <param name="nodes">要添加的节点列表</param>
         inline  void    addToplevelNodes(const Nodes& nodes)
         {
-            _topLevelNodes.insert(_topLevelNodes.end(), nodes.begin(), nodes.end());
-            for (auto& var : nodes)
+            for (const auto& node : nodes)
             {
-                _NAddNodes(var.get());
+                addToplevelNode(node);
             }
         }
+        /// <summary>
+        /// 从顶层列表中移除节点(不在列表中则跳过),移除成功触发 eventsRemoveNode
+        /// </summary>
+        /// <param name="node">要移除的节点</param>
         inline  void    removeToplevelNode(const Node& node)
         {
             auto    itr =   std::find(_topLevelNodes.begin(), _topLevelNodes.end(), node);
@@ -100,6 +144,10 @@ namespace   FE
             }
                 
         }
+        /// <summary>
+        /// 批量从顶层列表中移除节点
+        /// </summary>
+        /// <param name="nodes">要移除的节点列表</param>
         inline  void    removeToplevelNodes(const Nodes& nodes)
         {
             for (const auto& node : nodes)
@@ -107,16 +155,24 @@ namespace   FE
                 removeToplevelNode(node);
             }
         }
+        /// <summary>
+        /// 移除节点:有父节点时交给父节点 removeChild 摘除(其内部 onRemoveChild 已广播
+        /// eventsRemoveNode,这里不再重复通知),否则从顶层列表移除
+        /// </summary>
+        /// <param name="node">要移除的节点,空指针直接返回</param>
         inline  void    removeNode(const Node& node)
         {
             if (node == nullptr)
                 return;
-            auto    parent = node->parent();
-            if(parent && parent->removeChild(node))
-                _NRemoveNodes(node.get());
-            else
-                removeToplevelNode(node);
+            auto    parent  =   node->parent();
+            if (parent != nullptr && parent->removeChild(node))
+                return;
+            removeToplevelNode(node);
         }
+        /// <summary>
+        /// 批量移除节点,逐个走 removeNode
+        /// </summary>
+        /// <param name="nodes">要移除的节点列表</param>
         inline  void    removeNodes(const Nodes& nodes)
         {
             for (const auto& node : nodes)
@@ -125,14 +181,18 @@ namespace   FE
             }
         }
         /// <summary>
-        /// 清空场景内容
+        /// 清空节点树:先触发 eventsClear,再清空各顶层节点的组件与子节点(子节点摘除会
+        /// 触发 eventsRemoveNode),最后清空顶层列表。
+        /// 遍历用快照:节点清空时广播的移除事件里订阅者可能回头改本列表
         /// </summary>
         inline  void    clear()
         {
             _NotifyClears();
-            for (auto var : _topLevelNodes)
+            Nodes   nodes   =   _topLevelNodes;
+            for (auto& node : nodes)
             {
-                var->clear();
+                if (node != nullptr)
+                    node->clear();
             }
             _topLevelNodes.clear();
         }
