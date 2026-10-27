@@ -256,6 +256,10 @@ namespace   FE
             case WM_KEYUP:
                 onMessage(MsgKeyUp((uint)wParam));
                 break;
+            case WM_CHAR:
+                /// 字符输入(含中文):UTF-16 码元,ImGui 的文本控件依赖此消息
+                onMessage(MsgChar(FECharInfo((unsigned int)wParam)));
+                break;
             case WM_LBUTTONDOWN:
                 {
                     FEMouseInfo info;

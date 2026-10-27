@@ -174,6 +174,16 @@ namespace   FE
     public:
         uint    _key;
     };
+    /// 字符输入(WM_CHAR):_char 为 UTF-16/UTF-32 码位
+    class   FECharInfo
+    {
+    public:
+        FECharInfo(unsigned int ch = 0)
+            :_char(ch)
+        {}
+    public:
+        unsigned int    _char;
+    };
     class   FEMouseWheel
     {
     public:
@@ -220,7 +230,7 @@ namespace   FE
     using   MsgMouseWheel       =   TFEMessage<MSG_MOUSE_WHEEL      ,FEMouseWheel>;
     using   MsgKeyDown          =   TFEMessage<MSG_KEYDOWN          ,FEKeyInfo>;
     using   MsgKeyUp            =   TFEMessage<MSG_KEYUP            ,FEKeyInfo>;
-    using   MsgChar             =   TFEMessage<MSG_CHAR             ,FEMouseInfo>;
+    using   MsgChar             =   TFEMessage<MSG_CHAR             ,FECharInfo >;
     using   MsgTouchDowns       =   TFEMessage<MSG_TOUCH_DOWN       ,FEMouseInfo>;
     using   MsgTouchUp          =   TFEMessage<MSG_TOUCH_UP         ,FEMouseInfo>;
     using   MsgTouchMove        =   TFEMessage<MSG_TOUCH_MOVE       ,FEMouseInfo>;
