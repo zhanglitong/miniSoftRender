@@ -332,7 +332,12 @@ namespace   FE
                 return  luaL_error(L,"reparent: index must be >= 0");
             index   =   (size_t)idx;
         }
-        node->reparent(target,index);
+        /// 层级变更统一走节点树:它会同步顶层集合(reparent 只改父子关系)
+        auto    scene   =   node->ctx().scene();
+        if (scene == nullptr)
+            return  luaL_error(L,"reparent: no active scene");
+        if (!scene->nodeTree().setParent(node,target,index))
+            return  luaL_error(L,"reparent: cannot attach to self or descendant");
         return  0;
     }
 

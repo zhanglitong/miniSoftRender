@@ -604,25 +604,16 @@ namespace   FE
 
         /// 拖拽会改变父子结构,需重建行列表
         _rowsDirty  =   true;
-        Node    src =   topLevelNode(source);
-        if (source->parent() == nullptr)
+        /// 层级变更走节点树的唯一入口:它会同步顶层集合,FENode::reparent 只改父子关系
+        FENode* parent  =   target;
+        size_t  index   =   SIZE_MAX;
+        if (mode != 1)
         {
-            if (src)
-                _nodeTree->removeToplevelNode(src);
-        }
-
-        if (mode == 1)
-        {
-            source->reparent(target);
-            target->flags().addFlag(FLAG_EXPAND);
-        }
-        else
-        {
-            FENode*         parent  =   target->parent().get();
+            parent  =   target->parent().get();
             if (parent == nullptr)
                 return;
-            size_t          index   =   0;
-            auto&           kids    =   parent->children();
+            auto&   kids    =   parent->children();
+            index   =   0;
             for (; index < kids.size(); ++index)
             {
                 if (kids[index].get() == target)
@@ -630,8 +621,11 @@ namespace   FE
             }
             if (mode == 3)
                 ++index;
-            source->reparent(parent,index);
         }
+        if (!_nodeTree->setParent(source,parent,index))
+            return;
+        if (mode == 1)
+            target->flags().addFlag(FLAG_EXPAND);
     }
 
     std::string FEModelTree::objectName(const Object& object) const

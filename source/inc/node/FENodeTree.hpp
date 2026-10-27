@@ -170,6 +170,34 @@ namespace   FE
             removeToplevelNode(node);
         }
         /// <summary>
+        /// 改变节点的父节点,并同步维护顶层集合(唯一入口)。
+        /// FENode::reparent 只改父子关系、不碰 _topLevelNodes,因此编辑器拖拽、MCP、
+        /// 脚本、撤销命令等所有改层级的地方都必须走本接口
+        /// </summary>
+        /// <param name="node">要移动的节点</param>
+        /// <param name="parent">新父节点,nullptr 表示提升为顶层</param>
+        /// <param name="index">在新父节点子列表中的插入位置(SIZE_MAX=追加末尾);同父时表示重排</param>
+        /// <returns>节点为空、挂到自身或自身子孙下时返回 false</returns>
+        inline  bool    setParent(Node node, FENode* parent, size_t index = SIZE_MAX)
+        {
+            if (node == nullptr)
+                return  false;
+            /// 防环:新父节点不能是节点自身,也不能是它的子孙
+            for (FENode* p = parent; p != nullptr; p = p->parent().get())
+            {
+                if (p == node.get())
+                    return  false;
+            }
+            /// 有父节点时不应留在顶层集合里;不在集合中时本调用是空操作,不会重复发通知
+            if (parent != nullptr)
+                removeToplevelNode(node);
+            node->reparent(parent,index);
+            /// 提升为顶层:reparent 不会登记顶层集合,这里补上(已在集合中时自动跳过)
+            if (parent == nullptr)
+                addToplevelNode(node);
+            return  true;
+        }
+        /// <summary>
         /// 批量移除节点,逐个走 removeNode
         /// </summary>
         /// <param name="nodes">要移除的节点列表</param>

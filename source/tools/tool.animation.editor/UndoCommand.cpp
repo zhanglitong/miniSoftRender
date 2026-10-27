@@ -1054,21 +1054,15 @@ namespace   FE
         if (scene == nullptr)
             return;
         auto&   tree    =   scene->nodeTree();
+        /// 层级变更统一走节点树:它会同步顶层集合(reparent 只改父子关系)
         if (_newParent != nullptr)
         {
-            /// 顶层->子: reparent 不会从 topLevelNodes 摘除,需先手动摘除
-            if (_oldTopLevel)
-                tree.removeToplevelNode(_node);
-            _node->reparent(_newParent);
+            tree.setParent(_node,_newParent);
         }
-        else
+        else if (!_oldTopLevel)
         {
             /// ->顶层: 仅在原非顶层时执行(顶层->顶层无意义,canDropOn 已拦截)
-            if (!_oldTopLevel)
-            {
-                _node->reparent(nullptr);
-                tree.addToplevelNode(_node);
-            }
+            tree.setParent(_node,nullptr);
         }
         _node->makeDirty();
         _node->update();
@@ -1084,14 +1078,13 @@ namespace   FE
         if (scene == nullptr)
             return;
         auto&   tree    =   scene->nodeTree();
+        /// 层级变更统一走节点树:它会同步顶层集合(reparent 只改父子关系)
         if (_oldTopLevel)
         {
             /// 恢复为顶层节点
             if (_newParent != nullptr)
             {
-                /// 当前为 _newParent 子节点,先 reparent(nullptr) 摘除再加回顶层
-                _node->reparent(nullptr);
-                tree.addToplevelNode(_node);
+                tree.setParent(_node,nullptr);
             }
             /// else: 顶层->顶层(无意义场景), 当前已在顶层,无需操作
         }
@@ -1100,10 +1093,8 @@ namespace   FE
             /// 恢复为 _oldParent 子节点
             if (_newParent == nullptr)
             {
-                /// 当前为顶层,先从顶层摘除再 reparent 到旧父(reparent 对顶层节点不会摘除顶层表)
-                tree.removeToplevelNode(_node);
+                tree.setParent(_node,_oldParent.get());
             }
-            _node->reparent(_oldParent.get());
         }
         /// 恢复旧世界变换(reparent 已保持世界变换,此处覆盖以应对 redo/undo 间节点被移动;
         /// FE 无 setGlobalScaling,缩放由 reparent 保持的 global 矩阵承载,此处不单独恢复)
@@ -1141,8 +1132,11 @@ namespace   FE
     {
         if (!_node || !_parent)
             return;
-        /// 同父排序: reparent 现在支持 index 参数,同父时不 early return,先摘再挂到新位置
-        _node->reparent(_parent.get(), _newIndex);
+        auto    scene   =   _node->ctx().scene();
+        if (scene == nullptr)
+            return;
+        /// 同父排序同样走节点树(顶层集合不因此改变)
+        scene->nodeTree().setParent(_node,_parent.get(),_newIndex);
         if (_refreshCb)
             _refreshCb();
     }
@@ -1151,7 +1145,10 @@ namespace   FE
     {
         if (!_node || !_parent)
             return;
-        _node->reparent(_parent.get(), _oldIndex);
+        auto    scene   =   _node->ctx().scene();
+        if (scene == nullptr)
+            return;
+        scene->nodeTree().setParent(_node,_parent.get(),_oldIndex);
         if (_refreshCb)
             _refreshCb();
     }

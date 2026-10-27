@@ -253,8 +253,15 @@ namespace   FE
             } 
             return  *this;
         }
+    protected:
         /// <summary>
-        /// 修改父节点(传 nullptr 表示提升为顶层节点)
+        /// 仅节点树可调用:交给 FENodeTree 是为了同时维护顶层集合(_topLevelNodes)
+        /// </summary>
+        friend  class   FENodeTree;
+        /// <summary>
+        /// 修改父节点(传 nullptr 表示提升为顶层节点)—— 内部实现。
+        /// 只改父子关系,不会维护节点树的顶层集合,外部请统一调用
+        /// FENodeTree::setParent(节点树唯一入口,会同步顶层集合并广播事件)。
         /// 修改后保持场景世界变换不变,即 globalTransform 不变:
         ///     global = parentGlobal_old * local_old = parentGlobal_new * local_new
         ///     => local_new = inverse(parentGlobal_new) * global
@@ -262,6 +269,7 @@ namespace   FE
         /// <param name="node">新父节点,nullptr 表示脱离父节点成为顶层节点</param>
         /// <param name="index">插入到新父子节点列表的位置(SIZE_MAX=追加末尾,与 V3 CELLNode::reparent 签名一致)</param>
         void    reparent(FENode* node, size_t index = SIZE_MAX);
+    public:
 
         inline  void    setName(const String& name)
         {

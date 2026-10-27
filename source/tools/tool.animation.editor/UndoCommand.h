@@ -403,10 +403,8 @@ namespace   FE
 
     /// <summary>
     /// 重挂父节点命令(模型树拖拽调整层级),支持 undo/redo
-    /// FE::FENode::reparent 单参且不处理顶层节点表:
-    ///   - reparent(nullptr) 仅从旧父摘除,不会加入 topLevelNodes,故"提升到顶层"需 reparent+addToplevelNode;
-    ///   - reparent(newParent) 当旧为顶层时不会从 topLevelNodes 摘除,故跨父(顶层->子)需先 removeToplevelNode。
-    /// 命令按 _oldTopLevel 分支处理上述两种边界。reparent 内部保持世界变换。
+    /// 层级变更统一走 FENodeTree::setParent:它同时维护父子关系与顶层节点表
+    /// (_topLevelNodes),并保持世界变换;FENode::reparent 只是内部实现,不再直接调用。
     /// 顶层节点索引在 undo 时无法精确恢复(FENodeTree 无 insertAt 接口),追加到末尾。
     /// </summary>
     class ReparentNodeCmd : public QUndoCommand

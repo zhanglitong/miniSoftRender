@@ -718,16 +718,17 @@ namespace   FE
             [this](const json& args)
             {
                 FENode* child   =   requireNode(*_scene,args,"child","node_set_parent");
+                /// 层级变更统一走节点树:它会同步顶层集合(reparent 只改父子关系)
                 if (args.contains("parent") &&  !args["parent"].is_null())
                 {
                     FENode* parent  =   requireNode(*_scene,args,"parent","node_set_parent");
                     if (parent  ==  child)
                         throw   std::runtime_error("cannot reparent to self");
-                    child->reparent(parent);
+                    _scene->nodeTree().setParent(Node(child),parent);
                 }
                 else
                 {
-                    child->reparent(nullptr);
+                    _scene->nodeTree().setParent(Node(child),nullptr);
                 }
                 return  nodeInfo(child);
             }
