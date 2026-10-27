@@ -5,6 +5,7 @@
 #include    <cstdlib>
 #include    <cstring>
 #include    <iostream>
+#include    <set>
 #include    <string>
 #include    <vector>
 #include    <filesystem>
@@ -72,6 +73,66 @@ static  String& replacePath(String& str)
             ch = '/';
     }
     return  str;
+}
+
+/// <summary>
+/// 去掉字符串首尾的空白字符
+/// </summary>
+/// <param name="str">待处理的字符串</param>
+/// <returns>去掉首尾空白后的字符串</returns>
+static  String  trim(const String& str)
+{
+    size_t  nBegin  =   0;
+    size_t  nEnd    =   str.size();
+    while (nBegin < nEnd && std::isspace(static_cast<unsigned char>(str[nBegin])))
+        ++nBegin;
+    while (nEnd > nBegin && std::isspace(static_cast<unsigned char>(str[nEnd - 1])))
+        --nEnd;
+    return  str.substr(nBegin,nEnd - nBegin);
+}
+
+/// <summary>
+/// 归一化资源路径:去掉首尾空白、反斜杠转正斜杠、合并重复斜杠、去掉尾部斜杠
+/// </summary>
+/// <param name="path">待处理的路径</param>
+/// <returns>归一化后的路径</returns>
+static  String  normalizePath(const String& path)
+{
+    String  result;
+    result.reserve(path.size());
+    for (char ch : trim(path))
+    {
+        if (ch == '\\')
+            ch = '/';
+        if (ch == '/' && !result.empty() && result.back() == '/')
+            continue;
+        result.push_back(ch);
+    }
+    while (result.size() > 1 && result.back() == '/')
+        result.pop_back();
+    return  result;
+}
+
+/// <summary>
+/// 生成 .qrc 资源 key，规范为 :/prefix/name
+/// </summary>
+/// <param name="prefix">qresource 的 prefix 属性</param>
+/// <param name="name">file 的 alias 或相对路径</param>
+/// <returns>资源 key，例如 :/EditorRes/res/ico_Add.png</returns>
+static  String  qrcKey(const String& prefix,const String& name)
+{
+    String  folder  =   normalizePath(prefix);
+    String  leaf    =   normalizePath(name);
+    /// 去掉 alias/path 的前导 "./" 与前导 '/',它们相对于 prefix
+    while (leaf.size() >= 2 && leaf[0] == '.' && leaf[1] == '/')
+        leaf.erase(0,2);
+    while (!leaf.empty() && leaf[0] == '/')
+        leaf.erase(0,1);
+    if (folder.empty() || folder == "/")
+        return  ":/" + leaf;
+    if (folder[0] != '/')
+        folder.insert(folder.begin(),'/');
+    return  ":/" + folder.substr(1) + "/" + leaf;
 }
 
 /// <summary>
@@ -762,6 +823,10 @@ bool    processQRC(
     std::string     className   =   srcFileName;
     replaceDot(className);
 
+    /// 已注册的资源 key,用于检测重复(重复会导致同名符号与重复注册)
+    std::set<std::string>   usedKeys;
+    bool    bSuccess    =   true;
+
     FILE*       pOutFile    =   nullptr;
     try
     {
@@ -773,6 +838,12 @@ bool    processQRC(
             printf("parse file(%s) failed!\n",srcFileName);
             return false;
         }
+        if (strcmp(rootNode->name(),"RCC") != 0)
+        {
+            printf("parse file(%s) failed! root element must be <RCC>, actual is <%s>\n",
+                    srcFileName,rootNode->name());
+            return  false;
+        }
         std::string     path        =   filePath(srcFileName);
 
         pOutFile    =   fopen(dstFile,"w+");
@@ -783,20 +854,56 @@ bool    processQRC(
         }
         outFileHeader(pOutFile);
 
-        XMLNode*    nodeQRC     =   rootNode->first_node("qresource");
-        for ( ; nodeQRC ; nodeQRC   =   nodeQRC->next_sibling("qresource"))
+        for (XMLNode* nodeQRC  =   rootNode->first_node("qresource")
+                    ; nodeQRC  ; nodeQRC  =   nodeQRC->next_sibling("qresource"))
         {
-            XMLNode*    nodeFile    =   nodeQRC->first_node();
-            for ( ; nodeFile ; nodeFile = nodeFile->next_sibling())
+            /// prefix 缺省为 "/"
+            XMLAttr*    aPrefix =   nodeQRC->first_attribute("prefix");
+            std::string prefix  =   aPrefix ? aPrefix->value() : "/";
+            /// qresource 级别的语言
+            XMLAttr*    aRCLang =   nodeQRC->first_attribute("lang");
+            std::string rcLang  =   aRCLang ? trim(aRCLang->value()) : "";
+
+            for (XMLNode* nodeFile  =   nodeQRC->first_node("file")
+                        ; nodeFile  ; nodeFile  =   nodeFile->next_sibling("file"))
             {
-                std::string aInput  =   nodeFile->value();
-                if (aInput.empty())
+                /// <file> 的文本内容就是磁盘相对路径(可能跨行,需 trim)
+                std::string fileText    =   trim(nodeFile->value());
+                if (fileText.empty())
+                {
+                    printf("qrc file(%s): <file> without path, skipped!\n",srcFileName);
+                    bSuccess    =   false;
                     continue;
-                std::string srcFile =   path + "/" + aInput;
+                }
+                /// alias 优先作为资源名
+                XMLAttr*    aAlias  =   nodeFile->first_attribute("alias");
+                std::string alias   =   aAlias ? trim(aAlias->value()) : "";
+                /// file 级别的 lang 优先于 qresource 级别
+                XMLAttr*    aFileLang =   nodeFile->first_attribute("lang");
+                std::string lang    =   aFileLang ? trim(aFileLang->value()) : rcLang;
+
+                std::string key     =   qrcKey(prefix, alias.empty() ? fileText : alias);
+                /// <summary>
+                /// FEAssetsMgr 以字符串为唯一 key,无法表达同一资源的多语言版本,
+                /// 这里在 key 末尾追加 "@lang" 加以区分
+                /// </summary>
+                if (!lang.empty())
+                    key += "@" + lang;
+
+                if (usedKeys.count(key) > 0)
+                {
+                    printf("qrc file(%s): duplicate resource key(%s), skipped!\n",srcFileName,key.c_str());
+                    bSuccess    =   false;
+                    continue;
+                }
+                usedKeys.insert(key);
+
+                std::string srcFile =   path + "/" + fileText;
 
                 replacePath(srcFile);
 
-                std::string dstNames =   aInput + std::string(".cpp");
+                /// 符号名基于完整 key,保证不同 prefix/目录下的同名文件不冲突
+                std::string dstNames =   key + std::string(".cpp");
                 replacePath(dstNames);
                 replaceDot(dstNames);
 
@@ -806,9 +913,13 @@ bool    processQRC(
                 fputs("\n", pOutFile);
 
                 Header      header;
-                if(compile(srcFile.c_str(),dstFile,dstNames.c_str(),aInput.c_str(),header,pOutFile))
+                if(compile(srcFile.c_str(),dstFile,dstNames.c_str(),key.c_str(),header,pOutFile))
                 {
                     headers.push_back(header);
+                }
+                else
+                {
+                    bSuccess    =   false;
                 }
             }
         }
@@ -826,7 +937,7 @@ bool    processQRC(
             fclose(pOutFile);
         return  false;
     }
-    return  true;
+    return  bSuccess;
 }
 
 /// <summary>
