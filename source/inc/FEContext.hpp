@@ -1,5 +1,4 @@
 #pragma     once
-#include    "FEMath.hpp"
 #include    "FELog.hpp"
 #include    "FEKeyValues.hpp"
 #include    "FEFileFormat.hpp"
@@ -7,6 +6,7 @@
 #include    "FEObject.h"
 #include    "FEWindow.hpp"
 #include    "FEAnchor.hpp"
+#include    "FESetting.hpp"
 
 
 namespace FE
@@ -50,6 +50,17 @@ namespace FE
         {
             assert(_log!=nullptr);
             return  *_log;
+        }
+        /// <summary>
+        /// 全局配置
+        /// </summary>
+        auto&       setting()
+        {
+            return  _setting;
+        }
+        auto&       setting() const
+        {
+            return  _setting;
         }
         /// <summary>
         /// 设置工作目录，一般是跟exe同一个目录
@@ -175,6 +186,7 @@ namespace FE
         /// </summary>
         uint64      _frameIndex =   0;
         LogPtr      _log;
+        FESetting   _setting;
         Object      _device;
         Object      _anchor;
         Object      _window;   

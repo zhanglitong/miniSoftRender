@@ -25,7 +25,7 @@ int     main(int argc,char** argv)
     cfg.get("test")
         .set<int>(100)
         .get("111")
-        .value<int>(123);
+        .setIfUnset<int>(123);
 
     FEDateTime      dt;
     char            sx[64]  =   {};

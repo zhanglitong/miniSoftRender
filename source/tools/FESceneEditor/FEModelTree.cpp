@@ -73,14 +73,30 @@ namespace   FE
 
     void    FEModelTree::unbind()
     {
-        if (_nodeTree == nullptr)
-            return;
-        _nodeTree->eventsAddNode()      -=  this;
-        _nodeTree->eventsRemoveNode()   -=  this;
-        _nodeTree->eventsChangedNode()  -=  this;
-        _nodeTree->eventsClear()        -=  this;
-        _nodeTree   =   nullptr;
-        _rowsDirty  =   true;
+        if (_nodeTree != nullptr)
+        {
+            _nodeTree->eventsAddNode()      -=  this;
+            _nodeTree->eventsRemoveNode()   -=  this;
+            _nodeTree->eventsChangedNode()  -=  this;
+            _nodeTree->eventsClear()        -=  this;
+            _nodeTree   =   nullptr;
+        }
+        /// <summary>
+        /// 同时归还所有节点引用(行列表、选中、右键菜单、拖拽、重命名目标)。
+        /// FEEditorUi::detach 在场景销毁(device 释放)前调用本方法;
+        /// 若这些引用活到 UI 析构,节点及其材质会晚于 device 销毁,
+        /// 材质持有的 pipeline 析构时访问已释放的 device
+        /// (表现为 FEVKDevice::logicalDevice 里 this 为空指针崩溃)
+        /// </summary>
+        _rows.clear();
+        _selected       =   Object();
+        _context        =   Object();
+        _dragSource     =   Object();
+        _dropTarget     =   Object();
+        _renameTarget   =   Object();
+        _dragging       =   false;
+        _dropMode       =   0;
+        _rowsDirty      =   true;
     }
 
     void    FEModelTree::bindNodeTree(FENodeTree* nodeTree)
@@ -300,11 +316,17 @@ namespace   FE
         else if (rowHover)
             dl->AddRectFilled(pos,end,kRowHover);
 
+        /// <summary>
+        /// 图标尺寸取行高的 60%,展开图标与类型图标之间留出图标宽度 20% 的空隙
+        /// </summary>
+        const   float   iconSize    =   rowHeight * 0.6f;
+        const   float   iconGap     =   iconSize * 0.2f;
         const   float   indent  =   14.0f;
         const   float   arrowX  =   pos.x + 2.0f + indent * float(row._depth);
-        const   float   iconX   =   arrowX + 14.0f;
-        const   float   textX   =   iconX + 18.0f;
-        const   float   iconY   =   pos.y + (rowHeight - ImGui::GetTextLineHeight()) * 0.5f;
+        const   float   iconX   =   arrowX + iconSize + iconGap;
+        const   float   textX   =   iconX + iconSize + iconGap;
+        const   float   textY   =   pos.y + (rowHeight - ImGui::GetTextLineHeight()) * 0.5f;
+        const   float   iconY   =   pos.y + (rowHeight - iconSize) * 0.5f;
 
         /// <summary>
         /// 展开箭头(必须落在子窗口裁剪区内,否则点不到)
@@ -312,35 +334,36 @@ namespace   FE
         if (row._hasChild)
         {
             ImGui::SetCursorScreenPos(ImVec2(arrowX,pos.y));
-            ImGui::InvisibleButton("##expand",ImVec2(12.0f,rowHeight));
+            ImGui::InvisibleButton("##expand",ImVec2(iconSize,rowHeight));
             if (ImGui::IsItemClicked(0))
                 setExpanded(row._object,!row._expanded,false);
 
-            const   ImVec2  c   =   ImVec2(arrowX + 6.0f,pos.y + rowHeight * 0.5f);
+            const   float   half    =   iconSize * 0.3f;
+            const   ImVec2  c   =   ImVec2(arrowX + iconSize * 0.5f,pos.y + rowHeight * 0.5f);
             if (row._expanded)
-                dl->AddTriangleFilled(ImVec2(c.x - 4.0f,c.y - 3.0f),
-                                      ImVec2(c.x + 4.0f,c.y - 3.0f),
-                                      ImVec2(c.x,c.y + 4.0f),kArrowColor);
+                dl->AddTriangleFilled(ImVec2(c.x - half,c.y - half * 0.75f),
+                                      ImVec2(c.x + half,c.y - half * 0.75f),
+                                      ImVec2(c.x,c.y + half * 0.75f),kArrowColor);
             else
-                dl->AddTriangleFilled(ImVec2(c.x - 3.0f,c.y - 4.0f),
-                                      ImVec2(c.x - 3.0f,c.y + 4.0f),
-                                      ImVec2(c.x + 4.0f,c.y),kArrowColor);
+                dl->AddTriangleFilled(ImVec2(c.x - half * 0.75f,c.y - half),
+                                      ImVec2(c.x - half * 0.75f,c.y + half),
+                                      ImVec2(c.x + half * 0.75f,c.y),kArrowColor);
         }
 
         /// <summary>
         /// 类型图标
         /// </summary>
         if (_iconFont != nullptr)
-            dl->AddText(_iconFont,13.0f,ImVec2(iconX,iconY),kArrowColor,kGlyphCube);
+            dl->AddText(_iconFont,iconSize,ImVec2(iconX,iconY),kArrowColor,kGlyphCube);
         else
-            dl->AddRectFilled(ImVec2(iconX,iconY),ImVec2(iconX + 12.0f,iconY + 12.0f),kArrowColor,2.0f);
+            dl->AddRectFilled(ImVec2(iconX,iconY),ImVec2(iconX + iconSize,iconY + iconSize),kArrowColor,2.0f);
 
         /// <summary>
         /// 显隐开关
         /// </summary>
-        const   float   eyeX    =   end.x - 20.0f;
+        const   float   eyeX    =   end.x - iconSize - 4.0f;
         ImGui::SetCursorScreenPos(ImVec2(eyeX,pos.y));
-        ImGui::InvisibleButton("##visible",ImVec2(18.0f,rowHeight));
+        ImGui::InvisibleButton("##visible",ImVec2(iconSize,rowHeight));
         if (ImGui::IsItemClicked(0))
             setVisible(row._object,!row._object->flags().hasFlag(FLAG_VISIBLE),false);
 
@@ -371,13 +394,13 @@ namespace   FE
         const   bool            visible =   row._object->flags().hasFlag(FLAG_VISIBLE);
         const   std::string     name    =   objectName(row._object);
         ImGui::PushClipRect(ImVec2(textX,pos.y),ImVec2(eyeX - 4.0f,pos.y + rowHeight),true);
-        dl->AddText(ImVec2(textX,iconY),
+        dl->AddText(ImVec2(textX,textY),
                     selected ? kTextSelected : (visible ? kTextColor : kTextHidden),
                     name.c_str());
         ImGui::PopClipRect();
 
         if (_iconFont != nullptr)
-            dl->AddText(_iconFont,13.0f,ImVec2(eyeX + 2.0f,iconY),
+            dl->AddText(_iconFont,iconSize,ImVec2(eyeX,iconY),
                         visible ? kArrowColor : kIconHidden,
                         visible ? kGlyphEye : kGlyphEyeOff);
 

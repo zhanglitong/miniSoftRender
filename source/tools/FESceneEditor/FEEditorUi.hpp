@@ -7,9 +7,12 @@
 #include    "FEUiDocument.hpp"
 #include    "FEUiRenderer.hpp"
 #include    "FEModelTree.hpp"
+#include    "FETimeLine.hpp"
+#include    "FEShortcutConfig.hpp"
 
 #include    <filesystem>
 #include    <functional>
+#include    <map>
 #include    <string>
 #include    <vector>
 
@@ -234,10 +237,35 @@ namespace   FE
         /// </summary>
         void    drawRibbon();
         /// <summary>
-        /// 处理撤销/重做快捷键(Ctrl+Z / Ctrl+Y)。
+        /// 处理快捷键(Ctrl+Z / Ctrl+Y 以及用户在快捷键设置页自定义的绑定)。
         /// ImGui 1.65 没有 ImGui::Shortcut,这里用按键原语自行分发
         /// </summary>
         void    processShortcuts();
+        /// <summary>
+        /// 快捷键设置窗口(表格 + 录制 + 恢复默认/确定/取消)
+        /// </summary>
+        void    drawShortcutSettings();
+        /// <summary>
+        /// 运行时配置窗口(通用 key/value 控件显示 FESetting)
+        /// </summary>
+        void    drawSettingViewer();
+        /// <summary>
+        /// 录制态下扫描按键,Enter 提交 / Esc 取消
+        /// </summary>
+        void    captureShortcutKeys();
+        /// <summary>
+        /// 丢弃未保存的改键(重新读取 XML)
+        /// </summary>
+        void    discardShortcutChanges();
+        /// <summary>
+        /// 重新构建快捷键表并读取 exe 同名 XML
+        /// </summary>
+        void    reloadShortcuts();
+        /// <summary>
+        /// 按动作名触发 Ribbon 命令(与点击按钮同一条路径)
+        /// </summary>
+        /// <param name="name">.ui 中的 QAction 名</param>
+        void    triggerAction(const std::string& name);
         /// <summary>
         /// 文件选择对话框(打开工程 / 保存工程)
         /// </summary>
@@ -279,6 +307,10 @@ namespace   FE
         /// 模型树窗口(参考 QtTree 的 ImGui 实现)
         /// </summary>
         void    drawModelTree();
+        /// <summary>
+        /// 时间线编辑面板(参考 Qt 版 UiTickMgr)
+        /// </summary>
+        void    drawTimeLine();
         /// <summary>
         /// 切换场景网格显隐
         /// </summary>
@@ -323,6 +355,10 @@ namespace   FE
         /// 模型树
         /// </summary>
         FEModelTree                 _modelTree;
+        /// <summary>
+        /// 时间线编辑面板
+        /// </summary>
+        FETimeLine                  _timeLine;
         /// <summary>
         /// 模型树窗口开关
         /// </summary>
@@ -372,5 +408,52 @@ namespace   FE
         /// 打开/重置工程会替换整个场景,此时清空历史(命令引用的旧节点已无意义)
         /// </summary>
         FEUndoStack                         _undoStack;
+        /// <summary>
+        /// 快捷键表(命令来自 .ui,绑定保存在 exe 同名 XML)
+        /// </summary>
+        FEShortcutConfig                    _shortcuts;
+        /// <summary>
+        /// 动作名 → .ui 菜单项,供快捷键分发查找
+        /// </summary>
+        std::map<std::string,const FEUiMenuItem*>   _actionById;
+        /// <summary>
+        /// 快捷键设置窗口开关
+        /// </summary>
+        bool                    _shortcutOpen      =   false;
+        /// <summary>
+        /// 配置窗口开关
+        /// </summary>
+        bool                    _settingOpen       =   false;
+        /// <summary>
+        /// 配置窗口的错误提示
+        /// </summary>
+        std::string             _settingError;
+        /// <summary>
+        /// 设置窗口内尚未保存的改动(关闭时提示丢弃)
+        /// </summary>
+        bool                    _shortcutDirty     =   false;
+        /// <summary>
+        /// 表格选中行;-1 表示未选中
+        /// </summary>
+        int                     _shortcutSelected  =   -1;
+        /// <summary>
+        /// 正在录制的行;-1 表示不在录制态
+        /// </summary>
+        int                     _shortcutRecord    =   -1;
+        /// <summary>
+        /// 录制中的候选组合
+        /// </summary>
+        int                     _recordKey         =   0;
+        bool                    _recordCtrl        =   false;
+        bool                    _recordShift       =   false;
+        bool                    _recordAlt         =   false;
+        /// <summary>
+        /// 录制候选中已按下过非修饰键
+        /// </summary>
+        bool                    _recordPressed     =   false;
+        /// <summary>
+        /// 设置窗口的错误提示(重复绑定等)
+        /// </summary>
+        std::string             _shortcutError;
     };
 }

@@ -1,5 +1,6 @@
 #pragma     once
 #include    "../FEApp.hpp"
+#include    "../FEPath.hpp"
 #include    <windows.h>
 #include    <fcntl.h>
 #include    <io.h>
@@ -102,11 +103,8 @@ namespace   FE
         /// <returns></returns>
         virtual String  filePathName() override
         {
-            char    szTemp[2048]    =   {};
-            auto    result  =   GetModuleFileNameA(nullptr,szTemp,sizeof(szTemp));
-            UNUSED(result);
-            assert(result < sizeof(szTemp));
-            return  szTemp;
+            /// exe 路径统一由平台层提供(宽字符 API,与 FEPath.cpp 共用一处实现)
+            return  exePath().string();
         }
         virtual String  path() override
         {

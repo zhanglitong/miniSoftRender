@@ -9,6 +9,8 @@
 #include    "FEEditorUi.hpp"
 
 #include    "FEEditorUndoCmds.hpp"
+#include    "FEPropertyView.hpp"
+#include    "FESettingPropertyModel.hpp"
 
 #include    "../../../inc/FEMessage.hpp"
 #include    "../../../inc/graphic/FEScene.h"
@@ -33,6 +35,7 @@
 #include    <cstring>
 #include    <imgui.h>
 #include    <iostream>
+#include    <map>
 #include    <string>
 #include    <vector>
 
@@ -173,6 +176,34 @@ namespace
         io.KeyShift =   io.KeysDown[kVkShift]    || io.KeysDown[kVkLShift]   || io.KeysDown[kVkRShift];
         io.KeyAlt   =   io.KeysDown[kVkAlt]      || io.KeysDown[kVkLAlt]     || io.KeysDown[kVkRAlt];
     }
+
+    /// <summary>
+    /// 建立 动作名 → .ui 菜单项 的索引(递归)
+    /// </summary>
+    /// <param name="node">当前节点</param>
+    /// <param name="map">输出索引</param>
+    void    collectActionMap(const FE::FEUiMenuItem* node,
+                             std::map<std::string,const FE::FEUiMenuItem*>& map)
+    {
+        if (node == nullptr)
+            return;
+        if (node->_type == FE::kUiAction && !node->_name.empty())
+            map.emplace(node->_name,node);
+        for (const FE::FEUiMenuItem* child : node->_children)
+            collectActionMap(child,map);
+    }
+
+    /// <summary>
+    /// 录制态下视为占位/解绑的键
+    /// </summary>
+    bool    isModifierKey(int vk)
+    {
+        return  vk == kVkShift || vk == kVkControl || vk == kVkAlt
+             || vk == kVkLShift || vk == kVkRShift
+             || vk == kVkLControl || vk == kVkRControl
+             || vk == kVkLAlt || vk == kVkRAlt;
+    }
+
 
 
     /// <summary>
@@ -1166,9 +1197,35 @@ namespace   FE
                 std::cerr << "load ui failed: " << _uiError << std::endl;
             }
         }
+        /// <summary>
+        /// 快捷键表:命令来自 .ui,绑定来自 exe 同名 XML(不存在时用默认值)
+        /// </summary>
+        reloadShortcuts();
+        /// <summary>
+        /// 首次运行(设置树里还没有快捷键节点):把默认绑定写入设置并落盘,
+        /// 生成 exe 同目录的 FESceneEditor.xml,避免配置窗口一直是空的
+        /// </summary>
+        if (_ctx->setting().find("shortcut") == nullptr)
+        {
+            _shortcuts.save(_ctx->setting());
+            _ctx->setting().save(FEShortcutConfig::exeXmlPath().c_str());
+        }
+        _shortcutOpen       =   false;
+        _shortcutDirty      =   false;
+        _shortcutSelected   =   -1;
+        _shortcutRecord     =   -1;
+        _shortcutError.clear();
         _factory    =   new FEEditorImGuiFactory(ctx,_backend);
         _factory->_buildUI  =   [this]() {   this->drawRibbon();  };
         scene->factoryMgr().addObject(_factory);
+        /// <summary>
+        /// 时间线面板的数据来源:场景动画系统 / 撤销栈 / 模型树选中项
+        /// </summary>
+        _timeLine.bind(scene,&_undoStack,&_modelTree);
+        /// <summary>
+        /// 时间线窗口默认集成显示在编辑器底部
+        /// </summary>
+        _timeLine.setOpen(true);
         _attached   =   true;
         return  true;
     }
@@ -1179,6 +1236,7 @@ namespace   FE
         /// 先断开回调与后端链接,避免工厂在后续帧继续访问已释放对象
         /// </summary>
         _modelTree.unbind();
+        _timeLine.unbind();
         if (_factory != nullptr)
         {
             _factory->_buildUI  =   nullptr;
@@ -1193,6 +1251,14 @@ namespace   FE
         _ctx        =   nullptr;
         _iconFont   =   nullptr;
         _fileDialog.close();
+        /// <summary>
+        /// 动作索引指向 _uiDoc 里的菜单项,必须在 clear 之前丢弃
+        /// </summary>
+        _actionById.clear();
+        _shortcutOpen   =   false;
+        _shortcutRecord =   -1;
+        _shortcutError.clear();
+        _settingOpen    =   false;
         _uiDoc.clear();
         _uiError.clear();
         _uiPreviewOpen  =   false;
@@ -1214,21 +1280,361 @@ namespace   FE
     {
         ImGuiIO&    io  =   ImGui::GetIO();
         /// <summary>
-        /// 文本输入框获得焦点时按键属于输入(InputText 内部已有自己的撤销),
-        /// 不能再触发场景的撤销/重做
+        /// 文本输入框获得焦点时按键属于输入(InputText 内部已有自己的撤销);
+        /// 设置窗口打开或正在录制时,按键属于设置操作
         /// </summary>
-        if (io.WantTextInput)
+        if (io.WantTextInput || _scene == nullptr)
             return;
-        if (!io.KeyCtrl || io.KeyAlt || _scene == nullptr)
+        if (_shortcutOpen || _shortcutRecord >= 0)
             return;
+
         /// <summary>
-        /// 与 Ribbon 按钮一致:压入 _pendingActions,推迟到下一帧 MSG_UPDATE 执行
-        /// (撤销会增删场景节点,不能在本帧的绘制中途改渲染工厂)
+        /// 按键用 Windows 虚拟键码作 io.KeysDown 的下标,与快捷键表里保存的 _key 一致。
+        /// 修饰键必须与绑定完全相等(避免 Ctrl+S 被裸 S 触发)
         /// </summary>
-        if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Z],false))
-            _pendingActions.push_back([this]() {    _undoStack.undo();  });
-        else if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Y],false))
-            _pendingActions.push_back([this]() {    _undoStack.redo();  });
+        for (const FEShortcutItem& item : _shortcuts._items)
+        {
+            if (item._key <= 0 || item._key >= 512)
+                continue;
+            if (item._ctrl != io.KeyCtrl || item._shift != io.KeyShift || item._alt != io.KeyAlt)
+                continue;
+            if (!ImGui::IsKeyPressed(item._key,false))
+                continue;
+            triggerAction(item._id);
+            break;
+        }
+    }
+
+    void    FEEditorUi::reloadShortcuts()
+    {
+        _actionById.clear();
+        collectActionMap(_uiDoc.menuBar(),_actionById);
+        _shortcuts.build(_uiDoc,nullptr);
+        /// 设置已在启动时加载,这里只从设置树取快捷键
+        _shortcuts.load(_ctx->setting());
+        _shortcutDirty  =   false;
+    }
+
+    void    FEEditorUi::discardShortcutChanges()
+    {
+        reloadShortcuts();
+        _shortcutRecord =   -1;
+        _shortcutError.clear();
+    }
+
+    void    FEEditorUi::triggerAction(const std::string& name)
+    {
+        auto    it  =   _actionById.find(name);
+        if (it == _actionById.end() || it->second == nullptr)
+            return;
+        onAction(it->second);
+    }
+
+    void    FEEditorUi::captureShortcutKeys()
+    {
+        if (_shortcutRecord < 0 || size_t(_shortcutRecord) >= _shortcuts._items.size())
+            return;
+        ImGuiIO&    io  =   ImGui::GetIO();
+        /// <summary>
+        /// Esc 放弃本次录制,保留原绑定
+        /// </summary>
+        if (ImGui::IsKeyPressed(kVkEscape,false))
+        {
+            _shortcutRecord =   -1;
+            _shortcutError.clear();
+            return;
+        }
+        /// <summary>
+        /// Enter 提交候选组合;候选为空时忽略
+        /// </summary>
+        if (ImGui::IsKeyPressed(kVkEnter,false))
+        {
+            if (!_recordPressed || _recordKey == 0)
+                return;
+            const   int other   =   _shortcuts.conflictWith(_recordKey,_recordCtrl,_recordShift,
+                                                            _recordAlt,_shortcutRecord);
+            if (other >= 0)
+            {
+                _shortcutError  =   "该快捷键已被占用: " + _shortcuts._items[other]._text;
+                return;
+            }
+            _shortcuts.assign(size_t(_shortcutRecord),_recordKey,_recordCtrl,_recordShift,_recordAlt);
+            _shortcutDirty  =   true;
+            _shortcutRecord =   -1;
+            _shortcutError.clear();
+            return;
+        }
+
+        /// <summary>
+        /// 修饰键状态实时跟随,便于预览组合文本
+        /// </summary>
+        _recordCtrl     =   io.KeyCtrl;
+        _recordShift    =   io.KeyShift;
+        _recordAlt      =   io.KeyAlt;
+
+        /// <summary>
+        /// 扫描全部虚拟键码,跳开修饰键与 Enter/Esc(它们有固定含义)。
+        /// ImGui 1.65 的 ImGuiKey 枚举覆盖不了字母/数字/F 键,只能直接查 KeysDown
+        /// </summary>
+        for (int vk = 1; vk < 256; ++vk)
+        {
+            if (isModifierKey(vk) || vk == kVkEnter || vk == kVkEscape)
+                continue;
+            if (!ImGui::IsKeyPressed(vk,false))
+                continue;
+            /// <summary>
+            /// Backspace / Delete 视为解绑
+            /// </summary>
+            if (vk == kVkBack || vk == kVkDelete)
+            {
+                _shortcuts.assign(size_t(_shortcutRecord),0,false,false,false);
+                _shortcutDirty  =   true;
+                _shortcutRecord =   -1;
+                _shortcutError.clear();
+                return;
+            }
+            _recordKey      =   vk;
+            _recordPressed  =   true;
+            return;
+        }
+    }
+
+    void    FEEditorUi::drawSettingViewer()
+    {
+        if (!_settingOpen || _ctx == nullptr)
+            return;
+
+        bool    open    =   true;
+        ImGui::SetNextWindowSize(ImVec2(560.0f,600.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(32.0f,kRibbonH + 16.0f),ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("配置",&open,ImGuiWindowFlags_NoCollapse))
+        {
+            const   std::string path    =   FEShortcutConfig::exeXmlPath();
+            ImGui::TextDisabled("运行时设置树:分组可折叠,值可直接编辑");
+            ImGui::SameLine();
+            ImGui::TextDisabled("(%s)",path.c_str());
+            ImGui::Separator();
+
+            /// <summary>
+            /// 通用 key/value 控件:数据来自 FESetting 适配器
+            /// </summary>
+            FESettingPropertyModel  model(_ctx->setting());
+            ImGui::BeginChild("##setting_rows",ImVec2(0.0f,-ImGui::GetFrameHeightWithSpacing()),false);
+            FEPropertyView::draw(model,"##setting");
+            ImGui::EndChild();
+
+            if (ImGui::Button("保存"))
+            {
+                _settingError   =   _ctx->setting().save(path.c_str())
+                                  ?   std::string()
+                                  :   std::string("保存失败");
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("重新加载"))
+            {
+                _ctx->setting().load(path.c_str());
+                _settingError.clear();
+            }
+            if (!_settingError.empty())
+            {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0.92f,0.45f,0.42f,1.0f),"%s",_settingError.c_str());
+            }
+        }
+        ImGui::End();
+        _settingOpen    =   open;
+    }
+
+    void    FEEditorUi::drawShortcutSettings()
+    {
+        if (!_shortcutOpen)
+            return;
+        if (_shortcutRecord >= 0)
+            captureShortcutKeys();
+
+        bool    open    =   true;
+        /// <summary>
+        /// 首次打开居中显示,尺寸不超过可用区域(小窗口下自动收缩,避免按钮被裁掉)
+        /// </summary>
+        const   ImVec2  display =   ImGui::GetIO().DisplaySize;
+        const   ImVec2  dlgSize =   ImVec2(std::min(640.0f,display.x - 16.0f),
+                                           std::min(520.0f,std::max(240.0f,display.y - kRibbonH - 24.0f)));
+        const   float   posX    =   std::max(8.0f,(display.x - dlgSize.x) * 0.5f);
+        ImGui::SetNextWindowSize(dlgSize,ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(posX,kRibbonH + 12.0f),ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("快捷键设置",&open,ImGuiWindowFlags_NoCollapse))
+        {
+            ImGui::TextColored(ImVec4(0.55f,0.57f,0.62f,1.0f),
+                               "双击\"快捷键\"列进入录制态。按下要绑定的键组合(如 Ctrl+S / F5)。"
+                               "Enter 确认 / Esc 取消 / Backspace 解绑。");
+            ImGui::Spacing();
+
+            /// <summary>
+            /// 底部预留:一行提示 + 一行按钮
+            /// </summary>
+            const   float   footerH =   ImGui::GetTextLineHeightWithSpacing()
+                                    +   ImGui::GetFrameHeight()
+                                    +   ImGui::GetStyle().ItemSpacing.y + 6.0f;
+            ImGui::BeginChild("##shortcut_list",ImVec2(0.0f,-footerH),true);
+            {
+                /// <summary>
+                /// 表头:动作 / 快捷键(两列居中,与参考图一致)
+                /// </summary>
+                const   float   split   =   ImGui::GetWindowContentRegionWidth() * 0.48f;
+                const   float   rowH    =   ImGui::GetTextLineHeight() + 12.0f;
+                const   float   listW   =   ImGui::GetWindowContentRegionWidth();
+                const   ImU32   gridCol =   IM_COL32(66,70,78,255);
+                const   ImVec2  header  =   ImGui::GetCursorScreenPos();
+                const   float   head1X  =   (split - ImGui::CalcTextSize("动作").x) * 0.5f;
+                const   float   head2X  =   split + (listW - split - ImGui::CalcTextSize("快捷键").x) * 0.5f;
+                ImDrawList*     dl      =   ImGui::GetWindowDrawList();
+                dl->AddText(ImVec2(header.x + head1X,header.y),kTextMuted,"动作");
+                dl->AddText(ImVec2(header.x + head2X,header.y),kTextMuted,"快捷键");
+                ImGui::Dummy(ImVec2(0.0f,ImGui::GetTextLineHeight()));
+                ImGui::Separator();
+
+                if (_shortcuts._items.empty())
+                {
+                    ImGui::TextDisabled("没有可配置的命令(请检查 .ui 菜单栏)");
+                }
+                for (size_t i = 0; i < _shortcuts._items.size(); ++i)
+                {
+                    const   FEShortcutItem& item    =   _shortcuts._items[i];
+                    const   bool            recording   =   (int(i) == _shortcutRecord);
+                    const   bool            selected    =   (int(i) == _shortcutSelected);
+                    ImGui::PushID(int(i));
+
+                    const   ImVec2  pos =   ImGui::GetCursorScreenPos();
+                    if (ImGui::Selectable("##row",selected,0,ImVec2(0.0f,rowH)))
+                        _shortcutSelected   =   int(i);
+                    /// <summary>
+                    /// 双击快捷键列进入录制
+                    /// </summary>
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+                    {
+                        _shortcutSelected   =   int(i);
+                        _shortcutRecord     =   int(i);
+                        _recordKey          =   0;
+                        _recordCtrl         =   false;
+                        _recordShift        =   false;
+                        _recordAlt          =   false;
+                        _recordPressed      =   false;
+                        _shortcutError.clear();
+                    }
+
+                    const   float   textY   =   pos.y + (rowH - ImGui::GetTextLineHeight()) * 0.5f;
+                    const   ImU32   color   =   recording ? kAccent : kTextColor;
+                    dl  =   ImGui::GetWindowDrawList();
+                    /// <summary>
+                    /// 列分隔线与行底线,做出表格的观感
+                    /// </summary>
+                    dl->AddLine(ImVec2(pos.x + split,pos.y),ImVec2(pos.x + split,pos.y + rowH),gridCol);
+                    dl->AddLine(ImVec2(pos.x,pos.y + rowH - 1.0f),ImVec2(pos.x + listW,pos.y + rowH - 1.0f),gridCol);
+                    dl->AddText(ImVec2(pos.x + 6.0f,textY),color,item._text.c_str());
+                    if (recording)
+                    {
+                        std::string preview =   "按下按键…";
+                        if (_recordPressed && _recordKey != 0)
+                            preview =   FEShortcutConfig::comboText(_recordKey,_recordCtrl,
+                                                                    _recordShift,_recordAlt);
+                        dl->AddText(ImVec2(pos.x + split + 6.0f,textY),kAccent,preview.c_str());
+                    }
+                    else
+                    {
+                        const   std::string combo   =   _shortcuts.text(i);
+                        dl->AddText(ImVec2(pos.x + split + 6.0f,textY),
+                                    combo.empty() ? kTextMuted : kTextColor,
+                                    combo.empty() ? "" : combo.c_str());
+                    }
+                    ImGui::PopID();
+                }
+            }
+            ImGui::EndChild();
+
+            /// <summary>
+            /// 错误提示(重复绑定 / 保存失败)
+            /// </summary>
+            if (!_shortcutError.empty())
+                ImGui::TextColored(ImVec4(0.92f,0.45f,0.42f,1.0f),"%s",_shortcutError.c_str());
+            else
+                ImGui::TextDisabled("配置文件: %s",FEShortcutConfig::exeXmlPath().c_str());
+
+            if (ImGui::Button("编辑快捷键"))
+            {
+                if (_shortcutSelected >= 0)
+                {
+                    _shortcutRecord =   _shortcutSelected;
+                    _recordKey      =   0;
+                    _recordCtrl     =   false;
+                    _recordShift    =   false;
+                    _recordAlt      =   false;
+                    _recordPressed  =   false;
+                    _shortcutError.clear();
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("恢复默认"))
+            {
+                if (_shortcutSelected >= 0)
+                {
+                    _shortcuts.reset(size_t(_shortcutSelected));
+                    _shortcutDirty  =   true;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("全部恢复默认"))
+            {
+                _shortcuts.resetAll();
+                _shortcutDirty  =   true;
+            }
+
+            /// <summary>
+            /// 右下角:关闭(丢弃改动) / 确定(写入 XML)
+            /// </summary>
+            const   float   closeW  =   ImGui::CalcTextSize("关闭").x + 28.0f;
+            const   float   okW     =   ImGui::CalcTextSize("确定").x + 28.0f;
+            const   float   rightX  =   ImGui::GetWindowContentRegionMax().x - closeW - okW
+                                     -   ImGui::GetStyle().ItemSpacing.x;
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(rightX);
+            if (ImGui::Button("关闭",ImVec2(closeW,0.0f)))
+            {
+                discardShortcutChanges();
+                _shortcutOpen   =   false;
+                open            =   false;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("确定",ImVec2(okW,0.0f)))
+            {
+                bool    saved   =   false;
+                if (_ctx != nullptr)
+                {
+                    _shortcuts.save(_ctx->setting());
+                    saved   =   _ctx->setting().save(FEShortcutConfig::exeXmlPath().c_str());
+                }
+                if (saved)
+                {
+                    _shortcutDirty  =   false;
+                    _shortcutOpen   =   false;
+                    open            =   false;
+                    _shortcutRecord =   -1;
+                }
+                else
+                {
+                    _shortcutError  =   "保存失败: " + FEShortcutConfig::exeXmlPath();
+                }
+            }
+        }
+        ImGui::End();
+
+        /// <summary>
+        /// 标题栏的 X 与"关闭"等价:丢弃未保存的改动
+        /// </summary>
+        if (!open && _shortcutOpen)
+        {
+            discardShortcutChanges();
+            _shortcutOpen   =   false;
+        }
     }
 
     void    FEEditorUi::drawRibbon()
@@ -1444,7 +1850,10 @@ namespace   FE
 
         drawFileDialog();
         drawModelTree();
+        drawTimeLine();
         drawUiPreview();
+        drawShortcutSettings();
+        drawSettingViewer();
     }
 
     void    FEEditorUi::drawFileDialog()
@@ -1499,6 +1908,30 @@ namespace   FE
         {
             _pendingActions.push_back([this]() {    _undoStack.redo();  });
         }
+        else if (name == "action_ShortcutSettings")
+        {
+            /// <summary>
+            /// 打开快捷键设置窗口;不改场景,无需推迟到 MSG_UPDATE
+            /// </summary>
+            _shortcutOpen   =   true;
+            _shortcutError.clear();
+            if (_shortcutSelected < 0 && !_shortcuts._items.empty())
+                _shortcutSelected   =   0;
+        }
+        else if (name == "action_SettingViewer")
+        {
+            /// <summary>
+            /// 打开运行时配置窗口(通用 key/value 控件),不改场景
+            /// </summary>
+            _settingOpen    =   true;
+        }
+        else if (name == "action_TimeLine")
+        {
+            /// <summary>
+            /// 时间线面板开关;只改 UI 状态,不改场景
+            /// </summary>
+            _timeLine.toggle();
+        }
         else if (name.rfind("action_add",0) == 0)
         {
             /// <summary>
@@ -1522,6 +1955,7 @@ namespace   FE
             /// 场景已被整体替换,旧命令引用的节点不再属于当前工程
             /// </summary>
             _undoStack.clear();
+            _timeLine.reset();
             _projectName    =   path;
             _startDir       =   std::filesystem::u8path(path).parent_path().u8string();
             _statusText     =   "打开工程成功";
@@ -1579,6 +2013,7 @@ namespace   FE
         /// </summary>
         _scene->clear();
         _undoStack.clear();
+        _timeLine.reset();
         _projectName.clear();
         _statusText =   "已重置";
     }
@@ -1781,6 +2216,11 @@ namespace   FE
             _modelTree.draw(_scene ? &_scene->nodeTree() : nullptr,_iconFont);
         }
         ImGui::End();
+    }
+
+    void    FEEditorUi::drawTimeLine()
+    {
+        _timeLine.draw(_iconFont);
     }
 
     void    FEEditorUi::drawUiPreview()
