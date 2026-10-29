@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1050</width>
+    <width>1244</width>
     <height>525</height>
    </rect>
   </property>
@@ -26,7 +26,7 @@
    <property name="autoFillBackground">
     <bool>true</bool>
    </property>
-   <layout class="QGridLayout" name="gridLayout" rowstretch="0,0">
+   <layout class="QGridLayout" name="gridLayout" rowstretch="0">
     <property name="leftMargin">
      <number>0</number>
     </property>
@@ -42,7 +42,7 @@
     <property name="spacing">
      <number>0</number>
     </property>
-    <item row="1" column="0">
+    <item row="0" column="0">
      <widget class="WigetViewer" name="sceneViewer" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -58,258 +58,6 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="0">
-     <widget class="QWidget" name="widget" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="focusPolicy">
-       <enum>Qt::ClickFocus</enum>
-      </property>
-      <property name="autoFillBackground">
-       <bool>true</bool>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>1</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>1</number>
-       </property>
-       <item>
-        <widget class="QComboBox" name="comboBoxMixers">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;动画混合器&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;用于混合动画片段，支持自动创建&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="autoFillBackground">
-          <bool>false</bool>
-         </property>
-         <property name="editable">
-          <bool>false</bool>
-         </property>
-         <property name="currentIndex">
-          <number>0</number>
-         </property>
-         <property name="sizeAdjustPolicy">
-          <enum>QComboBox::AdjustToContents</enum>
-         </property>
-         <item>
-          <property name="text">
-           <string>空[null]</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pbtnAddMixer">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>22</width>
-           <height>22</height>
-          </size>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;新建动画混合器&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/ico_Add.png</normaloff>:/EditorRes/res/ico_Add.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pbtnDeleteMixer">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>22</width>
-           <height>22</height>
-          </size>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;删除当前动画混合器&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/ico_Delete.png</normaloff>:/EditorRes/res/ico_Delete.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="comboBoxClips">
-         <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;动画片段&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;管理动画轨道&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="editable">
-          <bool>false</bool>
-         </property>
-         <property name="sizeAdjustPolicy">
-          <enum>QComboBox::AdjustToContents</enum>
-         </property>
-         <item>
-          <property name="text">
-           <string>空[null]</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pbtnAddClip">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>22</width>
-           <height>22</height>
-          </size>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;新建动画片段&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/ico_Add.png</normaloff>:/EditorRes/res/ico_Add.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pbtnDeleteClip">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>22</width>
-           <height>22</height>
-          </size>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;删除当前动画片段&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/ico_Delete.png</normaloff>:/EditorRes/res/ico_Delete.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButtonRefresh">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>刷新</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="axisPosType">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="toolTip">
-          <string>坐标轴位置(待支持)</string>
-         </property>
-         <item>
-          <property name="text">
-           <string>左上</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="axisTransformType">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="toolTip">
-          <string>轴向变换方式(待支持)</string>
-         </property>
-         <item>
-          <property name="text">
-           <string>局部</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="tansformCenterType">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="toolTip">
-          <string>变换中心(待支持)</string>
-         </property>
-         <item>
-          <property name="text">
-           <string>轴心</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -317,7 +65,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1050</width>
+     <width>1244</width>
      <height>22</height>
     </rect>
    </property>
@@ -325,12 +73,98 @@
     <property name="title">
      <string>文件</string>
     </property>
-    <addaction name="action_openPrj"/>
-    <addaction name="action_savePrj"/>
-    <addaction name="action_importModel"/>
-    <addaction name="separator"/>
-    <addaction name="actionReset"/>
-    <addaction name="separator"/>
+    <widget class="QMenu" name="menu_open">
+     <property name="title">
+      <string>打开</string>
+     </property>
+     <addaction name="action_openPrj"/>
+     <addaction name="action_savePrj"/>
+     <addaction name="actionReset"/>
+    </widget>
+    <widget class="QMenu" name="menu_import">
+     <property name="title">
+      <string>导入</string>
+     </property>
+     <addaction name="action_importModel"/>
+    </widget>
+    <addaction name="menu_open"/>
+    <addaction name="menu_import"/>
+   </widget>
+   <widget class="QMenu" name="menu_edit">
+    <property name="title">
+     <string>编辑</string>
+    </property>
+    <widget class="QMenu" name="menu_transform">
+     <property name="title">
+      <string>变换</string>
+     </property>
+     <addaction name="action_move"/>
+     <addaction name="action_rotation"/>
+     <addaction name="action_scale"/>
+     <addaction name="action_axisEditor"/>
+    </widget>
+    <widget class="QMenu" name="menu_history">
+     <property name="title">
+      <string>历史</string>
+     </property>
+     <addaction name="action_undo"/>
+     <addaction name="action_redo"/>
+     <addaction name="action_undoView"/>
+    </widget>
+    <addaction name="menu_transform"/>
+    <addaction name="menu_history"/>
+   </widget>
+   <widget class="QMenu" name="menu_4">
+    <property name="title">
+     <string>创建对象</string>
+    </property>
+    <widget class="QMenu" name="menuGeo">
+     <property name="title">
+      <string>模型</string>
+     </property>
+     <addaction name="action_addBox"/>
+     <addaction name="action_addSphere"/>
+     <addaction name="action_addCylinder"/>
+     <addaction name="action_addSphericalCap"/>
+     <addaction name="action_addConeFrustum"/>
+     <addaction name="action_addPyramidFrustum"/>
+     <addaction name="action_addTorusSector"/>
+     <addaction name="action_addTorus"/>
+     <addaction name="action_addHyperboloid"/>
+     <addaction name="action_addPyramid"/>
+     <addaction name="action_addTorusSolid"/>
+     <addaction name="action_addTorusKnot"/>
+    </widget>
+    <addaction name="action_addEmpty"/>
+    <addaction name="action_AddCameraNode"/>
+    <addaction name="menuGeo"/>
+   </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>设置</string>
+    </property>
+    <widget class="QMenu" name="menu_opt">
+     <property name="title">
+      <string>选项</string>
+     </property>
+     <addaction name="action_resetLayout"/>
+     <addaction name="action_SettingViewer"/>
+    </widget>
+    <widget class="QMenu" name="menu_short">
+     <property name="title">
+      <string>快捷</string>
+     </property>
+     <addaction name="action_ShortcutSettings"/>
+    </widget>
+    <widget class="QMenu" name="menu_anim">
+     <property name="title">
+      <string>动画</string>
+     </property>
+     <addaction name="action_TimeLine"/>
+    </widget>
+    <addaction name="menu_opt"/>
+    <addaction name="menu_short"/>
+    <addaction name="menu_anim"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
@@ -338,31 +172,51 @@
     </property>
     <addaction name="action_about"/>
    </widget>
-   <widget class="QMenu" name="menu_3">
+   <widget class="QMenu" name="menu_6">
     <property name="title">
-     <string>设置</string>
+     <string>对齐</string>
     </property>
-    <addaction name="action_resetLayout"/>
-   </widget>
-   <widget class="QMenu" name="menu_4">
-    <property name="title">
-     <string>添加</string>
-    </property>
-    <widget class="QMenu" name="menu_5">
+    <widget class="QMenu" name="menuPos">
      <property name="title">
-      <string>模型</string>
+      <string>位置对齐</string>
      </property>
-     <addaction name="action_addBox"/>
-     <addaction name="action_addSphere"/>
+     <addaction name="action_5"/>
+     <addaction name="action_Minimum"/>
+     <addaction name="action_Maximum"/>
+     <addaction name="separator"/>
+     <addaction name="actionLeft"/>
+     <addaction name="actionRight"/>
+     <addaction name="actionTop"/>
+     <addaction name="actionBottom"/>
+     <addaction name="actionFront"/>
+     <addaction name="actionBack"/>
+     <addaction name="actionX"/>
+     <addaction name="actionY"/>
+     <addaction name="actionZ"/>
     </widget>
-    <addaction name="action_addEmpty"/>
-    <addaction name="action_AddCameraNode"/>
-    <addaction name="menu_5"/>
+    <addaction name="menuPos"/>
+    <addaction name="actionARotate"/>
+    <addaction name="actionAScale"/>
+   </widget>
+   <widget class="QMenu" name="menu_mcp">
+    <property name="title">
+     <string>MCP</string>
+    </property>
+    <widget class="QMenu" name="menu_mcp_ctrl">
+     <property name="title">
+      <string>服务控制</string>
+     </property>
+     <addaction name="action_mcpToggle"/>
+    </widget>
+    <addaction name="menu_mcp_ctrl"/>
    </widget>
    <addaction name="menu"/>
+   <addaction name="menu_edit"/>
    <addaction name="menu_4"/>
+   <addaction name="menu_6"/>
    <addaction name="menu_3"/>
    <addaction name="menu_2"/>
+   <addaction name="menu_mcp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -381,253 +235,6 @@
    <addaction name="action_move"/>
    <addaction name="action_rotation"/>
    <addaction name="action_scale"/>
-   <addaction name="action_pick"/>
-  </widget>
-  <widget class="QDockWidget" name="dockWidget_modelTree">
-   <property name="minimumSize">
-    <size>
-     <width>240</width>
-     <height>106</height>
-    </size>
-   </property>
-   <property name="autoFillBackground">
-    <bool>true</bool>
-   </property>
-   <property name="windowTitle">
-    <string>模型树</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>1</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,1">
-     <property name="spacing">
-      <number>1</number>
-     </property>
-     <property name="leftMargin">
-      <number>0</number>
-     </property>
-     <property name="topMargin">
-      <number>0</number>
-     </property>
-     <property name="rightMargin">
-      <number>0</number>
-     </property>
-     <property name="bottomMargin">
-      <number>0</number>
-     </property>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_6">
-       <item>
-        <widget class="QToolButton" name="toolButton_contract">
-         <property name="text">
-          <string>...</string>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/contract.png</normaloff>:/EditorRes/res/contract.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="autoRaise">
-          <bool>true</bool>
-         </property>
-         <property name="arrowType">
-          <enum>Qt::NoArrow</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QToolButton" name="toolButton_toSelected">
-         <property name="text">
-          <string>...</string>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/toTarget.png</normaloff>:/EditorRes/res/toTarget.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-         <property name="autoRaise">
-          <bool>true</bool>
-         </property>
-         <property name="arrowType">
-          <enum>Qt::NoArrow</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QToolButton" name="toolButton_invert">
-         <property name="text">
-          <string>显隐翻转</string>
-         </property>
-         <property name="autoRaise">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_7">
-       <property name="spacing">
-        <number>1</number>
-       </property>
-       <item>
-        <widget class="QLineEdit" name="lineEdit">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="focusPolicy">
-          <enum>Qt::ClickFocus</enum>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="clearButtonEnabled">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QToolButton" name="toolButtonCaseSensitive">
-         <property name="autoFillBackground">
-          <bool>true</bool>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/Aa.png</normaloff>:/EditorRes/res/Aa.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>18</width>
-           <height>18</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="autoRaise">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QToolButton" name="toolButtonEeactMatch">
-         <property name="text">
-          <string>...</string>
-         </property>
-         <property name="icon">
-          <iconset resource="main.qrc">
-           <normaloff>:/EditorRes/res/exact_match.png</normaloff>:/EditorRes/res/exact_match.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>18</width>
-           <height>18</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="autoRaise">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QtTree" name="modelTree" native="true">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="mouseTracking">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-  </widget>
-  <widget class="QDockWidget" name="dockWidget_properities">
-   <property name="minimumSize">
-    <size>
-     <width>150</width>
-     <height>38</height>
-    </size>
-   </property>
-   <property name="focusPolicy">
-    <enum>Qt::ClickFocus</enum>
-   </property>
-   <property name="autoFillBackground">
-    <bool>true</bool>
-   </property>
-   <property name="windowTitle">
-    <string>属性</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>2</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents_3">
-    <property name="focusPolicy">
-     <enum>Qt::ClickFocus</enum>
-    </property>
-    <layout class="QGridLayout" name="gridLayout_4">
-     <property name="leftMargin">
-      <number>1</number>
-     </property>
-     <property name="topMargin">
-      <number>0</number>
-     </property>
-     <property name="rightMargin">
-      <number>0</number>
-     </property>
-     <property name="bottomMargin">
-      <number>0</number>
-     </property>
-     <property name="spacing">
-      <number>0</number>
-     </property>
-     <item row="0" column="0">
-      <widget class="QWidget" name="widget_properties" native="true">
-       <property name="focusPolicy">
-        <enum>Qt::ClickFocus</enum>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
   </widget>
   <widget class="QDockWidget" name="dockWidget_animationEditor">
    <property name="autoFillBackground">
@@ -759,7 +366,17 @@
                <bool>true</bool>
               </property>
               <property name="text">
-               <string>添加关键帧</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="main.qrc">
+                <normaloff>:/EditorRes/res/k.png</normaloff>:/EditorRes/res/k.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
               </property>
              </widget>
             </item>
@@ -777,13 +394,6 @@
              </size>
             </property>
            </spacer>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBox_autoKey">
-            <property name="text">
-             <string>AUTO</string>
-            </property>
-           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -1003,16 +613,6 @@
            </spacer>
           </item>
           <item>
-           <widget class="QCheckBox" name="checkBoxOnlySelected">
-            <property name="text">
-             <string>仅选中</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_4">
             <property name="spacing">
              <number>2</number>
@@ -1175,63 +775,16 @@
    <addaction name="action_undo"/>
    <addaction name="action_redo"/>
   </widget>
-  <widget class="QDockWidget" name="dockWidgetMessage">
-   <property name="autoFillBackground">
-    <bool>true</bool>
-   </property>
-   <property name="windowTitle">
-    <string>消息</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>8</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents_2">
-    <layout class="QGridLayout" name="gridLayout_3">
-     <property name="leftMargin">
-      <number>0</number>
-     </property>
-     <property name="topMargin">
-      <number>0</number>
-     </property>
-     <property name="rightMargin">
-      <number>0</number>
-     </property>
-     <property name="bottomMargin">
-      <number>0</number>
-     </property>
-     <property name="spacing">
-      <number>0</number>
-     </property>
-     <item row="1" column="0" colspan="2">
-      <widget class="QUndoView" name="undoView">
-       <property name="autoFillBackground">
-        <bool>true</bool>
-       </property>
-       <property name="emptyLabel">
-        <string>空[null]</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QPushButton" name="pushButtonResetUndo">
-       <property name="text">
-        <string>重置</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QPushButton" name="pushButtonClearUndo">
-       <property name="text">
-        <string>清空</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-  </widget>
   <action name="action_importModel">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/model_load.png</normaloff>:/EditorRes/res/model_load.png</iconset>
+   </property>
    <property name="text">
     <string>导入模型</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+I</string>
    </property>
   </action>
   <action name="action_loadAnimation">
@@ -1251,6 +804,10 @@
    </property>
   </action>
   <action name="action_about">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/about.png</normaloff>:/EditorRes/res/about.png</iconset>
+   </property>
    <property name="text">
     <string>关于</string>
    </property>
@@ -1264,10 +821,13 @@
      <normaloff>:/EditorRes/res/ico_Move.png</normaloff>:/EditorRes/res/ico_Move.png</iconset>
    </property>
    <property name="text">
-    <string>移动</string>
+    <string>移动编辑</string>
    </property>
    <property name="toolTip">
     <string>模型移动</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+M</string>
    </property>
   </action>
   <action name="action_rotation">
@@ -1279,10 +839,13 @@
      <normaloff>:/EditorRes/res/ico_Rotate.png</normaloff>:/EditorRes/res/ico_Rotate.png</iconset>
    </property>
    <property name="text">
-    <string>旋转</string>
+    <string>旋转编辑</string>
    </property>
    <property name="toolTip">
     <string>模型旋转</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+R</string>
    </property>
   </action>
   <action name="action_scale">
@@ -1294,32 +857,13 @@
      <normaloff>:/EditorRes/res/ico_Scale.png</normaloff>:/EditorRes/res/ico_Scale.png</iconset>
    </property>
    <property name="text">
-    <string>缩放</string>
+    <string>缩放编辑</string>
    </property>
    <property name="toolTip">
     <string>模型缩放</string>
    </property>
-  </action>
-  <action name="action_pick">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>拾取</string>
-   </property>
-   <property name="toolTip">
-    <string>点选拾取(待支持)</string>
-   </property>
-  </action>
-  <action name="action_resetLayout">
-   <property name="text">
-    <string>重置布局</string>
-   </property>
-   <property name="toolTip">
-    <string>恢复默认 Dock 布局</string>
+   <property name="shortcut">
+    <string>Shift+S</string>
    </property>
   </action>
   <action name="action_undo">
@@ -1346,32 +890,67 @@
     <string>重做</string>
    </property>
   </action>
+  <action name="action_undoView">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>撤销历史</string>
+   </property>
+   <property name="toolTip">
+    <string>打开/关闭撤销历史列表</string>
+   </property>
+  </action>
   <action name="action_openPrj">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/scene_open.png</normaloff>:/EditorRes/res/scene_open.png</iconset>
+   </property>
    <property name="text">
     <string>打开工程</string>
    </property>
   </action>
   <action name="action_savePrj">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/scene_save.png</normaloff>:/EditorRes/res/scene_save.png</iconset>
+   </property>
    <property name="text">
     <string>保存工程</string>
    </property>
   </action>
   <action name="actionReset">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/cover.reset.png</normaloff>:/EditorRes/res/cover.reset.png</iconset>
+   </property>
    <property name="text">
-    <string>重置</string>
+    <string>重置(关闭)</string>
    </property>
   </action>
   <action name="action_addEmpty">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/mark.png</normaloff>:/EditorRes/res/mark.png</iconset>
+   </property>
    <property name="text">
     <string>空节点</string>
    </property>
   </action>
   <action name="action_AddCameraNode">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/node_close.png</normaloff>:/EditorRes/res/node_close.png</iconset>
+   </property>
    <property name="text">
     <string>相机节点</string>
    </property>
   </action>
   <action name="action_addBox">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/cube.png</normaloff>:/EditorRes/res/cube.png</iconset>
+   </property>
    <property name="text">
     <string>正方体</string>
    </property>
@@ -1385,12 +964,316 @@
    </property>
   </action>
   <action name="action_addSphere">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/sphere.png</normaloff>:/EditorRes/res/sphere.png</iconset>
+   </property>
    <property name="text">
     <string>球体</string>
    </property>
   </action>
+  <action name="action_resetLayout">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/cover.reset.png</normaloff>:/EditorRes/res/cover.reset.png</iconset>
+   </property>
+   <property name="text">
+    <string>重置布局</string>
+   </property>
+  </action>
+  <action name="action_SettingViewer">
+   <property name="text">
+    <string>配置</string>
+   </property>
+   <property name="toolTip">
+    <string>查看/编辑运行时配置</string>
+   </property>
+  </action>
+  <action name="actionAppendPrj">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/model_load.png</normaloff>:/EditorRes/res/model_load.png</iconset>
+   </property>
+   <property name="text">
+    <string>合并打开</string>
+   </property>
+  </action>
+  <action name="action_ShortcutSettings">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/about.png</normaloff>:/EditorRes/res/about.png</iconset>
+   </property>
+   <property name="text">
+    <string>快捷键</string>
+   </property>
+   <property name="toolTip">
+    <string>自定义快捷键</string>
+   </property>
+  </action>
+  <action name="action_TimeLine">
+   <property name="text">
+    <string>时间线</string>
+   </property>
+   <property name="toolTip">
+    <string>打开/关闭动画时间线面板</string>
+   </property>
+  </action>
+  <action name="action_addCylinder">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/cylinder.png</normaloff>:/EditorRes/res/cylinder.png</iconset>
+   </property>
+   <property name="text">
+    <string>圆柱</string>
+   </property>
+  </action>
+  <action name="action_addSphericalCap">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/spherical_cap.png</normaloff>:/EditorRes/res/spherical_cap.png</iconset>
+   </property>
+   <property name="text">
+    <string>球冠体</string>
+   </property>
+  </action>
+  <action name="action_addConeFrustum">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/cone_frustum.png</normaloff>:/EditorRes/res/cone_frustum.png</iconset>
+   </property>
+   <property name="text">
+    <string>圆锥台</string>
+   </property>
+  </action>
+  <action name="action_addPyramidFrustum">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/pyramid_frustum.png</normaloff>:/EditorRes/res/pyramid_frustum.png</iconset>
+   </property>
+   <property name="text">
+    <string>棱锥台</string>
+   </property>
+  </action>
+  <action name="action_addTorusSector">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/torus_sector.png</normaloff>:/EditorRes/res/torus_sector.png</iconset>
+   </property>
+   <property name="text">
+    <string>圆环扇形</string>
+   </property>
+  </action>
+  <action name="action_addTorus">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/torus.png</normaloff>:/EditorRes/res/torus.png</iconset>
+   </property>
+   <property name="text">
+    <string>圆环</string>
+   </property>
+  </action>
+  <action name="action_addHyperboloid">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/hyperboloid.png</normaloff>:/EditorRes/res/hyperboloid.png</iconset>
+   </property>
+   <property name="text">
+    <string>双曲面</string>
+   </property>
+  </action>
+  <action name="action_addPyramid">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/square_pyramid.png</normaloff>:/EditorRes/res/square_pyramid.png</iconset>
+   </property>
+   <property name="text">
+    <string>四棱锥</string>
+   </property>
+  </action>
+  <action name="action_addTorusSolid">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/torus_solid.png</normaloff>:/EditorRes/res/torus_solid.png</iconset>
+   </property>
+   <property name="text">
+    <string>圆环体</string>
+   </property>
+  </action>
+  <action name="action_addTorusKnot">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/torus_knot.png</normaloff>:/EditorRes/res/torus_knot.png</iconset>
+   </property>
+   <property name="text">
+    <string>圆环扭结</string>
+   </property>
+  </action>
+  <action name="action">
+   <property name="text">
+    <string>旋转对齐</string>
+   </property>
+  </action>
+  <action name="action_2">
+   <property name="text">
+    <string>缩放对齐</string>
+   </property>
+  </action>
+  <action name="action_3">
+   <property name="text">
+    <string>枢轴对齐</string>
+   </property>
+  </action>
+  <action name="action_4">
+   <property name="text">
+    <string>边界框对齐</string>
+   </property>
+  </action>
+  <action name="action_5">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/bbox_center.png</normaloff>:/EditorRes/res/bbox_center.png</iconset>
+   </property>
+   <property name="text">
+    <string>包围盒中心</string>
+   </property>
+  </action>
+  <action name="action_Minimum">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/minimum.png</normaloff>:/EditorRes/res/minimum.png</iconset>
+   </property>
+   <property name="text">
+    <string>最小 Minimum</string>
+   </property>
+  </action>
+  <action name="action_Maximum">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/maximum.png</normaloff>:/EditorRes/res/maximum.png</iconset>
+   </property>
+   <property name="text">
+    <string>最大 Maximum</string>
+   </property>
+  </action>
+  <action name="actionLeft">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_left.png</normaloff>:/EditorRes/res/align_left.png</iconset>
+   </property>
+   <property name="text">
+    <string>左对齐</string>
+   </property>
+  </action>
+  <action name="actionRight">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_right.png</normaloff>:/EditorRes/res/align_right.png</iconset>
+   </property>
+   <property name="text">
+    <string>右对齐</string>
+   </property>
+  </action>
+  <action name="actionTop">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_top.png</normaloff>:/EditorRes/res/align_top.png</iconset>
+   </property>
+   <property name="text">
+    <string>上对齐</string>
+   </property>
+  </action>
+  <action name="actionBottom">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_bottom.png</normaloff>:/EditorRes/res/align_bottom.png</iconset>
+   </property>
+   <property name="text">
+    <string>下对齐</string>
+   </property>
+  </action>
+  <action name="actionFront">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_front.png</normaloff>:/EditorRes/res/align_front.png</iconset>
+   </property>
+   <property name="text">
+    <string>前对齐</string>
+   </property>
+  </action>
+  <action name="actionBack">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_back.png</normaloff>:/EditorRes/res/align_back.png</iconset>
+   </property>
+   <property name="text">
+    <string>后对齐</string>
+   </property>
+  </action>
+  <action name="actionARotate">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_rotate.png</normaloff>:/EditorRes/res/align_rotate.png</iconset>
+   </property>
+   <property name="text">
+    <string>旋转对齐</string>
+   </property>
+  </action>
+  <action name="actionX">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_x.png</normaloff>:/EditorRes/res/align_x.png</iconset>
+   </property>
+   <property name="text">
+    <string>X轴对齐</string>
+   </property>
+  </action>
+  <action name="actionY">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_y.png</normaloff>:/EditorRes/res/align_y.png</iconset>
+   </property>
+   <property name="text">
+    <string>Y轴对齐</string>
+   </property>
+  </action>
+  <action name="actionZ">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_z.png</normaloff>:/EditorRes/res/align_z.png</iconset>
+   </property>
+   <property name="text">
+    <string>Z轴对齐</string>
+   </property>
+  </action>
+  <action name="actionAScale">
+   <property name="icon">
+    <iconset resource="main.qrc">
+     <normaloff>:/EditorRes/res/align_scale.png</normaloff>:/EditorRes/res/align_scale.png</iconset>
+   </property>
+   <property name="text">
+    <string>缩放对齐</string>
+   </property>
+  </action>
+  <action name="action_axisEditor">
+   <property name="text">
+    <string>坐标轴编辑</string>
+   </property>
+  </action>
+  <action name="action_mcpToggle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>启动 MCP 服务 (localhost:8765)</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>IntEditingSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>PropsUi.h</header>
+  </customwidget>
   <customwidget>
    <class>WigetViewer</class>
    <extends>QWidget</extends>
@@ -1404,20 +1287,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>QtTree</class>
-   <extends>QWidget</extends>
-   <header>QtTree.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>AnimationTree</class>
    <extends>QTreeView</extends>
    <header>AnimationTree.h</header>
-  </customwidget>
-  <customwidget>
-   <class>IntEditingSpinBox</class>
-   <extends>QSpinBox</extends>
-   <header>PropsUi.h</header>
   </customwidget>
  </customwidgets>
  <resources>

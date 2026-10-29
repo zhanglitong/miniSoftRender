@@ -271,14 +271,16 @@ mat3 buildTBN(vec3 position, vec3 normal, vec2 uv)
 /// <summary>
 /// 解析天空镜面(无环境纹理时的 IBL 镜面近似):
 /// 以反射方向 R 为中心,在切空间内按 roughness^2 的锥角做固定 4 方向采样,
-/// 近似 GGX 预滤波 cubemap 的 mip 模糊效果(无法对程序化函数做 textureLod)
+/// 近似 GGX 预滤波 cubemap 的 mip 模糊效果(无法对程序化函数做 textureLod)。
+/// 采样一律走"无日面"版本:太阳直射已由主方向光的 GGX 高光表达,
+/// 若 IBL 再计入 760 倍的日面,采样命中就会饱和成硬边白斑
 /// </summary>
 vec3 skySpecularRadiance(vec3 R,float roughness)
 {
     vec3    up      =   normalize(_sky._up.xyz);
     float   spread  =   roughness * roughness;
     if  (spread < 1.0e-3)
-        return  skyRadiance(R, _sky);
+        return  skyRadianceNoSun(R, _sky);
     vec3    helper  =   abs(dot(R, up)) < 0.99 ? up : vec3(1.0, 0.0, 0.0);
     vec3    tanX    =   normalize(cross(helper, R));
     vec3    tanY    =   cross(R, tanX);
@@ -288,7 +290,7 @@ vec3 skySpecularRadiance(vec3 R,float roughness)
     {
         float   a   =   (float(i) + 0.5) * (2.0 * M_PI / float(N));
         vec3    d   =   normalize(R + (tanX * cos(a) + tanY * sin(a)) * (spread * 0.9));
-        acc        +=   skyRadiance(d, _sky);
+        acc        +=   skyRadianceNoSun(d, _sky);
     }
     return  acc / float(N);
 }
@@ -302,7 +304,7 @@ vec3 skyDiffuseRadiance(vec3 n)
 {
     vec3    up  =   normalize(_sky._up.xyz);
     vec3    d   =   normalize(n + up * 0.5);
-    return  skyRadiance(d, _sky);
+    return  skyRadianceNoSun(d, _sky);
 }
 
 void main()
@@ -450,11 +452,13 @@ void main()
     ///    镜面   = split-sum:预滤波 cubemap × BRDF LUT(Karis 2013,与
     ///             glTF-Sample-Viewer 一致;LUT 修正掠射角能量损失与 F0 无关项)
     ///    未挂接环境纹理时(方案 C):直接把程序化天空当作无限远环境光源,
-    ///    用 skyRadiance() 对反射/法线方向解析求值,并按曝光参数缩放到
+    ///    用 skyRadianceNoSun() 对反射/法线方向解析求值,并按曝光参数缩放到
     ///    与方向光一致的量级;此时没有 BRDF LUT,brdf 取 (1,0) 等价 F*1+0
     vec3 color = Lo;
     bool hasEnvTex = (texFlags & PBR_TEX_ENVIRONMENT) != 0u;
     float skyExposure = _sky._env.z;
+    /// 天空盒总开关(与是否绘制天空盒同源):关闭后解析天空 IBL 不计入
+    float skyOn = skyEnabled(_sky);
     /// 太阳不可见后压暗环境光(解析天空与 HDR 环境贴图同规则),
     /// 门控由 CPU 在 SkyUBO 统一算好(与方向光同一曲线,夜间保留约 2% 微光)。
     /// 自发光(第 9 步)同样按此衰减,避免夜间自发光贴图仍全亮刺眼
@@ -473,8 +477,8 @@ void main()
         }
         else
         {
-            irradiance  = skyDiffuseRadiance(n) * skyExposure;
-            prefiltered = skySpecularRadiance(R, roughness) * skyExposure;
+            irradiance  = skyDiffuseRadiance(n) * skyExposure * skyOn;
+            prefiltered = skySpecularRadiance(R, roughness) * skyExposure * skyOn;
             brdf        = vec2(1.0, 0.0);
         }
         /// 太阳不可见后压暗环境光(解析天空与 HDR 环境贴图同规则),
@@ -504,7 +508,7 @@ void main()
         {
             vec3 ccPrefiltered = hasEnvTex
                 ? textureLod(u_EnvironmentMap, R, ccRoughness * maxLod).rgb
-                : skySpecularRadiance(R, ccRoughness) * skyExposure;
+                : skySpecularRadiance(R, ccRoughness) * skyExposure * skyOn;
             ccPrefiltered  *=  sunGate;
             color = mix(color, ccPrefiltered, ccWeight);
         }

@@ -95,8 +95,11 @@ float   skyFbm(vec2 p,float drift)
 /// 按世界方向求天空的线性 HDR 辐亮度(Preetham 大气散射 + 太阳圆盘 + 云)。
 /// 参数全部来自 SkyUBO,与天空盒渲染路径完全一致;
 /// 返回值未做曝光 / ACES / sRGB 处理。
+/// sunDiscScale:太阳圆盘的缩放系数。天空盒绘制传 1;解析天空 IBL 传 0,
+/// 因为太阳的直射贡献已由主方向光的 GGX 高光表达,IBL 再计入日面属于重复计算
+/// (日面亮度高达 760 倍,4 方向采样一旦命中就会被 clamp 成整片白色硬边)
 /// </summary>
-vec3    skyRadiance(vec3 direction, UBOSky sky)
+vec3    skyRadianceImpl(vec3 direction, UBOSky sky, float sunDiscScale)
 {
     float   turbidity   =   sky._params.x;
     float   rayleigh    =   sky._params.y;
@@ -141,7 +144,7 @@ vec3    skyRadiance(vec3 direction, UBOSky sky)
     vec3    L0          =   vec3(0.1) * Fex;
     /// 太阳圆盘:与 three.js Sky 一致,cosTheta 超过日面角直径余弦即为日面
     float   sundisc     =   clamp((cosTheta - SKY_SUN_ANGULAR_DIAMETER_COS) * 50000.0, 0.0, 1.0);
-    vec3    sundiscColor=   (760.0 * sundisc) * min(sunE * Fex, vec3(80.0));
+    vec3    sundiscColor=   (760.0 * sundisc) * min(sunE * Fex, vec3(80.0)) * sunDiscScale;
 
     vec3    texColor    =   (Lin + L0) * 0.04 + sundiscColor + vec3(0.0, 0.0003, 0.00075);
 
@@ -205,6 +208,23 @@ vec3    skyRadiance(vec3 direction, UBOSky sky)
     }
 
     return  texColor;
+}
+
+/// <summary>
+/// 完整天空辐亮度(含太阳圆盘),用于天空盒本身的可视绘制
+/// </summary>
+vec3    skyRadiance(vec3 direction, UBOSky sky)
+{
+    return  skyRadianceImpl(direction, sky, 1.0);
+}
+
+/// <summary>
+/// 不含太阳圆盘的天空辐亮度,用于解析天空 IBL(漫反射/镜面)。
+/// 太阳直射已由主方向光表达,IBL 不再重复计入日面
+/// </summary>
+vec3    skyRadianceNoSun(vec3 direction, UBOSky sky)
+{
+    return  skyRadianceImpl(direction, sky, 0.0);
 }
 
 #endif
