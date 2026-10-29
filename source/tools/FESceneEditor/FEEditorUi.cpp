@@ -14,6 +14,7 @@
 
 #include    "../../../inc/FEFileFormatHelper.hpp"
 #include    "../../../inc/FEMessage.hpp"
+#include    "../../../inc/FEApp.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/node/FENode.hpp"
 #include    "../../../inc/FEInputSystem.hpp"
@@ -804,6 +805,15 @@ namespace   FE
         /// </summary>
         setupKeyMap(io);
 
+        /// <summary>
+        /// 输入法候选窗口按输入框位置显示:ImGui 默认 IME 处理需要原生窗口句柄
+        /// </summary>
+        if (FEWindow* window = ctx.window())
+        {
+            if (FEApp* app = window->as<FEApp>())
+                io.ImeWindowHandle  =   app->cInfo()._window;
+        }
+
         _backend    =   scene->device()->createImGuiBackend();
         if (_backend == nullptr || !_backend->init(scene->swapchainColorFormat()))
         {
@@ -828,15 +838,15 @@ namespace   FE
         {
             static  const   ImWchar kIconRanges[]   =
                 {
-                    0xF00D,0xF00D,  0xF01E,0xF021,  0xF036,0xF038,  0xF048,0xF04A,
-                    0xF04C,0xF04C,  0xF04E,0xF04E,  0xF050,0xF051,  0xF05A,0xF05A,
-                    0xF062,0xF063,  0xF065,0xF065,  0xF06E,0xF06E,  0xF070,0xF070,
+                    0xF00D,0xF00D,  0xF01E,0xF021,  0xF031,0xF031,  0xF036,0xF038,
+                    0xF048,0xF04C,  0xF04E,0xF04E,  0xF050,0xF051,  0xF05A,0xF05A,
+                    0xF062,0xF063,  0xF065,0xF067,  0xF06E,0xF06E,  0xF070,0xF070,
                     0xF07C,0xF07C,  0xF0B2,0xF0B2,  0xF0C7,0xF0C7,  0xF0D8,0xF0D8,
                     0xF0E2,0xF0E2,  0xF102,0xF103,  0xF111,0xF111,  0xF126,0xF126,
                     0xF140,0xF140,  0xF14E,0xF14E,  0xF192,0xF192,  0xF1B2,0xF1B2,
                     0xF1C0,0xF1C0,  0xF1CE,0xF1CE,  0xF200,0xF200,  0xF2EA,0xF2EA,
                     0xF2F1,0xF2F1,  0xF31E,0xF31E,  0xF337,0xF338,  0xF3C5,0xF3C5,
-                    0xF56F,0xF56F,  0xF5FD,0xF5FD,  0xF61F,0xF61F,  0
+                    0xF52C,0xF52C,  0xF56F,0xF56F,  0xF5FD,0xF5FD,  0xF61F,0xF61F,  0
                 };
             ImFontConfig    iconCfg =   {};
             iconCfg.PixelSnapH      =   true;

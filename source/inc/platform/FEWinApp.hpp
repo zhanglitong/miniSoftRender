@@ -114,9 +114,9 @@ namespace   FE
     public:
         virtual bool    setupCreateWindow()
         {
-            WNDCLASSEXA wndClass         =   {};
+            WNDCLASSEXW wndClass         =   {};
             {
-                wndClass.cbSize         =   sizeof(WNDCLASSEX);
+                wndClass.cbSize         =   sizeof(WNDCLASSEXW);
                 wndClass.style          =   CS_HREDRAW | CS_VREDRAW;
                 wndClass.lpfnWndProc    =   wndProcEx;
                 wndClass.cbClsExtra     =   0;
@@ -126,12 +126,16 @@ namespace   FE
                 wndClass.hCursor        =   LoadCursor(NULL, IDC_ARROW);
                 wndClass.hbrBackground  =   (HBRUSH)GetStockObject(BLACK_BRUSH);
                 wndClass.lpszMenuName   =   nullptr;
-                wndClass.lpszClassName  =   "FEEngine";
+                wndClass.lpszClassName  =   L"FEEngine";
                 wndClass.hIconSm        =   LoadIcon(NULL, IDI_WINLOGO);
             }
-            if (!RegisterClassExA(&wndClass))
+            /// <summary>
+            /// 必须注册 Unicode 窗口类:ANSI 窗口下输入法提交的中文经 WM_IME_CHAR/WM_CHAR
+            /// 只传 DBCS 字节,ImGui 无法得到 Unicode 码点,中文输入会失效
+            /// </summary>
+            if (!RegisterClassExW(&wndClass))
             {
-                LOG_ERR("FEWinApp.setup/RegisterClassExA");
+                LOG_ERR("FEWinApp.setup/RegisterClassExW");
                 return  false;
             }
             auto    width           =    _cInfo._width;
@@ -187,9 +191,9 @@ namespace   FE
 
             AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
-            auto    windowTitle =   "FEWindow";
-            auto    window      =   CreateWindowExA(0,
-                "FEEngine",
+            auto    windowTitle =   L"FEWindow";
+            auto    window      =   CreateWindowExW(0,
+                L"FEEngine",
                 windowTitle,
                 dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
                 0,
@@ -203,7 +207,7 @@ namespace   FE
 
             if (!window)
             {
-                LOG_ERR("FEWinApp.setup/CreateWindowExA");
+                LOG_ERR("FEWinApp.setup/CreateWindowExW");
                 return false;
             }
 
@@ -379,7 +383,7 @@ namespace   FE
                 _resizing   =   false;
                 break;
             }
-            return  DefWindowProcA(pMsg->hwnd, pMsg->message, pMsg->wParam, pMsg->lParam);
+            return  DefWindowProcW(pMsg->hwnd, pMsg->message, pMsg->wParam, pMsg->lParam);
         }
 
         /// <summary>
@@ -415,7 +419,7 @@ namespace   FE
                     return      pThis->onMessage(&msg);
                 }
             }
-            return ::DefWindowProcA(hWnd, msgId, wParam, lParam);
+            return ::DefWindowProcW(hWnd, msgId, wParam, lParam);
         }
 
         static  void    setupDPIAwareness()

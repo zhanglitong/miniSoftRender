@@ -181,7 +181,7 @@ namespace   FE
     }
 
     /// 用 times 覆盖 track 的整个时间数组
-    static  void    writeAllTrackTimes(KeyFrameTrack track, const std::vector<real>& times)
+    static  void    writeAllTrackTimes(KeyFrameTrack track, const reals& times)
     {
         if  (!track || !track->times())
             return;

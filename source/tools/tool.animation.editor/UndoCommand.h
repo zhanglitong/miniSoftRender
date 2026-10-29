@@ -91,8 +91,8 @@ namespace   FE
         struct TrackMove
         {
             KeyFrameTrack           track       =   nullptr;
-            std::vector<real>       oldTimes;
-            std::vector<real>       newTimes;
+            reals                   oldTimes;
+            reals                   newTimes;
             std::vector<KFValue>    oldValues;
             std::vector<KFValue>    newValues;
         };

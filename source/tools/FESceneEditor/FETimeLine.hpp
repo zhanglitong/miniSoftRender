@@ -6,7 +6,9 @@
 ///   - 动画行显示播放范围块(可拖动改 offset),轨道行显示关键帧圆点;
 ///   - 关键帧单击选中、Ctrl/Shift 追加或取消、拖动改时间、框选;
 ///   - 右键菜单:复制/粘贴/删除/插值(贝塞尔/线性/离散)/在此处添加关键帧;
-///   - 播放控制:播放/暂停/首帧/上一帧/下一帧/末帧/循环;
+///   - 播放控制:正/逆向播放、上一/下一关键帧、循环、播放速率、当前帧与总帧数;
+///   - 工具栏分两组:动画树上方为搜索栏(回车执行,支持大小写/全匹配),
+///     时间线上方为播放控制图标按钮;
 ///   - 所有数据修改经 FEUndoStack,支持撤销重做。
 /// 窗口是屏幕底部固定面板,由 Ribbon「设置 → 动画 → 时间线」开关。
 /// </summary>
@@ -17,6 +19,8 @@
 #include    "../../../inc/animation/FEKeyFrameTrack.hpp"
 #include    "../../../inc/FEUndoStack.hpp"
 #include    "../../../inc/node/FENode.hpp"
+
+#include    "FEAnimationTree.hpp"
 
 #include    <imgui.h>
 
@@ -62,7 +66,7 @@ namespace   FE
         /// <summary>
         /// 每帧绘制;未打开时直接返回
         /// </summary>
-        /// <param name="iconFont">图标字体,可为 nullptr(暂未使用)</param>
+        /// <param name="iconFont">图标字体,可为 nullptr(为空时按钮回退为文字)</param>
         void    draw(ImFont* iconFont);
         /// <summary>
         /// 设置动画帧率(默认 30)
@@ -83,21 +87,12 @@ namespace   FE
         void    addKeyframe();
     protected:
         /// <summary>
-        /// 时间线的一行:动画头行或轨道行
-        /// </summary>
-        struct  Row
-        {
-            Animation       _anim;
-            KeyFrameTrack   _track;
-            bool            _header =   false;
-        };
-        /// <summary>
         /// 拖拽关键帧时保存的轨道原始数据
         /// </summary>
         struct  DragTrack
         {
             KeyFrameTrack           _track;
-            std::vector<real>       _times;
+            reals                   _times;
             std::vector<size_t>     _indices;
             real                    _offset  =   0;
         };
@@ -146,14 +141,6 @@ namespace   FE
         /// 选中节点变化时同步动画列表与编辑状态
         /// </summary>
         void    ensureNode();
-        /// <summary>
-        /// 从节点重新收集动画组件
-        /// </summary>
-        void    reloadAnimations();
-        /// <summary>
-        /// 重建行列表(动画头 + 轨道)
-        /// </summary>
-        void    rebuildRows();
         /// <summary>
         /// 所有动画的时间范围(帧)
         /// </summary>
@@ -208,9 +195,30 @@ namespace   FE
         /// </summary>
         void    refreshScene();
         /// <summary>
-        /// 工具栏
+        /// 工具栏(两组:动画树上方搜索栏 / 时间线上方播放控制)
         /// </summary>
         void    drawToolbar();
+        /// <summary>
+        /// 图标按钮;未加载图标字体时回退为文字按钮
+        /// </summary>
+        /// <param name="glyph">字体图标码位</param>
+        /// <param name="text">无图标字体时的替代文字</param>
+        /// <param name="tip">悬停提示</param>
+        /// <param name="active">是否处于按下态(高亮)</param>
+        bool    iconButton(const char* glyph,const char* text,const char* tip,bool active = false);
+        /// <summary>
+        /// 旋转 180° 的图标按钮(逆向播放用:即正向播放图标旋转半圈)
+        /// </summary>
+        bool    iconButtonRotated(const char* glyph,const char* text,const char* tip,bool active = false);
+        /// <summary>
+        /// 图标按钮实现:自绘图标,尺寸与标准控件一致
+        /// </summary>
+        /// <param name="rotate">是否把图标旋转 180°</param>
+        bool    iconButtonImpl(const char* glyph,const char* text,const char* tip,bool active,bool rotate);
+        /// <summary>
+        /// 开始正向(1)/逆向(-1)播放;同一方向再次调用即暂停
+        /// </summary>
+        void    startPlay(int dir);
         /// <summary>
         /// 标尺 + 行 + 关键帧 + 播放头
         /// </summary>
@@ -250,24 +258,19 @@ namespace   FE
         FEScene*                    _scene      =   nullptr;
         FEUndoStack*                _undoStack  =   nullptr;
         FEModelTree*                _modelTree  =   nullptr;
+        /// <summary>
+        /// 工具栏图标字体(来自 FEEditorUi 的 Font Awesome)
+        /// </summary>
+        ImFont*                     _iconFont   =   nullptr;
         bool                        _open       =   false;
         /// <summary>
         /// 当前绑定的节点(模型树选中项)
         /// </summary>
         Node                        _node;
         /// <summary>
-        /// 节点上的动画组件
+        /// 动画树(动画列表/行/折叠/搜索)
         /// </summary>
-        std::vector<Animation>      _anims;
-        std::vector<Row>            _rows;
-        /// <summary>
-        /// 动画行折叠状态
-        /// </summary>
-        std::map<Animation,bool>    _collapsed;
-        /// <summary>
-        /// 当前活动动画(添加关键帧/创建动画的目标)
-        /// </summary>
-        Animation                   _activeAnim;
+        FEAnimationTree             _tree;
         /// <summary>
         /// 选中的关键帧:轨道 → 关键帧索引
         /// </summary>
@@ -297,8 +300,23 @@ namespace   FE
         /// 当前时间(秒)
         /// </summary>
         real                        _curTime        =   0.0;
-        bool                        _playing        =   false;
+        /// <summary>
+        /// 播放方向:0 停止,1 正向,-1 逆向
+        /// </summary>
+        int                         _playDir        =   0;
         bool                        _loop           =   true;
+        /// <summary>
+        /// 播放速率倍率(0.1 ~ 60)
+        /// </summary>
+        float                       _speed          =   1.0f;
+        /// <summary>
+        /// 时间线总帧数(播放/循环的结束帧)
+        /// </summary>
+        int                         _totalFrames    =   150;
+        /// <summary>
+        /// 总帧数是否已被用户手动指定;未指定时自动覆盖动画内容范围
+        /// </summary>
+        bool                        _totalManual    =   false;
         /// <summary>
         /// 画布几何(每帧更新)
         /// </summary>
@@ -309,7 +327,7 @@ namespace   FE
         /// <summary>
         /// 动画树(名称列)宽度,可由分割条拖动调整
         /// </summary>
-        float                       _nameW          =   160.0f;
+        float                       _nameW          =   340.0f;
         /// <summary>
         /// 动画树与时间线之间的间隙,分割条绘制在该间隙内
         /// </summary>
@@ -324,8 +342,8 @@ namespace   FE
         float                       _pressX         =   0.0f;
         float                       _pressY         =   0.0f;
         std::vector<DragTrack>      _dragTracks;
-        std::vector<Animation>      _dragAnims;
-        std::vector<real>           _dragOffsets;
+        Animations                  _dragAnims;
+        reals                       _dragOffsets;
         bool                        _panning        =   false;
         float                       _panStartX      =   0.0f;
         double                      _panStartView   =   0.0;

@@ -8,9 +8,11 @@
 #include    "../../../inc/graphic/FEScene.h"
 
 #include    <algorithm>
+#include    <cctype>
 #include    <cmath>
 #include    <cstdint>
 #include    <cstdio>
+#include    <cstdlib>
 #include    <functional>
 #include    <type_traits>
 #include    <utility>
@@ -20,6 +22,18 @@ namespace   FE
 {
 namespace
 {
+    /// <summary>
+    /// 工具栏图标(Font Awesome 5 Solid 码位)
+    /// </summary>
+    const   char*   kGlyphStepBack     =   u8"\uf048";
+    const   char*   kGlyphStepForward  =   u8"\uf051";
+    const   char*   kGlyphPlay         =   u8"\uf04b";
+    const   char*   kGlyphPause        =   u8"\uf04c";
+    /// <summary>
+    /// 添加关键帧(加号)
+    /// </summary>
+    const   char*   kGlyphAddKey       =   u8"\uf067";
+
     /// <summary>
     /// 命令执行/撤销后刷新场景的回调
     /// </summary>
@@ -31,7 +45,7 @@ namespace
     struct  TrackState
     {
         KeyFrameTrack           _track;
-        std::vector<real>       _times;
+        reals                   _times;
         std::vector<KFValue>    _values;
     };
 
@@ -286,14 +300,14 @@ namespace
     };
 
     /// <summary>
-    /// 创建动画组件命令
+    /// 创建动画组件命令:只把动画挂到节点上,不登记到动画树
+    /// (要让动画出现在动画树,需在模型树右键「添加到动画树」)
     /// </summary>
     class   CreateAnimCmd :public FEUndoCmd
     {
     public:
-        CreateAnimCmd(FEScene& scene,Node node,Animation anim,RefreshFn refresh)
+        CreateAnimCmd(Node node,Animation anim,RefreshFn refresh)
             :FEUndoCmd("创建动画")
-            ,_scene(&scene)
             ,_node(node)
             ,_anim(anim)
             ,_refresh(std::move(refresh))
@@ -304,8 +318,6 @@ namespace
             if (!_node || !_anim)
                 return;
             _node->addComponent(_anim.get());
-            if (_scene != nullptr && _scene->animationSystem() != nullptr)
-                _scene->animationSystem()->addObject(_anim.get());
             if (_refresh)
                 _refresh();
         }
@@ -313,14 +325,11 @@ namespace
         {
             if (!_node || !_anim)
                 return;
-            if (_scene != nullptr && _scene->animationSystem() != nullptr)
-                _scene->animationSystem()->removeObject(_anim.get());
             _node->removeComponent(_anim.get());
             if (_refresh)
                 _refresh();
         }
     protected:
-        FEScene*    _scene  =   nullptr;
         Node        _node;
         Animation   _anim;
         RefreshFn   _refresh;
@@ -347,10 +356,7 @@ namespace
     void    FETimeLine::reset()
     {
         _node           =   nullptr;
-        _anims.clear();
-        _rows.clear();
-        _collapsed.clear();
-        _activeAnim     =   nullptr;
+        _tree.reset();
         _selKeys.clear();
         _clipboard.clear();
         _clipBaseTime   =   0;
@@ -359,10 +365,12 @@ namespace
         _dragOffsets.clear();
         _dragMode       =   DM_None;
         _panning        =   false;
-        _playing        =   false;
+        _playDir        =   0;
         _curTime        =   0;
         _viewLeftFrame  =   0;
         _scrollY        =   0;
+        _totalFrames    =   150;
+        _totalManual    =   false;
         _status.clear();
     }
 
@@ -412,80 +420,32 @@ namespace
             if (selected)
                 node            =   selected->cast<FENode>();
         }
-        if (node != _node.get())
-        {
-            _node           =   Node(node);
-            _anims.clear();
-            _rows.clear();
-            _collapsed.clear();
-            _selKeys.clear();
-            _activeAnim     =   nullptr;
-            _dragTracks.clear();
-            _dragAnims.clear();
-            _dragOffsets.clear();
-            _dragMode       =   DM_None;
-            _panning        =   false;
-            _scrollY        =   0.0f;
-            _viewLeftFrame  =   0.0;
-            _status.clear();
-        }
+        /// <summary>
+        /// 只记录模型树当前节点,供"创建动画"使用;动画树内容由动画系统决定,
+        /// 不跟随模型树选择变化
+        /// </summary>
+        _node   =   Node(node);
     }
 
-    void    FETimeLine::reloadAnimations()
+    void    FETimeLine::startPlay(int dir)
     {
-        std::vector<Animation>  anims;
-        if (_node)
+        if (_playDir == dir)
         {
-            for (auto* ptr : _node->objects<FEAnimation>())
-            {
-                if (ptr != nullptr)
-                    anims.emplace_back(Animation(ptr));
-            }
+            _playDir    =   0;
+            return;
         }
-        _anims.swap(anims);
-    }
-
-    void    FETimeLine::rebuildRows()
-    {
-        _rows.clear();
-        for (auto& anim : _anims)
-        {
-            if (!anim)
-                continue;
-            Row header;
-            header._anim    =   anim;
-            header._header  =   true;
-            _rows.push_back(header);
-
-            auto    itr =   _collapsed.find(anim);
-            if (itr != _collapsed.end() && itr->second)
-                continue;
-            auto    clip    =   anim->clip();
-            if (!clip)
-                continue;
-            for (auto& track : clip->tracks())
-            {
-                if (!track)
-                    continue;
-                Row row;
-                row._anim   =   anim;
-                row._track  =   track;
-                row._header =   false;
-                _rows.push_back(row);
-            }
-        }
-
-        bool    found   =   false;
-        for (auto& anim : _anims)
-        {
-            if (anim == _activeAnim)
-            {
-                found   =   true;
-                break;
-            }
-        }
-        if (!found)
-            _activeAnim =   _anims.empty() ? Animation() : _anims.front();
+        double  firstFrame  =   0.0;
+        double  lastFrame   =   0.0;
+        contentRange(firstFrame,lastFrame);
+        const   double  cur =   double(_curTime) * double(_fps);
+        /// <summary>
+        /// 已经停在端点时,换向播放从另一端重新开始
+        /// </summary>
+        if (dir > 0 && cur >= lastFrame - 0.001)
+            _curTime    =   real(firstFrame / double(_fps));
+        else if (dir < 0 && cur <= firstFrame + 0.001)
+            _curTime    =   real(lastFrame / double(_fps));
+        _playDir    =   dir;
     }
 
     void    FETimeLine::contentRange(double& firstFrame,double& lastFrame) const
@@ -493,7 +453,7 @@ namespace
         bool    any =   false;
         double  lo  =   0.0;
         double  hi  =   150.0;
-        for (auto& anim : _anims)
+        for (auto& anim : _tree.animations())
         {
             if (!anim || !anim->clip())
                 continue;
@@ -517,10 +477,14 @@ namespace
         if (!any)
         {
             lo  =   0.0;
-            hi  =   150.0;
+            hi  =   0.0;
         }
         firstFrame  =   std::min(lo,0.0);
-        lastFrame   =   std::max(hi,150.0);
+        /// <summary>
+        /// 未手动设过总帧数时,末尾自动覆盖动画内容;手动设定后以设定值为准
+        /// </summary>
+        const   double  total   =   double(std::max(1,_totalFrames));
+        lastFrame   =   _totalManual ? total : std::max(hi,total);
     }
 
     float   FETimeLine::xForFrame(double frame) const
@@ -546,17 +510,17 @@ namespace
         if (offset < 0.0f)
             return  -1;
         const   int     index   =   int(offset / _rowH);
-        if (index < 0 || index >= int(_rows.size()))
+        if (index < 0 || index >= int(_tree.rows().size()))
             return  -1;
         return  index;
     }
 
     int     FETimeLine::keyAt(int row,float x,float y) const
     {
-        if (row < 0 || row >= int(_rows.size()))
+        if (row < 0 || row >= int(_tree.rows().size()))
             return  -1;
-        const   auto&   item    =   _rows[size_t(row)];
-        if (item._header || !item._track || !item._track->_times)
+        const   auto&   item    =   _tree.rows()[size_t(row)];
+        if (item._type != FEAnimationTree::RowType::Track || !item._track || !item._track->_times)
             return  -1;
         const   float   centerY =   rowTop(row) + _rowH * 0.5f;
         if (std::fabs(y - centerY) > _rowH * 0.5f)
@@ -578,7 +542,7 @@ namespace
     {
         if (!track)
             return  nullptr;
-        for (auto& anim : _anims)
+        for (auto& anim : _tree.animations())
         {
             if (!anim || !anim->clip())
                 continue;
@@ -641,7 +605,7 @@ namespace
 
     void    FETimeLine::collectKeyFrames(std::vector<double>& frames) const
     {
-        for (auto& anim : _anims)
+        for (auto& anim : _tree.animations())
         {
             if (!anim || !anim->clip())
                 continue;
@@ -695,7 +659,7 @@ namespace
         if (system == nullptr)
             return;
         system->setClipTime(_curTime);
-        for (auto& anim : _anims)
+        for (auto& anim : _tree.animations())
         {
             if (anim)
                 anim->applyTransform();
@@ -712,21 +676,25 @@ namespace
             system->refreshRange();
             system->setClipTime(_curTime);
         }
-        for (auto& anim : _anims)
+        for (auto& anim : _tree.animations())
         {
             if (anim)
                 anim->applyTransform();
         }
     }
 
-    void    FETimeLine::draw(ImFont* /*iconFont*/)
+    void    FETimeLine::draw(ImFont* iconFont)
     {
         if (!_open || _scene == nullptr)
             return;
 
+        _iconFont   =   iconFont;
         ensureNode();
-        reloadAnimations();
-        rebuildRows();
+        /// <summary>
+        /// 动画树数据来自动画系统:只有"添加到动画树"登记的动画才会显示
+        /// </summary>
+        _tree.reload(_scene->animationSystem());
+        _tree.rebuild();
 
         ImGuiIO&    io          =   ImGui::GetIO();
         const   float   displayW    =   io.DisplaySize.x;
@@ -748,23 +716,35 @@ namespace
         ImGui::PopStyleVar(2);
 
         /// <summary>
-        /// 播放:由时间线自身推进时间,再让动画系统按该时间采样
+        /// 播放:由时间线自身推进时间,再让动画系统按该时间采样。
+        /// 速率作用于时间增量,正/逆向由 _playDir 决定
         /// </summary>
-        if (_playing)
+        if (_playDir != 0)
         {
             double  firstFrame  =   0.0;
             double  lastFrame   =   0.0;
             contentRange(firstFrame,lastFrame);
+            const   double  firstTime   =   firstFrame / double(_fps);
             const   double  lastTime    =   lastFrame / double(_fps);
-            _curTime    +=  real(io.DeltaTime);
-            if (_curTime > lastTime)
+            _curTime    +=  real(double(io.DeltaTime) * double(_speed) * double(_playDir));
+            if (_curTime > real(lastTime))
             {
                 if (_loop)
-                    _curTime    =   0;
+                    _curTime    =   real(firstTime);
                 else
                 {
                     _curTime    =   real(lastTime);
-                    _playing    =   false;
+                    _playDir    =   0;
+                }
+            }
+            else if (_curTime < real(firstTime))
+            {
+                if (_loop)
+                    _curTime    =   real(lastTime);
+                else
+                {
+                    _curTime    =   real(firstTime);
+                    _playDir    =   0;
                 }
             }
             applyTime();
@@ -805,34 +785,165 @@ namespace
         ImGui::End();
     }
 
+    bool    FETimeLine::iconButton(const char* glyph,const char* text,const char* tip,bool active)
+    {
+        return  iconButtonImpl(glyph,text,tip,active,false);
+    }
+
+    bool    FETimeLine::iconButtonRotated(const char* glyph,const char* text,const char* tip,bool active)
+    {
+        return  iconButtonImpl(glyph,text,tip,active,true);
+    }
+
+    bool    FETimeLine::iconButtonImpl(const char* glyph,const char* text,const char* tip,bool active,bool rotate)
+    {
+        const   ImGuiStyle& style   =   ImGui::GetStyle();
+        const   bool    useIcon     =   (_iconFont != nullptr);
+        const   ImFont* font        =   useIcon ? _iconFont : ImGui::GetFont();
+        /// <summary>
+        /// 图标按正文字号绘制,按钮高度取标准控件高度,使整行控件上下居中且不撑高功能栏
+        /// </summary>
+        const   float   iconSize    =   ImGui::GetFontSize();
+        const   ImVec2  label       =   useIcon
+                                    ?   font->CalcTextSizeA(iconSize,FLT_MAX,0.0f,glyph,nullptr,nullptr)
+                                    :   ImGui::CalcTextSize(text);
+        const   float   btnH        =   ImGui::GetFrameHeight();
+        const   ImVec2  size        =   ImVec2(std::max(label.x + style.FramePadding.x * 2.0f,btnH),btnH);
+        const   ImVec2  pos         =   ImGui::GetCursorScreenPos();
+
+        ImGui::PushID(glyph);
+        ImGui::PushID(tip);
+        if (active)
+            ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.24f,0.52f,0.86f,1.0f));
+        const   bool    clicked =   ImGui::Button("##tl_icon",size);
+        if (active)
+            ImGui::PopStyleColor();
+        ImGui::PopID();
+        ImGui::PopID();
+
+        /// <summary>
+        /// 自绘图标:文字左上角对齐到按钮中心;rotate 时顶点绕文字中心翻转 180°
+        /// </summary>
+        ImDrawList*     drawList    =   ImGui::GetWindowDrawList();
+        const   ImVec2  textPos(pos.x + (size.x - label.x) * 0.5f,pos.y + (size.y - label.y) * 0.5f);
+        const   int     vtxBegin    =   drawList->VtxBuffer.Size;
+        drawList->AddText(font,iconSize,textPos,ImGui::GetColorU32(ImGuiCol_Text),
+                          useIcon ? glyph : text);
+        if (rotate)
+        {
+            const   ImVec2  center(textPos.x + label.x * 0.5f,textPos.y + label.y * 0.5f);
+            for (int i = vtxBegin; i < drawList->VtxBuffer.Size; ++i)
+            {
+                ImDrawVert& v   =   drawList->VtxBuffer[i];
+                v.pos.x =   center.x * 2.0f - v.pos.x;
+                v.pos.y =   center.y * 2.0f - v.pos.y;
+            }
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s",tip);
+        return  clicked;
+    }
+
     void    FETimeLine::drawToolbar()
     {
-        if (ImGui::Button(_playing ? "暂停" : "播放"))
-            _playing    =   !_playing;
-        ImGui::SameLine();
-        if (ImGui::Button("首帧"))
-            gotoKeyframe(0);
-        ImGui::SameLine();
-        if (ImGui::Button("上一帧"))
-            gotoKeyframe(1);
-        ImGui::SameLine();
-        if (ImGui::Button("下一帧"))
-            gotoKeyframe(2);
-        ImGui::SameLine();
-        if (ImGui::Button("末帧"))
-            gotoKeyframe(3);
+        const   ImGuiStyle& style       =   ImGui::GetStyle();
+        const   float   winX            =   ImGui::GetWindowPos().x;
+        const   float   localLeft       =   ImGui::GetCursorScreenPos().x - winX;
+        /// <summary>
+        /// 两组的边界:动画树(名称列)右缘,与画布分割位置一致
+        /// </summary>
+        const   float   group1Right     =   localLeft + _nameW + _splitterW;
+        const   float   group1Width     =   group1Right - localLeft - style.WindowPadding.x;
 
-        ImGui::SameLine();
+        /// <summary>
+        /// 第一组(动画树上方):交给动画树绘制搜索栏,回车执行搜索
+        /// </summary>
+        _tree.drawSearchBar([this](const char* glyph,const char* text,const char* tip,bool active)
+        {
+            return  iconButton(glyph,text,tip,active);
+        },group1Width);
+
+        /// <summary>
+        /// 第二组(时间线上方):播放控制,以图标按钮呈现。
+        /// 第一组文字过宽时右移到组尾之后,避免重叠
+        /// </summary>
+        const   float   group1End   =   ImGui::GetItemRectMax().x - winX;
+        float   group2X =   group1Right;
+        if (group2X < group1End + style.ItemSpacing.x)
+            group2X =   group1End + style.ItemSpacing.x;
+        ImGui::SameLine(group2X);
+
         ImGui::Checkbox("循环",&_loop);
         ImGui::SameLine();
-        ImGui::Text("帧 %d   时间 %.2f s",curFrame(),double(_curTime));
+        if (iconButton(kGlyphStepBack,"上一帧","上一个关键帧"))
+            gotoKeyframe(1);
+        ImGui::SameLine();
+        if (iconButton(_playDir > 0 ? kGlyphPause : kGlyphPlay,"播放",
+                       _playDir > 0 ? "暂停" : "正向播放",_playDir > 0))
+            startPlay(1);
+        ImGui::SameLine();
+        if (iconButtonRotated(_playDir < 0 ? kGlyphPause : kGlyphPlay,"逆向",
+                              _playDir < 0 ? "暂停" : "逆向播放",_playDir < 0))
+            startPlay(-1);
+        ImGui::SameLine();
+        if (iconButton(kGlyphStepForward,"下一帧","下一个关键帧"))
+            gotoKeyframe(2);
+
+        /// <summary>
+        /// 播放速率:0.1 ~ 60 倍
+        /// </summary>
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("速率");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(64.0f);
+        ImGui::DragFloat("##tl_speed",&_speed,0.05f,0.1f,60.0f,"%.2f");
+        ImGui::PopItemWidth();
+
+        /// <summary>
+        /// 当前帧:可拖动调整,双击/Ctrl+点击输入帧号
+        /// </summary>
+        double  firstFrame  =   0.0;
+        double  lastFrame   =   0.0;
+        contentRange(firstFrame,lastFrame);
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("帧");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(64.0f);
+        int     frame   =   curFrame();
+        if (ImGui::DragInt("##tl_curframe",&frame,1.0f,0,int(std::lround(lastFrame))))
+            setCurFrame(frame);
+        ImGui::PopItemWidth();
+
+        /// <summary>
+        /// 总帧数:可拖动调整,双击/Ctrl+点击输入数值
+        /// </summary>
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("总帧");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(64.0f);
+        int     total   =   int(std::lround(lastFrame));
+        if (ImGui::DragInt("##tl_totalframes",&total,1.0f,1,100000))
+        {
+            _totalFrames    =   std::max(1,total);
+            _totalManual    =   true;
+            if (curFrame() > _totalFrames)
+                setCurFrame(_totalFrames);
+        }
+        ImGui::PopItemWidth();
+
+        /// <summary>
+        /// 当前帧对应的时间(帧号 / 帧率)
+        /// </summary>
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("时间 %.2f s",double(curFrame()) / double(_fps));
 
         ImGui::SameLine();
-        if (ImGui::Button("添加关键帧"))
+        if (iconButton(kGlyphAddKey,"添加关键帧","添加关键帧"))
             addKeyframe();
-        ImGui::SameLine();
-        if (ImGui::Button("创建动画"))
-            createAnimation();
 
         if (!_status.empty())
         {
@@ -844,12 +955,11 @@ namespace
         /// 关闭按钮右对齐
         /// </summary>
         const   ImVec2  labelSize   =   ImGui::CalcTextSize("关闭");
-        const   float   closeW      =   labelSize.x + ImGui::GetStyle().FramePadding.x * 2.0f;
+        const   float   closeW      =   labelSize.x + style.FramePadding.x * 2.0f;
         const   float   maxX        =   ImGui::GetWindowContentRegionMax().x;
-        const   float   closeX      =   maxX - closeW;
-        if (closeX > ImGui::GetCursorPosX())
-            ImGui::SetCursorPosX(closeX);
-        ImGui::SameLine();
+        const   float   lastRight   =   ImGui::GetItemRectMax().x - winX;
+        const   float   closeX      =   std::max(maxX - closeW,lastRight + style.ItemSpacing.x);
+        ImGui::SameLine(closeX);
         if (ImGui::Button("关闭",ImVec2(closeW,0.0f)))
             _open   =   false;
     }
@@ -885,7 +995,7 @@ namespace
         /// </summary>
         const   ImVec2  mouse   =   ImGui::GetMousePos();
         const   int     hoverRow=   hovered ? rowAtY(mouse.y) : -1;
-        for (int i = 0; i < int(_rows.size()); ++i)
+        for (int i = 0; i < int(_tree.rows().size()); ++i)
         {
             const   float   y0  =   std::max(rowTop(i),rowsTop);
             const   float   y1  =   std::min(rowTop(i) + _rowH,bottomRight.y);
@@ -897,10 +1007,6 @@ namespace
             drawList->AddRectFilled(ImVec2(_timelineX,y0),ImVec2(bottomRight.x,y1),bg);
             drawList->AddLine(ImVec2(_timelineX,y0),ImVec2(bottomRight.x,y0),IM_COL32(52,55,63,255));
         }
-        /// <summary>
-        /// 名称列背景
-        /// </summary>
-        drawList->AddRectFilled(ImVec2(topLeft.x,rowsTop),ImVec2(nameRight,bottomRight.y),colNameBg);
 
         /// <summary>
         /// 超出动画时间范围的部分压暗
@@ -916,16 +1022,16 @@ namespace
         /// 轨道内容:范围块 + 关键帧
         /// </summary>
         drawList->PushClipRect(ImVec2(_timelineX,rowsTop),bottomRight,true);
-        for (int i = 0; i < int(_rows.size()); ++i)
+        for (int i = 0; i < int(_tree.rows().size()); ++i)
         {
             const   float   y0  =   rowTop(i);
             if (y0 + _rowH < rowsTop || y0 > bottomRight.y)
                 continue;
-            const   auto&   item    =   _rows[size_t(i)];
+            const   auto&   item    =   _tree.rows()[size_t(i)];
             const   auto&   anim    =   item._anim;
             const   real    offset  =   anim ? anim->offset() : 0;
 
-            if (item._header)
+            if (item._type == FEAnimationTree::RowType::Animation)
             {
                 if (!anim || !anim->clip())
                     continue;
@@ -938,7 +1044,7 @@ namespace
                     const   ImVec2  p1(std::min(x1,bottomRight.x),y0 + _rowH - 4.0f);
                     if (p1.x > p0.x && p1.y > p0.y)
                     {
-                        const   bool    active  =   (anim == _activeAnim);
+                        const   bool    active  =   (anim == _tree.activeAnim());
                         drawList->AddRectFilled(p0,p1,active ? IM_COL32(0,120,215,90) : IM_COL32(128,128,128,90),3.0f);
                         drawList->AddRect(p0,p1,active ? IM_COL32(70,165,255,220) : IM_COL32(150,152,160,200),3.0f);
                     }
@@ -961,7 +1067,7 @@ namespace
                     }
                 }
             }
-            else
+            else if (item._type == FEAnimationTree::RowType::Track)
             {
                 const   auto&   track   =   item._track;
                 if (!track || !track->_times)
@@ -989,48 +1095,17 @@ namespace
         drawList->PopClipRect();
 
         /// <summary>
-        /// 名称列文本
+        /// 名称列(动画树):底色、折叠三角与名称
         /// </summary>
-        drawList->PushClipRect(ImVec2(topLeft.x,rowsTop),ImVec2(nameRight,bottomRight.y),true);
-        for (int i = 0; i < int(_rows.size()); ++i)
-        {
-            const   float   y0  =   rowTop(i);
-            if (y0 + _rowH < rowsTop || y0 > bottomRight.y)
-                continue;
-            const   auto&   item    =   _rows[size_t(i)];
-            const   float   centerY =   y0 + _rowH * 0.5f;
-            if (item._header)
-            {
-                bool    collapsed   =   false;
-                auto    itr         =   _collapsed.find(item._anim);
-                if (itr != _collapsed.end())
-                    collapsed   =   itr->second;
-                const   ImU32   triCol  =   IM_COL32(190,195,205,255);
-                if (collapsed)
-                {
-                    drawList->AddTriangleFilled(ImVec2(topLeft.x + 6.0f,centerY - 4.0f),
-                                                ImVec2(topLeft.x + 6.0f,centerY + 4.0f),
-                                                ImVec2(topLeft.x + 11.0f,centerY),triCol);
-                }
-                else
-                {
-                    drawList->AddTriangleFilled(ImVec2(topLeft.x + 4.0f,centerY - 2.0f),
-                                                ImVec2(topLeft.x + 12.0f,centerY - 2.0f),
-                                                ImVec2(topLeft.x + 8.0f,centerY + 3.0f),triCol);
-                }
-                const   char*   name    =   item._anim ? item._anim->name().c_str() : "Animation";
-                drawList->AddText(ImVec2(topLeft.x + 18.0f,y0 + 3.0f),
-                                  (item._anim == _activeAnim) ? IM_COL32(120,185,255,255) : IM_COL32(215,220,230,255),
-                                  name);
-            }
-            else
-            {
-                const   auto&   track   =   item._track;
-                const   char*   name    =   (track && !track->name().empty()) ? track->name().c_str() : "Track";
-                drawList->AddText(ImVec2(topLeft.x + 28.0f,y0 + 3.0f),IM_COL32(160,165,175,255),name);
-            }
-        }
-        drawList->PopClipRect();
+        FEAnimationTree::Layout  treeLayout;
+        treeLayout._drawList =   drawList;
+        treeLayout._left     =   topLeft.x;
+        treeLayout._right    =   nameRight;
+        treeLayout._top      =   rowsTop;
+        treeLayout._bottom   =   bottomRight.y;
+        treeLayout._rowTop0  =   _canvasY + _rulerH - _scrollY;
+        treeLayout._rowH     =   _rowH;
+        _tree.drawNames(treeLayout);
 
         /// <summary>
         /// 标尺背景与刻度
@@ -1127,11 +1202,9 @@ namespace
         /// <summary>
         /// 无数据提示
         /// </summary>
-        if (_node == nullptr || _anims.empty())
+        if (_tree.animations().empty())
         {
-            const   char*   message =   (_node == nullptr)
-                                    ?   "请先在模型树中选择一个节点"
-                                    :   "该节点还没有动画,点击「创建动画」";
+            const   char*   message =   "动画树为空,请在模型树右键「添加到动画树」";
             const   ImVec2  textSize    =   ImGui::CalcTextSize(message);
             drawList->AddText(ImVec2(_canvasX + (_canvasW - textSize.x) * 0.5f,
                                      _canvasY + _canvasH * 0.5f - textSize.y * 0.5f),
@@ -1198,7 +1271,7 @@ namespace
                 _scrollY    -=  io.MouseWheel * _rowH * 2.0f;
                 if (_scrollY < 0.0f)
                     _scrollY    =   0.0f;
-                const   float   rowsH   =   float(_rows.size()) * _rowH;
+                const   float   rowsH   =   float(_tree.rows().size()) * _rowH;
                 const   float   maxScroll   =   std::max(0.0f,rowsH - (_canvasH - _rulerH));
                 if (_scrollY > maxScroll)
                     _scrollY    =   maxScroll;
@@ -1251,22 +1324,16 @@ namespace
                 if (mouse.x < _timelineX)
                 {
                     /// <summary>
-                    /// 名称列:点在动画头行切换折叠
+                    /// 名称列:交给动画树处理(点在动画头行切换折叠并设为活动动画)
                     /// </summary>
-                    if (row >= 0 && _rows[size_t(row)]._header)
-                    {
-                        Animation   anim    =   _rows[size_t(row)]._anim;
-                        bool&       collapsed   =   _collapsed[anim];
-                        collapsed   =   !collapsed;
-                        _activeAnim =   anim;
-                    }
+                    _tree.onClickNameColumn(row);
                 }
                 else if (row >= 0)
                 {
-                    const   auto&   item    =   _rows[size_t(row)];
-                    if (item._header)
+                    const   auto&   item    =   _tree.rows()[size_t(row)];
+                    if (item._type == FEAnimationTree::RowType::Animation)
                     {
-                        _activeAnim =   item._anim;
+                        _tree.setActiveAnim(item._anim);
                         /// <summary>
                         /// 点中范围块 → 拖动动画 offset
                         /// </summary>
@@ -1283,9 +1350,9 @@ namespace
                             }
                         }
                     }
-                    else
+                    else if (item._type == FEAnimationTree::RowType::Track)
                     {
-                        _activeAnim =   item._anim;
+                        _tree.setActiveAnim(item._anim);
                         const   int key =   keyAt(row,mouse.x,mouse.y);
                         if (key >= 0)
                         {
@@ -1359,7 +1426,7 @@ namespace
             _ctxRow     =   rowAtY(mouse.y);
             _ctxKey     =   0;
             _ctxOnKey   =   false;
-            if (_ctxRow >= 0 && !_rows[size_t(_ctxRow)]._header)
+            if (_ctxRow >= 0 && _tree.rows()[size_t(_ctxRow)]._type == FEAnimationTree::RowType::Track)
             {
                 const   int key =   keyAt(_ctxRow,mouse.x,mouse.y);
                 if (key >= 0)
@@ -1383,7 +1450,7 @@ namespace
             if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(0x56,false))
                 pasteClipboard();
             if (ImGui::IsKeyPressed(0x20,false))
-                _playing    =   !_playing;
+                startPlay(1);
         }
     }
 
@@ -1428,15 +1495,16 @@ namespace
         /// <summary>
         /// 动画的全部关键帧都被选中时,拖动等同修改动画 offset
         /// </summary>
-        if (_activeAnim && allKeysSelected(_activeAnim))
+        Animation   active  =   _tree.activeAnim();
+        if (active && allKeysSelected(active))
         {
             SetOffsetCmd::Offsets    offsets;
-            offsets.push_back({_activeAnim,_activeAnim->offset(),_activeAnim->offset() + deltaTime});
+            offsets.push_back({active,active->offset(),active->offset() + deltaTime});
             if (_undoStack != nullptr)
                 _undoStack->push(new SetOffsetCmd(std::move(offsets),"拖动动画范围",[this]() {   refreshScene();  }));
             else
             {
-                _activeAnim->setOffset(_activeAnim->offset() + deltaTime);
+                active->setOffset(active->offset() + deltaTime);
                 refreshScene();
             }
             clearSelection();
@@ -1523,10 +1591,10 @@ namespace
         const   float   top     =   std::min(y0,y1);
         const   float   bottom  =   std::max(y0,y1);
 
-        for (int row = 0; row < int(_rows.size()); ++row)
+        for (int row = 0; row < int(_tree.rows().size()); ++row)
         {
-            const   auto&   item    =   _rows[size_t(row)];
-            if (item._header || !item._track || !item._track->_times)
+            const   auto&   item    =   _tree.rows()[size_t(row)];
+            if (item._type != FEAnimationTree::RowType::Track || !item._track || !item._track->_times)
                 continue;
             const   float   centerY =   rowTop(row) + _rowH * 0.5f;
             if (centerY < top || centerY > bottom)
@@ -1589,7 +1657,7 @@ namespace
             return;
 
         std::vector<TrackEdit>  edits;
-        for (auto& anim : _anims)
+        for (auto& anim : _tree.animations())
         {
             if (!anim || !anim->clip())
                 continue;
@@ -1715,9 +1783,9 @@ namespace
             for (auto& pair : _selKeys)
                 addTrack(pair.first);
         }
-        else if (_activeAnim && _activeAnim->clip())
+        else if (_tree.activeAnim() && _tree.activeAnim()->clip())
         {
-            for (auto& track : _activeAnim->clip()->tracks())
+            for (auto& track : _tree.activeAnim()->clip()->tracks())
                 addTrack(track);
         }
         if (edits.empty())
@@ -1754,34 +1822,40 @@ namespace
         }
         if (_scene != nullptr && _undoStack != nullptr)
         {
-            _undoStack->push(new CreateAnimCmd(*_scene,_node,anim,[this]() {    refreshScene();  }));
+            _undoStack->push(new CreateAnimCmd(_node,anim,[this]() {    refreshScene();  }));
         }
         else if (_scene != nullptr)
         {
             _node->addComponent(anim.get());
-            if (_scene->animationSystem() != nullptr)
-                _scene->animationSystem()->addObject(anim.get());
             refreshScene();
         }
-        reloadAnimations();
-        _activeAnim =   anim;
-        _status     =   "已创建动画";
+        _tree.reload(_scene != nullptr ? _scene->animationSystem() : nullptr);
+        _tree.setActiveAnim(anim);
+        _status     =   "已创建动画,可在模型树右键「添加到动画树」";
     }
 
     void    FETimeLine::addKeyframe()
     {
-        if (!_node)
+        Animation   anim    =   _tree.activeAnim();
+        if (!anim && !_tree.animations().empty())
+            anim    =   _tree.animations().front();
+        if (!anim)
         {
-            _status =   "请先在模型树中选择节点";
+            _status =   "请先在模型树右键「添加到动画树」";
             return;
         }
 
-        Animation   anim    =   _activeAnim;
-        if (!anim && !_anims.empty())
-            anim    =   _anims.front();
-        if (!anim)
+        /// <summary>
+        /// 关键帧作用于动画的所属节点,不依赖模型树当前选择
+        /// </summary>
+        Node    node;
+        if (anim->owner())
+            node    =   Node(anim->owner()->cast<FENode>());
+        if (!node)
+            node    =   _node;
+        if (!node)
         {
-            _status =   "请先创建动画";
+            _status =   "动画没有所属节点";
             return;
         }
         if (!anim->clip())
@@ -1800,11 +1874,11 @@ namespace
         /// 空 clip 先补默认轨道(位置/缩放/旋转)
         /// </summary>
         if (emptyClip)
-            FEAnimationHelper::addDefaultTracks(clip,_node->ctx());
+            FEAnimationHelper::addDefaultTracks(clip,node->ctx());
 
-        bool    changed =   FEAnimationHelper::addNodeKeyFrame(anim,_curTime,_node);
+        bool    changed =   FEAnimationHelper::addNodeKeyFrame(anim,_curTime,node);
         if (!changed)
-            changed =   FEAnimationHelper::updateNodeKeyFrame(anim,_curTime,_node);
+            changed =   FEAnimationHelper::updateNodeKeyFrame(anim,_curTime,node);
         if (!changed)
         {
             _status =   "当前帧没有产生关键帧变化";

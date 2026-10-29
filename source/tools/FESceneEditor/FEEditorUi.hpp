@@ -244,7 +244,7 @@ namespace   FE
         /// <summary>
         /// 上一次推给变换抓手的选区;用于避免选区未变时每帧重复 setObjects
         /// </summary>
-        std::vector<Object>         _toolSelection;
+        Objects                     _toolSelection;
         /// <summary>
         /// 时间线编辑面板
         /// </summary>

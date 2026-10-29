@@ -191,7 +191,6 @@ namespace   FE
         /// <returns></returns>
         inline  size_t  removeObjectsImpl(TObjects&& deletes)
         {
-            size_t  nOld    =   _objects.size();
             /// 先排序，后续查找速度快
             std::sort(deletes.begin(),deletes.end());
             /// 删除逻辑：如果当前值在 deletes 里能找到，就删除(返回 true)
@@ -200,14 +199,15 @@ namespace   FE
                 auto    result  =   std::binary_search(deletes.begin(), deletes.end(), object);
                 return  result;
             });
+            /// 被移除的对象先拷贝一份:erase 会让 newEnd 失效,不能再用它遍历,
+            /// 同时在 onRemoveObject 里读取 _objects 时不应再看到已删除对象
+            TObjects    removed(newEnd, _objects.end());
             _objects.erase(newEnd, _objects.end());
-
-            for (auto itr = newEnd; itr != _objects.end(); ++ itr)
+            for (auto& var : removed)
             {
-                onRemoveObject(*itr);
+                onRemoveObject(var);
             }
-            auto    result  =   _objects.size() - nOld;
-            return  result;
+            return  removed.size();
         }
     protected:
         FuncSort    _sortFunc;  

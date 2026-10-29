@@ -933,8 +933,8 @@ namespace   FE
         if (node == nullptr || _scene == nullptr)
             return;
         /// <summary>
-        /// 与时间线"创建动画"一致:新建带默认(位置/缩放/旋转)轨道的动画,
-        /// 挂到节点并登记到动画系统(即动画树)
+        /// 新建带默认(位置/缩放/旋转)轨道的动画,只挂到节点上;
+        /// 需要在动画树中编辑时,再右键「添加到动画树」
         /// </summary>
         Animation   anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
         if (anim == nullptr)
@@ -946,8 +946,6 @@ namespace   FE
             return;
         }
         node->addComponent(anim.get());
-        if (_scene->animationSystem() != nullptr)
-            _scene->animationSystem()->addObject(anim.get());
     }
 
     void    FEModelTree::removeAnimations(Node node)

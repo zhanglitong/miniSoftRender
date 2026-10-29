@@ -167,7 +167,7 @@ namespace FE
         /// </summary>
         real                    _startOffset    =   0;
         /// 缓存: 各段长度
-        mutable std::vector<real>   _segLengths;
+        mutable reals               _segLengths;
         /// 缓存: 路径总长度
         mutable real                _totalLength    =   0;
         /// 缓存是否失效

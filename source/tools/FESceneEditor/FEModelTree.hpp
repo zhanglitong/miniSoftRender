@@ -67,7 +67,7 @@ namespace   FE
         /// <summary>
         /// 当前选中对象列表(Ctrl/Shift 多选,主选中项见 selected())
         /// </summary>
-        const   std::vector<Object>&    selection() const   {   return  _selection;  }
+        const   Objects&                selection() const   {   return  _selection;  }
     protected:
         /// <summary>
         /// 绑定节点树,并订阅 add/remove 事件用于驱动刷新
@@ -327,7 +327,7 @@ namespace   FE
         /// <summary>
         /// 选中对象列表,与 FLAG_SELECTED 同步
         /// </summary>
-        std::vector<Object>     _selection;
+        Objects                 _selection;
         /// <summary>
         /// Shift 范围选择的锚点
         /// </summary>

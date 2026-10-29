@@ -364,7 +364,7 @@ namespace   FE
 
     /// <summary>
     /// 动画命令(右键"创建动画/删除动画/添加到动画树"):
-    /// AM_Attach  添加组件并登记到动画系统,undo 反向摘除;
+    /// AM_Attach  仅在节点上挂载动画组件(不登记动画树),undo 摘除;
     /// AM_Detach  从动画系统摘除并删除组件,undo 重新添加;
     /// AM_Register 仅登记到动画系统(动画树),undo 取消登记
     /// 命令持有动画组件的强引用,undo/redo 往返期间对象保持存活
@@ -375,7 +375,7 @@ namespace   FE
         enum    Mode
         {
             /// <summary>
-            /// 新建动画:挂到节点并登记到动画系统
+            /// 新建动画:只挂到节点(不登记动画树)
             /// </summary>
             AM_Attach,
             /// <summary>
@@ -394,13 +394,43 @@ namespace   FE
             ,_node(node)
             ,_anims(anims)
             ,_mode(mode)
-        {}
+        {
+            /// <summary>
+            /// 记录构造时各动画的登记状态:创建动画不再自动登记动画树,
+            /// 删除动画的 undo 必须按原状态还原,不能一律重新登记
+            /// </summary>
+            FEAnimationSys* sys =   scene.animationSystem();
+            _registered.reserve(anims.size());
+            for (const Animation& anim : anims)
+            {
+                bool    found   =   false;
+                if (sys != nullptr && anim != nullptr)
+                {
+                    for (auto& var : sys->playbacks())
+                    {
+                        if (!var.second)
+                            continue;
+                        for (const Animation& item : var.second->objects())
+                        {
+                            if (item == anim)
+                            {
+                                found   =   true;
+                                break;
+                            }
+                        }
+                        if (found)
+                            break;
+                    }
+                }
+                _registered.push_back(found);
+            }
+        }
     public:
         virtual void    redo()  override
         {
             switch (_mode)
             {
-            case AM_Attach:     attach(true);   registerAnims(true);     break;
+            case AM_Attach:     attach(true);                           break;
             case AM_Detach:     registerAnims(false);   attach(false);  break;
             case AM_Register:   registerAnims(true);                    break;
             }
@@ -409,8 +439,8 @@ namespace   FE
         {
             switch (_mode)
             {
-            case AM_Attach:     registerAnims(false);   attach(false);  break;
-            case AM_Detach:     attach(true);   registerAnims(true);    break;
+            case AM_Attach:     attach(false);                          break;
+            case AM_Detach:     attach(true);   restoreRegistration();   break;
             case AM_Register:   registerAnims(false);                   break;
             }
         }
@@ -452,11 +482,30 @@ namespace   FE
                     sys->removeObject(anim.get());
             }
         }
+        /// <summary>
+        /// 按构造时记录的登记状态把动画登记回动画系统
+        /// </summary>
+        void    restoreRegistration()
+        {
+            FEAnimationSys* sys =   _scene.animationSystem();
+            if (sys == nullptr)
+                return;
+            for (size_t i = 0; i < _anims.size() && i < _registered.size(); ++i)
+            {
+                if (_anims[i] == nullptr || !_registered[i])
+                    continue;
+                sys->addObject(_anims[i].get());
+            }
+        }
     protected:
-        FEScene&    _scene;
-        Node        _node;
-        Animations  _anims;
-        Mode        _mode;
+        FEScene&        _scene;
+        Node            _node;
+        Animations      _anims;
+        Mode            _mode;
+        /// <summary>
+        /// 构造时各动画是否已登记到动画系统(与 _anims 一一对应)
+        /// </summary>
+        std::vector<bool>   _registered;
     };
 
     /// <summary>

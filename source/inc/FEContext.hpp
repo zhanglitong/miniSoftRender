@@ -138,6 +138,13 @@ namespace FE
             _window =   window;
         }
         /// <summary>
+        /// 平台窗口(未创建时为空),用于取原生窗口句柄等
+        /// </summary>
+        FEWindow*   window()
+        {
+            return  _window ? _window->as<FEWindow>() : nullptr;
+        }
+        /// <summary>
         /// 获取一帧花费的时间
         /// </summary>
         /// <returns></returns>
