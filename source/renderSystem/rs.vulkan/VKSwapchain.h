@@ -60,6 +60,10 @@ namespace   FE
     #endif
         void    create(uint32_t& width, uint32_t& height, bool vsync, bool fullscreen);
         void    cleanup();
+        /// <summary>
+        /// 最近一次 acquireNextFrame 得到的色图像(自动化截图/回读用)
+        /// </summary>
+        virtual GImage      colorImage() const  override;
     protected:
         VkFormat            _colorFormat        {};
         VkColorSpaceKHR     _colorSpace         {};
@@ -67,6 +71,10 @@ namespace   FE
         GImages             _images             {};  
         Frames              _frames             {};
         size_t              _curFrame           {};
+        /// <summary>
+        /// 最近一次 acquireNextFrame 返回的图像下标(colorImage 用)
+        /// </summary>
+        size_t              _lastImageIdx       =   0;
         GImgViews           _imageViews         {};
 
     };

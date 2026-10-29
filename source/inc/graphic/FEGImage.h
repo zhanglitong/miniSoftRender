@@ -53,6 +53,22 @@ namespace   FE
         {
             _cInfo._layout =   layout;
         }
+        /// <summary>
+        /// 包装外部原生图像(如交换链图像)时填写尺寸/格式信息,不做任何资源分配。
+        /// 布局保持原值(默认 UNDEFINED),由渲染时的布局切换按需更新
+        /// </summary>
+        /// <param name="width">宽</param>
+        /// <param name="height">高</param>
+        /// <param name="format">像素格式</param>
+        void    setNativeInfo(uint width,uint height,FEFormat format)
+        {
+            _cInfo._width   =   width;
+            _cInfo._height  =   height;
+            _cInfo._depth   =   1;
+            _cInfo._mips    =   1;
+            _cInfo._layer   =   1;
+            _cInfo._format  =   format;
+        }
         virtual bool        create(const CreateInfo& info)    =   0;
         virtual void        destroy()       =   0;
         virtual GImgView    createView()    =   0;

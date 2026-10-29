@@ -1,6 +1,7 @@
 #pragma     once
 
 #include    "../node/FENodeTree.hpp"
+#include    "FEAxisSetting.hpp"
 #include    "FEEditAxisRotate.h"
 #include    "FEInputSystem.hpp"
 
@@ -35,6 +36,20 @@ namespace   FE
         /// 同步更新编辑器到节点的包围盒中心
         /// </summary>
         void    sync();
+        /// <summary>
+        /// 设置编辑轴配置(坐标轴编辑窗口修改后由编辑器每帧推送)
+        /// </summary>
+        inline  void    setAxisSetting(FEAxisSetting* setting)
+        {
+            _axisSetting    =   setting;
+        }
+        /// <summary>
+        /// 获取编辑轴配置
+        /// </summary>
+        inline  FEAxisSetting*  axisSetting() const
+        {
+            return  _axisSetting;
+        }
     protected:
         void    onRAxis ( EditStatus status
                         , const real3& axis
@@ -42,7 +57,11 @@ namespace   FE
                         , real absoluteOffsetAngle
                         , FEEditAxisRotate& sender);
     protected:
-        Objects _objects;
+        Objects         _objects;
+        /// <summary>
+        /// 编辑轴配置(不持有,由编辑器 UI 生命周期管理)
+        /// </summary>
+        FEAxisSetting*  _axisSetting    =   nullptr;
     };
 
     using   NodeRotateEditor  =   SharedPtr<FENodeRotateEditor>;

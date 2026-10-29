@@ -68,6 +68,20 @@ namespace   FE
         /// 当前选中对象列表(Ctrl/Shift 多选,主选中项见 selected())
         /// </summary>
         const   Objects&                selection() const   {   return  _selection;  }
+        /// <summary>
+        /// 标记行列表需要重建:节点上的组件(动画等)增删不会触发节点树事件,
+        /// 由调用方(时间线等)在修改组件后主动通知
+        /// </summary>
+        void    refresh()
+        {
+            _rowsDirty  =   true;
+        }
+        /// <summary>
+        /// 按名称递归查找节点并单选(供脚本自动化按名选中节点使用)
+        /// </summary>
+        /// <param name="name">节点名称(精确匹配)</param>
+        /// <returns>true 找到并已选中</returns>
+        bool    selectByName(const String& name);
     protected:
         /// <summary>
         /// 绑定节点树,并订阅 add/remove 事件用于驱动刷新

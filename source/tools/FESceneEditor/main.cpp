@@ -9,7 +9,9 @@
 ///   FESceneEditor.exe
 /// </summary>
 
+#include    <cstring>
 #include    <iostream>
+#include    <string>
 #include    <windows.h>
 
 #include    "../../../inc/FEContext.hpp"
@@ -52,9 +54,13 @@ namespace
 
 int     main(int argc,char* argv[])
 {
-    /// 命令行参数:预留后续扩展(工程路径/渲染方式等),当前启动不依赖它
-    (void)argc;
-    (void)argv;
+    /// 命令行参数:--script &lt;文件&gt; 启动脚本自动化,其余参数暂不处理
+    std::string     scriptPath;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::strcmp(argv[i],"--script") == 0 && i + 1 < argc)
+            scriptPath =   argv[++i];
+    }
 
     FEContext&  ctx         =   FEContext::instance();
     /// <summary>
@@ -139,6 +145,9 @@ int     main(int argc,char* argv[])
     };
 
     ui.attach(ctx,scene.get());
+    /// 脚本自动化:挂接成功后加载脚本(路径相对当前工作目录)
+    if (!scriptPath.empty() && !ui.loadScript(scriptPath))
+        std::cerr << "load script failed: " << scriptPath << std::endl;
 
     std::cout << "FESceneEditor ready, entering render loop..." << std::endl;
     app->run();
@@ -148,6 +157,8 @@ int     main(int argc,char* argv[])
     /// 若循环因其它原因退出而没走 MSG_CLOSE,这里补一次 destroy(幂等),
     /// 保证 GPU 资源在 app->destroy() 与进程退出前全部归还
     /// </summary>
+    /// 脚本结果要在 detach 之前取:退出码 1 表示脚本断言失败,供 CI 判定
+    const   bool    scriptFailed    =   ui.scriptFailed();
     ui.detach();
     if (scene != nullptr)
         scene->destroy();
@@ -164,5 +175,5 @@ int     main(int argc,char* argv[])
         CloseHandle(g_cleaned);
         g_cleaned   =   nullptr;
     }
-    return  0;
+    return  scriptFailed ? 1 : 0;
 }

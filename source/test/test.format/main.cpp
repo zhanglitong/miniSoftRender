@@ -399,11 +399,16 @@ int     main(int ,char** )
         {
             switch (f)
             {
-            case FMT_BC1_RGB_UNORM: case FMT_BC1_RGB_SRGB:
-            case FMT_BC1_RGBA_UNORM: case FMT_BC1_RGBA_SRGB:
-            case FMT_BC4_UNORM: case FMT_BC4_SNORM:
-            case FMT_ETC2_R8G8B8_UNORM: case FMT_ETC2_R8G8B8_SRGB:
-            case FMT_EAC_R11_UNORM: case FMT_EAC_R11_SNORM:
+            case FMT_BC1_RGB_UNORM:
+            case FMT_BC1_RGB_SRGB:
+            case FMT_BC1_RGBA_UNORM:
+            case FMT_BC1_RGBA_SRGB:
+            case FMT_BC4_UNORM:
+            case FMT_BC4_SNORM:
+            case FMT_ETC2_R8G8B8_UNORM:
+            case FMT_ETC2_R8G8B8_SRGB:
+            case FMT_EAC_R11_UNORM:
+            case FMT_EAC_R11_SNORM:
                 return  8u;
             default:
                 return  16u;

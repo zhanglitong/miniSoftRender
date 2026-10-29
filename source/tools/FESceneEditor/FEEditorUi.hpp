@@ -6,8 +6,10 @@
 
 #include    "FEUiDocument.hpp"
 #include    "FEUiRenderer.hpp"
+#include    "FEAxisSettingWindow.hpp"
 #include    "FEFileDialog.hpp"
 #include    "FEModelTree.hpp"
+#include    "FEPropertyPanel.hpp"
 #include    "FETimeLine.hpp"
 #include    "FEUndoView.hpp"
 #include    "FEShortcutConfig.hpp"
@@ -90,6 +92,31 @@ namespace   FE
         void    detach();
         bool    attached()  const   {   return  _attached;  }
         /// <summary>
+        /// 脚本自动化:读取脚本文件,每行一条命令,挂接后每帧执行一条。
+        /// 命令一览(以 # 开头的行为注释):
+        ///   action &lt;动作名&gt;            等同点击功能区按钮(走 onAction 同一路径)
+        ///   wait &lt;毫秒&gt;                 暂停若干毫秒
+        ///   shot &lt;png路径&gt;              截取当前画面
+        ///   select &lt;节点名&gt;              模型树中按名单选该节点
+        ///   time &lt;秒&gt;                    时间线游标跳转(并重新采样动画)
+        ///   setprop &lt;节点&gt; &lt;属性&gt; &lt;值..&gt; 走动画系统的编辑写值(等价抓手拖拽)
+        ///   check &lt;节点&gt; &lt;属性&gt; &lt;期望&gt; [容差]  断言节点本地属性(默认容差 1e-3)
+        ///   log &lt;文本&gt;                   输出一行日志
+        ///   quit                          结束脚本并关闭程序
+        /// 属性名:pos(3 值) / x / y / z / sx / sy / sz
+        /// </summary>
+        /// <param name="path">脚本文件路径(UTF-8)</param>
+        /// <returns>true 读取成功</returns>
+        bool    loadScript(const std::string& path);
+        /// <summary>
+        /// 脚本是否已执行完毕(未加载脚本时恒为 true)
+        /// </summary>
+        bool    scriptDone() const      {   return  _scriptDone;        }
+        /// <summary>
+        /// 脚本中是否出现过断言失败或无法识别的命令
+        /// </summary>
+        bool    scriptFailed() const    {   return  _scriptFailed;      }
+        /// <summary>
         /// 把窗口消息(鼠标)喂给 ImGui。返回 true 表示 GUI 捕获了鼠标,
         /// 宿主应跳过场景处理,避免点菜单时同时旋转相机。
         /// </summary>
@@ -131,6 +158,30 @@ namespace   FE
         /// </summary>
         /// <param name="name">.ui 中的 QAction 名</param>
         void    triggerAction(const std::string& name);
+        /// <summary>
+        /// 每帧推进脚本:执行一条命令,等待命令靠时间戳挂起
+        /// </summary>
+        void    runScript();
+        /// <summary>
+        /// 执行单条脚本命令(失败时记入 _scriptFailed)
+        /// </summary>
+        /// <param name="line">命令文本(已去掉注释与首尾空白)</param>
+        void    execScriptCommand(const std::string& line);
+        /// <summary>
+        /// 取回引擎抓到的帧并保存为图片(按扩展名决定格式)。
+        /// 抓帧未完成时返回 false 并保持挂起状态
+        /// </summary>
+        /// <returns>true 表示本次抓帧流程已结束(成功或失败)</returns>
+        bool    finishShot();
+        /// <summary>
+        /// 结束脚本:写结果汇总日志(_scriptPath + ".log")并请求关闭程序
+        /// </summary>
+        void    finishScript();
+        /// <summary>
+        /// 输出一行脚本日志(控制台 + 结果汇总)
+        /// </summary>
+        /// <param name="text">日志内容</param>
+        void    scriptLog(const std::string& text);
         /// <summary>
         /// 文件选择对话框(打开工程 / 保存工程)
         /// </summary>
@@ -182,6 +233,14 @@ namespace   FE
         /// 时间线编辑面板(参考 Qt 版 UiTickMgr)
         /// </summary>
         void    drawTimeLine();
+        /// <summary>
+        /// 属性窗口:多个属性分组(位置/缩放/旋转),内容来自模型树当前选中节点
+        /// </summary>
+        void    drawProperty();
+        /// <summary>
+        /// 轴编辑窗口(坐标轴编辑):配置编辑轴的轴位置/编辑类型/坐标系/中心/禁用轴
+        /// </summary>
+        void    drawAxisSetting();
         /// <summary>
         /// 切换场景网格显隐
         /// </summary>
@@ -250,9 +309,25 @@ namespace   FE
         /// </summary>
         FETimeLine                  _timeLine;
         /// <summary>
+        /// 属性面板内容(位置/缩放/旋转分组)
+        /// </summary>
+        FEPropertyPanel             _propertyPanel;
+        /// <summary>
         /// 模型树窗口开关
         /// </summary>
         bool                        _treeOpen       =   true;
+        /// <summary>
+        /// 属性窗口开关
+        /// </summary>
+        bool                        _propertyOpen   =   true;
+        /// <summary>
+        /// 编辑轴配置(轴编辑窗口编辑,推送给三个抓手)
+        /// </summary>
+        FEAxisSetting               _axisSetting;
+        /// <summary>
+        /// 轴编辑窗口开关(由 Ribbon 动作 action_axisEditor 切换)
+        /// </summary>
+        bool                        _axisOpen       =   false;
         /// <summary>
         /// 撤销历史窗口(参考 Qt 的 QUndoView)
         /// </summary>
@@ -353,5 +428,41 @@ namespace   FE
         /// 设置窗口的错误提示(重复绑定等)
         /// </summary>
         std::string             _shortcutError;
+        /// <summary>
+        /// 脚本自动化:待执行命令(已去掉空行与注释)
+        /// </summary>
+        std::vector<std::string>        _scriptCommands;
+        /// <summary>
+        /// 脚本自动化:下一条待执行命令的下标
+        /// </summary>
+        size_t                          _scriptIndex    =   0;
+        /// <summary>
+        /// 脚本自动化:是否已执行完(未加载脚本时为 true)
+        /// </summary>
+        bool                            _scriptDone     =   true;
+        /// <summary>
+        /// 脚本自动化:是否出现过失败(断言失败 / 未知命令)
+        /// </summary>
+        bool                            _scriptFailed   =   false;
+        /// <summary>
+        /// 脚本自动化:wait 命令的恢复时刻(steady_clock 毫秒)
+        /// </summary>
+        double                          _scriptWaitUntil=   0.0;
+        /// <summary>
+        /// 脚本自动化:结果汇总(退出时写入 _scriptPath + ".log")
+        /// </summary>
+        std::vector<std::string>        _scriptReport;
+        /// <summary>
+        /// 脚本自动化:脚本文件路径
+        /// </summary>
+        std::string                     _scriptPath;
+        /// <summary>
+        /// 脚本自动化:待落盘的截图路径(非空表示抓帧流程进行中)
+        /// </summary>
+        std::string                     _shotPath;
+        /// <summary>
+        /// 脚本自动化:抓帧超时时刻(steady_clock 毫秒)
+        /// </summary>
+        double                          _shotDeadline   =   0.0;
     };
 }

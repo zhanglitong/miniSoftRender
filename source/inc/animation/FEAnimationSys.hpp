@@ -33,6 +33,39 @@ namespace   FE
             return  _playbacks;
         }
         /// <summary>
+        /// 查找节点上登记的第一个动画组件(按播放器顺序)
+        /// </summary>
+        Animation   animationOf(Object owner)
+        {
+            if (owner == nullptr)
+                return  nullptr;
+            for (auto& var : _playbacks)
+            {
+                for (auto& anim : var.second->objects())
+                {
+                    if (anim != nullptr && anim->owner() == owner)
+                        return  anim;
+                }
+            }
+            return  nullptr;
+        }
+        /// <summary>
+        /// 编辑写值:节点有动画时走动画(同时更新节点与动画本地副本),否则直接写节点
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <param name="prop">属性索引</param>
+        /// <param name="value">属性值</param>
+        /// <returns>true 表示有修改</returns>
+        bool    setNodeProperty(Object node,int prop,const KFValue& value)
+        {
+            if (node == nullptr)
+                return  false;
+            Animation   anim    =   animationOf(node);
+            if (anim != nullptr)
+                return  anim->setProperty(prop,value);
+            return  node->setProperty(prop,value);
+        }
+        /// <summary>
         /// 创建或者获取
         /// </summary>
         /// <param name="name"></param>
@@ -43,6 +76,8 @@ namespace   FE
             if (itr != _playbacks.end())
                 return  itr->second;
             Playback    playback    =   new FEPlayback(_ctx);
+            /// 播放器名同时记录在对象上,编辑器重命名时据此同步索引键
+            playback->setName(name);
             _playbacks[name]        =   playback;
             return  playback;
         }

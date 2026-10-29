@@ -232,6 +232,7 @@ namespace   FE
         /// 用获取到的 image index 选择对应的 frame(保证 frame 的 imageView 与 acquired image 匹配)
         Frame   frame           =   _frames[imageIdx];
         frame->_imageIdx        =   imageIdx;
+        _lastImageIdx           =   imageIdx;
 
         /// 将已 signal 的 acquire semaphore 交换到选中的 frame 上,
         /// 使后续 queue submit 等待的 frame->_semPresentComplete 就是刚被 signal 的那个
@@ -415,6 +416,9 @@ namespace   FE
         for (uint i = 0; i < imageCount; i++)
         {
             _images[i]  =   new VKGImage(_ctx,images[i],true);
+            /// 包装图像没有自己的分配信息,回读(自动化截图)需要宽高与格式
+            _images[i]->setNativeInfo(swapchainExtent.width,swapchainExtent.height,
+                                      colorFormat());
             _frames[i]  =   new FEFrame(_ctx);
             _frames[i]->_fenceWait            =   _ctx.device().createFence();
             _frames[i]->_fenceWait->create({});
@@ -447,6 +451,13 @@ namespace   FE
                 vkView->setImage(_images[i]);
             }
         }
+    }
+
+    GImage      VKSwapchain::colorImage() const
+    {
+        if (_lastImageIdx >= _images.size())
+            return  nullptr;
+        return  _images[_lastImageIdx];
     }
 
     void        VKSwapchain::cleanup()

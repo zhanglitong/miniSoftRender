@@ -75,6 +75,20 @@ namespace FE
             return  _transform;
         }
         /// <summary>
+        /// 旋转中心点(本地空间):编辑轴编辑时由轴编辑器写入,动画驱动节点时据此计算绕点旋转
+        /// </summary>
+        const   auto&   rotationCenter() const
+        {
+            return  _transform.rotationCenter();
+        }
+        /// <summary>
+        /// 设置旋转中心点(本地空间),原点表示绕节点自身原点旋转
+        /// </summary>
+        inline  void    setRotationCenter(const real3& center)
+        {
+            _transform.setRotationCenter(center);
+        }
+        /// <summary>
         /// 关联所有者
         /// </summary>
         /// <param name="owner"></param>
@@ -191,7 +205,7 @@ namespace FE
         virtual void    beginSetProp() override;
         /// <summary>
         /// 动画系统独有接口
-        /// 设置属性
+        /// 设置属性:先写 owner(节点),变换属性同时写入 _transform 本地副本
         /// </summary>
         /// <param name="prop">属性索引(别名)</param>
         /// <param name="value">属性值</param>
@@ -200,7 +214,7 @@ namespace FE
 
         /// <summary>
         /// 获取属性值
-        /// 变换属性从自身 _transform 读取,其他属性从 _owner 读取
+        /// 一律从 _owner 读取;动画本地 _transform 仅用于采样与回放
         /// </summary>
         /// <param name="prop">属性索引</param>
         /// <returns>属性值</returns>
@@ -238,11 +252,19 @@ namespace FE
         /// <returns></returns>
         static  bool    isTransformProperty(int prop);
         /// <summary>
-        /// 将变换相关属性写入 _transform
+        /// 将变换相关属性写入 _transform;非变换属性不处理
         /// </summary>
         /// <param name="prop"></param>
         /// <param name="value"></param>
-        void    setTransformProperty(int prop,const KFValue& value);
+        /// <returns>true 该属性属于变换并已写入;false 非变换属性,未做处理</returns>
+        bool    setTransformProperty(int prop,const KFValue& value);
+        /// <summary>
+        /// 把编辑后的通道写入 clip 关键帧(该时间点存在则覆盖,否则新增)。
+        /// 按轨道自身粒度换算值类型(位置 XYZ / X-Y-Z、旋转欧拉角 / 四元数),
+        /// 类型不匹配的轨道会被跳过
+        /// </summary>
+        /// <param name="prop">被编辑的属性索引</param>
+        void    writeTransformKey(int prop);
         /// <summary>
         /// 记录采样变换是否已覆盖到节点;由覆盖转为不覆盖时标记节点重新计算变换
         /// </summary>

@@ -5,6 +5,7 @@
 #include    "../inc/FENodeHelper.hpp"
 #include    "../inc/animation/FEAnimation.hpp"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/FEEulerObject.hpp"
 #include    "../inc/graphic/FEScene.h"
 
 namespace FE
@@ -67,7 +68,7 @@ namespace FE
         }
     }
 
-    void    FEAnimation::setTransformProperty(int prop,const KFValue& value)
+    bool    FEAnimation::setTransformProperty(int prop,const KFValue& value)
     {
         switch(prop)
         {
@@ -147,8 +148,10 @@ namespace FE
             _transform.setRotation(std::get<quatf>(value));
             break;
         default:
-            break;
+            /// 非变换属性:动画本地副本不保存,由调用方决定如何处理
+            return  false;
         }
+        return  true;
     }
 
     void    FEAnimation::beginSetProp()
@@ -175,57 +178,105 @@ namespace FE
     }
     bool    FEAnimation::setProperty(int prop,const KFValue& value)
     {
-        if (!isTransformProperty(prop))
+        /// 关键帧写入:先修改 owner(节点),变换数据同时保存到动画本地副本,
+        /// 保证编辑结果既能立即反映到节点,又能被动画在驱动阶段正确回放;
+        /// 非变换属性动画侧不保留,返回 owner 的处理结果
+        bool    bOwner      =   _owner ? _owner->setProperty(prop,value) : false;
+        bool    bTransform  =   setTransformProperty(prop,value);
+        /// 变换属性同步写入 clip:编辑发生在动画激活(播放/时间线定位)时,
+        /// 驱动阶段会按关键帧重采样覆盖节点,若只写本地副本,拖拽结果下一帧就被旧关键帧撤销
+        if (bTransform && _clip != nullptr)
+            writeTransformKey(prop);
+        return  bTransform  ||  bOwner;
+    }
+
+    void    FEAnimation::writeTransformKey(int prop)
+    {
+        enum    Family  {  F_NONE,F_POS,F_SCL,F_ROT  };
+        static  auto    familyOf    =   [](int idx) -> int
         {
-            if (_owner)
-                return  _owner->setProperty(prop,value);
-            else
-                return  false;
+            switch (idx)
+            {
+            case PROP_TRANSFORM_X:
+            case PROP_TRANSFORM_Y:
+            case PROP_TRANSFORM_Z:
+            case PROP_TRANSFORM_XYZ:    return  F_POS;
+            case PROP_SCALE_X:
+            case PROP_SCALE_Y:
+            case PROP_SCALE_Z:
+            case PROP_SCALE_XYZ:        return  F_SCL;
+            case PROP_ROTATE_X:
+            case PROP_ROTATE_Y:
+            case PROP_ROTATE_Z:
+            case PROP_ROTATE_XYZ:
+            case PROP_QUAT:             return  F_ROT;
+            default:                    return  F_NONE;
+            }
+        };
+        const   int     family  =   familyOf(prop);
+        if (family == F_NONE)
+            return;
+        /// 同一通道可能有不同粒度的轨道(位置 XYZ 或 X/Y/Z;旋转欧拉角或四元数),
+        /// 必须按轨道自身属性换算成匹配的值类型写入,类型不匹配时轨道会拒绝写关键帧,
+        /// 采样随即把编辑结果覆盖回旧值(旋转抓手此前就因此完全失效)
+        real3   eulerDeg    =   real3(0);
+        if (family == F_ROT)
+        {
+            /// quatToEuler 返回的就是角度(度),与 FETransform::setEuler 的输入单位一致,
+            /// 不能再做一次 RAD2DEG(会把角度放大 57 倍,采样回放出错误姿态)
+            eulerDeg    =   quatToEuler(quatr(_transform.rotation()));
         }
-        setTransformProperty(prop,value);
-        return  true;
+        const   real3   pos     =   _transform.position();
+        const   real3   scl     =   real3(_transform.scale());
+        const   real    tm      =   _clipTime - _offset;
+        /// 拷贝一次轨道列表:只读引用上的元素是 const,无法调用轨道自身的写入接口
+        KeyFrameTracks  trackList   =   _clip->tracks();
+        for (auto& var : trackList)
+        {
+            if (var == nullptr)
+                continue;
+            const   int     idx     =   var->propertyIndex();
+            if (familyOf(idx) != family)
+                continue;
+            KFValue val;
+            switch (idx)
+            {
+            case PROP_TRANSFORM_X:      val = pos.x;        break;
+            case PROP_TRANSFORM_Y:      val = pos.y;        break;
+            case PROP_TRANSFORM_Z:      val = pos.z;        break;
+            case PROP_TRANSFORM_XYZ:    val = pos;          break;
+            case PROP_SCALE_X:          val = scl.x;        break;
+            case PROP_SCALE_Y:          val = scl.y;        break;
+            case PROP_SCALE_Z:          val = scl.z;        break;
+            case PROP_SCALE_XYZ:        val = scl;          break;
+            case PROP_ROTATE_X:         val = eulerDeg.x;   break;
+            case PROP_ROTATE_Y:         val = eulerDeg.y;   break;
+            case PROP_ROTATE_Z:         val = eulerDeg.z;   break;
+            case PROP_ROTATE_XYZ:       val = eulerDeg;     break;
+            case PROP_QUAT:
+                {
+                    /// 四元数轨道双精度/单精度两种,先按双精度写,失败再退化为单精度
+                    const   KFValue  qd  =   quatr(_transform.rotation());
+                    const   KFValue  qf  =   _transform.rotation();
+                    if (!var->updateKeyFrame(tm,qd) && !var->addKeyFrame(tm,qd)
+                        && !var->updateKeyFrame(tm,qf))
+                        var->addKeyFrame(tm,qf);
+                    continue;
+                }
+            default:
+                continue;
+            }
+            if (!var->updateKeyFrame(tm,val))
+                var->addKeyFrame(tm,val);
+        }
     }
 
     KFValue FEAnimation::getProperty(int prop) const
     {
-        if (!isTransformProperty(prop))
-        {
-            if (_owner)
-                return  _owner->getProperty(prop);
-            else
-                return  {};
-        }
-        switch(prop)
-        {
-        case PROP_TRANSFORM_X:
-            return  _transform.position().x;
-        case PROP_TRANSFORM_Y:
-            return  _transform.position().y;
-        case PROP_TRANSFORM_Z:
-            return  _transform.position().z;
-        case PROP_TRANSFORM_XYZ:
-            return  _transform.position();
-        case PROP_SCALE_X:
-            return  (real)_transform.scale().x;
-        case PROP_SCALE_Y:
-            return  (real)_transform.scale().y;
-        case PROP_SCALE_Z:
-            return  (real)_transform.scale().z;
-        case PROP_SCALE_XYZ:
-            return  real3(_transform.scale());
-        case PROP_ROTATE_X:
-            return  (real)_transform.euler().x;
-        case PROP_ROTATE_Y:
-            return  (real)_transform.euler().y;
-        case PROP_ROTATE_Z:
-            return  (real)_transform.euler().z;
-        case PROP_ROTATE_XYZ:
-            return  real3(_transform.euler());
-        case PROP_QUAT:
-            return  _transform.rotation();
-        default:
-            return  {};
-        }
+        /// 编辑过程一律从 owner 读取数据;动画本地副本只用于采样与回放
+        if (_owner)
+            return  _owner->getProperty(prop);
+        return  {};
     }
 
     void    FEAnimation::endSetProp(const real& tm,bool bModify) 
@@ -280,25 +331,24 @@ namespace FE
             return  false;
         }
         auto    rng =   range();
-        /// 只有一个关键帧，update 流程需要正常走
-        /// 典型的操作: 编辑时间线，添加了一个关键帧后，在添加第二个关键帧
-        if (rng.x >= 0 && rng.x == rng.y)
+        /// 有轨道但没有任何关键帧时 range 是 (-1,-1);只要有一条空轨道参与合并,
+        /// 下界就会被拉到 -1。这种"没有有效范围"的情况不做裁剪,按传入时间采样
+        const   real2   clipRange   =   _clip != nullptr ? _clip->range() : real2(-1,-1);
+        const   bool    hasRange    =   clipRange.y >= real(0);
+        if (hasRange)
+            rng     =   real2((std::max)(clipRange.x,real(0)),clipRange.y) + real2(_offset,_offset);
+        /// 时间严格落在范围之外才回退到动画覆盖前的姿态;
+        /// 恰好等于首/末关键帧时间时必须照常采样 —— 否则时间线停在帧 0 时,
+        /// 每次拖拽都由这里把节点恢复成原始变换,表现为"有动画的节点无法移动"
+        if (hasRange && (clipTime < rng.x || clipTime > rng.y))
         {
-        }
-        else if (clipTime <= rng.x && _clipTime  == rng.x)
-        {
-            flags().addFlag(OutOfRangeBit);
-            markApplied(false);
-            return  false;
-        } 
-        else if(clipTime >= rng.y && _clipTime == rng.y)
-        {
+            _clipTime   =   (clipTime < rng.x) ? rng.x : rng.y;
             flags().addFlag(OutOfRangeBit);
             markApplied(false);
             return  false;
         }
         flags().removeFlag(OutOfRangeBit);
-        _clipTime   =   std::clamp(clipTime,rng.x,rng.y);
+        _clipTime   =   hasRange ? std::clamp(clipTime,rng.x,rng.y) : clipTime;
         _clip->update(_clipTime - _offset,_results);
         /// 画对象应用对象 
         _owner->beginSetProp();
@@ -310,7 +360,15 @@ namespace FE
         {
             if (!var._valid)
                 continue;
-            if (this->setProperty(var._prop,var._value))
+            /// 驱动过程:变换属性只写入动画本地副本,由 applyTransform 统一驱动 owner(节点);
+            /// 其它属性直接作用于 owner
+            if (isTransformProperty(var._prop))
+            {
+                setTransformProperty(var._prop,var._value);
+                bModify     =   true;
+            }
+            /// 非变换属性直接写 owner;不能走 this->setProperty,否则采样结果会被当成编辑写回 clip
+            else if (_owner != nullptr && _owner->setProperty(var._prop,var._value))
                 bModify     =   true;
         }
         this->endSetProp(clipTime,bModify);
@@ -345,9 +403,16 @@ namespace FE
             restoreOriginal();
             return;
         }
-        node->setLocalTranslation(tf->position());
+        /// 旋转中心点(本地空间):几何体绕该点旋转时,节点实际本地平移需补偿
+        /// T(position)*T(pivot)*R*T(-pivot) 展开后平移为 position + (pivot - R*pivot)
+        real3   pos     =   tf->position();
+        quatr   rot     =   quatr(tf->rotation());
+        real3   pivot   =   _transform.rotationCenter();
+        if  (pivot != real3(0))
+            pos     =   pos + pivot - rot * pivot;
+        node->setLocalTranslation(pos);
         node->setLocalScaling(real3(tf->scale()));
-        node->setLocalRotation(quatr(tf->rotation()));
+        node->setLocalRotation(rot);
         addToUpdateList(_ctx,_owner);
     }
 

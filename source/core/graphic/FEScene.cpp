@@ -324,6 +324,28 @@ namespace   FE
 
         if (_frame == nullptr)
             return;
+        /// 自动化截图:刚 acquire 到的图像在记录本帧命令之前回读,
+        /// 之后的 beginRender 会把布局切回色附件,不会影响本帧渲染
+        if (_capturePending)
+        {
+            _capturePending =   false;
+            _captureReady   =   false;
+            GImage  image   =   _swapchain->colorImage();
+            if (image != nullptr)
+            {
+                const   auto&   ci  =   image->cInfo();
+                const   size_t  need=   size_t(ci._width) * size_t(ci._height) * 4;
+                if (need != 0)
+                {
+                    _capturePixels.assign(need,0);
+                    _captureReady   =   readPixels(_capturePixels.data(),uint64(need));
+                    if (_captureReady)
+                        _captureSize    =   uint2(ci._width,ci._height);
+                    else
+                        _capturePixels.clear();
+                }
+            }
+        }
         /// 帧序号递增:材质按帧节流查询场景折射纹理(见 FEMaterialPBR::refreshSceneTexture)
         _ctx.nextFrame();
         /// 无论 cmd 是否存在, 都要先等待并重置 fence,
@@ -575,6 +597,21 @@ namespace   FE
         if (image == nullptr)
             return  false;
         return  _device->readbackImage(image,dst,size);
+    }
+
+    void    FEScene::requestCapture()
+    {
+        _capturePending =   true;
+        _captureReady   =   false;
+    }
+
+    bool    FEScene::takeCapture(std::vector<unsigned char>& pixels)
+    {
+        if (!_captureReady || _capturePixels.empty())
+            return  false;
+        pixels  =   _capturePixels;
+        _captureReady   =   false;
+        return  true;
     }
 
     void    FEScene::resize(uint width,uint height)

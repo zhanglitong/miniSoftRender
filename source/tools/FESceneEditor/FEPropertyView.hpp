@@ -161,11 +161,20 @@ namespace   FE
             using   Type    =   FEPropertyValue::Type;
             switch (type)
             {
-            case Type::Int2:    case Type::UInt2:   case Type::Float2:  case Type::Real2:
+            case Type::Int2:
+            case Type::UInt2:
+            case Type::Float2:
+            case Type::Real2:
                 return  2;
-            case Type::Int3:    case Type::UInt3:   case Type::Float3:  case Type::Real3:
+            case Type::Int3:
+            case Type::UInt3:
+            case Type::Float3:
+            case Type::Real3:
                 return  3;
-            case Type::Int4:    case Type::UInt4:   case Type::Float4:  case Type::Real4:
+            case Type::Int4:
+            case Type::UInt4:
+            case Type::Float4:
+            case Type::Real4:
                 return  4;
             default:
                 return  0;
@@ -179,11 +188,17 @@ namespace   FE
             using   Type    =   FEPropertyValue::Type;
             switch (type)
             {
-            case Type::Int2:    case Type::Int3:    case Type::Int4:
+            case Type::Int2:
+            case Type::Int3:
+            case Type::Int4:
                 return  ImGuiDataType_S32;
-            case Type::UInt2:   case Type::UInt3:   case Type::UInt4:
+            case Type::UInt2:
+            case Type::UInt3:
+            case Type::UInt4:
                 return  ImGuiDataType_U32;
-            case Type::Float2:  case Type::Float3:  case Type::Float4:
+            case Type::Float2:
+            case Type::Float3:
+            case Type::Float4:
                 return  ImGuiDataType_Float;
             default:
                 return  ImGuiDataType_Double;
@@ -280,13 +295,21 @@ namespace   FE
                 next._real  =   v;
                 return  model.setValue(node,next);
             }
-            case Type::Int2:    case Type::Int3:    case Type::Int4:
+            case Type::Int2:
+            case Type::Int3:
+            case Type::Int4:
                 return  dragVector<int32_t>(model,node,value,ImGuiDataType_S32);
-            case Type::UInt2:   case Type::UInt3:   case Type::UInt4:
+            case Type::UInt2:
+            case Type::UInt3:
+            case Type::UInt4:
                 return  dragVector<uint32_t>(model,node,value,ImGuiDataType_U32);
-            case Type::Float2:  case Type::Float3:  case Type::Float4:
+            case Type::Float2:
+            case Type::Float3:
+            case Type::Float4:
                 return  dragVector<float>(model,node,value,ImGuiDataType_Float);
-            case Type::Real2:   case Type::Real3:   case Type::Real4:
+            case Type::Real2:
+            case Type::Real3:
+            case Type::Real4:
                 return  dragVector<double>(model,node,value,ImGuiDataType_Double);
             case Type::String:
             {

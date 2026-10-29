@@ -194,6 +194,20 @@ namespace   FE
         /// </summary>
         bool            readPixels(void* dst,uint64 size);
         /// <summary>
+        /// 请求在下一帧渲染前回读一帧像素(窗口模式自动化截图用),完成后用 takeCapture 取回
+        /// </summary>
+        void            requestCapture();
+        /// <summary>
+        /// 取回已完成的抓帧(RGBA8 紧密排布);未完成时返回 false 且不清除结果
+        /// </summary>
+        /// <param name="pixels">输出像素缓冲(按抓帧尺寸重新分配)</param>
+        /// <returns>true 已取回</returns>
+        bool            takeCapture(std::vector<unsigned char>& pixels);
+        /// <summary>
+        /// 最近一次抓帧的宽高
+        /// </summary>
+        uint2           captureSize() const     {   return  _captureSize;    }
+        /// <summary>
         /// 修改渲染尺寸(窗口模式走窗口消息,无头模式重建离屏目标)
         /// </summary>
         void            resize(uint width,uint height);
@@ -347,6 +361,22 @@ namespace   FE
         GImgView            _sceneTexView = nullptr;   ///< 完整 mip 链(shader 采样)
         GImgView            _sceneTexColorView = nullptr;   ///< 仅 mip0(pass1 color attachment)
         Frame               _frame;
+        /// <summary>
+        /// 自动化截图:下一帧是否需要在渲染前回读
+        /// </summary>
+        bool                _capturePending   =   false;
+        /// <summary>
+        /// 自动化截图:回读是否已完成
+        /// </summary>
+        bool                _captureReady     =   false;
+        /// <summary>
+        /// 自动化截图:回读到的像素(RGBA8 紧密排布)
+        /// </summary>
+        std::vector<unsigned char>  _capturePixels;
+        /// <summary>
+        /// 自动化截图:抓帧的宽高
+        /// </summary>
+        uint2               _captureSize     =   uint2(0,0);
         Node                _mousePoint;
         aabb3dr             _aabb;
         String              _projectFileName;

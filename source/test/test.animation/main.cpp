@@ -151,6 +151,54 @@ int     main(int argc, char** argv)
     checkReal("回落:位置 X",gpos.x,3.0);
     checkReal("回落:位置 Y",gpos.y,1.0);
 
+    /// 6.5 编辑轴回归:节点有动画时(时间线停在首帧,等于范围下界),
+    ///     通过动画系统写属性必须同步写入关键帧,采样不得把编辑结果覆盖回旧关键帧
+    {
+        /// 补齐默认动画的三条轨道(位置轨道前面已建,这里补缩放/旋转)
+        FEAnimationHelper::addDefaultTracks(clip,ctx,NodeProperyBits(NP_SCALE_XYZ|NP_ROTATE_XYZ));
+        anim->setEnable(true);
+        anim->update(0.0);
+        node->update();
+        auto    sys =   scene->animationSystem();
+        if (sys == nullptr)
+        {
+            std::cout << "[FAIL] animationSystem 为空" << std::endl;
+            passed  =   false;
+        }
+        else
+        {
+            /// 移动抓手:写 PROP_TRANSFORM_XYZ
+            real3   editPos =   real3(1.5,0.25,-0.75);
+            sys->setNodeProperty(Object(node.get()),PROP_TRANSFORM_XYZ,editPos);
+            anim->update(0.0);
+            node->update();
+            real3   lpos    =   node->localTranslation();
+            checkReal("编辑:位置 X",lpos.x,editPos.x);
+            checkReal("编辑:位置 Y",lpos.y,editPos.y);
+            checkReal("编辑:位置 Z",lpos.z,editPos.z);
+
+            /// 旋转抓手:写 PROP_QUAT,默认轨道是欧拉角,必须换算成匹配的值类型才能写帧
+            const   quatr   rotQ    =   normalize(quatr(glm::radians(real3(0.0,0.0,45.0))));
+            const   quatf   editRot =   quatf((float)rotQ.w,(float)rotQ.x,(float)rotQ.y,(float)rotQ.z);
+            const   real3   euler   =   quatToEuler(rotQ);
+            std::cout << "quatToEuler(45deg Z)=[" << euler.x << "," << euler.y << "," << euler.z << "]" << std::endl;
+            sys->setNodeProperty(Object(node.get()),PROP_QUAT,editRot);
+            anim->update(0.0);
+            node->update();
+            checkReal("编辑:旋转 dot",(real)std::abs(glm::dot(node->localRotation(),editRot)),1.0);
+
+            /// 缩放抓手:写 PROP_SCALE_XYZ
+            const   real3   editScl =   real3(1.25,1.25,1.25);
+            sys->setNodeProperty(Object(node.get()),PROP_SCALE_XYZ,editScl);
+            anim->update(0.0);
+            node->update();
+            real3   lscl    =   node->localScaling();
+            checkReal("编辑:缩放 X",lscl.x,editScl.x);
+            checkReal("编辑:缩放 Y",lscl.y,editScl.y);
+            checkReal("编辑:缩放 Z",lscl.z,editScl.z);
+        }
+    }
+
     /// 7. 恢复动画并交给播放器循环播放,进入渲染循环
     anim->setEnable(true);
     anim->update(0.0);

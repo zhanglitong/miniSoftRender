@@ -156,6 +156,17 @@ namespace FE
             return  _status;
         }
         /// <summary>
+        /// 播放器名:动画系统以该名作为索引键,动画按 playbackName 登记到对应播放器
+        /// </summary>
+        const   String& name() const
+        {
+            return  _name;
+        }
+        void        setName(const String& name)
+        {
+            _name   =   name;
+        }
+        /// <summary>
         /// 更新
         /// </summary>
         /// <param name="delta">帧循环时间</param>
@@ -217,6 +228,10 @@ namespace FE
         /// <returns></returns>
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
     protected:
+        /// <summary>
+        /// 播放器名(动画系统中的索引键)
+        /// </summary>
+        String          _name;
         PlayMode        _playMode;
         TimeMode        _timeMode;
         PlayStatus      _status;

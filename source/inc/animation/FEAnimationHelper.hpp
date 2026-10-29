@@ -251,11 +251,19 @@ namespace FE
                 bool    bTypeMatch  =   false;
                 switch (propIdx)
                 {
-                case    PROP_TRANSFORM_X:   case PROP_TRANSFORM_Y:   case PROP_TRANSFORM_Z:
-                case    PROP_SCALE_X:       case PROP_SCALE_Y:       case PROP_SCALE_Z:
-                case    PROP_ROTATE_X:      case PROP_ROTATE_Y:      case PROP_ROTATE_Z:
+                case    PROP_TRANSFORM_X:
+                case    PROP_TRANSFORM_Y:
+                case    PROP_TRANSFORM_Z:
+                case    PROP_SCALE_X:
+                case    PROP_SCALE_Y:
+                case    PROP_SCALE_Z:
+                case    PROP_ROTATE_X:
+                case    PROP_ROTATE_Y:
+                case    PROP_ROTATE_Z:
                     bTypeMatch  =   (valIdx == 1);  break;
-                case    PROP_TRANSFORM_XYZ: case PROP_SCALE_XYZ:     case PROP_ROTATE_XYZ:
+                case    PROP_TRANSFORM_XYZ:
+                case    PROP_SCALE_XYZ:
+                case    PROP_ROTATE_XYZ:
                     bTypeMatch  =   (valIdx == 3);  break;
                 case    PROP_QUAT:
                     bTypeMatch  =   (valIdx == 5);  break;

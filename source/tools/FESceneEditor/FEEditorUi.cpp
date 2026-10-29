@@ -13,7 +13,10 @@
 #include    "FESettingPropertyModel.hpp"
 
 #include    "../../../inc/FEFileFormatHelper.hpp"
+#include    "../../../inc/FEImage.h"
 #include    "../../../inc/FEMessage.hpp"
+#include    "../../../inc/animation/FEAnimationSys.hpp"
+#include    "../../core/FEImageHelper.hpp"
 #include    "../../../inc/FEApp.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/node/FENode.hpp"
@@ -36,12 +39,16 @@
 
 #include    <algorithm>
 #include    <cctype>
+#include    <chrono>
+#include    <cmath>
 #include    <cstdio>
 #include    <cstdlib>
 #include    <cstring>
+#include    <fstream>
 #include    <imgui.h>
 #include    <iostream>
 #include    <map>
+#include    <sstream>
 #include    <string>
 #include    <vector>
 
@@ -1038,6 +1045,376 @@ namespace   FE
         onAction(it->second);
     }
 
+    namespace
+    {
+        /// <summary>
+        /// 脚本自动化计时基准(steady_clock,单位毫秒)
+        /// </summary>
+        double  scriptClockMs()
+        {
+            static  const   auto    base    =   std::chrono::steady_clock::now();
+            return  std::chrono::duration<double,std::milli>(
+                        std::chrono::steady_clock::now() - base).count();
+        }
+        /// <summary>
+        /// 去掉首尾空白
+        /// </summary>
+        std::string trimText(const std::string& text)
+        {
+            const   size_t  begin   =   text.find_first_not_of(" \t\r\n");
+            if (begin == std::string::npos)
+                return  std::string();
+            const   size_t  end     =   text.find_last_not_of(" \t\r\n");
+            return  text.substr(begin,end - begin + 1);
+        }
+        /// <summary>
+        /// 属性名 → 标量属性索引(仅支持平移/缩放分量)
+        /// </summary>
+        int     scalarPropOf(const std::string& key)
+        {
+            if (key == "x")     return  PROP_TRANSFORM_X;
+            if (key == "y")     return  PROP_TRANSFORM_Y;
+            if (key == "z")     return  PROP_TRANSFORM_Z;
+            if (key == "sx")    return  PROP_SCALE_X;
+            if (key == "sy")    return  PROP_SCALE_Y;
+            if (key == "sz")    return  PROP_SCALE_Z;
+            return  -1;
+        }
+    }
+
+    bool    FEEditorUi::loadScript(const std::string& path)
+    {
+        std::ifstream   file(std::filesystem::u8path(path),std::ios::binary);
+        if (!file.is_open())
+        {
+            std::cerr << "load script failed: " << path << std::endl;
+            return  false;
+        }
+        _scriptCommands.clear();
+        std::string line;
+        bool        first   =   true;
+        while (std::getline(file,line))
+        {
+            /// 首行去掉 UTF-8 BOM,避免第一条命令带不可见前缀
+            if (first && line.size() >= 3 &&
+                (unsigned char)line[0] == 0xEF && (unsigned char)line[1] == 0xBB &&
+                (unsigned char)line[2] == 0xBF)
+                line.erase(0,3);
+            first   =   false;
+            /// '#' 之后为注释;空行直接跳过
+            const   size_t  sharp   =   line.find('#');
+            if (sharp != std::string::npos)
+                line.erase(sharp);
+            line    =   trimText(line);
+            if (!line.empty())
+                _scriptCommands.push_back(line);
+        }
+        _scriptPath     =   path;
+        _scriptIndex    =   0;
+        _scriptWaitUntil=   0.0;
+        _scriptFailed   =   false;
+        _scriptReport.clear();
+        _shotPath.clear();
+        _shotDeadline   =   0.0;
+        _scriptDone     =   _scriptCommands.empty();
+        std::cout << "script loaded: " << path << " (" << _scriptCommands.size()
+                  << " commands)" << std::endl;
+        return  true;
+    }
+
+    void    FEEditorUi::scriptLog(const std::string& text)
+    {
+        std::cout << "[script] " << text << std::endl;
+        _scriptReport.push_back(text);
+    }
+
+    void    FEEditorUi::runScript()
+    {
+        if (_scriptDone)
+            return;
+        /// 截帧未落盘前不推进后续命令,保证画面状态与脚本顺序一致
+        if (!_shotPath.empty())
+        {
+            finishShot();
+            return;
+        }
+        /// wait 未到期时保持挂起,不消耗命令
+        if (scriptClockMs() < _scriptWaitUntil)
+            return;
+        if (_scriptIndex < _scriptCommands.size())
+        {
+            const   std::string line    =   _scriptCommands[_scriptIndex++];
+            execScriptCommand(line);
+            /// 每条命令占一帧,给渲染与动画系统留出传导时间
+            return;
+        }
+        /// 全部执行完毕:写汇总日志并自动关闭程序(便于 CI 判定)
+        finishScript();
+    }
+
+    void    FEEditorUi::finishScript()
+    {
+        if (_scriptDone)
+            return;
+        _scriptDone =   true;
+        {
+            std::ofstream   log(std::filesystem::u8path(_scriptPath + ".log"),std::ios::binary);
+            if (log.is_open())
+            {
+                for (auto& var : _scriptReport)
+                    log << var << '\n';
+                log << (_scriptFailed ? "RESULT: FAIL" : "RESULT: PASS") << '\n';
+            }
+        }
+        std::cout << "script finished: " << (_scriptFailed ? "FAIL" : "PASS") << std::endl;
+        if (_onQuit)
+            _onQuit();
+    }
+
+    void    FEEditorUi::execScriptCommand(const std::string& line)
+    {
+        std::istringstream  in(line);
+        std::string         cmd;
+        in  >>  cmd;
+        if (cmd.empty())
+            return;
+
+        if (cmd == "wait")
+        {
+            int ms  =   0;
+            in  >>  ms;
+            _scriptWaitUntil    =   scriptClockMs() + (ms > 0 ? ms : 0);
+            return;
+        }
+        if (cmd == "log")
+        {
+            std::string text;
+            std::getline(in,text);
+            scriptLog(trimText(text));
+            return;
+        }
+        if (cmd == "action")
+        {
+            std::string name;
+            in  >>  name;
+            if (_actionById.find(name) == _actionById.end())
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL action not found: " + name);
+                return;
+            }
+            triggerAction(name);
+            scriptLog("action " + name);
+            return;
+        }
+        if (cmd == "select")
+        {
+            std::string name;
+            in  >>  name;
+            if (!_modelTree.selectByName(name))
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL select: node not found: " + name);
+                return;
+            }
+            scriptLog("select " + name);
+            return;
+        }
+        if (cmd == "time")
+        {
+            double  sec =   0.0;
+            in  >>  sec;
+            const   int frame   =   int(std::lround(sec * double(_timeLine.fps())));
+            _timeLine.setCurFrame(frame,true);
+            scriptLog("time " + std::to_string(sec) + "s (frame " + std::to_string(frame) + ")");
+            return;
+        }
+        if (cmd == "setprop")
+        {
+            std::string nodeName;
+            std::string propKey;
+            in  >>  nodeName >> propKey;
+            if (!_modelTree.selectByName(nodeName))
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL setprop: node not found: " + nodeName);
+                return;
+            }
+            Object  node    =   _modelTree.selected();
+            if (node == nullptr || _scene == nullptr)
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL setprop: no selected node");
+                return;
+            }
+            KFValue     value   =   {};
+            if (propKey == "pos")
+            {
+                real    x = 0,y = 0,z = 0;
+                in  >>  x >> y >> z;
+                value   =   real3(x,y,z);
+            }
+            else
+            {
+                const   int prop    =   scalarPropOf(propKey);
+                if (prop < 0)
+                {
+                    _scriptFailed   =   true;
+                    scriptLog("FAIL setprop: unknown property: " + propKey);
+                    return;
+                }
+                real    v   =   0;
+                in  >>  v;
+                value   =   v;
+            }
+            const   int prop    =   (propKey == "pos") ? PROP_TRANSFORM_XYZ : scalarPropOf(propKey);
+            node->beginSetProp();
+            bool    ok  =   false;
+            if (auto* sys = _scene->animationSystem())
+                ok      =   sys->setNodeProperty(node,prop,value);
+            else
+                ok      =   node->setProperty(prop,value);
+            node->endSetProp(_ctx != nullptr ? _ctx->deltaTime() : real(0),ok);
+            scriptLog("setprop " + nodeName + " " + propKey + " = " + trimText(line.substr(line.find(propKey) + propKey.size())));
+            return;
+        }
+        if (cmd == "check")
+        {
+            std::string nodeName;
+            std::string propKey;
+            double      expect  =   0.0;
+            double      eps     =   1e-3;
+            in  >>  nodeName >> propKey >> expect;
+            if (!(in >> eps))
+            {
+                in.clear();
+                eps     =   1e-3;
+            }
+            if (!_modelTree.selectByName(nodeName))
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL check: node not found: " + nodeName);
+                return;
+            }
+            Node    node    =   _modelTree.selected() != nullptr
+                                    ? _modelTree.selected()->cast<FENode>()
+                                    : Node();
+            if (node == nullptr)
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL check: no selected node");
+                return;
+            }
+            double  actual  =   0.0;
+            bool    known   =   true;
+            const   real3   pos =   node->localTranslation();
+            const   real3   scl =   real3(node->localScaling());
+            if (propKey == "x")         actual = double(pos.x);
+            else if (propKey == "y")    actual = double(pos.y);
+            else if (propKey == "z")    actual = double(pos.z);
+            else if (propKey == "sx")   actual = double(scl.x);
+            else if (propKey == "sy")   actual = double(scl.y);
+            else if (propKey == "sz")   actual = double(scl.z);
+            else                        known = false;
+            if (!known)
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL check: unknown property: " + propKey);
+                return;
+            }
+            const   bool    pass    =   std::abs(actual - expect) <= eps;
+            if (!pass)
+                _scriptFailed   =   true;
+            std::ostringstream  os;
+            os  << (pass ? "PASS" : "FAIL") << " check " << nodeName << " " << propKey
+                << " = " << actual << " (expect " << expect << " eps " << eps << ")";
+            scriptLog(os.str());
+            return;
+        }
+        if (cmd == "shot")
+        {
+            std::string path;
+            in  >>  path;
+            std::filesystem::path   out =   std::filesystem::u8path(path);
+            if (out.is_relative())
+                out =   std::filesystem::u8path(_scriptPath).parent_path() / out;
+            std::filesystem::create_directories(out.parent_path());
+            if (_scene == nullptr)
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL shot: no scene");
+                return;
+            }
+            /// 窗口模式不能直接回读颜色附件:请求引擎在下一帧开头(acquire 之后、
+            /// 记录本帧命令之前)抓一帧,由 runScript 每帧轮询取回后再写文件
+            _shotPath       =   out.u8string();
+            _shotDeadline   =   scriptClockMs() + 3000.0;
+            _scene->requestCapture();
+            scriptLog("shot request " + _shotPath);
+            return;
+        }
+        if (cmd == "quit")
+        {
+            scriptLog("quit");
+            finishScript();
+            return;
+        }
+        _scriptFailed   =   true;
+        scriptLog("FAIL unknown command: " + line);
+    }
+
+    bool    FEEditorUi::finishShot()
+    {
+        if (_shotPath.empty())
+            return  true;
+        std::vector<unsigned char>  pixels;
+        if (!_scene->takeCapture(pixels))
+        {
+            /// 抓帧还没发生(等在下一帧 onFrameStart);超时视为失败,避免脚本卡死
+            if (scriptClockMs() >= _shotDeadline)
+            {
+                _scriptFailed   =   true;
+                scriptLog("FAIL shot: capture timeout " + _shotPath);
+                _shotPath.clear();
+                return  true;
+            }
+            return  false;
+        }
+
+        const   uint2   size    =   _scene->captureSize();
+        const   size_t  need    =   size_t(size.x) * size_t(size.y) * 4;
+        if (_ctx == nullptr || need == 0 || pixels.size() < need)
+        {
+            _scriptFailed   =   true;
+            scriptLog("FAIL shot: bad capture size " + _shotPath);
+            _shotPath.clear();
+            return  true;
+        }
+
+        FEImage image(*_ctx,size.x,size.y,FMT_R8G8B8A8_UNORM);
+        auto    plane   =   image.plane(0,0);
+        if (plane.data() == nullptr)
+        {
+            _scriptFailed   =   true;
+            scriptLog("FAIL shot: image plane empty " + _shotPath);
+            _shotPath.clear();
+            return  true;
+        }
+        const   size_t  pitch   =   size_t(size.x) * 4;
+        for (uint y = 0; y < size.y; ++y)
+            std::memcpy(plane.rowAt(y),pixels.data() + size_t(y) * pitch,pitch);
+
+        if (FEImageHelper::save(image,_shotPath.c_str()))
+            scriptLog("shot " + _shotPath);
+        else
+        {
+            _scriptFailed   =   true;
+            scriptLog("FAIL shot: save failed " + _shotPath);
+        }
+        _shotPath.clear();
+        return  true;
+    }
+
     void    FEEditorUi::captureShortcutKeys()
     {
         if (_shortcutRecord < 0 || size_t(_shortcutRecord) >= _shortcuts._items.size())
@@ -1562,6 +1939,8 @@ namespace   FE
 
         drawFileDialog();
         drawModelTree();
+        drawProperty();
+        drawAxisSetting();
         drawTimeLine();
         /// <summary>
         /// 撤销历史窗口:先把它自己的开关状态回写到动作勾选标志,再绘制
@@ -1640,11 +2019,23 @@ namespace   FE
             /// <summary>
             /// 撤销会移除场景节点(改渲染工厂),与创建一样必须推迟到 MSG_UPDATE
             /// </summary>
-            _pendingActions.push_back([this]() {    _undoStack.undo();  });
+            _pendingActions.push_back([this]() {
+                _undoStack.undo();
+                /// <summary>
+                /// 撤销可能增删节点上的动画等组件,组件变更不触发节点树事件,需手动刷新行列表
+                /// </summary>
+                _modelTree.refresh();
+            });
         }
         else if (name == "action_redo")
         {
-            _pendingActions.push_back([this]() {    _undoStack.redo();  });
+            _pendingActions.push_back([this]() {
+                _undoStack.redo();
+                /// <summary>
+                /// 重做可能增删节点上的动画等组件,组件变更不触发节点树事件,需手动刷新行列表
+                /// </summary>
+                _modelTree.refresh();
+            });
         }
         else if (name == "action_ShortcutSettings")
         {
@@ -1690,6 +2081,13 @@ namespace   FE
             /// 撤销历史窗口开关;只改 UI 状态,不改场景
             /// </summary>
             _undoView.toggle();
+        }
+        else if (name == "action_axisEditor")
+        {
+            /// <summary>
+            /// 坐标轴编辑窗口开关;只改 UI 状态,不改场景
+            /// </summary>
+            _axisOpen   =   !_axisOpen;
         }
         else if (name == "action_move" || name == "action_rotation" || name == "action_scale")
         {
@@ -2056,6 +2454,42 @@ namespace   FE
         _timeLine.draw(_iconFont);
     }
 
+    void    FEEditorUi::drawProperty()
+    {
+        if (!_propertyOpen)
+            return;
+        /// <summary>
+        /// 首次打开落在模型树右侧,避免与模型树重叠
+        /// </summary>
+        ImGui::SetNextWindowPos(ImVec2(316.0f,kRibbonH + 8.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(300.0f,360.0f),ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("属性",&_propertyOpen))
+        {
+            /// <summary>
+            /// 数据来源:模型树当前选中节点;未选中时面板显示提示文字
+            /// </summary>
+            FENode* node    =   nullptr;
+            Object  selected    =   _modelTree.selected();
+            if (selected)
+                node            =   selected->cast<FENode>();
+            /// <summary>
+            /// 时间线提供当前时间的关键帧状态(check)与添加/移除关键帧
+            /// </summary>
+            _propertyPanel.draw(node,&_timeLine);
+        }
+        ImGui::End();
+    }
+
+    void    FEEditorUi::drawAxisSetting()
+    {
+        if (!_axisOpen)
+            return;
+        /// <summary>
+        /// 轴编辑窗口:配置编辑轴的轴位置/编辑类型/坐标系/中心/自定义轴心轴向/禁用轴
+        /// </summary>
+        drawAxisSettingWindow(_axisSetting,_axisOpen,_modelTree.selection());
+    }
+
     void    FEEditorUi::drawUiPreview()
     {
         if (!_uiPreviewOpen)
@@ -2186,6 +2620,11 @@ namespace   FE
         const   bool    moveOn  =   move    != nullptr && move->flags().hasFlag(FLAG_VISIBLE);
         const   bool    rotateOn=   rotate  != nullptr && rotate->flags().hasFlag(FLAG_VISIBLE);
         const   bool    scaleOn =   scale   != nullptr && scale->flags().hasFlag(FLAG_VISIBLE);
+        /// <summary>
+        /// 轴配置每帧推送给旋转抓手(轴编辑窗口可能刚被修改)
+        /// </summary>
+        if (rotateOn)
+            rotate->as<FENodeRotateEditor>()->setAxisSetting(&_axisSetting);
 
         /// <summary>
         /// 把抓手的实际可见状态回写到动作的勾选标志,
@@ -2336,6 +2775,8 @@ namespace   FE
                 for (auto& fn : actions)
                     fn();
             }
+            /// 脚本自动化:每条命令占一帧,排在排队的场景操作之后执行
+            runScript();
             break;
         default:
             break;

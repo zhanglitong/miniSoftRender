@@ -4,6 +4,7 @@
 
 #include    "FEModelTree.hpp"
 #include    "FEEditorUndoCmds.hpp"
+#include    "FEUiStyle.hpp"
 
 #include    "../../../inc/FEUndoStack.hpp"
 #include    "../../../inc/graphic/FEScene.h"
@@ -34,38 +35,12 @@ namespace
     /// </summary>
     const   char*   kGlyphEyeOff   =   u8"\uf070";
 
-    const   ImU32   kRowSelected   =   IM_COL32(74,144,226,72);
-    const   ImU32   kRowHover      =   IM_COL32(255,255,255,14);
-    /// <summary>
-    /// 隔行背景色(奇数行叠加的淡白色,偶数行保持窗口底色)
-    /// </summary>
-    const   ImU32   kRowAlt        =   IM_COL32(255,255,255,10);
-    /// <summary>
-    /// 选中行的矩形线框颜色
-    /// </summary>
-    const   ImU32   kRowSelBorder  =   IM_COL32(74,144,226,220);
     /// <summary>
     /// 拖拽嵌入目标时的整行高亮底色
     /// </summary>
     const   ImU32   kDropFill      =   IM_COL32(74,144,226,56);
-    const   ImU32   kTextColor     =   IM_COL32(214,219,229,255);
-    /// <summary>
-    /// 选中行的高亮前景色
-    /// </summary>
-    const   ImU32   kTextSelected  =   IM_COL32(235,245,255,255);
     const   ImU32   kTextHidden    =   IM_COL32(140,146,158,255);
     const   ImU32   kIconHidden    =   IM_COL32(110,116,128,255);
-    const   ImU32   kAccent        =   IM_COL32(74,144,226,255);
-    const   ImU32   kArrowColor    =   IM_COL32(150,156,168,255);
-
-    /// <summary>
-    /// 行距相对字体大小的倍数:行距 = 字体大小 × 2
-    /// </summary>
-    const   float   kRowLineScale  =   2.4f;
-    /// <summary>
-    /// 行与行之间的留白(像素)
-    /// </summary>
-    const   float   kRowGap        =   4.0f;
 
     /// <summary>
     /// 从 const 引用取节点指针(FEObject::cast 在 const 上返回 const 指针)
@@ -76,6 +51,28 @@ namespace
     {
         auto*   raw =   const_cast<FE::FEObject*>(object.get());
         return  (raw != nullptr) ? raw->cast<FE::FENode>() : FE::Node();
+    }
+    /// <summary>
+    /// 按名称深度优先查找节点(先比自身,再比子节点)
+    /// </summary>
+    /// <param name="object">子树根</param>
+    /// <param name="name">节点名称</param>
+    /// <returns>命中的节点对象;未找到返回 nullptr</returns>
+    FE::Object  findNodeByName(const FE::Object& object,const FE::String& name)
+    {
+        if (!object)
+            return  nullptr;
+        FE::Node    node    =   nodeOf(object);
+        if (node != nullptr && node->name() != nullptr && name == node->name())
+            return  object;
+        FE::Object  found   =   nullptr;
+        object->traverseObject([&](const FE::FEObject& child,const FE::FEObject&,
+                                   const FE::FEObject::FETrvsCtx&,uint) -> bool
+        {
+            found   =   findNodeByName(FE::Object(const_cast<FE::FEObject*>(&child)),name);
+            return  found == nullptr;
+        });
+        return  found;
     }
     /// <summary>
     /// 生成同级唯一名称:未被占用时直接返回,否则追加序号
@@ -123,6 +120,11 @@ namespace
 
 namespace   FE
 {
+    /// <summary>
+    /// 行高/缩进/行底色与文字颜色统一取自 FEUiStyle(与动画树、时间线共用)
+    /// </summary>
+    using   namespace   ui;
+
     FEModelTree::~FEModelTree()
     {
         unbind();
@@ -320,10 +322,9 @@ namespace   FE
         drawToolbar();
 
         /// <summary>
-        /// 行距 = 字体大小 × 2,扣除留白后即为行高
+        /// 行高统一取自 FEUiStyle(与动画树、时间线一致)
         /// </summary>
-        const   float   rowStep     =   ImGui::GetFontSize() * kRowLineScale;
-        const   float   rowHeight   =   std::max(1.0f,rowStep - kRowGap);
+        const   float   rowHeight   =   ui::rowHeight();
         std::vector<float>  rowTops;
         rowTops.reserve(_rows.size());
 
@@ -623,7 +624,7 @@ namespace   FE
         /// </summary>
         const   float   iconSize    =   rowHeight * 0.6f;
         const   float   iconGap     =   iconSize * 0.2f;
-        const   float   indent  =   14.0f;
+        const   float   indent      =   kIndent;
         const   float   arrowX  =   pos.x + 2.0f + indent * float(row._depth);
         const   float   iconX   =   arrowX + iconSize + iconGap;
         const   float   textX   =   iconX + iconSize + iconGap;
@@ -738,7 +739,7 @@ namespace   FE
         /// 设为 (行高 - 字号) 即可让菜单项高度与模型树 item 完全一致
         /// </summary>
         const   ImGuiStyle& style       =   ImGui::GetStyle();
-        const   float   rowHeight       =   std::max(1.0f,ImGui::GetFontSize() * kRowLineScale - kRowGap);
+        const   float   rowHeight       =   ui::rowHeight();
         const   float   spacingY        =   std::max(0.0f,rowHeight - ImGui::GetFontSize());
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing
                             ,ImVec2(style.ItemSpacing.x,spacingY));
@@ -939,6 +940,10 @@ namespace   FE
         Animation   anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
         if (anim == nullptr)
             return;
+        /// <summary>
+        /// 动画是节点上的组件,增删组件不会触发节点树事件,这里手动置脏
+        /// </summary>
+        _rowsDirty  =   true;
         if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorAnimationCmd(*_scene,node,{anim}
@@ -960,6 +965,10 @@ namespace   FE
         }
         if (anims.empty())
             return;
+        /// <summary>
+        /// 动画是节点上的组件,增删组件不会触发节点树事件,这里手动置脏
+        /// </summary>
+        _rowsDirty  =   true;
         if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorAnimationCmd(*_scene,node,anims
@@ -1110,6 +1119,24 @@ namespace   FE
         _selected   =   object;
         _anchor     =   object;
         setSelectedFlag(_selected,true);
+    }
+
+    bool    FEModelTree::selectByName(const String& name)
+    {
+        if (_nodeTree == nullptr || name.empty())
+            return  false;
+        /// 拷贝顶层列表:只读引用上的 get() 返回 const 指针,无法直接转成 Object
+        Nodes   tops    =   _nodeTree->topLevelNodes();
+        for (auto& var : tops)
+        {
+            Object  found   =   findNodeByName(Object(var.get()),name);
+            if (found != nullptr)
+            {
+                selectSingle(found);
+                return  true;
+            }
+        }
+        return  false;
     }
 
     void    FEModelTree::toggleSelect(const Object& object)

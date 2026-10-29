@@ -85,6 +85,19 @@ namespace   FE
         /// 在当前帧为选中动画添加(或更新)关键帧
         /// </summary>
         void    addKeyframe();
+        /// <summary>
+        /// 指定属性在当前时间是否有关键帧(供属性面板显示勾选状态)。
+        /// 整组轨道(TRANSFORM_XYZ 等)视为覆盖其各轴。
+        /// </summary>
+        /// <param name="prop">属性索引(如 PROP_TRANSFORM_X)</param>
+        /// <returns>true 当前时间有关键帧</returns>
+        bool    hasKeyframe(PropIndex prop) const;
+        /// <summary>
+        /// 切换指定属性在当前时间的关键帧:没有则添加,已有则移除。
+        /// </summary>
+        /// <param name="prop">属性索引</param>
+        /// <returns>切换后该属性是否有关键帧</returns>
+        bool    toggleKeyframe(PropIndex prop);
     protected:
         /// <summary>
         /// 拖拽关键帧时保存的轨道原始数据
@@ -135,6 +148,14 @@ namespace   FE
             /// 拖动动画树与时间线之间的分割条
             /// </summary>
             DM_Splitter,
+            /// <summary>
+            /// 拖动垂直滚动条(动画树与时间线共用)
+            /// </summary>
+            DM_VScroll,
+            /// <summary>
+            /// 拖动水平滚动条
+            /// </summary>
+            DM_HScroll,
         };
     protected:
         /// <summary>
@@ -244,6 +265,10 @@ namespace   FE
         /// </summary>
         void    boxSelect(float x0,float y0,float x1,float y1);
         /// <summary>
+        /// 每帧更新滚动范围与滚动条几何(内容超出可视区时才显示)
+        /// </summary>
+        void    updateScrollMetrics();
+        /// <summary>
         /// 复制/粘贴/删除/设置插值
         /// </summary>
         void    copySelection();
@@ -254,6 +279,26 @@ namespace   FE
         /// 为选中节点创建动画组件
         /// </summary>
         void    createAnimation();
+        /// <summary>
+        /// 删除单个动画(动画树名称列右键菜单):从动画系统与所属节点上摘除,走撤销栈
+        /// </summary>
+        /// <param name="anim">要删除的动画</param>
+        void    removeAnimation(Animation anim);
+        /// <summary>
+        /// 创建播放器(动画树空白处右键菜单):名字自动取不重复的序号
+        /// </summary>
+        void    createPlayback();
+        /// <summary>
+        /// 删除播放器(动画树播放器行右键菜单):只从动画系统摘除,节点上的动画组件保留
+        /// </summary>
+        /// <param name="playback">要删除的播放器</param>
+        void    removePlayback(Playback playback);
+        /// <summary>
+        /// 重命名播放器(动画树播放器行右键菜单)
+        /// </summary>
+        /// <param name="playback">目标播放器</param>
+        /// <param name="newName">新名字</param>
+        void    renamePlayback(Playback playback,const String& newName);
     protected:
         FEScene*                    _scene      =   nullptr;
         FEUndoStack*                _undoStack  =   nullptr;
@@ -297,6 +342,15 @@ namespace   FE
         /// </summary>
         float                       _scrollY        =   0.0f;
         /// <summary>
+        /// 面板高度(<=0 表示使用默认高度);上边缘可拖动调整
+        /// </summary>
+        float                       _panelH         =   -1.0f;
+        /// <summary>
+        /// 上边缘拖动调整高度时的起始高度与鼠标 y
+        /// </summary>
+        float                       _resizeStartH   =   0.0f;
+        float                       _resizeStartY   =   0.0f;
+        /// <summary>
         /// 当前时间(秒)
         /// </summary>
         real                        _curTime        =   0.0;
@@ -334,7 +388,36 @@ namespace   FE
         float                       _splitterW      =   6.0f;
         float                       _timelineX      =   0.0f;
         float                       _rulerH         =   24.0f;
-        float                       _rowH           =   22.0f;
+        /// <summary>
+        /// 行高(不含行间距,与模型树一致)
+        /// </summary>
+        float                       _rowH           =   24.0f;
+        /// <summary>
+        /// 行步进 = 行高 + 行间距,所有行位置/滚动/命中计算都用它
+        /// </summary>
+        float                       _rowStep        =   28.0f;
+        /// <summary>
+        /// 滚动条几何(每帧由 updateScrollMetrics 更新;仅内容超出可视区时显示)
+        /// </summary>
+        bool                        _vScroll        =   false;
+        bool                        _hScroll        =   false;
+        float                       _vTrackTop      =   0.0f;
+        float                       _vTrackH        =   0.0f;
+        float                       _vThumbTop      =   0.0f;
+        float                       _vThumbH        =   0.0f;
+        float                       _hTrackLeft     =   0.0f;
+        float                       _hTrackW        =   0.0f;
+        float                       _hThumbLeft     =   0.0f;
+        float                       _hThumbW        =   0.0f;
+        /// <summary>
+        /// 垂直最大滚动偏移 / 水平最大左边界帧
+        /// </summary>
+        float                       _scrollMax      =   0.0f;
+        double                      _viewMax        =   0.0;
+        /// <summary>
+        /// 滚动条拖动时鼠标在滑块内的偏移
+        /// </summary>
+        float                       _sbGrab         =   0.0f;
         /// <summary>
         /// 拖拽状态
         /// </summary>
@@ -354,6 +437,33 @@ namespace   FE
         int                         _ctxRow         =   -1;
         size_t                      _ctxKey         =   0;
         bool                        _ctxOnKey       =   false;
+        /// <summary>
+        /// 名称列右键选中的动画(为空表示右键的是其它行)
+        /// </summary>
+        Animation                   _ctxAnim;
+        /// <summary>
+        /// 动画行右键菜单待打开(下一帧在 handleContextMenu 中打开,避免当帧打开即取不到菜单项)
+        /// </summary>
+        bool                        _ctxAnimOpen   =   false;
+        /// <summary>
+        /// 名称列右键选中的播放器(为空表示右键的不是播放器行)
+        /// </summary>
+        Playback                    _ctxPlayback;
+        /// <summary>
+        /// 播放器行右键菜单待打开
+        /// </summary>
+        bool                        _ctxPlaybackOpen    =   false;
+        /// <summary>
+        /// 动画树空白处右键:显示"创建播放器"菜单
+        /// </summary>
+        bool                        _ctxCreatePlaybackOpen  =   false;
+        /// <summary>
+        /// 重命名播放器弹窗
+        /// </summary>
+        Playback                    _renamePlayback;
+        bool                        _renamePlaybackOpen     =   false;
+        bool                        _renamePlaybackFocus    =   false;
+        char                        _renamePlaybackBuf[64]  =   {   0   };
         /// <summary>
         /// 工具栏提示
         /// </summary>

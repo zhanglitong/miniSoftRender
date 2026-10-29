@@ -45,6 +45,7 @@ namespace FE
         _timeScale      =   other._timeScale;
         _clipTime       =   other._clipTime;
         _range          =   other._range;
+        _name           =   other._name;
     }
 
     FEPlayback::~FEPlayback()

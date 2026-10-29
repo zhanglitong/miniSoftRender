@@ -83,14 +83,18 @@ namespace   FE
         {
             switch(fmt)
             {
-            case FMT_BC1_RGB_UNORM: case FMT_BC1_RGB_SRGB:
-            case FMT_BC1_RGBA_UNORM: case FMT_BC1_RGBA_SRGB:
+            case FMT_BC1_RGB_UNORM:
+            case FMT_BC1_RGB_SRGB:
+            case FMT_BC1_RGBA_UNORM:
+            case FMT_BC1_RGBA_SRGB:
                 bcdec_bc1(block, out, outPitch);
                 break;
-            case FMT_BC2_UNORM: case FMT_BC2_SRGB:
+            case FMT_BC2_UNORM:
+            case FMT_BC2_SRGB:
                 bcdec_bc2(block, out, outPitch);
                 break;
-            case FMT_BC3_UNORM: case FMT_BC3_SRGB:
+            case FMT_BC3_UNORM:
+            case FMT_BC3_SRGB:
                 bcdec_bc3(block, out, outPitch);
                 break;
             case FMT_BC4_UNORM:
@@ -105,7 +109,8 @@ namespace   FE
             case FMT_BC5_SNORM:
                 bcdec_bc5(block, out, outPitch, 1);
                 break;
-            case FMT_BC7_UNORM: case FMT_BC7_SRGB:
+            case FMT_BC7_UNORM:
+            case FMT_BC7_SRGB:
                 bcdec_bc7(block, out, outPitch);
                 break;
             default:
