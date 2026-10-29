@@ -606,6 +606,23 @@ namespace   FE
             drawGroups(true);
     }
 
+    void    FEFactoryRender::bindMaterial(CMDPtr cmd,FEMaterial* mat,EPrimitive pri)
+    {
+        if  (cmd == nullptr || mat == nullptr)
+            return;
+        auto    pl  =   mat->pipeline(pri);
+        if  (pl == nullptr)
+            return;
+        FECmdBuffer::DSetBind   binds   =   {};
+        binds.dSets         =   mat->dsets();
+        binds.firstSet      =   0;
+        binds.offsetCount   =   0;
+        binds.offsets       =   nullptr;
+        binds.plBindPoint   =   PL_GRAPIC;
+        binds.plLayout      =   pl->nativeLayout();
+        cmd->bindDescriptors(binds);
+    }
+
     void    FEFactoryRender::destroy()
     {
         _groupNode.clear();

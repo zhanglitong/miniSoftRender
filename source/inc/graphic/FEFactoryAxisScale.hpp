@@ -250,6 +250,7 @@ namespace   FE
             /// ----------------------------------------------------------------
             auto    pl  =   _mat->pipeline(PRI_LINES)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
+            bindMaterial(cmd,_mat.get(),PRI_LINES);
             cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_LINES);
             cmd->bindVBO(0,_axisLineVBO,0);
@@ -333,6 +334,7 @@ namespace   FE
             {
                 auto    plFan   =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
                 cmd->bindPipeline(plFan);
+                bindMaterial(cmd,_mat.get(),PRI_TRIANGLE_FAN);
                 cmd->setDepthTest(false);
                 _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
                 cmd->bindVBO(0,_axisTriVBO,0);
@@ -392,6 +394,7 @@ namespace   FE
             {
                 auto    plFan   =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
                 cmd->bindPipeline(plFan);
+                bindMaterial(cmd,_mat.get(),PRI_TRIANGLE_FAN);
                 cmd->setDepthTest(false);
                 _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
                 cmd->bindVBO(0,_axisArrowVBO,0);

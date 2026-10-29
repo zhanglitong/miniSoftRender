@@ -9,6 +9,7 @@
 #include    "FEFileDialog.hpp"
 #include    "FEModelTree.hpp"
 #include    "FETimeLine.hpp"
+#include    "FEUndoView.hpp"
 #include    "FEShortcutConfig.hpp"
 
 #include    <filesystem>
@@ -189,6 +190,17 @@ namespace   FE
         /// 相机复位到默认视角
         /// </summary>
         void    resetCamera();
+        /// <summary>
+        /// 移动/旋转/缩放手柄的开关:显示时把模型树选区推给抓手,
+        /// 隐藏时清空其编辑对象(与 Qt 版 slotMoveEditor/slotRotEditor/slotScaleEditor 一致)
+        /// </summary>
+        /// <param name="actionName">action_move / action_rotation / action_scale</param>
+        void    toggleTransformTool(const std::string& actionName);
+        /// <summary>
+        /// 每帧刷新三个抓手:未显示的保持空选区,已显示的跟随模型树当前选区;
+        /// 同时把抓手可见状态回写到动作的勾选标志
+        /// </summary>
+        void    syncTransformTools();
     protected:
         FEEditorImGuiFactory*       _factory    =   nullptr;
         FEImGuiBackend*             _backend    =   nullptr;
@@ -230,6 +242,10 @@ namespace   FE
         /// </summary>
         FEModelTree                 _modelTree;
         /// <summary>
+        /// 上一次推给变换抓手的选区;用于避免选区未变时每帧重复 setObjects
+        /// </summary>
+        std::vector<Object>         _toolSelection;
+        /// <summary>
         /// 时间线编辑面板
         /// </summary>
         FETimeLine                  _timeLine;
@@ -237,6 +253,10 @@ namespace   FE
         /// 模型树窗口开关
         /// </summary>
         bool                        _treeOpen       =   true;
+        /// <summary>
+        /// 撤销历史窗口(参考 Qt 的 QUndoView)
+        /// </summary>
+        FEUndoView                  _undoView;
         /// <summary>
         /// 当前 Ribbon 标签页(主菜单在 .ui 菜单栏中的序号)
         /// </summary>

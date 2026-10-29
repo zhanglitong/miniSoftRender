@@ -16,6 +16,10 @@
 #include    "../../../inc/FEMessage.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/node/FENode.hpp"
+#include    "../../../inc/FEInputSystem.hpp"
+#include    "../../../inc/axis/FENodeMoveEditor.h"
+#include    "../../../inc/axis/FENodeRotateEditor.h"
+#include    "../../../inc/axis/FENodeScaleEditor.h"
 #include    "../../../inc/material/FEMaterialPBR.hpp"
 #include    "../../../inc/geometry/FEGeometryBox.hpp"
 #include    "../../../inc/geometry/FEGeometrySphere.hpp"
@@ -192,6 +196,42 @@ namespace
             map.emplace(node->_name,node);
         for (const FE::FEUiMenuItem* child : node->_children)
             collectActionMap(child,map);
+    }
+
+    /// <summary>
+    /// 按动作名在菜单树中查找(可写版本,用于把抓手可见状态回写到勾选标志)
+    /// </summary>
+    /// <param name="node">当前节点</param>
+    /// <param name="name">动作名</param>
+    /// <returns>找到的动作;不存在返回 nullptr</returns>
+    FE::FEUiMenuItem*  findActionItem(FE::FEUiMenuItem* node,const std::string& name)
+    {
+        if (node == nullptr)
+            return  nullptr;
+        if (node->_type == FE::kUiAction && node->_name == name)
+            return  node;
+        for (FE::FEUiMenuItem* child : node->_children)
+        {
+            FE::FEUiMenuItem*   found   =   findActionItem(child,name);
+            if (found != nullptr)
+                return  found;
+        }
+        return  nullptr;
+    }
+
+    /// <summary>
+    /// 两个对象列表是否一致(按对象指针比较,顺序敏感)
+    /// </summary>
+    bool    sameObjects(const FE::Objects& left,const FE::Objects& right)
+    {
+        if (left.size() != right.size())
+            return  false;
+        for (size_t i = 0; i < left.size(); ++i)
+        {
+            if (left[i].get() != right[i].get())
+                return  false;
+        }
+        return  true;
     }
 
     /// <summary>
@@ -465,6 +505,14 @@ namespace
         const   bool    hovered =   ImGui::IsItemHovered();
         ImDrawList*     dl      =   ImGui::GetWindowDrawList();
         const   ImVec2  end     =   ImVec2(pos.x + size.x,pos.y + size.y);
+        /// <summary>
+        /// 可勾选动作的选中态:主题色底与描边(如移动/旋转/缩放手柄开关)
+        /// </summary>
+        if (action->_checkable && action->_checked)
+        {
+            dl->AddRectFilled(pos,end,IM_COL32(74,144,226,70),3.0f);
+            dl->AddRect(pos,end,kAccent,3.0f);
+        }
         if (hovered)
         {
             dl->AddRectFilled(pos,end,IM_COL32(255,255,255,20),3.0f);
@@ -1295,6 +1343,10 @@ namespace   FE
             return;
 
         processShortcuts();
+        /// <summary>
+        /// 先同步抓手:按钮绘制之前更新勾选态,选区变化也在此推给已显示的抓手
+        /// </summary>
+        syncTransformTools();
 
         ImGui::SetNextWindowPos(ImVec2(0.0f,0.0f),ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(width,kRibbonH),ImGuiCond_Always);
@@ -1501,6 +1553,13 @@ namespace   FE
         drawFileDialog();
         drawModelTree();
         drawTimeLine();
+        /// <summary>
+        /// 撤销历史窗口:先把它自己的开关状态回写到动作勾选标志,再绘制
+        /// </summary>
+        FEUiMenuItem*   undoViewItem    =   findActionItem(_uiDoc.menuBar(),"action_undoView");
+        if (undoViewItem != nullptr)
+            undoViewItem->_checked  =   _undoView.isOpen();
+        _undoView.draw(_undoStack,_pendingActions);
         drawUiPreview();
         drawShortcutSettings();
         /// <summary>
@@ -1614,6 +1673,22 @@ namespace   FE
             /// 时间线面板开关;只改 UI 状态,不改场景
             /// </summary>
             _timeLine.toggle();
+        }
+        else if (name == "action_undoView")
+        {
+            /// <summary>
+            /// 撤销历史窗口开关;只改 UI 状态,不改场景
+            /// </summary>
+            _undoView.toggle();
+        }
+        else if (name == "action_move" || name == "action_rotation" || name == "action_scale")
+        {
+            /// <summary>
+            /// 三维变换抓手开关(参考 Qt 版 slotMoveEditor/slotRotEditor/slotScaleEditor):
+            /// 三个动作各自独立切换,不互斥;只改抓手的可见标志与编辑对象,
+            /// 不修改场景数据,因此不产生撤销记录
+            /// </summary>
+            toggleTransformTool(name);
         }
         else if (name.rfind("action_add",0) == 0)
         {
@@ -2013,6 +2088,126 @@ namespace   FE
         cam->setTarget(real3(0.0f,0.0f,0.0f));
         cam->setUp(real3(0.0f,0.0f,1.0f));
         cam->update();
+    }
+
+    void    FEEditorUi::toggleTransformTool(const std::string& actionName)
+    {
+        if (_scene == nullptr)
+            return;
+        FEInputSystem*  inputSys    =   _scene->inputSystem();
+        if (inputSys == nullptr)
+            return;
+
+        /// <summary>
+        /// 与 Qt 版一致:已显示则隐藏并清空编辑对象,否则显示并把模型树当前选区
+        /// 交给抓手。抓手是常驻的渲染/输入工厂,切换只改可见标志,不产生撤销记录
+        /// </summary>
+        const   Objects&    selection   =   _modelTree.selection();
+        if (actionName == "action_move")
+        {
+            auto    com =   inputSys->query(UUIDOF(FENodeMoveEditor));
+            if (com == nullptr)
+                return;
+            FENodeMoveEditor*   editor  =   com->as<FENodeMoveEditor>();
+            if (com->flags().hasFlag(FLAG_VISIBLE))
+            {
+                com->flags().removeFlag(FLAG_VISIBLE);
+                editor->setObjects({});
+            }
+            else
+            {
+                com->flags().addFlag(FLAG_VISIBLE);
+                editor->setObjects(selection);
+            }
+        }
+        else if (actionName == "action_rotation")
+        {
+            auto    com =   inputSys->query(UUIDOF(FENodeRotateEditor));
+            if (com == nullptr)
+                return;
+            FENodeRotateEditor* editor  =   com->as<FENodeRotateEditor>();
+            if (com->flags().hasFlag(FLAG_VISIBLE))
+            {
+                com->flags().removeFlag(FLAG_VISIBLE);
+                editor->setObjects({});
+            }
+            else
+            {
+                com->flags().addFlag(FLAG_VISIBLE);
+                editor->setObjects(selection);
+            }
+        }
+        else if (actionName == "action_scale")
+        {
+            auto    com =   inputSys->query(UUIDOF(FENodeScaleEditor));
+            if (com == nullptr)
+                return;
+            FENodeScaleEditor*  editor  =   com->as<FENodeScaleEditor>();
+            if (com->flags().hasFlag(FLAG_VISIBLE))
+            {
+                com->flags().removeFlag(FLAG_VISIBLE);
+                editor->setObjects({});
+            }
+            else
+            {
+                com->flags().addFlag(FLAG_VISIBLE);
+                editor->setObjects(selection);
+            }
+        }
+        else
+            return;
+        /// <summary>
+        /// 本次已把选区交给抓手,记录后避免同一选区再触发一次 setObjects
+        /// </summary>
+        _toolSelection  =   selection;
+    }
+
+    void    FEEditorUi::syncTransformTools()
+    {
+        if (_scene == nullptr)
+            return;
+        FEInputSystem*  inputSys    =   _scene->inputSystem();
+        if (inputSys == nullptr)
+            return;
+
+        Component       move    =   inputSys->query(UUIDOF(FENodeMoveEditor));
+        Component       rotate  =   inputSys->query(UUIDOF(FENodeRotateEditor));
+        Component       scale   =   inputSys->query(UUIDOF(FENodeScaleEditor));
+        const   bool    moveOn  =   move    != nullptr && move->flags().hasFlag(FLAG_VISIBLE);
+        const   bool    rotateOn=   rotate  != nullptr && rotate->flags().hasFlag(FLAG_VISIBLE);
+        const   bool    scaleOn =   scale   != nullptr && scale->flags().hasFlag(FLAG_VISIBLE);
+
+        /// <summary>
+        /// 把抓手的实际可见状态回写到动作的勾选标志,
+        /// 这样工程被重新打开(抓手回到默认隐藏)后 Ribbon 不会残留高亮
+        /// </summary>
+        FEUiMenuItem*   bar =   _uiDoc.menuBar();
+        if (bar != nullptr)
+        {
+            FEUiMenuItem*   item    =   findActionItem(bar,"action_move");
+            if (item != nullptr)
+                item->_checked  =   moveOn;
+            item    =   findActionItem(bar,"action_rotation");
+            if (item != nullptr)
+                item->_checked  =   rotateOn;
+            item    =   findActionItem(bar,"action_scale");
+            if (item != nullptr)
+                item->_checked  =   scaleOn;
+        }
+
+        /// <summary>
+        /// 模型树选区变化后,把新选区推给已显示的抓手(与 Qt 版选中事件一致)
+        /// </summary>
+        const   Objects&    selection   =   _modelTree.selection();
+        if (sameObjects(selection,_toolSelection))
+            return;
+        _toolSelection  =   selection;
+        if (moveOn)
+            move->as<FENodeMoveEditor>()->setObjects(selection);
+        if (rotateOn)
+            rotate->as<FENodeRotateEditor>()->setObjects(selection);
+        if (scaleOn)
+            scale->as<FENodeScaleEditor>()->setObjects(selection);
     }
 
     bool    FEEditorUi::onMessage(const FEMessage& msg)

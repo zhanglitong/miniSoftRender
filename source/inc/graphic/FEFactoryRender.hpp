@@ -364,6 +364,12 @@ namespace   FE
         /// 派生类自有资源的释放扩展点,由 destroy() 内部调用(派生类无需再调基类)
         /// </summary>
         virtual void    onDestroy() {}
+        /// <summary>
+        /// 绑定材质描述符集(SB_Global 等)。自定义 render() 的派生工厂,
+        /// 每次 bindPipeline 之后都要调用:未绑定全局 UBO 时着色器读到全 0,
+        /// 天空昼夜门控(与颜色相乘)会把图元刷成黑色
+        /// </summary>
+        void            bindMaterial(CMDPtr cmd,FEMaterial* mat,EPrimitive pri);
 
         virtual size_t  addNodesImpl(Nodes&  nodes);
         /// <summary>

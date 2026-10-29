@@ -64,6 +64,10 @@ namespace   FE
         /// 当前选中对象
         /// </summary>
         Object  selected() const    {   return  _selected;  }
+        /// <summary>
+        /// 当前选中对象列表(Ctrl/Shift 多选,主选中项见 selected())
+        /// </summary>
+        const   std::vector<Object>&    selection() const   {   return  _selection;  }
     protected:
         /// <summary>
         /// 绑定节点树,并订阅 add/remove 事件用于驱动刷新

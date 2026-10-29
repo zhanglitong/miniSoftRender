@@ -309,6 +309,16 @@ namespace   FE
             _cleanIndex =   0;
             notifyChanges(before);
         }
+        /// <summary>
+        /// 丢弃游标之后的命令(redo 分支),不执行 undo:
+        /// 与 push() 内部丢弃分支的行为一致,供撤销历史窗口的"清空"使用
+        /// </summary>
+        void    discardRedo()
+        {
+            const   State   before  =   state();
+            truncateRedo();
+            notifyChanges(before);
+        }
 
     public:
         /// <summary>
