@@ -46,13 +46,13 @@
 				<file name="shader/cache/v3/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/v3/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
-			<folder path="v3c4">
-				<file name="shader/cache/v3c4/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/v3c4/shader.vert.spv" input="shader.vert.spv"/>
-			</folder>
 			<folder path="v3Instance">
 				<file name="shader/cache/v3Instance/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/v3Instance/shader.vert.spv" input="shader.vert.spv"/>
+			</folder>
+			<folder path="v3c4">
+				<file name="shader/cache/v3c4/shader.frag.spv" input="shader.frag.spv"/>
+				<file name="shader/cache/v3c4/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 		</folder>
 		<folder path="source">
@@ -119,17 +119,17 @@
 				<file name="shader/source/v3/shader.vert" input="shader.vert"/>
 				<file name="shader/source/v3/shader.vert.wgls" input="shader.vert.wgls"/>
 			</folder>
-			<folder path="v3c4">
-				<file name="shader/source/v3c4/shader.frag" input="shader.frag"/>
-				<file name="shader/source/v3c4/shader.frag.wgls" input="shader.frag.wgls"/>
-				<file name="shader/source/v3c4/shader.vert" input="shader.vert"/>
-				<file name="shader/source/v3c4/shader.vert.wgls" input="shader.vert.wgls"/>
-			</folder>
 			<folder path="v3Instance">
 				<file name="shader/source/v3Instance/shader.frag" input="shader.frag"/>
 				<file name="shader/source/v3Instance/shader.frag.wgls" input="shader.frag.wgls"/>
 				<file name="shader/source/v3Instance/shader.vert" input="shader.vert"/>
 				<file name="shader/source/v3Instance/shader.vert.wgls" input="shader.vert.wgls"/>
+			</folder>
+			<folder path="v3c4">
+				<file name="shader/source/v3c4/shader.frag" input="shader.frag"/>
+				<file name="shader/source/v3c4/shader.frag.wgls" input="shader.frag.wgls"/>
+				<file name="shader/source/v3c4/shader.vert" input="shader.vert"/>
+				<file name="shader/source/v3c4/shader.vert.wgls" input="shader.vert.wgls"/>
 			</folder>
 		</folder>
 	</folder>

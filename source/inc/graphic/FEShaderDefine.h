@@ -426,7 +426,7 @@ struct  UBOSky
     /// x=环境光门控(线性 0.02~1,与主方向光同一曲线)
     /// y=夜间压暗开关(1=开启,0=关闭)
     /// z=天空曝光(与 _sunDirection.w 同值,供解析天空 IBL 使用)
-    /// w=保留
+    /// w=天空盒开关(1=绘制天空并作为解析环境光,0=关闭绘制且解析天空 IBL 不计入)
     float4  _env;
 #ifdef __cplusplus
     UBOSky()
@@ -438,7 +438,8 @@ struct  UBOSky
         /// 视觉与参考截图一致
         _cloud          =   float4(0.36f, 0.71f, 0.44f,  0.0f);
         _anim           =   float4(0.0f,  0.0002f, 0.00002f, 0.0f);
-        _env            =   float4(1.0f,  1.0f,  0.05f,  0.0f);
+        /// w=1:未挂天空组件的场景仍按解析天空光照,保持原有行为
+        _env            =   float4(1.0f,  1.0f,  0.05f,  1.0f);
     }
 #endif
 };
@@ -459,6 +460,14 @@ float   skyEnvGain(UBOSky sky)
 float   skyEnvGainDisplay(UBOSky sky)
 {
     return  pow(clamp(sky._env.x,0.0,1.0),1.0 / 2.2);
+}
+/// <summary>
+/// 天空盒开关:1=绘制天空并作为解析环境光,0=关闭绘制且解析天空 IBL 不计入。
+/// 太阳圆盘已由主方向光的 GGX 高光表达,解析天空 IBL 只采样"无日面"版本
+/// </summary>
+float   skyEnabled(UBOSky sky)
+{
+    return  sky._env.w;
 }
 #endif
 

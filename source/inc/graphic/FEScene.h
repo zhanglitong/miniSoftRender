@@ -29,6 +29,7 @@
 namespace   FE
 {
     class   FEAnimationSys;
+    class   FEConstraintSys;
     class   FESkyComponent;
     struct  DispatchResult
     {
@@ -117,6 +118,11 @@ namespace   FE
         FEInputSystem*  inputSystem() const;
         FEAnimationSys* animationSystem() const;
         /// <summary>
+        /// 约束组件系统(编辑器右键菜单增删约束时需要直接登记/摘除组件)
+        /// </summary>
+        /// <returns>约束系统;场景未初始化约束系统时返回 nullptr</returns>
+        FEConstraintSys* constraintSystem() const;
+        /// <summary>
         /// 场景默认天空盒组件(setup 时自动创建并加入渲染系统,可在此调整大气/太阳参数)
         /// 返回 nullptr 表示当前场景未创建天空(初始化失败)
         /// </summary>
@@ -153,6 +159,12 @@ namespace   FE
         /// 节点加入到系统下，只是挂在节点上，并不做渲染
         /// </summary>
         virtual void    addNodesToTree(const Nodes& nodeList);
+        /// <summary>
+        /// addNodesToTree 的逆操作:把顶层节点从节点树摘除(带父节点的节点随父级一起移除,
+        /// 与添加时只处理顶层节点的规则对应)。渲染工厂与组件系统的清理见 removeNodesFromSystem
+        /// </summary>
+        /// <param name="nodeList"></param>
+        virtual void    removeNodesFromTree(const Nodes& nodeList);
         
         /// <summary>
         /// 函数会把节点数据以及组件数据分发到对应的系统中
@@ -160,6 +172,13 @@ namespace   FE
         /// <param name="nodeList"></param>
         /// <param name="result"></param>
         void            dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result = nullptr);
+        /// <summary>
+        /// dispatchNodesToSystem 的逆操作:把节点(含带 mesh 的子节点)从渲染工厂移除,
+        /// 并把组件从对应组件系统中摘除。节点树本身的摘除由调用方负责
+        /// (如编辑器撤销创建/导入时先 removeNode 再调用本函数)
+        /// </summary>
+        /// <param name="nodeList"></param>
+        void            removeNodesFromSystem(const Nodes& nodeList);
     public:
         virtual void    onFrameStart();
         virtual void    onFrameUpdate();
@@ -345,6 +364,40 @@ namespace   FE
         /// </summary>
         TexPtr          sceneTexture() const            { return _sceneTex; }
         /// <summary>
+        /// 收集节点中指定类型的组件,并定位它们所属的组件系统
+        /// </summary>
+        /// <typeparam name="TObject">组件类型，例如FEAnimation </typeparam>
+        /// <param name="sysMgr">组件系统管理</param>
+        /// <param name="nodes">节点对象集合</param>
+        /// <param name="coms">输出:收集到的组件</param>
+        /// <returns>组件系统;没有该类型组件或系统未注册时返回 nullptr</returns>
+        template<typename TObject>
+        static  ComponentSys   queryComSys(FEComponentSysMgr& sysMgr,const Nodes&  nodes,
+                                           Components& coms)
+        {
+            const   size_t  nCount  =   FEComponentSys::countObjects<TObject>(nodes);
+            if (nCount == 0)
+                return  nullptr;
+            coms.reserve(nCount);
+            FEComponentSys::collectObjects<TObject>(nodes,coms);
+            if (coms.empty())
+                return  nullptr;
+
+            Component   com     =   coms.front();
+            CLSVar      prop;
+            bool        result  =   com->property().query(ComSysId,prop);
+            assert(result);
+            if (!result)
+                return  nullptr;
+            assert(std::holds_alternative<FEUuid>(prop));
+
+            if (!std::holds_alternative<FEUuid>(prop))
+                return  nullptr;
+            ComponentSys    comSys  =   sysMgr.query(std::get<FEUuid>(prop));
+            assert(comSys != nullptr);
+            return  comSys;
+        }
+        /// <summary>
         /// 实现组件到系统见系统的分发功能
         /// 函数收集指定类型的组件，然后分发到对应的组件系统
         /// 典型应用场景: addToSystem<FEAnimation>(...);
@@ -356,30 +409,27 @@ namespace   FE
         template<typename TObject>
         static  size_t  dispatchToSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
         {
-            uint        nCount  =   FEComponentSys::countObjects<TObject>(nodes);
-            if (nCount == 0)
-                return  0;
             Components  coms;
-            coms.reserve(nCount);
-            FEComponentSys::collectObjects<TObject>(nodes,coms);
-
-            Component   com     =   coms.front();
-            CLSVar      prop;
-            bool        result  =   com->property().query(ComSysId,prop);
-            assert(result);
-            if (!result)
-                return  0;
-            assert(std::holds_alternative<FEUuid>(prop));
-
-            if (!std::holds_alternative<FEUuid>(prop))
-                return  0;
-            FEUuid      comSysId    =   std::get<FEUuid>(prop);
-            auto        comSys      =   sysMgr.query(comSysId);
-            assert(comSys != nullptr);
+            ComponentSys    comSys  =   queryComSys<TObject>(sysMgr,nodes,coms);
             if (comSys == nullptr)
                 return  0;
-            else
-                return  comSys->addObjects(coms);
+            return  comSys->addObjects(coms);
+        }
+        /// <summary>
+        /// dispatchToSystem 的逆操作:把指定类型的组件从对应组件系统中摘除
+        /// </summary>
+        /// <typeparam name="TObject">类型，例如FEAnimation </typeparam>
+        /// <param name="sysMgr">组件系统管理</param>
+        /// <param name="nodes">节点对象集合</param>
+        /// <returns>返回从系统中移除的组件数</returns>
+        template<typename TObject>
+        static  size_t  removeFromSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
+        {
+            Components  coms;
+            ComponentSys    comSys  =   queryComSys<TObject>(sysMgr,nodes,coms);
+            if (comSys == nullptr)
+                return  0;
+            return  comSys->removeObjects(coms);
         }
     };
 

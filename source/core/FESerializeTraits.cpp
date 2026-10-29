@@ -8,6 +8,10 @@
 #include    "../inc/FEGeometryLibrary.hpp"
 #include    "../inc/FENotify.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
+#include    "../inc/graphic/FETexture.h"
+#include    "../inc/FEImage.h"
+#include    "graphic/FETextureHelper.hpp"
+#include    <cstring>
 
 namespace   FE
 {
@@ -427,6 +431,146 @@ namespace   FE
         }
     }
 
+    namespace
+    {
+        /// <summary>
+        /// 材质贴图扩展魔数:标记后续为"来源对象引用"格式。
+        ///   PBR2:只写来源对象 id(采样参数使用默认值)
+        ///   PBR3:来源对象 id + 采样参数(mag/min/address) + mip 策略
+        /// v1 工程文件此处是 PBRTexParams._flags(uint),不会与这些值相同
+        /// </summary>
+        constexpr   uint32  kTexSlotMagicV2 =   0x32524250u;   /// "PBR2"
+        constexpr   uint32  kTexSlotMagicV3 =   0x33524250u;   /// "PBR3"
+        /// <summary>
+        /// 写一个贴图槽位:1 表示后面跟随来源对象 id(FEFileBuffer 压缩字节 / FEImage)
+        /// 与采样参数;0 表示该槽位使用默认纹理,无需写入任何数据。
+        /// mips:0/1..255,1 表示不使用 mipmap,其余为实际级数
+        /// </summary>
+        void    writeTextureSlot(FEWriter& writer,const TexPtr& tex)
+        {
+            const   Object  source  =   (tex != nullptr) ? tex->source() : Object();
+            writer.write(uint8(source != nullptr ? 1 : 0));
+            if (source == nullptr)
+                return;
+            writer.write(source->objectId());
+            const auto& ci  =   tex->cInfo();
+            writer.write(uint8(ci._magFilter));
+            writer.write(uint8(ci._minFilter));
+            writer.write(uint8(ci._addressMode));
+            writer.write(uint8(ci._mips > 0 && ci._mips < 256 ? ci._mips : 1));
+        }
+        /// <summary>
+        /// 读取一个贴图槽位:按来源对象 id 查询(依赖已先写入文件)并重建纹理;
+        /// 返回 nullptr 表示沿用默认纹理。
+        /// hasParams 为 false 时是 PBR2 旧格式(无采样参数),按默认值重建
+        /// </summary>
+        TexPtr  readTextureSlot(FEReader& reader,FEContext& feCtx,FESerializeCtx& ctx,bool hasParams)
+        {
+            uint8   present =   0;
+            reader.read(present);
+            if (present == 0)
+                return  nullptr;
+            FEUuid  id;
+            reader.read(id);
+
+            FEFilter        magFilter   =   FILTER_LINEAR;
+            FEFilter        minFilter   =   FILTER_LINEAR;
+            FEAddressMode   addressMode =   ADDRESS_REPEAT;
+            uint            mips        =   0;
+            if (hasParams)
+            {
+                uint8   mag =   1;
+                uint8   min =   1;
+                uint8   addr=   0;
+                uint8   mip =   0;
+                reader.read(mag);
+                reader.read(min);
+                reader.read(addr);
+                reader.read(mip);
+                magFilter   =   (mag == uint8(FILTER_NEAREST)) ? FILTER_NEAREST : FILTER_LINEAR;
+                minFilter   =   (min == uint8(FILTER_NEAREST)) ? FILTER_NEAREST : FILTER_LINEAR;
+                addressMode =   (addr <= uint8(ADDRESS_CLAMP_TO_BORDER)) ? FEAddressMode(addr) : ADDRESS_REPEAT;
+                mips        =   mip;
+            }
+
+            auto    result  =   ctx.query(id,nullptr,FESerializeCtx::O_Query);
+            if (result.first == nullptr)
+                return  nullptr;
+            return  FETextureHelper::createFromSource(feCtx,Object(result.first),magFilter,minFilter,addressMode,mips);
+        }
+        /// <summary>
+        /// v1 兼容:紧随存在标记的是创建信息 + 完整 mip 链原始像素(无来源对象)。
+        /// 按同一布局重建 CPU 图像作为新来源,保证再次保存时不丢贴图
+        /// </summary>
+        TexPtr  readTextureSlotV1(FEReader& reader,FEContext& feCtx)
+        {
+            uint8   present =   0;
+            reader.read(present);
+            if (present == 0)
+                return  nullptr;
+
+            uint32          width   =   0;
+            uint32          height  =   0;
+            FEFormat        format  =   FMT_NONE;
+            uint32          mips    =   1;
+            uint8           cube    =   0;
+            FEFilter        magFilter   =   FILTER_LINEAR;
+            FEFilter        minFilter   =   FILTER_LINEAR;
+            FEAddressMode   addressMode =   ADDRESS_REPEAT;
+            uint64          nByte   =   0;
+            reader.read(width);
+            reader.read(height);
+            reader.read(format);
+            reader.read(mips);
+            reader.read(cube);
+            reader.read(magFilter);
+            reader.read(minFilter);
+            reader.read(addressMode);
+            reader.read(nByte);
+            std::vector<uint8>  pixels;
+            pixels.resize(size_t(nByte));
+            if (nByte > 0)
+                reader.readBuffer(pixels.data(),nByte);
+
+            const   uint32  pixelByte   =   FEFormatHelper::sizeOf(format);
+            if (pixelByte == 0 || width == 0 || height == 0)
+                return  nullptr;
+
+            ImagePtr    image   =   new FEImage(feCtx);
+            FEImage::CreateInfo     ci;
+            ci._extent  =   uint3(width,height,1);
+            ci._format  =   format;
+            ci._layers  =   uint16(cube ? 6 : 1);
+            ci._levels  =   uint16(mips ? mips : 1);
+            ci._align   =   4;
+            if (!image->create(ci))
+                return  nullptr;
+
+            /// 层主序、层内 mip 顺序,逐 mip 逐行拷贝到按 _align 对齐的图像行
+            size_t  offset  =   0;
+            for (uint16 l = 0; l < ci._layers; ++l)
+            {
+                for (uint16 m = 0; m < ci._levels; ++m)
+                {
+                    const   uint32  lw      =   (width >> m) ? (width >> m) : 1;
+                    const   uint32  lh      =   (height >> m) ? (height >> m) : 1;
+                    const   size_t  rowByte =   size_t(lw) * pixelByte;
+                    auto            plane   =   image->plane(m,l);
+                    for (uint32 y = 0; y < lh && offset + rowByte <= pixels.size(); ++y)
+                    {
+                        memcpy(plane.dataOffset<uint8>(y,0),pixels.data() + offset,rowByte);
+                        offset  +=  rowByte;
+                    }
+                }
+            }
+
+            TexPtr  tex =   FETextureHelper::create(feCtx,*image,magFilter,minFilter,addressMode);
+            if (tex != nullptr)
+                tex->setSource(Object(image.get()));
+            return  tex;
+        }
+    }
+
     void    FEMaterialPBR::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const
     {
         UNUSED(writer,chunk,version,ctx);
@@ -439,6 +583,33 @@ namespace   FE
         writer.write(_pbr._value._iri);
         writer.write(_pbr._value._clearcoat);
         writer.write(_pbr._value._volume);
+
+        /// <summary>
+        /// 贴图扩展标记:bit12 清 0 表示后续写入了贴图参数与各槽位像素。
+        /// 旧文件该位保持默认 1,读取时直接跳过,保证向后兼容
+        /// </summary>
+        FEChunkBits bits(chunk._flags);
+        bits._bit12     =   0;
+        chunk._flags    =   bits._value;
+
+        /// <summary>
+        /// 贴图参数(normalScale/AO 强度/自发光强度/KHR 扩展/UV 变换)与管线变体,
+        /// 前面写魔数标记"来源对象引用"格式(来源对象由 queryDepends 提供,已先写入文件)
+        /// </summary>
+        writer.write(kTexSlotMagicV3);
+        writer.write(_texParams._value);
+        writer.write(uint8(_doubleSided ? 1 : 0));
+        writer.write(uint8(_alphaBlend ? 1 : 0));
+
+        /// <summary>
+        /// 六个可编辑贴图槽位:baseColor / metallicRoughness / normal / AO / emissive / 虹彩厚度
+        /// </summary>
+        writeTextureSlot(writer,_baseColorMap);
+        writeTextureSlot(writer,_mrMap);
+        writeTextureSlot(writer,_normalMap);
+        writeTextureSlot(writer,_occlusionMap);
+        writeTextureSlot(writer,_emissiveMap);
+        writeTextureSlot(writer,_iriThicknessMap);
     }
     void    FEMaterialPBR::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) 
     {
@@ -454,5 +625,63 @@ namespace   FE
         reader.read(_pbr._value._volume);
 
         _pbr.update();
+
+        /// <summary>
+        /// 旧工程文件没有贴图扩展:bit12 为 1 时直接返回,只恢复标量参数
+        /// </summary>
+        const   FEChunkBits bits(chunk._flags);
+        if (bits._bit12 != 0)
+            return;
+
+        /// <summary>
+        /// v2 以魔数开头(其后为参数与来源对象 id);
+        /// v1 此处是 PBRTexParams._flags,把已读出的 4 字节当作首字段并补齐其余字节
+        /// </summary>
+        uint32  magic   =   0;
+        reader.read(magic);
+        /// v3=来源引用+采样参数;v2=来源引用(默认采样);否则为 v1 内嵌像素
+        const   bool    v3      =   (magic == kTexSlotMagicV3);
+        const   bool    v2      =   (magic == kTexSlotMagicV2);
+        const   bool    refFmt  =   (v3 || v2);
+        if (refFmt)
+        {
+            reader.read(_texParams._value);
+        }
+        else
+        {
+            _texParams._value._flags    =   magic;
+            reader.readBuffer(reinterpret_cast<uint8*>(&_texParams._value) + sizeof(uint),
+                              sizeof(PBRTexParams) - sizeof(uint));
+        }
+
+        uint8   sided   =   0;
+        uint8   blend   =   0;
+        reader.read(sided);
+        reader.read(blend);
+
+        if (refFmt)
+        {
+            setBaseColorMap(readTextureSlot(reader,_ctx,ctx,v3));
+            setMetallicRoughnessMap(readTextureSlot(reader,_ctx,ctx,v3));
+            setNormalMap(readTextureSlot(reader,_ctx,ctx,v3));
+            setOcclusionMap(readTextureSlot(reader,_ctx,ctx,v3));
+            setEmissiveMap(readTextureSlot(reader,_ctx,ctx,v3));
+            setIriThicknessMap(readTextureSlot(reader,_ctx,ctx,v3));
+        }
+        else
+        {
+            setBaseColorMap(readTextureSlotV1(reader,_ctx));
+            setMetallicRoughnessMap(readTextureSlotV1(reader,_ctx));
+            setNormalMap(readTextureSlotV1(reader,_ctx));
+            setOcclusionMap(readTextureSlotV1(reader,_ctx));
+            setEmissiveMap(readTextureSlotV1(reader,_ctx));
+            setIriThicknessMap(readTextureSlotV1(reader,_ctx));
+        }
+
+        _texParams.update();
+        if (blend != 0)
+            setAlphaBlend(true);
+        if (sided != 0)
+            setDoubleSided(true);
     }
 }

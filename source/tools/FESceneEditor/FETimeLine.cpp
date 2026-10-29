@@ -789,10 +789,16 @@ namespace
         _canvasH    =   canvasH;
         _rulerH     =   ImGui::GetTextLineHeight() + 8.0f;
         _rowH       =   std::max(20.0f,ImGui::GetTextLineHeight() + 8.0f);
-        _nameW      =   std::max(110.0f,std::min(canvasW * 0.22f,210.0f));
-        _timelineX  =   _canvasX + _nameW;
+        /// <summary>
+        /// 名称列宽度由分割条拖动决定,这里只保证上下限
+        /// </summary>
+        const   float   minNameW    =   80.0f;
+        const   float   maxNameW    =   std::max(minNameW,canvasW - 120.0f - _splitterW);
+        _nameW      =   std::max(minNameW,std::min(_nameW,maxNameW));
+        _timelineX  =   _canvasX + _nameW + _splitterW;
 
         handleInput(hovered);
+        _timelineX  =   _canvasX + _nameW + _splitterW;
         drawCanvas(hovered);
         handleContextMenu();
 
@@ -863,6 +869,10 @@ namespace
         const   ImVec2  topLeft(_canvasX,_canvasY);
         const   ImVec2  bottomRight(_canvasX + _canvasW,_canvasY + _canvasH);
         const   float   rowsTop =   _canvasY + _rulerH;
+        /// <summary>
+        /// 名称列右边界;名称列与 _timelineX 之间的 6px 区域是留给分割条的间隙
+        /// </summary>
+        const   float   nameRight   =   _timelineX - _splitterW;
 
         drawList->AddRectFilled(topLeft,bottomRight,colBg);
 
@@ -890,7 +900,7 @@ namespace
         /// <summary>
         /// 名称列背景
         /// </summary>
-        drawList->AddRectFilled(ImVec2(topLeft.x,rowsTop),ImVec2(_timelineX,bottomRight.y),colNameBg);
+        drawList->AddRectFilled(ImVec2(topLeft.x,rowsTop),ImVec2(nameRight,bottomRight.y),colNameBg);
 
         /// <summary>
         /// 超出动画时间范围的部分压暗
@@ -981,7 +991,7 @@ namespace
         /// <summary>
         /// 名称列文本
         /// </summary>
-        drawList->PushClipRect(ImVec2(topLeft.x,rowsTop),ImVec2(_timelineX,bottomRight.y),true);
+        drawList->PushClipRect(ImVec2(topLeft.x,rowsTop),ImVec2(nameRight,bottomRight.y),true);
         for (int i = 0; i < int(_rows.size()); ++i)
         {
             const   float   y0  =   rowTop(i);
@@ -1025,7 +1035,7 @@ namespace
         /// <summary>
         /// 标尺背景与刻度
         /// </summary>
-        drawList->AddRectFilled(ImVec2(topLeft.x,_canvasY),ImVec2(_timelineX,_canvasY + _rulerH),colNameBg);
+        drawList->AddRectFilled(ImVec2(topLeft.x,_canvasY),ImVec2(nameRight,_canvasY + _rulerH),colNameBg);
         drawList->AddRectFilled(ImVec2(_timelineX,_canvasY),ImVec2(bottomRight.x,_canvasY + _rulerH),colRuler);
 
         double  step    =   1.0;
@@ -1073,6 +1083,43 @@ namespace
         }
 
         /// <summary>
+        /// 动画树与时间线之间的间隙与分割条
+        /// 间隙内绘制深色底和竖条,分割条完全落在间隙中,不遮挡第 0/1 帧
+        /// </summary>
+        const   bool    splitterActive  =   (_dragMode == DM_Splitter);
+        const   float   splitterX       =   _timelineX - _splitterW * 0.5f;
+        const   bool    splitterHot     =   splitterActive
+                                        ||  (hovered && std::fabs(mouse.x - splitterX) <= _splitterW * 0.5f + 1.0f);
+        /// <summary>
+        /// 间隙底色
+        /// </summary>
+        drawList->AddRectFilled(ImVec2(nameRight,_canvasY),
+                                ImVec2(_timelineX,bottomRight.y),
+                                IM_COL32(22,24,29,255));
+        const   float   splitW      =   splitterHot ? _splitterW : 2.0f;
+        const   ImU32   colStrip    =   splitterActive ? IM_COL32(70,165,255,255)
+                                      : splitterHot    ? IM_COL32(120,170,235,255)
+                                                       : IM_COL32(110,117,132,255);
+        drawList->AddRectFilled(ImVec2(splitterX - splitW * 0.5f,_canvasY),
+                                ImVec2(splitterX + splitW * 0.5f,bottomRight.y),
+                                colStrip);
+        /// <summary>
+        /// 三横线拖动手柄(常驻显示,不超时间隙)
+        /// </summary>
+        const   float   gripY   =   _canvasY + _canvasH * 0.5f;
+        const   ImU32   gripCol =   splitterHot ? IM_COL32(255,255,255,255)
+                                                : IM_COL32(190,198,214,255);
+        for (int i = -1; i <= 1; ++i)
+        {
+            const   float   gy  =   gripY + float(i) * 4.0f;
+            drawList->AddLine(ImVec2(splitterX - _splitterW * 0.5f + 1.0f,gy),
+                              ImVec2(splitterX + _splitterW * 0.5f - 1.0f,gy),
+                              gripCol,1.0f);
+        }
+        if (splitterHot)
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+        /// <summary>
         /// 边框
         /// </summary>
         drawList->AddRect(topLeft,bottomRight,IM_COL32(70,74,84,255));
@@ -1100,6 +1147,30 @@ namespace
         const   bool    inTimeline  =   hovered && mouse.x >= _timelineX && mouse.x <= _canvasX + _canvasW;
         const   bool    inRuler     =   hovered && mouse.y >= _canvasY && mouse.y < _canvasY + _rulerH;
         const   bool    inRows      =   hovered && mouse.y >= _canvasY + _rulerH && mouse.y <= _canvasY + _canvasH;
+
+        /// <summary>
+        /// 分割条位于名称列与时间线之间的间隙中央,命中范围覆盖整个间隙
+        /// </summary>
+        const   float   splitterX   =   _timelineX - _splitterW * 0.5f;
+        const   bool    inSplitter  =   mouse.y >= _canvasY && mouse.y <= _canvasY + _canvasH
+                                    &&  std::fabs(mouse.x - splitterX) <= _splitterW * 0.5f + 1.0f;
+        if (hovered && inSplitter && ImGui::IsMouseClicked(0))
+            _dragMode   =   DM_Splitter;
+        if (_dragMode == DM_Splitter)
+        {
+            if (ImGui::IsMouseDown(0))
+            {
+                const   float   minNameW    =   80.0f;
+                const   float   maxNameW    =   std::max(minNameW,_canvasW - 120.0f - _splitterW);
+                _nameW      =   std::max(minNameW,
+                                         std::min(mouse.x - _canvasX - _splitterW * 0.5f,maxNameW));
+                _timelineX  =   _canvasX + _nameW + _splitterW;
+            }
+            else
+            {
+                _dragMode   =   DM_None;
+            }
+        }
 
         /// <summary>
         /// 滚轮: Ctrl 缩放 / Shift 横向滚动 / 普通纵向滚动
@@ -1160,7 +1231,7 @@ namespace
         /// <summary>
         /// 左键按下
         /// </summary>
-        if (hovered && ImGui::IsMouseClicked(0))
+        if (hovered && ImGui::IsMouseClicked(0) && _dragMode != DM_Splitter)
         {
             _pressX =   mouse.x;
             _pressY =   mouse.y;

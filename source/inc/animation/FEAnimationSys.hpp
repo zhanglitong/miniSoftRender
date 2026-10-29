@@ -54,18 +54,20 @@ namespace   FE
         /// <returns></returns>
         virtual size_t  addObject(Component com) override
         {
-            auto    playback    =   getOrCreate();
-            return  playback->addObject(com->as<FEAnimation>());
+            if (com == nullptr)
+                return  0;
+            FEAnimation*    anim    =   (FEAnimation*)(com->as<FEAnimation>());
+            /// 按组件记录的播放器名登记,便于撤销后重做回到原播放器
+            return  getOrCreate(anim->playbackName())->addObject(anim);
         }
         virtual size_t  addObjects(const Components&  coms) override
         {
-            auto        playback    =   getOrCreate();
-            Animations  anims(coms.size());
+            size_t  count   =   0;
             for (size_t i = 0; i < coms.size(); ++i)
             {
-                anims[i]    =   (FEAnimation*)(coms[i]->as<FEAnimation>());
+                count   +=  addObject(coms[i]);
             }
-            return  playback->addObjects(anims);
+            return  count;
         }
         /// <summary>
         /// 删除Animation
@@ -76,8 +78,7 @@ namespace   FE
         {
             if (com == nullptr)
                 return  0;
-            auto    playback    =   getOrCreate();
-            return  playback->removeObject(com->as<FEAnimation>());
+            return  removeFromPlaybacks({com});
         }
         /// <summary>
         /// 删除多个Animation
@@ -88,13 +89,7 @@ namespace   FE
         {
             if (coms.empty())
                 return  0;
-            auto        playback    =   getOrCreate();
-            Animations  anims(coms.size());
-            for (size_t i = 0; i < coms.size(); ++i)
-            {
-                anims[i]    =   (FEAnimation*)(coms[i]->as<FEAnimation>());
-            }
-            return  playback->removeObjects(anims);
+            return  removeFromPlaybacks(coms);
         }
 
         virtual void    clear()
@@ -148,6 +143,26 @@ namespace   FE
             }
         }
     protected:
+        /// <summary>
+        /// 从所有播放器中摘除这些组件对应的动画:
+        /// 组件可能被登记在任意命名播放器下,删除时只遍历已有播放器,不创建新播放器
+        /// </summary>
+        /// <param name="coms">要摘除的动画组件</param>
+        /// <returns>返回实际移除的动画数</returns>
+        size_t  removeFromPlaybacks(const Components& coms)
+        {
+            Animations  anims(coms.size());
+            for (size_t i = 0; i < coms.size(); ++i)
+            {
+                anims[i]    =   (FEAnimation*)(coms[i]->as<FEAnimation>());
+            }
+            size_t  count   =   0;
+            for (auto& var : _playbacks)
+            {
+                count   +=  var.second->removeObjects(anims);
+            }
+            return  count;
+        }
         PlaybackMap     _playbacks;
     };
 

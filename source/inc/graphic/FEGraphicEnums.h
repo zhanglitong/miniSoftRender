@@ -90,7 +90,7 @@ namespace   FE
     /// <summary>
     /// 纹理过滤模式
     /// </summary>
-    enum    FEFilter : uint32_t
+    enum    FEFilter : uint8_t
     {
         FILTER_NEAREST  =   0,
         FILTER_LINEAR   =   1,
@@ -98,7 +98,7 @@ namespace   FE
     /// <summary>
     /// 纹理寻址模式
     /// </summary>
-    enum    FEAddressMode : uint32_t
+    enum    FEAddressMode : uint8_t
     {
         ADDRESS_REPEAT              =   0,
         ADDRESS_MIRRORED_REPEAT     =   1,
@@ -118,7 +118,7 @@ namespace   FE
         DT_STORAGE_BUFFER                   =   7,
         DT_UNIFORM_BUFFER_DYNAMIC           =   8,
         DT_STORAGE_BUFFER_DYNAMIC           =   9,
-        DT_INPUT_ATTACHMENT                =   10,
+        DT_INPUT_ATTACHMENT                 =   10,
         /// read-only storage buffer (WebGPU var<storage,read>),
         /// Vulkan maps this to VK_DESCRIPTOR_TYPE_STORAGE_BUFFER same as DT_STORAGE_BUFFER
         DT_STORAGE_BUFFER_READ              =   11,

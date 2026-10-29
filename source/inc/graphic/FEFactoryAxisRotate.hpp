@@ -388,9 +388,9 @@ namespace   FE
             }
         }
         /// <summary>
-        /// 销毁前一定调用该函数,解除数据对工厂的引用计数
+        /// 工厂销毁时由基类 destroy() 调用,在此解除数据对工厂的引用计数
         /// </summary>
-        virtual void    destroy() override
+        virtual void    onDestroy() override
         {
             _axisLineVBO    =   nullptr;
             _arcVBO         =   nullptr;

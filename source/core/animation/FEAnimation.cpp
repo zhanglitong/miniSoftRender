@@ -445,6 +445,8 @@ namespace FE
 
         bits._bit0      =   _offset == 0.0 ? 0:1;
         bits._bit1      =   _clip ? 1:0;
+        /// 播放器名仅在非默认值时写入;旧文件该位恒为 0,读取时回落 "default"
+        bits._bit2      =   _playbackName != "default" ? 1:0;
         chunk._flags    =   bits._value;
 
         if (bits._bit0)
@@ -453,6 +455,11 @@ namespace FE
         {
             auto    result  =   writer.write(_clip->objectId());
             assert(result == sizeof(_clip->objectId()));
+            UNUSED(result);
+        }
+        if (bits._bit2)
+        {
+            auto    result  =   writer.write(_playbackName);
             UNUSED(result);
         }
     }
@@ -475,5 +482,9 @@ namespace FE
                 _clip           =   object ? object->cast<FEAnimClip>() : nullptr;
             }
         }
+        /// 播放器名:默认值不落盘,旧文件无 _bit2 时保持在构造时的默认值
+        _playbackName   =   "default";
+        if (bits._bit2)
+            reader.read(_playbackName);
     }
 }

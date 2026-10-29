@@ -71,6 +71,14 @@ namespace   FE
         else
             return  nullptr;
     }
+    FEConstraintSys* FEScene::constraintSystem() const
+    {
+        auto    sys =   _comSysMgr.query(UUIDOF(FEConstraintSys));
+        if (sys)
+            return  sys->as<FEConstraintSys>();
+        else
+            return  nullptr;
+    }
     FESkyComponent* FEScene::sky() const
     {
         /// as 的 const 重载返回 const 指针,而调用方需要调整天空参数,故移除 const
@@ -277,6 +285,18 @@ namespace   FE
         }
     }
    
+    void    FEScene::removeNodesFromTree(const Nodes& nodeList)
+    {
+        for (auto node : nodeList)
+        {
+            /// 只摘顶层节点:带父节点的节点由父级一起移除,与 addNodesToTree 的规则对应
+            if (node == nullptr || node->parent() != nullptr)
+                continue;
+            else
+                _nodeTree.removeNode(node);
+        }
+    }
+   
     void    FEScene::dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result)
     {
         addNodesToFactory(nodeList,result);
@@ -284,6 +304,14 @@ namespace   FE
         dispatchToSystem<FEConstraint>(_comSysMgr,nodeList);
         dispatchToSystem<FEInput>(_comSysMgr,nodeList);
         /// transmission 场景折射纹理由 PBR 材质渲染时自取自用(见 FEMaterialPBR::refreshSceneTexture)
+    }
+
+    void    FEScene::removeNodesFromSystem(const Nodes& nodeList)
+    {
+        FEFactoryRender::removeNodesFromFactory(*this,nodeList);
+        removeFromSystem<FEAnimation>(_comSysMgr,nodeList);
+        removeFromSystem<FEConstraint>(_comSysMgr,nodeList);
+        removeFromSystem<FEInput>(_comSysMgr,nodeList);
     }
 
     void    FEScene::onFrameStart()
@@ -732,7 +760,8 @@ namespace   FE
 
     void    FEScene::addNodesToFactory(const Nodes& nodeList,DispatchResult* result)
     {
-        auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodeList);
+        /// 通用分发路径复用同 key 的非常驻工厂,避免同一 mesh 重复建厂
+        auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodeList,true);
         for (auto& var : results)
         {
             _factorys.addObject(var);
@@ -1133,6 +1162,11 @@ namespace   FE
 
     void    FEScene::showSky(bool show)
     {
+        /// 先同步天空组件开关:关闭时把 SkyUBO 的天空开关置 0,
+        /// 使 PBR 的解析天空 IBL(漫反射/镜面)一并停止计入
+        auto*   skyComponent    =   sky();
+        if  (skyComponent != nullptr)
+            skyComponent->setSkyVisible(show);
         if (_skyNode == nullptr)
             return;
         auto    mat =   _skyNode->material();

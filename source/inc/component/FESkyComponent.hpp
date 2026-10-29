@@ -62,6 +62,7 @@ namespace   FE
             _sunLightColor      =   other._sunLightColor;
             _darkWhenSunHidden  =   other._darkWhenSunHidden;
             _panelVisible       =   other._panelVisible;
+            _skyVisible         =   other._skyVisible;
         }
         virtual ~FESkyComponent()
         {}
@@ -234,6 +235,16 @@ namespace   FE
             _panelVisible   =   visible;
         }
         bool    panelVisible() const    {   return  _panelVisible;    }
+        /// <summary>
+        /// 天空盒开关:false 时隐藏天空绘制,并把 SkyUBO 开关置 0,
+        /// 使 PBR 的解析天空 IBL(漫反射/镜面)一并停止计算
+        /// </summary>
+        void    setSkyVisible(bool visible)
+        {
+            _skyVisible =   visible;
+            apply();
+        }
+        bool    skyVisible() const      {   return  _skyVisible;     }
         const   UBOSky& sky() const     {   return  _value;    }
         UBOSky&         sky()           {   return  _value;    }
         /// <summary>
@@ -273,6 +284,8 @@ namespace   FE
             _value._env.x   =   _darkWhenSunHidden ? (0.02f + 0.98f * gate) : 1.0f;
             _value._env.y   =   _darkWhenSunHidden ? 1.0f : 0.0f;
             _value._env.z   =   _value._sunDirection.w;
+            /// w 分量作为天空开关:0 时 PBR 的解析天空 IBL 停止计入
+            _value._env.w   =   _skyVisible ? 1.0f : 0.0f;
             if  (_ubo != nullptr)
             {
                 /// _sky 位于全局 UBO 起始处,只覆盖天空段(后面的 EngineState 段由其它写入方维护)
@@ -396,5 +409,9 @@ namespace   FE
         /// 调试面板显隐(默认显示,供宿主/测试通过 setPanelVisible 控制)
         /// </summary>
         bool            _panelVisible   =   true;
+        /// <summary>
+        /// 天空盒开关(默认开启),false 时天空不绘制且解析天空 IBL 不计入
+        /// </summary>
+        bool            _skyVisible     =   true;
     };
 }

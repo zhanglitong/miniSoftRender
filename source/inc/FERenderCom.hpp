@@ -40,10 +40,9 @@ namespace   FE
         virtual void    render(CMDPtr cmd) override
         {}
         /// <summary>
-        /// 销毁前一定调用该函数，解除数据对工厂的引用计数
-        /// 才能正确的释放数据
+        /// 工厂销毁时由基类 destroy() 调用,派生出可在此释放自有资源
         /// </summary>
-        virtual void    destroy() override
+        virtual void    onDestroy() override
         {}
     };
     using   FactorySimple   =   SharedPtr<FERenderCom>;

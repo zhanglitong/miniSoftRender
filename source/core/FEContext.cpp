@@ -39,6 +39,7 @@
 #include    "../inc/graphic/FEScene.h"
 
 #include    "FEImageHelper.hpp"
+#include    "../inc/FEFileBuffer.hpp"
 #include    "../inc/FEConst.h"
 #include    "../inc/animation/FEAnimation.hpp"
 #include    "../inc/animation/FEAnimationSys.hpp"
@@ -102,6 +103,7 @@ namespace   FE
 
         DEFINE_CLASS_CREATOR(FEImage);
         DEFINE_CLASS_CREATOR(FEBuffer);
+        DEFINE_CLASS_CREATOR(FEFileBuffer);
         DEFINE_CLASS_CREATOR(FENode);
 
 

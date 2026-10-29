@@ -1,4 +1,6 @@
 #pragma once
+#include    <utility>
+#include    <vector>
 #include    "RSObject.h"
 #include    "../FEFormat.hpp"
 #include    "FEGraphicEnums.h"
@@ -25,7 +27,7 @@ namespace   FE
             /// <summary>
             /// mip 级数(>1 时 update 需按 mip 逐级提供数据,采样器 maxLod=mips-1)
             /// </summary>
-            uint            _mips       =   1;
+            uint8_t         _mips       =   1;
             /// <summary>
             /// 是否为 cubemap(6 面;update 数据按 面主序、面内 mip 顺序 紧密排布)
             /// </summary>
@@ -44,6 +46,24 @@ namespace   FE
             :RSObject(other)
         {
             _cInfo  =   other._cInfo;
+            _source =   other._source;
+        }
+        /// <summary>
+        /// 设置纹理的来源对象(持有引用,可为 nullptr):
+        /// FEFileBuffer(原始压缩文件字节)或 FEImage(CPU 图像)。
+        /// 保存工程时只序列化该来源,打开时再解码/上传,避免在纹理里长期克隆一份像素。
+        /// </summary>
+        void    setSource(const Object& source)
+        {
+            _source =   source;
+        }
+        /// <summary>
+        /// 纹理来源对象;nullptr 表示该纹理没有可序列化的来源
+        /// (如 1x1 默认纹理、渲染目标、程序生成的纹理)
+        /// </summary>
+        Object  source() const
+        {
+            return  _source;
         }
         /// <summary>
         /// 获取创建信息
@@ -60,7 +80,7 @@ namespace   FE
         {
             return  _cInfo._height;
         }
-        inline  FEFormat    format() const
+        inline  auto    format() const
         {
             return  _cInfo._format;
         }
@@ -81,11 +101,11 @@ namespace   FE
         /// <summary>
         /// 创建 GPU 资源(image + view + sampler)
         /// </summary>
-        virtual bool        create(const CreateInfo& info)  =   0;
+        virtual bool    create(const CreateInfo& info)  =   0;
         /// <summary>
         /// 上传像素数据(RAW 像素,按 format 紧密排布,行尾无 padding)
         /// </summary>
-        virtual bool        update(const void* data,uint64 size)    =   0;
+        virtual bool    update(const void* data,uint64 size)    =   0;
         /// <summary>
         /// 图像视图(render target 用法下作为 color attachment 挂到 RenderInfo._colors)
         /// </summary>
@@ -96,6 +116,10 @@ namespace   FE
         virtual GImage      image() {   return  nullptr;    }
     protected:
         CreateInfo  _cInfo;
+        /// <summary>
+        /// 纹理来源对象(FEFileBuffer / FEImage);保存工程时序列化它并据此重建纹理
+        /// </summary>
+        Object      _source;
     };
 
     using   TexPtr  =   SharedPtr<FETexture>;

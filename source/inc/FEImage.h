@@ -83,26 +83,26 @@ namespace   FE
         /// <param name="layer">0-layers</param>
         /// <param name="level">0-mips</param>
         /// <returns>像素数据的内存位置,参数越界时返回nullptr</returns>
-        inline  uint8*      pixel(uint32 layer,uint32 level = 0)
+        inline  auto    pixel(uint32 layer,uint32 level = 0)
         {
             const bool  bValid  =   layer < _cInfo._buffers.size()
                                 &&  level < _cInfo._levels
                                 &&  _cInfo._buffers[layer] != nullptr;
             assert(bValid);
             if (!bValid)
-                return  nullptr;
+                return  (uint8*)nullptr;
             auto    pixel   =   _cInfo._buffers[layer]->cInfo().dataPtr();
             size_t  nByte   =   offsetOfLevel(level);
             return  pixel + nByte;
         }
-        inline  const uint8* pixel(uint32 layer,uint32 level = 0) const
+        inline  auto    pixel(uint32 layer,uint32 level = 0) const
         {
             const bool  bValid  =   layer < _cInfo._buffers.size()
                                 &&  level < _cInfo._levels
                                 &&  _cInfo._buffers[layer] != nullptr;
             assert(bValid);
             if (!bValid)
-                return  nullptr;
+                return  (const uint8*)nullptr;
             auto    pixel   =   _cInfo._buffers[layer]->cInfo().dataPtr();
             size_t  nByte   =   offsetOfLevel(level);
             return  pixel + nByte;
@@ -417,14 +417,14 @@ namespace   FE
         /// <param name="version">版本号</param>
         /// <param name="ctx">上下文对象</param>
         /// <returns></returns>
-        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
+        virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
         /// 子类实现,只关注自己需要读取的数据
         /// </summary>
         /// <param name="reader"></param>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
+        virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
     protected:
 
         /// <summary>

@@ -72,6 +72,19 @@ namespace   FE
                 uint    offset;
             };
             using   NodeUpdates     =   std::vector<NodeUpdate>;
+            /// <summary>
+            /// 预构建的绘制项:构建缓冲时一次性生成,
+            /// WGSL 路径每帧直接线性绘制,避免遍历节点×图元并查偏移表
+            /// </summary>
+            struct  DrawItem
+            {
+                uint    _firstIndex     =   0;
+                uint    _count          =   0;
+                int     _baseVertex     =   0;
+                uint    _primCount      =   0;
+                uint    _instance       =   0;
+            };
+            using   DrawItems       =   std::vector<DrawItem>;
         public:
             GroupNode(FEContext& ctx)
                 :FEObject(ctx)
@@ -105,6 +118,15 @@ namespace   FE
             /// 裁剪所需要的材质
             /// </summary>
             Material    _cullMat;
+            /// <summary>
+            /// 预构建的绘制项(仅 WGSL 路径使用)
+            /// </summary>
+            DrawItems   _drawItems;
+            /// <summary>
+            /// 裁剪后命令数缓存:updateImpl 每帧失效,同一帧多趟渲染只做一次 GPU→CPU 回读
+            /// </summary>
+            uint32      _cullCount      =   0;
+            bool        _cullValid      =   false;
         protected:
             void    setMaterial(Material mat)   {   _mat    =   mat;    }
             void    setStart(uint32 start)      {   _start  =   start;  }
@@ -178,6 +200,7 @@ namespace   FE
             /// <returns>返回新的地址 = pDst + 拷贝的数据长度</returns>
             uint8*  copyPartial(const uints& slots,uint stride,BufferCopys& regions,const uint8*pStart,uint8* pDst);
             uint8*  copyFull(const uints& slots,uint startInst,uint8* pDst,uint removeFlagBits = 0);
+            void    invalidateCullCount()   {   _cullValid  =   false;  }
         };
         using   Group       =   SharedPtr<GroupNode>;
         /// <summary>
@@ -293,12 +316,20 @@ namespace   FE
 
         
     public:
+        /// <summary>
+        /// 添加节点:递归收集该节点及其带 mesh 的子节点,调用方只传顶层节点
+        /// </summary>
         virtual size_t  addNode(Node  node);
+        /// <summary>
+        /// 批量添加:与 addNode 相同,对每个节点递归收集子节点
+        /// </summary>
         virtual size_t  addNodes(Nodes&  nodes);
-        virtual size_t  addNodes(Nodes::iterator nBegin,Nodes::iterator nEnd);
     public:
         virtual size_t  removeNode(Node node);
-        virtual size_t  removeNodes(Nodes& nodes);
+        /// <summary>
+        /// 批量移除:不修改入参顺序(内部复制后按材质排序)
+        /// </summary>
+        virtual size_t  removeNodes(const Nodes& nodes);
         virtual size_t  nodePropChanged(Node node);
     public:
         virtual void    update(CMDPtr cmd);
@@ -324,15 +355,25 @@ namespace   FE
         /// </summary>
         bool            hasTransmissionMaterial() const;
         /// <summary>
-        /// 销毁前一定调用该函数，解除数据对工厂的引用计数
-        /// 才能正确的释放数据
+        /// 销毁 GPU 数据:先释放工厂自身资源,再调用派生类 onDestroy()
         /// </summary>
-        virtual void    destroy();
+        void            destroy();
         virtual void    clearFlagBits();
-        virtual void    clear();
     protected:
-         
+        /// <summary>
+        /// 派生类自有资源的释放扩展点,由 destroy() 内部调用(派生类无需再调基类)
+        /// </summary>
+        virtual void    onDestroy() {}
+
         virtual size_t  addNodesImpl(Nodes&  nodes);
+        /// <summary>
+        /// 不做子节点递归,直接把给定列表并入工厂(调用方须已完成收集)
+        /// </summary>
+        size_t          addNodesFlat(Nodes::iterator nBegin,Nodes::iterator nEnd);
+        /// <summary>
+        /// 批量移除已按材质排序的节点列表(供跨工厂移除时只排序一次)
+        /// </summary>
+        size_t          removeNodesSorted(const Nodes& nodes);
         /// <summary>
         /// 更新函数
         /// </summary>
@@ -356,6 +397,20 @@ namespace   FE
         /// <param name="slots"></param>
         virtual void    updateInstanceLocal(uint slots);
         virtual void    updateInstanceBSphere();
+        /// <summary>
+        /// 统计待更新实例:局部更新数量 / 整组更新组数 / 整组实例数量
+        /// </summary>
+        bool    calcPendingInstances(uint32& localCnt,uint32& grpCnt,uint32& grpInstCnt);
+        /// <summary>
+        /// 把待更新实例写入暂存缓冲,并输出相对目标缓冲的拷贝区域
+        /// </summary>
+        void    fillInstanceUpdates(const uints& indexs,uint stride,uint localCnt,
+                                   uint grpInstCnt,VBO staging,BufferCopys& regions,
+                                   uint removeFlagBits);
+        /// <summary>
+        /// 新建暂存缓冲(不复用:实例更新频率低,缓存只会长期占用显存)
+        /// </summary>
+        VBO     acquireStaging(uint64 length);
         /// <summary>
         /// 收集并创建命令缓冲区
         /// </summary>
@@ -385,6 +440,10 @@ namespace   FE
         GroupNode*      queryOrCreateGroup(Material mat);
         Material        createCullMaterial(Group grp,Camera camera);
         void            updateCullMaterial(Group grp,Camera camera);
+        /// <summary>
+        /// 填充裁剪材质参数与绑定(创建/更新共用)
+        /// </summary>
+        void            fillCullParams(class FEMaterialCull* cull,Group grp,Camera camera);
         VBO     buildBuffer(MeshUSet& meshSet,FEInputSlot slot);
         VBO     buildBuffer(MeshUSet& meshSet,const InputDescs& inputs);
         /// <summary>
@@ -399,7 +458,27 @@ namespace   FE
         VBO     boundSphereVBO()const;
         VBO     flagBitsVBO() const;
     public:
-        static  uint2   indexCount(MeshUSet& meshSet,EPrimitive srcPri);
+        /// <summary>
+        /// 索引统计结果
+        /// </summary>
+        struct  IndexCounts
+        {
+            /// <summary>
+            /// 索引元素总数,即绘制时可用的最大索引数量
+            /// </summary>
+            uint32  _indices    =   0;
+            /// <summary>
+            /// IBO 字节数,含逐图元 4 字节对齐填充
+            /// </summary>
+            uint32  _bytes      =   0;
+        };
+        /// <summary>
+        /// 统计指定图元类型的索引数量与 IBO 字节数
+        /// </summary>
+        /// <param name="meshSet">参与统计的 mesh 集合</param>
+        /// <param name="srcPri">图元类型</param>
+        /// <returns>索引数量与所需 IBO 字节数</returns>
+        static  IndexCounts indexCount(const MeshUSet& meshSet,EPrimitive srcPri);
         /// <summary>
         /// 收集有多少个node有mesh
         /// </summary>
@@ -413,7 +492,27 @@ namespace   FE
         /// <param name="meshSet"></param>
         /// <returns>返回有多少给node带有mesh信息</returns>
         static  uint        collectMesh(MeshUSet& meshSet,const Groups& grps);
-        static  RFactorys   addNodesToFactory(FEContext& ctx,FEScene& scene,const Nodes& nodes);
+        /// <summary>
+        /// 把节点(含其带 mesh 的子节点)按 mesh key 分派到渲染工厂。
+        /// reuseExisting 为 true 时优先复用场景中同 key 的非常驻工厂,
+        /// 避免同一 mesh key 重复建厂;天空盒/网格等常驻工厂的创建方须传 false
+        /// </summary>
+        /// <param name="ctx">上下文</param>
+        /// <param name="scene">节点所属场景</param>
+        /// <param name="nodes">要添加的顶层节点</param>
+        /// <param name="reuseExisting">是否复用已有的非常驻工厂</param>
+        /// <returns>本次涉及到的工厂列表(含被复用的工厂)</returns>
+        static  RFactorys   addNodesToFactory(FEContext& ctx,FEScene& scene,const Nodes& nodes,
+                                              bool reuseExisting = false);
+        /// <summary>
+        /// 把节点(含其带 mesh 的子节点)从场景所有渲染工厂中移除,
+        /// 与 addNodesToFactory 相对应。工厂对象本身保留(可能仍驻留其它节点),
+        /// 随场景销毁统一释放
+        /// </summary>
+        /// <param name="scene">节点所属场景</param>
+        /// <param name="nodes">要移除的顶层节点</param>
+        /// <returns>实际移除的节点-工厂引用次数</returns>
+        static  size_t      removeNodesFromFactory(FEScene& scene,const Nodes& nodes);
         /// <summary>
         /// 该工厂是否包含某材质的渲染组(供场景侧按材质定位工厂,如编辑网格的显示/隐藏)
         /// </summary>

@@ -64,6 +64,13 @@ namespace   FE
         /// <returns>失败返回 nullptr</returns>
         static  ImagePtr    loadHdr(FEContext& ctx,const char* fileName,FEFormat fmt = FMT_NONE);
         /// <summary>
+        /// 从内存中的(压缩)图片字节解码(接口与 load 一致,用于纹理来源对象
+        /// FEFileBuffer 的重新解码,避免为每张贴图长期保留展开后的像素)
+        /// fmt == FMT_NONE(默认)按内容自动选择:HDR 解码为 RGBA float,其余为 RGBA8
+        /// </summary>
+        /// <returns>失败或目标格式不支持返回 nullptr</returns>
+        static  ImagePtr    loadFromMemory(FEContext& ctx,const void* data,size_t size,FEFormat fmt = FMT_NONE);
+        /// <summary>
         /// 保存图片,格式由扩展名决定:png / jpg(jpeg) / bmp / tga / ktx / ktx2
         /// 8bit 格式(R8 / R8G8 / R8G8B8 / R8G8B8A8):
         ///   png/jpg/bmp/tga → stb_image_write,ktx → KTX1(GL 未压缩容器),
@@ -112,6 +119,11 @@ namespace   FE
         /// 按格式创建单层单mip图像
         /// </summary>
         static  ImagePtr    createImage(FEContext& ctx,uint32 width,uint32 height,FEFormat fmt);
+        /// <summary>
+        /// 把 stb 解码出的紧凑像素(逐行无 padding)写入新建图像(行按 _align 对齐)
+        /// </summary>
+        /// <param name="pixels">float 系为 float*,8bit 为 uint8*</param>
+        static  ImagePtr    createFromDecoded(FEContext& ctx,const void* pixels,int width,int height,int channel,FEFormat fmt);
         /// <summary>
         /// 取文件扩展名(小写,不含'.')
         /// </summary>

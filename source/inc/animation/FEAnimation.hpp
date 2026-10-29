@@ -52,6 +52,17 @@ namespace FE
             _name   =   name;
         }
         /// <summary>
+        /// 所属播放器名:动画系统按该名把组件登记到对应 playback(默认 "default")
+        /// </summary>
+        const   auto&   playbackName() const
+        {
+            return  _playbackName;
+        }
+        inline  void    setPlaybackName(const String& name)
+        {
+            _playbackName   =   name;
+        }
+        /// <summary>
         /// 返回节点自身的transform;不含组件信息
         /// </summary>
         /// <returns></returns>
@@ -292,6 +303,11 @@ namespace FE
         bool                _bSampled       =   false;
         TrackResults        _results; 
         String              _name;
+        /// <summary>
+        /// 所属播放器名:重新添加到系统时按该名登记,撤销/重做后可回到原播放器
+        /// (不参与序列化,打开工程后回落为 "default")
+        /// </summary>
+        String              _playbackName   =   "default";
     };
 
     using   Animation       =   SharedPtr<FEAnimation>;

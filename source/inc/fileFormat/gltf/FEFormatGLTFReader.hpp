@@ -10,7 +10,10 @@
 #include    "../../animation/FEAnimation.hpp"
 #include    "../../graphic/FETexture.h"
 #include    "../../graphic/FEScene.h"
+#include    "../../FEFileBuffer.hpp"
 #include    "FEFormatGLTF.hpp"
+/// 纹理来源对象 → GPU 纹理(解码 + mip 链)的公共实现,与工程反序列化共用
+#include    "../../../core/graphic/FETextureHelper.hpp"
 
 
 #define     TINYGLTF_IMPLEMENTATION
@@ -28,35 +31,43 @@ namespace   FE
     class   FEFormatGLTFReader :public FEStreamReader
     {
     public:
-        using   MeshsIndex      =   std::map<int,Meshs>;
-        using   MaterialIndex   =   std::map<int,Material>;
-        using   NodeIndex       =   std::map<int,Node>;
-        using   AnimatonIndex   =   std::map<int,Animation>;
-        using   TextureIndex    =   std::map<int,TexPtr>;
+        using   MeshsIndex          =   std::map<int,Meshs>;
+        using   MaterialIndex       =   std::map<int,Material>;
+        using   NodeIndex           =   std::map<int,Node>;
+        using   AnimatonIndex       =   std::map<int,Animation>;
+        using   TextureIndex        =   std::map<int,TexPtr>;
+        /// <summary>glTF 材质索引 → (变体索引,目标材质索引) 列表</summary>
+        using   VariantMappingIndex =   std::map<int,std::vector<std::pair<int,int>>>;
+        /// <summary>引用材质的节点及其 glTF 材质索引</summary>
+        using   VariantNodeList     =   std::vector<std::pair<Node,int>>;
     public:
         IMPLEMENT_CLASS_REFLECT(FEFormatGLTFReader)
     protected:
         /// <summary>
         /// glTF texture 索引 → 引擎纹理缓存(每次 readBuffers 清空)
         /// </summary>
-        TextureIndex    _texCache;
+        TextureIndex            _texCache;
+        /// <summary>
+        /// 当前 glTF 文件所在目录(解析图片 uri 相对路径用)
+        /// </summary>
+        String                  _currentDir;
         /// <summary>
         /// ===== KHR_materials_variants =====
         /// 变体名表(顺序即 glTF 扩展中 variants 数组顺序)
         /// </summary>
-        Strings                                         _variantNames;
+        Strings                 _variantNames;
         /// <summary>
         /// glTF 材质索引 → (变体索引,目标材质索引) 列表
         /// </summary>
-        std::map<int,std::vector<std::pair<int,int>>>   _variantMappings;
+        VariantMappingIndex     _variantMappings;
         /// <summary>
         /// 本次加载的全部材质(gltf 索引 → 引擎材质),变体切换时查询目标材质
         /// </summary>
-        MaterialIndex                                   _variantMaterials;
+        MaterialIndex           _variantMaterials;
         /// <summary>
         /// 引用了材质的节点及对应 glTF 材质索引(变体切换时更新)
         /// </summary>
-        std::vector<std::pair<Node,int>>                _variantNodes;
+        VariantNodeList         _variantNodes;
     public:
         FEFormatGLTFReader(FEContext& ctx)
             :FEStreamReader(ctx)
@@ -64,6 +75,53 @@ namespace   FE
         FEFormatGLTFReader(const FEFormatGLTFReader& other)
             :FEStreamReader(other)
         {}
+        /// <summary>
+        /// 构造对象查询/缓存回调(readFiles 与 readBuffers 共用):
+        /// objectMap 提供 id→对象缓存;ctxRef 指向当前序列化上下文指针(可在回调外被替换);
+        /// pReader/offset 用于按当前读取器位置累计进度
+        /// </summary>
+        static  FESerializeCtx::QueryObject    makeQueryObject(FEFormatGLTFReader* self,
+                                                              FESerializeCtx*& ctxRef,
+                                                              ObjectUMap& objectMap,
+                                                              FEReader*& pReader,
+                                                              uint64& offset)
+        {
+            return [self,&ctxRef,&objectMap,&pReader,&offset](const FEUuid& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
+            {
+                switch(option)
+                {
+                case FESerializeCtx::O_Query:
+                    {
+                        auto    itr =   objectMap.find(id);
+                        if (itr != objectMap.end())
+                            return  {itr->second.get(),0};
+                        return  {};
+                    }
+                case FESerializeCtx::O_Cache:
+                    objectMap[id]   =   object;
+                    return  {object,0};
+                case FESerializeCtx::O_Progress:
+                    return  {(FEProgress*)self,0};
+                case FESerializeCtx::O_UpdateProgress:
+                    {
+                        FEReader*   reader  =   object ? object->as<FEReader>() : nullptr;
+                        if (reader != nullptr && ctxRef->change)
+                        {
+                            offset          +=  pReader ? pReader->length() : 0;
+                            pReader         =   reader;
+                            ctxRef->change  =   false;
+                        }
+                        if (reader)
+                            ctxRef->doByte  =   offset + reader->tell();
+                        const   auto    per =   double(ctxRef->doByte)/(std::max)(1.0,double(ctxRef->allByte));
+                        self->setProgress(per);
+                    }
+                    return  {(FEProgress*)self,0};
+                default:
+                    return  {};
+                }
+            };
+        }
         /// <summary>
         /// 组件支持的格式数组
         /// </summary>
@@ -79,48 +137,14 @@ namespace   FE
         /// <returns></returns>
         virtual Objects readFiles(const Strings& files) override
         {
-            FESerializeCtx    xsCtx;
+            FESerializeCtx  xsCtx;
             ObjectUMap      objectMap;
             Objects         result;
             FEReader*       pReader =   nullptr;
             uint64          offset  =   0;
-            xsCtx.query     =   [&](const OBJId& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
-            {
-                switch(option)
-                {
-                case FESerializeCtx::O_Query:
-                    {
-                        auto    itr =   objectMap.find(id);
-                        if (itr != objectMap.end())
-                            return  {itr->second.get(),0};
-                        else
-                            return  {};
-                    }
-                    break;
-                case FESerializeCtx::O_Cache:
-                    objectMap[id]   =   object;
-                    return  {object,0};
-                case FESerializeCtx::O_Progress:
-                    return  {(FEProgress*)this,0};
-                case FESerializeCtx::O_UpdateProgress:
-                    {
-                        FEReader*   reader  =   object ? object->as<FEReader>() : nullptr;
-                        if (reader != nullptr && xsCtx.change)
-                        {
-                            offset          +=  pReader ? pReader->length() : 0;
-                            pReader         =   reader;
-                            xsCtx.change    =   false;
-                        }
-                        if (reader)
-                            xsCtx.doByte    =  offset   +   reader->tell();
-                        auto    per     =   double(xsCtx.doByte)/(std::max)(1.0,double(xsCtx.allByte));
-                        setProgress(per);
-                    }
-                    return  {(FEProgress*)this,0};
-                default:
-                    return  {};
-                }
-            };
+            /// 查询函数(与 readBuffers 共用)
+            FESerializeCtx* xsCtxPtr = &xsCtx;
+            xsCtx.query     =   makeQueryObject(this,xsCtxPtr,objectMap,pReader,offset);
             /// 计算所有文件大小
             for (auto& var : files)
             {
@@ -160,42 +184,8 @@ namespace   FE
             {
                 newCtx.allByte   +=  var->length();
             }
-            /// 查询函数
-            newCtx.query        =   [&](const OBJId& id,FEObject* object,FESerializeCtx::Option option)->FESerializeCtx::QResult
-            {
-                switch(option)
-                {
-                case FESerializeCtx::O_Query:
-                    {
-                        auto    itr =   objectMap.find(id);
-                        if (itr != objectMap.end())
-                            return  {itr->second.get(),0};
-                        else
-                            return  {};
-                    }
-                    break;
-                case FESerializeCtx::O_Cache:
-                    objectMap[id]   =   object;
-                    return  {object,0};
-                case FESerializeCtx::O_Progress:
-                    return  {(FEProgress*)this,0};
-                case FESerializeCtx::O_UpdateProgress:
-                    {
-                        FEReader*   reader  =   object ? object->as<FEReader>() : nullptr;
-                        if (reader != nullptr && pCtx->change)
-                        {
-                            offset          +=  pReader ? pReader->length() : 0;
-                            pReader         =   reader;
-                            pCtx->change    =   false;
-                        }
-                        auto    per     =   double(pCtx->doByte)/(std::max)(1.0,double(pCtx->allByte));
-                        setProgress(per);
-                    }
-                    return  {(FEProgress*)this,0};
-                default:
-                    return  {};
-                }
-            };
+            /// 查询函数(与 readFiles 共用)
+            newCtx.query        =   makeQueryObject(this,pCtx,objectMap,pReader,offset);
             /// 先查找是否已经设置了
             auto        parCtx  =   param(TBCXSerialize);
             /// 如果已经设置，则使用设置的
@@ -222,6 +212,7 @@ namespace   FE
                 String              error;
                 String              warning;
                 String              dir =   FEFileSystem::filePath(fileName.c_str());
+                _currentDir         =   dir;
                 if(!gltfContext.LoadASCIIFromString(&gltfModel,&error,&warning,var->dataAs<char>(),(uint)var->length(),dir))
                     continue;
                 MeshsIndex          meshMap;
@@ -285,9 +276,11 @@ namespace   FE
                     auto&   buffer  =   mesh->getOrCreate({IS_VERTEX_POS,FMT_R32G32B32_FLOAT});
                     buffer.setBuffer(positionData.data(),positionData.size()* sizeof(positionData[0]));
 
-                    if (primitive.attributes.find("NORMAL")  != primitive.attributes.end())
+                    /// 每个属性只做一次 find,后续直接复用迭代器
+                    auto    norItr  =   primitive.attributes.find("NORMAL");
+                    if (norItr != primitive.attributes.end())
                     {
-                        const auto&     norAccessor     =   model.accessors[primitive.attributes.find("NORMAL")->second];
+                        const auto&     norAccessor     =   model.accessors[norItr->second];
                         const auto&     norView         =   model.bufferViews[norAccessor.bufferView];
                         const auto&     norBuffer       =   model.buffers[norView.buffer];
 
@@ -295,9 +288,10 @@ namespace   FE
                         auto&           buffer1         =   mesh->getOrCreate({IS_VERTEX_NOR,FMT_R32G32B32_FLOAT});
                         buffer1.setBuffer(normalData.data(),normalData.size()* sizeof(normalData[0]));
                     }
-                    if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
+                    auto    tanItr  =   primitive.attributes.find("TANGENT");
+                    if (tanItr != primitive.attributes.end())
                     {
-                        const auto&     tanAccessor     =   model.accessors[primitive.attributes.find("TANGENT")->second];
+                        const auto&     tanAccessor     =   model.accessors[tanItr->second];
                         const auto&     tanView         =   model.bufferViews[tanAccessor.bufferView];
                         const auto&     tanBuffer       =   model.buffers[tanView.buffer];
                         tangentData =   procData<3>(tanAccessor,tanView,tanBuffer);
@@ -305,9 +299,10 @@ namespace   FE
                         auto&           buffer1          =   mesh->getOrCreate({IS_VERTEX_TANGENT,FMT_R32G32B32_FLOAT});
                         buffer1.setBuffer(tangentData.data(),tangentData.size()* sizeof(tangentData[0]));
                     }
-                    if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
+                    auto    uv0Itr  =   primitive.attributes.find("TEXCOORD_0");
+                    if (uv0Itr != primitive.attributes.end())
                     {
-                        const auto&     uvAccessor     =   model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+                        const auto&     uvAccessor     =   model.accessors[uv0Itr->second];
                         const auto&     uvView         =   model.bufferViews[uvAccessor.bufferView];
                         const auto&     uvBuffer       =   model.buffers[uvView.buffer];
                         uvData      =   procData<2>(uvAccessor,uvView,uvBuffer);
@@ -315,18 +310,20 @@ namespace   FE
                         auto&           buffer1         =   mesh->getOrCreate({IS_VERTEX_TEXCOORD0,FMT_R32G32_FLOAT});
                         buffer1.setBuffer(uvData.data(),uvData.size()* sizeof(uvData[0]));
                     }
-                    if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end())
+                    auto    uv1Itr  =   primitive.attributes.find("TEXCOORD_1");
+                    if (uv1Itr != primitive.attributes.end())
                     {
-                        const auto&     uvAccessor     =   model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
+                        const auto&     uvAccessor     =   model.accessors[uv1Itr->second];
                         const auto&     uvView         =   model.bufferViews[uvAccessor.bufferView];
                         const auto&     uvBuffer       =   model.buffers[uvView.buffer];
                         uvData1     =   procData<2>(uvAccessor,uvView,uvBuffer);
                         auto&           buffer1     =   mesh->getOrCreate({IS_VERTEX_TEXCOORD1,FMT_R32G32_FLOAT});
                         buffer1.setBuffer(uvData1.data(),uvData1.size()* sizeof(uvData1[0]));
                     }
-                    if (primitive.attributes.find("COLOR_0") != primitive.attributes.end())
+                    auto    colorItr    =   primitive.attributes.find("COLOR_0");
+                    if (colorItr != primitive.attributes.end())
                     {
-                        const auto&     colorAccessor  =   model.accessors[primitive.attributes.find("COLOR_0")->second];
+                        const auto&     colorAccessor  =   model.accessors[colorItr->second];
                         const auto&     colorView      =   model.bufferViews[colorAccessor.bufferView];
                         const auto&     colorBuffer    =   model.buffers[colorView.buffer];
                         if (colorAccessor.type == TINYGLTF_TYPE_VEC2)
@@ -540,96 +537,139 @@ namespace   FE
             return  _variantNames;
         }
         /// <summary>
-        /// 由 glTF 图像数据创建纹理。
-        /// tinygltf 经 stb_image 解码:JPEG 为 RGB(component=3),PNG 可能为 RGBA(4)。
-        /// 统一转换为 RGBA8 上传;1/2 通道图像暂不支持(返回 nullptr,由材质使用默认纹理)。
+        /// 解码 glTF URI 中的百分号转义(%20 等),得到可直接访问的文件名
         /// </summary>
-        TexPtr      createTextureFromImage(const tinygltf::Image& image)
+        static  String  decodeUri(const String& uri)
         {
-            if (image.width <= 0 || image.height <= 0 || image.image.empty())
-                return  nullptr;
-            if (image.component != 3 && image.component != 4)
-                return  nullptr;
-            TexPtr  tex =   _ctx.device().createTexture();
-            if (tex == nullptr)
-                return  nullptr;
-
-            /// 先统一成 level0 RGBA8(RGB 补 alpha=255)
-            const uint      w0      =   (uint)image.width;
-            const uint      h0      =   (uint)image.height;
-            std::vector<uint8>  level0(size_t(w0) * h0 * 4);
-            if (image.component == 4)
-                memcpy(level0.data(),image.image.data(),level0.size());
-            else
+            auto    hexValue    =   [](char ch)->int
             {
-                const uint8*    src =   image.image.data();
-                for (size_t p = 0; p < size_t(w0) * h0; ++p)
-                {
-                    level0[p*4+0]   =   src[p*3+0];
-                    level0[p*4+1]   =   src[p*3+1];
-                    level0[p*4+2]   =   src[p*3+2];
-                    level0[p*4+3]   =   255;
-                }
-            }
-
-            /// 生成完整 mip 链(2x2 盒式,边缘钳制;含 mipmap 后高频贴图
-            /// (如法线 flakes / 纹理 transform 大重复)远距离不再 aliasing 噪点),
-            /// 数据按 mip 顺序紧凑拼接(update 约定:layer 主序、层内 mip 顺序)
-            uint    mipCount    =   1;
-            for (uint s = (w0 > h0 ? w0 : h0); s > 1; s >>= 1)
-                ++mipCount;
-            std::vector<uint8>  pixels  =   level0;
-            const uint8*        srcMip  =   level0.data();
-            uint                srcW    =   w0;
-            uint                srcH    =   h0;
-            std::vector<uint8>  next;
-            for (uint m = 1; m < mipCount; ++m)
+                if (ch >= '0' && ch <= '9') return  ch - '0';
+                if (ch >= 'a' && ch <= 'f') return  ch - 'a' + 10;
+                if (ch >= 'A' && ch <= 'F') return  ch - 'A' + 10;
+                return  -1;
+            };
+            String  result;
+            result.reserve(uri.size());
+            for (size_t i = 0; i < uri.size(); ++i)
             {
-                const uint  dstW    =   srcW > 1 ? srcW >> 1 : 1;
-                const uint  dstH    =   srcH > 1 ? srcH >> 1 : 1;
-                next.resize(size_t(dstW) * dstH * 4);
-                for (uint y = 0; y < dstH; ++y)
+                if (uri[i] == '%' && i + 2 < uri.size())
                 {
-                    for (uint x = 0; x < dstW; ++x)
+                    const int   hi  =   hexValue(uri[i + 1]);
+                    const int   lo  =   hexValue(uri[i + 2]);
+                    if (hi >= 0 && lo >= 0)
                     {
-                        uint    sum[4]  =   { 0, 0, 0, 0 };
-                        for (uint dy = 0; dy < 2; ++dy)
-                        {
-                            for (uint dx = 0; dx < 2; ++dx)
-                            {
-                                const uint  sx  =   x * 2 + dx < srcW ? x * 2 + dx : srcW - 1;
-                                const uint  sy  =   y * 2 + dy < srcH ? y * 2 + dy : srcH - 1;
-                                const uint8*    px  =   srcMip + (size_t(sy) * srcW + sx) * 4;
-                                for (uint c = 0; c < 4; ++c)
-                                    sum[c] += px[c];
-                            }
-                        }
-                        uint8*  px  =   next.data() + (size_t(y) * dstW + x) * 4;
-                        for (uint c = 0; c < 4; ++c)
-                            px[c]   =   uint8((sum[c] + 2) >> 2);
+                        result.push_back(char((hi << 4) | lo));
+                        i += 2;
+                        continue;
                     }
                 }
-                pixels.insert(pixels.end(),next.begin(),next.end());
-                srcMip  =   pixels.data() + (pixels.size() - next.size());
-                srcW    =   dstW;
-                srcH    =   dstH;
+                result.push_back(uri[i]);
             }
-
-            FETexture::CreateInfo   ci{};
-            ci._width       =   w0;
-            ci._height      =   h0;
-            ci._format      =   FMT_R8G8B8A8_UNORM;
-            ci._magFilter   =   FILTER_LINEAR;
-            ci._minFilter   =   FILTER_LINEAR;
-            ci._addressMode =   ADDRESS_REPEAT;
-            ci._mips        =   mipCount;
-            if (!tex->create(ci))
+            return  result;
+        }
+        /// <summary>
+        /// 是否绝对路径:以 / 或 \ 开头,或形如 C:/ (盘符)
+        /// </summary>
+        static  bool    isAbsolutePath(const String& path)
+        {
+            if (path.empty())
+                return  false;
+            if (path[0] == '/' || path[0] == '\\')
+                return  true;
+            return  path.size() > 1 && path[1] == ':';
+        }
+        /// <summary>
+        /// 生成 glTF 图像的来源对象(纹理只引用它,不再克隆展开后的像素):
+        ///   1. 外部 uri          → FEFileBuffer(直接读取原始压缩字节)
+        ///   2. bufferView(glb)  → FEFileBuffer(截取内嵌的原始压缩字节)
+        ///   3. data URI          → FEFileBuffer(base64 解出原始压缩字节)
+        ///   4. 其它(解码像素可用) → FEImage(CPU 图像,体积大但保证不丢图)
+        /// </summary>
+        Object      createImageSource(const tinygltf::Model& model,const tinygltf::Image& image,int imageIndex)
+        {
+            const   String  name    =   image.name.empty() ? ("image_" + std::to_string(imageIndex)) : image.name;
+            /// 1. 外部文件(uri 相对 glTF 文件目录)
+            if (!image.uri.empty() && !tinygltf::IsDataURI(image.uri))
+            {
+                /// URI 可能是相对路径且带百分号转义(%20 等),解码后再拼目录
+                String  fileName    =   decodeUri(image.uri);
+                if (!_currentDir.empty() && !isAbsolutePath(fileName))
+                    fileName    =   _currentDir + "/" + fileName;
+                auto    buffer  =   FEFileBuffer::loadFile(_ctx,fileName.c_str());
+                if (buffer != nullptr)
+                    return  Object(buffer.get());
+            }
+            /// 2. .glb 内嵌在 bufferView 中的图片
+            if (image.bufferView >= 0 && image.bufferView < (int)model.bufferViews.size())
+            {
+                const auto& bView   =   model.bufferViews[image.bufferView];
+                if (bView.buffer >= 0 && bView.buffer < (int)model.buffers.size())
+                {
+                    const auto&     buffer  =   model.buffers[bView.buffer];
+                    const size_t    offset  =   size_t(bView.byteOffset);
+                    if (offset < buffer.data.size() && offset + size_t(bView.byteLength) <= buffer.data.size())
+                        return  Object(FEFileBuffer::create(_ctx,buffer.data.data() + offset,size_t(bView.byteLength),name).get());
+                }
+            }
+            /// 3. data URI(把 base64 里的原始压缩字节取出来)
+            if (tinygltf::IsDataURI(image.uri))
+            {
+                std::vector<unsigned char>  bytes;
+                std::string                 mimeType;
+                if (tinygltf::DecodeDataURI(&bytes,mimeType,image.uri,0,false) && !bytes.empty())
+                    return  Object(FEFileBuffer::create(_ctx,bytes.data(),bytes.size(),name).get());
+            }
+            /// 4. 回退:已解码像素转成 CPU 图像(RGB 补 alpha=255)
+            if (image.width <= 0 || image.height <= 0 || (image.component != 3 && image.component != 4))
                 return  nullptr;
-            tex->update(pixels.data(),pixels.size());
-            return  tex;
+            if (image.image.empty())
+                return  nullptr;
+            ImagePtr    cpuImage    =   new FEImage(_ctx);
+            FEImage::CreateInfo     ci;
+            ci._extent  =   uint3(uint32(image.width),uint32(image.height),1);
+            ci._format  =   FMT_R8G8B8A8_UNORM;
+            ci._layers  =   1;
+            ci._levels  =   1;
+            ci._align   =   4;
+            if (!cpuImage->create(ci))
+                return  nullptr;
+            auto            plane   =   cpuImage->plane(0,0);
+            const size_t    count   =   size_t(image.width) * size_t(image.height);
+            const uint8*    pixels  =   image.image.data();
+            for (size_t p = 0; p < count; ++p)
+            {
+                uint8*  dst =   plane.dataOffset<uint8>(uint32(p / uint32(image.width)),uint32(p % uint32(image.width)));
+                if (image.component == 4)
+                    memcpy(dst,pixels + p * 4,4);
+                else
+                {
+                    dst[0]  =   pixels[p * 3 + 0];
+                    dst[1]  =   pixels[p * 3 + 1];
+                    dst[2]  =   pixels[p * 3 + 2];
+                    dst[3]  =   255;
+                }
+            }
+            return  Object(cpuImage.get());
+        }
+        /// <summary>
+        /// 由 glTF 图像创建纹理:保存原始压缩字节(FEFileBuffer)作为来源,
+        /// 并据此解码上传(含 mip 链);来源不可用时回退到解码后的 CPU 图像。
+        /// </summary>
+        TexPtr      createTextureFromImage(const tinygltf::Model& model,int imageIndex,
+                                           FEFilter magFilter,FEFilter minFilter,
+                                           FEAddressMode addressMode,uint mips)
+        {
+            if (imageIndex < 0 || imageIndex >= (int)model.images.size())
+                return  nullptr;
+            Object  source  =   createImageSource(model,model.images[imageIndex],imageIndex);
+            if (source == nullptr)
+                return  nullptr;
+            return  FETextureHelper::createFromSource(_ctx,source,magFilter,minFilter,addressMode,mips);
         }
         /// <summary>
         /// 按 glTF texture 索引获取/创建纹理(带缓存,多张贴图共享同一 image 时只上传一次)
+        /// 采样模式取自 model.samplers:magFilter/minFilter → FEFilter,wrapS → FEAddressMode;
+        /// minFilter 显式声明为"非 mipmap"变体时不生成 mip 链,其余情况(含未指定)生成完整链
         /// </summary>
         TexPtr      getOrCreateTexture(const tinygltf::Model& model,int texIndex)
         {
@@ -639,9 +679,49 @@ namespace   FE
             if (itr != _texCache.end())
                 return  itr->second;
             const auto& texture =   model.textures[texIndex];
+
+            FEFilter        magFilter   =   FILTER_LINEAR;
+            FEFilter        minFilter   =   FILTER_LINEAR;
+            FEAddressMode   addressMode =   ADDRESS_REPEAT;
+            /// 0 = 按来源生成完整 mip 链;1 = 不使用 mipmap
+            uint            mips        =   0;
+            if (texture.sampler >= 0 && texture.sampler < (int)model.samplers.size())
+            {
+                const auto& sampler =   model.samplers[texture.sampler];
+                if (sampler.magFilter == TINYGLTF_TEXTURE_FILTER_NEAREST)
+                    magFilter   =   FILTER_NEAREST;
+                switch (sampler.minFilter)
+                {
+                case TINYGLTF_TEXTURE_FILTER_NEAREST:
+                case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
+                case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
+                    minFilter   =   FILTER_NEAREST;
+                    break;
+                default:
+                    minFilter   =   FILTER_LINEAR;
+                    break;
+                }
+                /// 显式指定不带 mipmap 的过滤(9728/9729)时关闭 mip 链;-1(未指定)保持默认完整链
+                if  (sampler.minFilter == TINYGLTF_TEXTURE_FILTER_NEAREST
+                     || sampler.minFilter == TINYGLTF_TEXTURE_FILTER_LINEAR)
+                    mips    =   1;
+                switch (sampler.wrapS)
+                {
+                case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+                    addressMode =   ADDRESS_MIRRORED_REPEAT;
+                    break;
+                case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
+                    addressMode =   ADDRESS_CLAMP_TO_EDGE;
+                    break;
+                default:
+                    addressMode =   ADDRESS_REPEAT;
+                    break;
+                }
+            }
+
             TexPtr      tex;
             if (texture.source >= 0 && texture.source < (int)model.images.size())
-                tex =   createTextureFromImage(model.images[texture.source]);
+                tex =   createTextureFromImage(model,texture.source,magFilter,minFilter,addressMode,mips);
             _texCache[texIndex] =   tex;
             return  tex;
         }

@@ -32,6 +32,30 @@ namespace   FE
                              FEFilter      minFilter   =   FILTER_LINEAR,
                              FEAddressMode addressMode =   ADDRESS_REPEAT);
         /// <summary>
+        /// 由单层 RGBA8 图像创建带完整 mip 链的纹理(2x2 盒式滤波,边缘钳制)。
+        /// 图像需为单层 FMT_R8G8B8A8_UNORM 且只有 level0;其它格式请用 create
+        /// </summary>
+        /// <param name="mips">mip 级数上限:0=按尺寸生成完整链;1=不生成(等价 create);
+        /// N(>1)=最多生成 N 级(不足完整链时按实际尺寸截断)</param>
+        static  TexPtr  createMipmapped(FEContext& ctx,const FEImage& image,
+                                        FEFilter      magFilter   =   FILTER_LINEAR,
+                                        FEFilter      minFilter   =   FILTER_LINEAR,
+                                        FEAddressMode addressMode =   ADDRESS_REPEAT,
+                                        uint          mips        =   0);
+        /// <summary>
+        /// 由纹理来源对象重建纹理并挂接来源(保存工程时材料只引用来源对象):
+        ///   FEFileBuffer → 解码原始压缩字节(JPEG/PNG...)后按 mips 生成 mip 链
+        ///   FEImage      → 按其现有 mip 上传;无 mip 时按 mips 决定是否补链
+        /// </summary>
+        /// <param name="mips">mip 级数:0=按来源自动(FEFileBuffer 生成完整链);
+        /// 1=不使用 mip;N(>1)=最多 N 级</param>
+        /// <returns>失败返回 nullptr(来源为空 / 解码失败 / GPU 资源创建失败)</returns>
+        static  TexPtr  createFromSource(FEContext& ctx,const Object& source,
+                                         FEFilter      magFilter   =   FILTER_LINEAR,
+                                         FEFilter      minFilter   =   FILTER_LINEAR,
+                                         FEAddressMode addressMode =   ADDRESS_REPEAT,
+                                         uint          mips        =   0);
+        /// <summary>
         /// 由 equirect(经纬度)图像生成 float cubemap 图像:6 层 + 完整 mip 链
         /// (CPU 重投影 + float 域 2x2 盒式滤波,保留 HDR 动态范围)
         /// 输入图像需为浮点格式且通道数 >= 3(如 FEImageHelper::loadHdr 的输出);

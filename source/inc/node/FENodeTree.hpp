@@ -156,6 +156,27 @@ namespace   FE
             }
         }
         /// <summary>
+        /// 调整顶层节点在列表中的顺序(仅移动列表位置,父子关系不变)
+        /// </summary>
+        /// <param name="node">要移动的顶层节点</param>
+        /// <param name="index">目标位置(按移除该节点后的列表计算;SIZE_MAX=末尾)</param>
+        /// <returns>节点为空或不在顶层列表中时返回 false</returns>
+        inline  bool    moveToplevelNode(const Node& node, size_t index)
+        {
+            if (node == nullptr)
+                return  false;
+            auto    itr =   std::find(_topLevelNodes.begin(), _topLevelNodes.end(), node);
+            if (itr == _topLevelNodes.end())
+                return  false;
+            Node    item    =   *itr;
+            _topLevelNodes.erase(itr);
+            if (index == SIZE_MAX || index >= _topLevelNodes.size())
+                _topLevelNodes.push_back(item);
+            else
+                _topLevelNodes.insert(_topLevelNodes.begin() + index, item);
+            return  true;
+        }
+        /// <summary>
         /// 移除节点:有父节点时交给父节点 removeChild 摘除(其内部 onRemoveChild 已广播
         /// eventsRemoveNode,这里不再重复通知),否则从顶层列表移除
         /// </summary>

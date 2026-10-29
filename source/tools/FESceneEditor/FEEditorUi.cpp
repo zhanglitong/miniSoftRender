@@ -12,6 +12,7 @@
 #include    "FEPropertyView.hpp"
 #include    "FESettingPropertyModel.hpp"
 
+#include    "../../../inc/FEFileFormatHelper.hpp"
 #include    "../../../inc/FEMessage.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/node/FENode.hpp"
@@ -630,372 +631,6 @@ namespace
 
 namespace   FE
 {
-    void    FEFileDialog::open(Mode mode,const std::string& title,const std::string& ext,
-                               const std::string& dir,const std::string& defaultName)
-    {
-        _mode   =   mode;
-        _title  =   title;
-        _ext    =   ext;
-        _notice.clear();
-        _selected   =   -1;
-        _nameBuf[0] =   '\0';
-        if (!defaultName.empty())
-        {
-            strncpy(_nameBuf,defaultName.c_str(),sizeof(_nameBuf) - 1);
-            _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
-        }
-        /// <summary>
-        /// 初始目录不存在时回落到当前工作目录
-        /// </summary>
-        std::error_code ec;
-        std::filesystem::path   start   =   std::filesystem::u8path(dir);
-        if (dir.empty() || !std::filesystem::is_directory(start,ec))
-            start   =   std::filesystem::current_path(ec);
-        enter(start);
-        buildQuickItems(dir);
-        _firstFrame =   true;
-    }
-
-    void    FEFileDialog::close()
-    {
-        _mode   =   kNone;
-        _entries.clear();
-        _dirty  =   true;
-    }
-
-    void    FEFileDialog::buildQuickItems(const std::string& startDir)
-    {
-        _quickItems.clear();
-        /// <summary>
-        /// 只收录真实存在的目录,避免点到无效位置
-        /// </summary>
-        auto    add =   [this](const std::string& label,const std::filesystem::path& path)
-        {
-            std::error_code ec;
-            if (!std::filesystem::is_directory(path,ec) || ec)
-                return;
-            _quickItems.push_back({label,path});
-        };
-
-        /// <summary>
-        /// 用户主目录及其常用子目录(Windows 取 USERPROFILE,类 Unix 取 HOME)
-        /// </summary>
-        const   char*   home    =   std::getenv("USERPROFILE");
-        if (home == nullptr || home[0] == '\0')
-            home    =   std::getenv("HOME");
-        if (home != nullptr && home[0] != '\0')
-        {
-            const   std::filesystem::path   homeDir(home);
-            add("桌面",     homeDir / "Desktop");
-            add("下载",     homeDir / "Downloads");
-            add("文档",     homeDir / "Documents");
-            add("主文件夹", homeDir);
-        }
-
-        /// <summary>
-        /// 程序目录(与 Qt 版文件对话框的起始位置一致)
-        /// </summary>
-        if (!startDir.empty())
-            add("程序目录",std::filesystem::u8path(startDir));
-
-        /// <summary>
-        /// 各盘符根:类 Unix 上 "X:\" 都不存在,循环自然为空,再补上根目录
-        /// </summary>
-        int rootCount   =   0;
-        for (char c = 'A'; c <= 'Z'; ++c)
-        {
-            std::string root;
-            root    +=  c;
-            root    +=  ':';
-            root    +=  std::filesystem::path::preferred_separator;
-            const   std::filesystem::path   drive(root);
-            std::error_code ec;
-            if (!std::filesystem::is_directory(drive,ec) || ec)
-                continue;
-            _quickItems.push_back({std::string(1,c) + ":",drive});
-            ++rootCount;
-        }
-        if (rootCount == 0)
-            add("/",std::filesystem::path("/"));
-    }
-
-    void    FEFileDialog::enter(const std::filesystem::path& dir)
-    {
-        std::error_code ec;
-        std::filesystem::path   target  =   std::filesystem::absolute(dir,ec);
-        if (ec)
-            target  =   dir;
-        _dir    =   target.lexically_normal();
-        _dirty  =   true;
-        _selected   =   -1;
-        setPathBuf(_dir.u8string());
-    }
-
-    void    FEFileDialog::setPathBuf(const std::string& utf8Path)
-    {
-        strncpy(_pathBuf,utf8Path.c_str(),sizeof(_pathBuf) - 1);
-        _pathBuf[sizeof(_pathBuf) - 1]  =   '\0';
-    }
-
-    void    FEFileDialog::gotoPath(const std::string& text)
-    {
-        /// <summary>
-        /// 去掉首尾空白与从资源管理器复制路径时携带的引号
-        /// </summary>
-        std::string     input   =   text;
-        while (!input.empty() && (input.front() == ' ' || input.front() == '"'))
-            input.erase(input.begin());
-        while (!input.empty() && (input.back() == ' ' || input.back() == '"'))
-            input.pop_back();
-        if (input.empty())
-        {
-            setPathBuf(_dir.u8string());
-            return;
-        }
-
-        std::filesystem::path   target  =   std::filesystem::u8path(input);
-        /// <summary>
-        /// 只输入盘符(如 D:)时补上分隔符,否则无法作为目录打开
-        /// </summary>
-        const   std::string     native  =   target.string();
-        if (native.size() == 2 && native[1] == ':')
-            target  +=  std::filesystem::path::preferred_separator;
-
-        std::error_code ec;
-        if (std::filesystem::is_directory(target,ec) && !ec)
-        {
-            enter(target);
-            return;
-        }
-        ec.clear();
-        /// <summary>
-        /// 输入的是文件:跳到其所在目录并填入文件名
-        /// </summary>
-        if (std::filesystem::is_regular_file(target,ec) && !ec)
-        {
-            strncpy(_nameBuf,target.filename().u8string().c_str(),sizeof(_nameBuf) - 1);
-            _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
-            enter(target.parent_path());
-            return;
-        }
-        /// <summary>
-        /// 路径无效:提示并把地址栏恢复成当前目录,浏览位置不变
-        /// </summary>
-        _notice =   "路径不存在:" + input;
-        setPathBuf(_dir.u8string());
-    }
-
-    void    FEFileDialog::refresh()
-    {
-        _entries.clear();
-        _dirty      =   false;
-        _notice.clear();
-        std::error_code ec;
-        std::filesystem::directory_iterator   itr(_dir,ec);
-        if (ec)
-        {
-            _notice =   "无法读取目录:" + ec.message();
-            return;
-        }
-        std::string lowerExt    =   _ext;
-        std::transform(lowerExt.begin(),lowerExt.end(),lowerExt.begin(),
-                       [](unsigned char c) {   return  char(std::tolower(c));   });
-        for (const auto& item : itr)
-        {
-            std::error_code ecItem;
-            const   bool    isDir   =   item.is_directory(ecItem);
-            if (ecItem)
-                continue;
-            std::string     name    =   item.path().filename().u8string();
-            if (isDir)
-            {
-                _entries.push_back({name,true});
-                continue;
-            }
-            if (!lowerExt.empty())
-            {
-                std::string ext     =   item.path().extension().u8string();
-                std::transform(ext.begin(),ext.end(),ext.begin(),
-                               [](unsigned char c) {   return  char(std::tolower(c));   });
-                if (ext != lowerExt)
-                    continue;
-            }
-            _entries.push_back({name,false});
-        }
-        /// <summary>
-        /// 目录在前、同类按名称升序(与系统文件对话框一致)
-        /// </summary>
-        std::sort(_entries.begin(),_entries.end(),[](const Entry& l,const Entry& r)
-        {
-            if (l._dir != r._dir)
-                return  l._dir;
-            return  l._name < r._name;
-        });
-    }
-
-    bool    FEFileDialog::draw(ImFont* iconFont,std::string& resultPath)
-    {
-        UNUSED(iconFont);
-        if (_mode == kNone)
-            return  false;
-        if (_dirty)
-            refresh();
-
-        bool    confirmed   =   false;
-        bool    cancelled   =   false;
-        std::string picked;
-        bool    opened      =   true;
-        /// <summary>
-        /// 对话框居中,首次绘制定位置与大小,之后允许用户拖动
-        /// </summary>
-        const   ImGuiIO&    io  =   ImGui::GetIO();
-        if (_firstFrame)
-        {
-            const   ImVec2  dlgSize =   ImVec2(std::min(720.0f,io.DisplaySize.x - 40.0f),
-                                               std::min(460.0f,io.DisplaySize.y - 40.0f));
-            ImGui::SetNextWindowPos(ImVec2((io.DisplaySize.x - dlgSize.x) * 0.5f,
-                                          (io.DisplaySize.y - dlgSize.y) * 0.5f),ImGuiCond_Always);
-            ImGui::SetNextWindowSize(dlgSize,ImGuiCond_Always);
-        }
-        if (ImGui::Begin(_title.c_str(),&opened,ImGuiWindowFlags_NoCollapse))
-        {
-            const   float   rowH    =   ImGui::GetFrameHeightWithSpacing();
-            const   float   listH   =   std::max(80.0f,ImGui::GetWindowHeight() - rowH * 4.5f);
-
-            /// <summary>
-            /// 位置栏:上级目录 + 可编辑地址栏(可直接输入路径或盘符,回车跳转) + 转到
-            /// </summary>
-            const   ImGuiStyle& style   =   ImGui::GetStyle();
-            if (ImGui::Button("上级目录") && _dir.has_parent_path())
-                enter(_dir.parent_path());
-            ImGui::SameLine();
-            const   float   upW     =   ImGui::CalcTextSize("上级目录").x + style.FramePadding.x * 2.0f;
-            const   float   goW     =   ImGui::CalcTextSize("转到").x + style.FramePadding.x * 2.0f;
-            ImGui::PushItemWidth(ImGui::GetWindowWidth() - upW - goW - style.ItemSpacing.x * 3.0f
-                                 - style.WindowPadding.x * 2.0f);
-            const   bool    go      =   ImGui::InputText("##fesr_fd_path",_pathBuf,sizeof(_pathBuf),
-                                                         ImGuiInputTextFlags_EnterReturnsTrue);
-            ImGui::PopItemWidth();
-            ImGui::SameLine();
-            if (ImGui::Button("转到") || go)
-                gotoPath(_pathBuf);
-            ImGui::Separator();
-
-            /// <summary>
-            /// 左侧导航栏 + 右侧文件列表(仿资源管理器的双栏布局)
-            /// </summary>
-            const   float   navW    =   132.0f;
-            const   float   listW   =   std::max(200.0f,ImGui::GetWindowWidth() - navW
-                                                 - style.ItemSpacing.x - style.WindowPadding.x * 2.0f);
-            ImGui::BeginChild("##fesr_fd_nav",ImVec2(navW,listH),true);
-            for (const auto& item : _quickItems)
-            {
-                if (ImGui::Selectable(item._label.c_str(),item._path == _dir))
-                    enter(item._path);
-            }
-            ImGui::EndChild();
-            ImGui::SameLine();
-
-            /// <summary>
-            /// 文件与目录列表:单击选中,双击进入目录或确认文件
-            /// </summary>
-            ImGui::BeginChild("##fesr_fd_list",ImVec2(listW,listH),true);
-            for (int i = 0; i < int(_entries.size()); ++i)
-            {
-                const   Entry&  entry   =   _entries[size_t(i)];
-                ImGui::PushID(i);
-                const   std::string label   =   entry._dir ? ("[ 目录 ] " + entry._name) : entry._name;
-                if (ImGui::Selectable(label.c_str(),_selected == i,
-                                      ImGuiSelectableFlags_AllowDoubleClick))
-                {
-                    _selected   =   i;
-                    if (entry._dir)
-                    {
-                        if (ImGui::IsMouseDoubleClicked(0))
-                            enter(_dir / std::filesystem::u8path(entry._name));
-                    }
-                    else
-                    {
-                        strncpy(_nameBuf,entry._name.c_str(),sizeof(_nameBuf) - 1);
-                        _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
-                        if (ImGui::IsMouseDoubleClicked(0))
-                            confirmed   =   true;
-                    }
-                }
-                ImGui::PopID();
-            }
-            ImGui::EndChild();
-            if (!_notice.empty())
-                ImGui::TextDisabled("%s",_notice.c_str());
-
-            /// <summary>
-            /// 文件名输入框:回车等同确认
-            /// </summary>
-            ImGui::PushItemWidth(-1.0f);
-            if (ImGui::InputText("##fesr_fd_name",_nameBuf,sizeof(_nameBuf),
-                                 ImGuiInputTextFlags_EnterReturnsTrue))
-                confirmed   =   true;
-            ImGui::PopItemWidth();
-
-            /// <summary>
-            /// 底部按钮:确定 / 取消(文件名为空时"确定"淡显且不可用)
-            /// </summary>
-            const   bool    hasName =   (_nameBuf[0] != '\0');
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha,hasName ? 1.0f : 0.45f);
-            if (ImGui::Button(_mode == kSave ? "保存" : "打开",ImVec2(96.0f,0.0f)) && hasName)
-                confirmed   =   true;
-            ImGui::PopStyleVar();
-            ImGui::SameLine();
-            if (ImGui::Button("取消",ImVec2(96.0f,0.0f)))
-                cancelled   =   true;
-
-            /// <summary>
-            /// 确认:输入的是文件夹则进入;否则拼接完整路径,
-            /// 另存为时缺扩展名自动补上
-            /// </summary>
-            if (confirmed && hasName)
-            {
-                std::filesystem::path   file    =   std::filesystem::u8path(_nameBuf);
-                std::error_code         ec;
-                if (std::filesystem::is_directory(_dir / file,ec) && !ec)
-                {
-                    enter(_dir / file);
-                }
-                else
-                {
-                    if (_mode == kSave && !_ext.empty() && file.extension() != _ext)
-                        file    +=  _ext;
-                    picked  =   (_dir / file).u8string();
-                }
-            }
-        }
-        ImGui::End();
-        _firstFrame =   false;
-
-        /// <summary>
-        /// 取消按钮 / 标题栏关闭按钮:结束对话框,不产出结果
-        /// </summary>
-        if (cancelled || !opened)
-        {
-            close();
-            return  true;
-        }
-        /// <summary>
-        /// 未确认(或确认时文件名为空):保持打开,继续浏览
-        /// </summary>
-        if (!confirmed || picked.empty())
-            return  false;
-        /// <summary>
-        /// 确认:产出完整路径并结束
-        /// </summary>
-        resultPath  =   picked;
-        close();
-        return  true;
-    }
-}
-
-namespace   FE
-{
     FEEditorImGuiFactory::FEEditorImGuiFactory(FEContext& ctx,FEImGuiBackend* backend)
         :FEFactoryRender(ctx)
         ,_backend(backend)
@@ -1215,6 +850,12 @@ namespace   FE
         _shortcutSelected   =   -1;
         _shortcutRecord     =   -1;
         _shortcutError.clear();
+        /// <summary>
+        /// 渲染设置:天空盒开关默认开启;读取后立刻同步到场景,
+        /// 关闭时天空不绘制且 PBR 的解析天空 IBL 一并停止计入
+        /// </summary>
+        _skyShown   =   _ctx->setting().get("render").get("showSkyBox").setIfUnset(true).getOr(true);
+        scene->showSky(_skyShown);
         _factory    =   new FEEditorImGuiFactory(ctx,_backend);
         _factory->_buildUI  =   [this]() {   this->drawRibbon();  };
         scene->factoryMgr().addObject(_factory);
@@ -1222,6 +863,14 @@ namespace   FE
         /// 时间线面板的数据来源:场景动画系统 / 撤销栈 / 模型树选中项
         /// </summary>
         _timeLine.bind(scene,&_undoStack,&_modelTree);
+        /// <summary>
+        /// 模型树的层级/顺序调整入撤销栈,支持撤销/重做
+        /// </summary>
+        _modelTree.setUndoStack(&_undoStack);
+        /// <summary>
+        /// 模型树右键菜单增删节点/动画/约束需要访问场景的节点树与各组件系统
+        /// </summary>
+        _modelTree.setScene(scene);
         /// <summary>
         /// 时间线窗口默认集成显示在编辑器底部
         /// </summary>
@@ -1236,6 +885,7 @@ namespace   FE
         /// 先断开回调与后端链接,避免工厂在后续帧继续访问已释放对象
         /// </summary>
         _modelTree.unbind();
+        _modelTree.setScene(nullptr);
         _timeLine.unbind();
         if (_factory != nullptr)
         {
@@ -1853,6 +1503,19 @@ namespace   FE
         drawTimeLine();
         drawUiPreview();
         drawShortcutSettings();
+        /// <summary>
+        /// 天空盒开关:设置窗口里改动 render/showSkyBox 后立即同步到场景,
+        /// 无需等保存或重新加载
+        /// </summary>
+        if (_scene != nullptr && _ctx != nullptr)
+        {
+            const   bool    shown   =   _ctx->setting().get("render").get("showSkyBox").getOr(true);
+            if  (shown != _skyShown)
+            {
+                _skyShown   =   shown;
+                _scene->showSky(shown);
+            }
+        }
         drawSettingViewer();
     }
 
@@ -1867,11 +1530,17 @@ namespace   FE
             return;
 
         /// <summary>
-        /// 另存为模式走保存,打开模式走打开。
-        /// 两者都改场景(open 会新建渲染工厂),必须推迟到渲染趟之外执行
+        /// 另存为模式走保存,导入模式走导入模型,其余走打开。
+        /// 三者都会改场景(open 会新建渲染工厂),必须推迟到渲染趟之外执行
         /// </summary>
-        if (_fileDialogSaveMode)
+        const   bool    saveMode    =   _fileDialogSaveMode;
+        const   bool    importMode  =   _fileDialogImportMode;
+        _fileDialogSaveMode     =   false;
+        _fileDialogImportMode   =   false;
+        if (saveMode)
             _pendingActions.push_back([this,file]() {   saveProjectTo(file);    });
+        else if (importMode)
+            _pendingActions.push_back([this,file]() {   importModel(file);  });
         else
             _pendingActions.push_back([this,file]() {   openProject(file);  });
     }
@@ -1887,7 +1556,7 @@ namespace   FE
             /// 打开工程:与 Qt 版一致,默认从程序目录开始
             /// </summary>
             _fileDialogSaveMode =   false;
-            _fileDialog.open(FEFileDialog::kOpen,"打开工程",".fepj",_startDir,"");
+            _fileDialog.open(FEFileDialog::kOpen,"打开工程",{{"工程文件 (*.fepj)",".fepj"}},_startDir,"");
         }
         else if (name == "action_savePrj")
         {
@@ -1924,6 +1593,20 @@ namespace   FE
             /// 打开运行时配置窗口(通用 key/value 控件),不改场景
             /// </summary>
             _settingOpen    =   true;
+        }
+        else if (name == "action_importModel")
+        {
+            /// <summary>
+            /// 导入模型:默认选 .gltf/.glb,类型下拉框可切到所有文件;
+            /// 解析与入场景推迟到下一帧 MSG_UPDATE
+            /// (与创建节点同理,避免渲染趟内新建渲染工厂)
+            /// </summary>
+            _fileDialogSaveMode     =   false;
+            _fileDialogImportMode   =   true;
+            _fileDialog.open(FEFileDialog::kOpen,"导入模型",
+                             {{"3D 模型 (*.gltf;*.glb)",".gltf;.glb"},
+                              {"所有文件 (*.*)",""}},
+                             _startDir,"");
         }
         else if (name == "action_TimeLine")
         {
@@ -1981,7 +1664,7 @@ namespace   FE
         if (_projectName.empty())
         {
             _fileDialogSaveMode =   true;
-            _fileDialog.open(FEFileDialog::kSave,"另存为",".fepj",_startDir,"unname");
+            _fileDialog.open(FEFileDialog::kSave,"另存为",{{"工程文件 (*.fepj)",".fepj"}},_startDir,"unname");
             return;
         }
         saveProjectTo(_projectName);
@@ -2075,7 +1758,7 @@ namespace   FE
             if (node == nullptr)
                 return;
             node->setName(editorUniqueName(*_scene,name));
-            _undoStack.push(new FEEditorCreateNodeCmd(*_scene,node,"创建" + name));
+            _undoStack.push(new FEEditorCreateNodeCmd(*_scene,{node},"创建" + name));
         };
 
         /// <summary>
@@ -2200,6 +1883,71 @@ namespace   FE
 
         addWithUndo(node,label);
         _statusText =   "已创建" + label;
+    }
+
+    void    FEEditorUi::importModel(const std::string& path)
+    {
+        if (_scene == nullptr || _ctx == nullptr || path.empty())
+            return;
+
+        const   std::filesystem::path   fsPath  =   std::filesystem::u8path(path);
+        std::string ext =   fsPath.extension().u8string();
+        std::transform(ext.begin(),ext.end(),ext.begin(),
+                       [](unsigned char c) {   return  char(std::tolower(c));   });
+
+        /// <summary>
+        /// 格式必须与 FEContext 注册读取器时使用的完全一致(见 FEContext.cpp 的
+        /// DEFINE_FORMAT_READER(FEFormatGLTFReader)),否则 queryReader 查不到
+        /// </summary>
+        FEFileFormat    fmt(".gltf","1.0.0.0","GLTF text Format!");
+        if (ext == ".glb")
+            fmt =   FEFileFormat(".glb","1.0.0.0","GLTF binary Format!");
+        else if (ext != ".gltf")
+        {
+            _statusText =   "不支持导入该格式:" + fsPath.filename().u8string();
+            return;
+        }
+
+        auto    reader  =   FEFileFormatHelper::queryReader(*_ctx,fmt);
+        if (reader == nullptr)
+        {
+            _statusText =   "导入失败:没有可用的模型读取器";
+            return;
+        }
+
+        /// <summary>
+        /// 解析与入场景都在 MSG_UPDATE 内执行(由 _pendingActions 推迟):
+        /// 此时新建的渲染工厂能在同一帧 update 里生成顶点/索引缓冲
+        /// </summary>
+        const   Objects objects =   reader->readFiles({toNativePath(path)});
+        Nodes   nodes;
+        for (auto object : objects)
+        {
+            Node    node    =   object->cast<FENode>();
+            if (node != nullptr)
+                nodes.push_back(node);
+        }
+        if (nodes.empty())
+        {
+            _statusText =   "导入失败,未解析到节点:" + fsPath.filename().u8string();
+            return;
+        }
+
+        /// <summary>
+        /// 顶层节点名唯一化(重做时沿用该名字,避免与场景已有节点重名);
+        /// 文件内节点无名字时用文件名兜底
+        /// </summary>
+        const   std::string stem    =   fsPath.stem().u8string();
+        for (Node& node : nodes)
+        {
+            const   std::string current =   node->name() != nullptr ? node->name() : "";
+            const   std::string base    =   current.empty() ? stem : current;
+            node->setName(editorUniqueName(*_scene,base));
+        }
+
+        _undoStack.push(new FEEditorCreateNodeCmd(*_scene,nodes,"导入" + stem));
+        _statusText =   "已导入 " + std::to_string(nodes.size()) + " 个节点:"
+                    +   fsPath.filename().u8string();
     }
 
     void    FEEditorUi::drawModelTree()

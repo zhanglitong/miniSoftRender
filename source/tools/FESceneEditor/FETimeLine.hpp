@@ -136,6 +136,10 @@ namespace   FE
             /// 空白处框选
             /// </summary>
             DM_Box,
+            /// <summary>
+            /// 拖动动画树与时间线之间的分割条
+            /// </summary>
+            DM_Splitter,
         };
     protected:
         /// <summary>
@@ -302,7 +306,14 @@ namespace   FE
         float                       _canvasY        =   0.0f;
         float                       _canvasW        =   0.0f;
         float                       _canvasH        =   0.0f;
+        /// <summary>
+        /// 动画树(名称列)宽度,可由分割条拖动调整
+        /// </summary>
         float                       _nameW          =   160.0f;
+        /// <summary>
+        /// 动画树与时间线之间的间隙,分割条绘制在该间隙内
+        /// </summary>
+        float                       _splitterW      =   6.0f;
         float                       _timelineX      =   0.0f;
         float                       _rulerH         =   24.0f;
         float                       _rowH           =   22.0f;

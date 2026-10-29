@@ -1,8 +1,10 @@
 #include    <vector>
 #include    <cmath>
+#include    <cstring>
 #include    <algorithm>
 
 #include    "FETextureHelper.hpp"
+#include    "../../inc/FEFileBuffer.hpp"
 #include    "../../inc/graphic/FEDevice.h"
 #include    "../../inc/graphic/FECmdBuffer.h"
 #include    "../../inc/graphic/FECmdPool.h"
@@ -547,7 +549,122 @@ namespace   FE
         ImagePtr    image   =   FEImageHelper::load(ctx,fileName);
         if (image == nullptr)
             return  nullptr;
-        return  create(ctx,*image,magFilter,minFilter,addressMode);
+        TexPtr  texture =   create(ctx,*image,magFilter,minFilter,addressMode);
+        /// 引用 CPU 图像作为来源(不再克隆像素),保存工程时随材质一起序列化
+        if (texture != nullptr)
+            texture->setSource(Object(image.get()));
+        return  texture;
+    }
+
+    TexPtr  FETextureHelper::createMipmapped(FEContext& ctx,const FEImage& image,
+                                             FEFilter magFilter,FEFilter minFilter,FEAddressMode addressMode,uint mips)
+    {
+        const auto&     cInfo   =   image.cInfo();
+        const uint      width   =   cInfo._extent.x;
+        const uint      height  =   cInfo._extent.y;
+        /// 2x2 盒式滤波按字节求均值,仅支持单层 RGBA8(JPEG/PNG 解码的常见形态)
+        if  (width == 0 || height == 0 || cInfo._layers != 1
+             || cInfo._format != FMT_R8G8B8A8_UNORM)
+            return  nullptr;
+        auto    plane   =   image.plane(0,0);
+        if  (plane._buffer == nullptr)
+            return  nullptr;
+
+        /// level0 重排为紧凑行
+        std::vector<uint8>  level0;
+        level0.resize(size_t(width) * height * 4);
+        for (uint y = 0; y < height; ++y)
+            memcpy(level0.data() + size_t(y) * width * 4,plane.dataOffset<uint8>(y,0),size_t(width) * 4);
+
+        /// 生成完整 mip 链(2x2 盒式,边缘钳制),按 mip 顺序紧凑拼接
+        uint    mipCount    =   1;
+        for (uint s = (width > height ? width : height); s > 1; s >>= 1)
+            ++mipCount;
+        /// 按调用方要求截断 mip 链(0=完整链;1=不生成;其它为上限)
+        if  (mips != 0 && mips < mipCount)
+            mipCount    =   mips;
+        std::vector<uint8>  pixels  =   level0;
+        const uint8*        srcMip  =   level0.data();
+        uint                srcW    =   width;
+        uint                srcH    =   height;
+        std::vector<uint8>  next;
+        for (uint m = 1; m < mipCount; ++m)
+        {
+            const uint  dstW    =   srcW > 1 ? srcW >> 1 : 1;
+            const uint  dstH    =   srcH > 1 ? srcH >> 1 : 1;
+            next.resize(size_t(dstW) * dstH * 4);
+            for (uint y = 0; y < dstH; ++y)
+            {
+                for (uint x = 0; x < dstW; ++x)
+                {
+                    uint    sum[4]  =   { 0, 0, 0, 0 };
+                    for (uint dy = 0; dy < 2; ++dy)
+                    {
+                        for (uint dx = 0; dx < 2; ++dx)
+                        {
+                            const uint  sx  =   x * 2 + dx < srcW ? x * 2 + dx : srcW - 1;
+                            const uint  sy  =   y * 2 + dy < srcH ? y * 2 + dy : srcH - 1;
+                            const uint8*    px  =   srcMip + (size_t(sy) * srcW + sx) * 4;
+                            for (uint c = 0; c < 4; ++c)
+                                sum[c] += px[c];
+                        }
+                    }
+                    uint8*  px  =   next.data() + (size_t(y) * dstW + x) * 4;
+                    for (uint c = 0; c < 4; ++c)
+                        px[c]   =   uint8((sum[c] + 2) >> 2);
+                }
+            }
+            pixels.insert(pixels.end(),next.begin(),next.end());
+            srcMip  =   pixels.data() + (pixels.size() - next.size());
+            srcW    =   dstW;
+            srcH    =   dstH;
+        }
+
+        TexPtr  texture =   ctx.device().createTexture();
+        if  (texture == nullptr)
+            return  nullptr;
+        FETexture::CreateInfo   texInfo;
+        texInfo._width      =   width;
+        texInfo._height     =   height;
+        texInfo._format     =   FMT_R8G8B8A8_UNORM;
+        texInfo._magFilter  =   magFilter;
+        texInfo._minFilter  =   minFilter;
+        texInfo._addressMode=   addressMode;
+        texInfo._mips       =   mipCount;
+        if  (!texture->create(texInfo))
+            return  nullptr;
+        if  (!texture->update(pixels.data(),pixels.size()))
+            return  nullptr;
+        return  texture;
+    }
+
+    TexPtr  FETextureHelper::createFromSource(FEContext& ctx,const Object& source,
+                                              FEFilter magFilter,FEFilter minFilter,FEAddressMode addressMode,uint mips)
+    {
+        if  (source == nullptr)
+            return  nullptr;
+
+        TexPtr  texture;
+        /// 压缩文件字节:解码后按 mips 策略生成 mip 链(0=完整链,1=不生成,N=上限)
+        if  (auto* file = source->cast<FEFileBuffer>())
+        {
+            ImagePtr    image   =   FEImageHelper::loadFromMemory(ctx,file->data(),size_t(file->length()),FMT_R8G8B8A8_UNORM);
+            if  (image != nullptr)
+                texture =   createMipmapped(ctx,*image,magFilter,minFilter,addressMode,mips);
+        }
+        /// CPU 图像:已有 mip 或非 RGBA8 时按其自身级别上传;
+        /// 仅 level0 且 RGBA8 时按 mips 策略补 mip 链
+        else if (auto* image = source->cast<FEImage>())
+        {
+            const auto& ci  =   image->cInfo();
+            if  (ci._levels > 1 || ci._format != FMT_R8G8B8A8_UNORM || ci._layers != 1 || mips == 1)
+                texture =   create(ctx,*image,magFilter,minFilter,addressMode);
+            else
+                texture =   createMipmapped(ctx,*image,magFilter,minFilter,addressMode,mips);
+        }
+        if  (texture != nullptr)
+            texture->setSource(source);
+        return  texture;
     }
 
     ImagePtr    FETextureHelper::cubeImageFromEquirect(FEContext& ctx,const FEImage& equirect,uint size)

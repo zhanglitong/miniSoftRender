@@ -1,7 +1,7 @@
 /// tool.resource.cc Compiler V1.0.0.0
-/// tool.resource.cc Copyright 2018-2024 PR Inc All rights reserved !
+/// tool.resource.cc Copyright 2018-2026 FE Inc All rights reserved !
 /// Warning! All changes made in this file will be lost!
-/// Build Time 2026-10-26 12:37:36.679
+/// Build Time 2026-10-28 15:00:46.782
 
 #include "../inc/FEAssetsMgr.h"
 #pragma warning(push)

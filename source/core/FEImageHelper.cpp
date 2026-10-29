@@ -1,5 +1,6 @@
 #include    <cctype>
 #include    <cstring>
+#include    <climits>
 #include    "FEImageHelper.hpp"
 #include    "../inc/FEContext.hpp"
 /// libktx(external/ktx,KTX-Software v4.4.0,静态库链接进 core)
@@ -511,27 +512,7 @@ namespace   FE
             float*  pixels  =   stbi_loadf(fileName,&width,&height,nullptr,channel);
             if  (pixels == nullptr || width <= 0 || height <= 0)
                 return  nullptr;
-            ImagePtr    image   =   createImage(ctx,uint32(width),uint32(height),fmt);
-            if  (image != nullptr)
-            {
-                const bool      bHalf   =   isHalfFormat(fmt);
-                auto            plane   =   image->plane(0,0);
-                const size_t    count   =   size_t(width) * size_t(channel);
-                for (uint32 y = 0; y < uint32(height); ++y)
-                {
-                    const float*    src =   pixels + size_t(y) * count;
-                    uint8*          dst =   plane.dataOffset<uint8>(y,0);
-                    if  (bHalf)
-                    {
-                        /// stb 无 half 输出,统一从 float 转半精度(保持 IEEE-754 语义)
-                        uint16*     h   =   reinterpret_cast<uint16*>(dst);
-                        for (size_t i = 0; i < count; ++i)
-                            h[i]    =   float16::float2Half(src[i]);
-                    }
-                    else
-                        std::memcpy(dst,src,count * sizeof(float));
-                }
-            }
+            ImagePtr    image   =   createFromDecoded(ctx,pixels,width,height,channel,fmt);
             stbi_image_free(pixels);
             return  image;
         }
@@ -539,15 +520,78 @@ namespace   FE
         uint8*  pixels  =   stbi_load(fileName,&width,&height,nullptr,channel);
         if  (pixels == nullptr || width <= 0 || height <= 0)
             return  nullptr;
-        ImagePtr    image   =   createImage(ctx,uint32(width),uint32(height),fmt);
-        if  (image != nullptr)
-        {
-            auto            plane   =   image->plane(0,0);
-            const uint32    rowByte =   uint32(width) * uint32(channel);
-            for (uint32 y = 0; y < uint32(height); ++y)
-                std::memcpy(plane.dataOffset<uint8>(y,0),pixels + size_t(y) * rowByte,rowByte);
-        }
+        ImagePtr    image   =   createFromDecoded(ctx,pixels,width,height,channel,fmt);
         stbi_image_free(pixels);
+        return  image;
+    }
+
+    ImagePtr    FEImageHelper::loadFromMemory(FEContext& ctx,const void* data,size_t size,FEFormat fmt)
+    {
+        if  (data == nullptr || size == 0 || size > size_t(INT_MAX))
+            return  nullptr;
+        const   stbi_uc*    bytes   =   reinterpret_cast<const stbi_uc*>(data);
+        if  (fmt == FMT_NONE)
+            fmt =   (stbi_is_hdr_from_memory(bytes,int(size)) != 0) ? FMT_R32G32B32A32_FLOAT : FMT_R8G8B8A8_UNORM;
+
+        const int   channel =   loadChannelCount(fmt);
+        if  (channel == 0)
+            return  nullptr;
+
+        int     width   =   0;
+        int     height  =   0;
+        ImagePtr    image   =   nullptr;
+        if  (isFloatFamily(fmt))
+        {
+            float*  pixels  =   stbi_loadf_from_memory(bytes,int(size),&width,&height,nullptr,channel);
+            if  (pixels != nullptr && width > 0 && height > 0)
+                image   =   createFromDecoded(ctx,pixels,width,height,channel,fmt);
+            if  (pixels != nullptr)
+                stbi_image_free(pixels);
+            return  image;
+        }
+
+        uint8*  pixels  =   stbi_load_from_memory(bytes,int(size),&width,&height,nullptr,channel);
+        if  (pixels != nullptr && width > 0 && height > 0)
+            image   =   createFromDecoded(ctx,pixels,width,height,channel,fmt);
+        if  (pixels != nullptr)
+            stbi_image_free(pixels);
+        return  image;
+    }
+
+    ImagePtr    FEImageHelper::createFromDecoded(FEContext& ctx,const void* pixels,int width,int height,int channel,FEFormat fmt)
+    {
+        if  (pixels == nullptr || width <= 0 || height <= 0 || channel <= 0)
+            return  nullptr;
+        ImagePtr    image   =   createImage(ctx,uint32(width),uint32(height),fmt);
+        if  (image == nullptr)
+            return  nullptr;
+        auto            plane   =   image->plane(0,0);
+        if  (isFloatFamily(fmt))
+        {
+            const bool      bHalf   =   isHalfFormat(fmt);
+            const float*    src     =   reinterpret_cast<const float*>(pixels);
+            const size_t    count   =   size_t(width) * size_t(channel);
+            for (uint32 y = 0; y < uint32(height); ++y)
+            {
+                const float*    row =   src + size_t(y) * count;
+                uint8*          dst =   plane.dataOffset<uint8>(y,0);
+                if  (bHalf)
+                {
+                    /// stb 无 half 输出,统一从 float 转半精度(保持 IEEE-754 语义)
+                    uint16*     h   =   reinterpret_cast<uint16*>(dst);
+                    for (size_t i = 0; i < count; ++i)
+                        h[i]    =   float16::float2Half(row[i]);
+                }
+                else
+                    std::memcpy(dst,row,count * sizeof(float));
+            }
+            return  image;
+        }
+
+        const   uint8*  src     =   reinterpret_cast<const uint8*>(pixels);
+        const   uint32  rowByte =   uint32(width) * uint32(channel);
+        for (uint32 y = 0; y < uint32(height); ++y)
+            std::memcpy(plane.dataOffset<uint8>(y,0),src + size_t(y) * rowByte,rowByte);
         return  image;
     }
 

@@ -648,6 +648,25 @@ namespace   FE
             return  tex;
         }
         /// <summary>
+        /// 各贴图槽位的来源对象(FEFileBuffer 压缩字节 / FEImage)作为序列化依赖,
+        /// 保存工程时随材质一起写入;默认纹理与渲染目标纹理没有来源,不参与
+        /// </summary>
+        virtual size_t  queryDepends(ObjectUSet& uSet) const override
+        {
+            const   size_t  nPrev   =   uSet.size();
+            const   TexPtr  maps[]  =   { _baseColorMap, _mrMap, _normalMap,
+                                          _occlusionMap, _emissiveMap, _iriThicknessMap };
+            for (auto& map : maps)
+            {
+                if (map == nullptr)
+                    continue;
+                const   Object& source  =   map->source();
+                if (source != nullptr)
+                    uSet.emplace(source);
+            }
+            return  uSet.size() - nPrev;
+        }
+        /// <summary>
         /// 创建 1x1x6 默认 cubemap(六面同色,单 mip)
         /// </summary>
         TexPtr  createDefaultCube(const float4& color)
