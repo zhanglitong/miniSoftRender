@@ -1,0 +1,69 @@
+<RCC>
+  <qresource prefix="/EditorRes">
+    <file>res/k.png</file>
+    <file>res/search.png</file>
+    <file>res/exact_match.png</file>
+    <file>res/contract.png</file>
+    <file>res/Aa.png</file>
+    <file>res/buttons.bmp</file>
+    <file>res/ico_Add.png</file>
+    <file>res/ico_Delete.png</file>
+    <file>res/ico_FirstFrame.png</file>
+    <file>res/ico_LastFrame.png</file>
+    <file>res/ico_Move.png</file>
+    <file>res/ico_NextFrame.png</file>
+    <file>res/ico_Pause.png</file>
+    <file>res/ico_PreFrame.png</file>
+    <file>res/ico_Redo.png</file>
+    <file>res/ico_Rotate.png</file>
+    <file>res/ico_RunBack.png</file>
+    <file>res/ico_RunFront.png</file>
+    <file>res/ico_Scale.png</file>
+    <file>res/ico_Set.png</file>
+    <file>res/toTarget.png</file>
+    <file>res/ico_Undo.png</file>
+    <!-- 新增: Ribbon 图标 -->
+    <file>res/scene_open.png</file>
+    <file>res/scene_save.png</file>
+    <file>res/cover.reset.png</file>
+    <file>res/model_load.png</file>
+    <file>res/about.png</file>
+    <file>res/undo.png</file>
+    <file>res/redo.png</file>
+    <file>res/move.png</file>
+    <file>res/rot.png</file>
+    <!-- 几何体/节点图标 -->
+    <file>res/mark_box.png</file>
+    <file>res/skybox.png</file>
+    <file>res/mark.png</file>
+    <file>res/node_close.png</file>
+    <!-- 参数化几何体图标 -->
+    <file>res/cube.png</file>
+    <file>res/sphere.png</file>
+    <file>res/cylinder.png</file>
+    <file>res/spherical_cap.png</file>
+    <file>res/cone_frustum.png</file>
+    <file>res/pyramid_frustum.png</file>
+    <file>res/square_pyramid.png</file>
+    <file>res/torus.png</file>
+    <file>res/torus_sector.png</file>
+    <file>res/torus_solid.png</file>
+    <file>res/torus_knot.png</file>
+    <file>res/hyperboloid.png</file>
+    <!-- 对齐图标 -->
+    <file>res/bbox_center.png</file>
+    <file>res/maximum.png</file>
+    <file>res/minimum.png</file>
+    <file>res/align_back.png</file>
+    <file>res/align_bottom.png</file>
+    <file>res/align_front.png</file>
+    <file>res/align_left.png</file>
+    <file>res/align_right.png</file>
+    <file>res/align_top.png</file>
+    <file>res/align_rotate.png</file>
+    <file>res/align_scale.png</file>
+    <file>res/align_x.png</file>
+    <file>res/align_y.png</file>
+    <file>res/align_z.png</file>
+  </qresource>
+</RCC>
