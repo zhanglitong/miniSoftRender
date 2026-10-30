@@ -2463,22 +2463,44 @@ namespace   FE
         /// </summary>
         ImGui::SetNextWindowPos(ImVec2(316.0f,kRibbonH + 8.0f),ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(300.0f,360.0f),ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("属性",&_propertyOpen))
+        /// <summary>
+        /// 数据来源:模型树当前选中节点;未选中时面板显示提示文字。
+        /// 约束目标拾取期间改为固定显示约束所有者对象(拾取点击只更新候选目标)
+        /// </summary>
+        FENode* node    =   nullptr;
+        Object  selected    =   _propertyPanel.pickingOwner();
+        if (!selected)
+            selected        =   _modelTree.selected();
+        if (selected)
+            node            =   selected->cast<FENode>();
+        /// <summary>
+        /// 标题栏显示当前节点/对象名称;"###属性"保证窗口 ID 不随名称变化,
+        /// 改名或切换选中时窗口位置/停靠状态保持不变
+        /// </summary>
+        String  title   =   "属性";
+        if (selected)
         {
-            /// <summary>
-            /// 数据来源:模型树当前选中节点;未选中时面板显示提示文字
-            /// </summary>
-            FENode* node    =   nullptr;
-            Object  selected    =   _modelTree.selected();
-            if (selected)
-                node            =   selected->cast<FENode>();
+            const   char*   name    =   (node != nullptr && node->name() != nullptr)
+                                      ? node->name() : selected->className();
+            title  +=  " - ";
+            title  +=  (name != nullptr && name[0] != '\0') ? name : "(未命名)";
+        }
+        title  +=  "###属性";
+        if (ImGui::Begin(title.c_str(),&_propertyOpen))
+        {
             /// <summary>
             /// 时间线提供当前时间的关键帧状态(check)与添加/移除关键帧。
             /// 旋转值由节点自己的累计欧拉角账本提供,面板不再需要额外参数
             /// </summary>
-            _propertyPanel.draw(node,&_timeLine);
+            _propertyPanel.draw(node,&_timeLine,&_modelTree.selection());
         }
         ImGui::End();
+        /// <summary>
+        /// 拾取结束后把模型树选中恢复回约束所有者节点,避免属性面板跳到被拾取对象
+        /// </summary>
+        const   Object  restore =   _propertyPanel.takeRestoreSelection();
+        if (restore)
+            _modelTree.select(restore);
     }
 
     void    FEEditorUi::drawAxisSetting()

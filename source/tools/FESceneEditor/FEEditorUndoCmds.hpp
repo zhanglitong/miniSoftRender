@@ -363,10 +363,11 @@ namespace   FE
     };
 
     /// <summary>
-    /// 动画命令(右键"创建动画/删除动画/添加到播放器"):
+    /// 动画命令(右键"创建动画/删除动画/添加到播放器/从播放器移除"):
     /// AM_Attach  仅在节点上挂载动画组件(不登记动画系统),undo 摘除;
     /// AM_Detach  从动画系统摘除并删除组件,undo 重新添加;
-    /// AM_Register 把动画登记到指定播放器,undo 恢复构造时的归属
+    /// AM_Register 把动画登记到指定播放器,undo 恢复构造时的归属;
+    /// AM_Unregister 把动画从指定播放器移除,undo 重新登记回该播放器
     /// 命令持有动画组件的强引用,undo/redo 往返期间对象保持存活
     /// </summary>
     class   FEEditorAnimationCmd :public FEUndoCmd
@@ -386,6 +387,10 @@ namespace   FE
             /// 添加到播放器:登记到指定播放器
             /// </summary>
             AM_Register,
+            /// <summary>
+            /// 从播放器移除:取消指定播放器的登记
+            /// </summary>
+            AM_Unregister,
         };
     public:
         FEEditorAnimationCmd(FEScene& scene,const Node& node,const Animations& anims,Mode mode,const String& text
@@ -462,6 +467,7 @@ namespace   FE
                 }
                 break;
             case AM_Register:   registerAnims(true);                    break;
+            case AM_Unregister: registerAnims(false);                   break;
             }
         }
         virtual void    undo()  override
@@ -477,6 +483,8 @@ namespace   FE
                     applyPose(_posePos,_poseScale,_poseRot);
                 break;
             case AM_Register:   undoRegister();                         break;
+            /// 撤销"从播放器移除":动画重新登记回被移除的那个播放器
+            case AM_Unregister: registerAnims(true);                    break;
             }
         }
     protected:

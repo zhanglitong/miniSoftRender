@@ -1,5 +1,7 @@
 #pragma     once
 
+#include    <algorithm>
+
 #include    "FEConstraint.hpp"
 #include    "../node/FENode.hpp"
 
@@ -16,6 +18,8 @@ namespace FE
     /// 默认 maintainOffset 为 true，组件附加到节点(attach)时自动记录
     /// 当前世界位置与目标的偏移，使吸附瞬间不发生位移；
     /// 设为 false 或显式调用 recordOffset 可手动控制
+    /// 另可逐轴限制取值范围：某轴 setAxisLimit(true) 后，求解结果在该轴被夹到
+    /// [minValue,maxValue] 区间内(默认三轴均不限制，行为与旧版一致)
     /// </summary>
     class   FE_API  FEConstraintTrans :public FEConstraint
     {
@@ -71,7 +75,50 @@ namespace FE
             _maintainOffset =   bFlag;
         }
         /// <summary>
-        /// 调用该函数，返回约束结果
+        /// 各轴取值范围下限
+        /// </summary>
+        inline  const real3&   minValue() const
+        {
+            return  _min;
+        }
+        /// <summary>
+        /// 各轴取值范围上限
+        /// </summary>
+        inline  const real3&   maxValue() const
+        {
+            return  _max;
+        }
+        /// <summary>
+        /// 设置各轴取值范围下限
+        /// </summary>
+        inline  void    setMinValue(const real3& value)
+        {
+            _min    =   value;
+        }
+        /// <summary>
+        /// 设置各轴取值范围上限
+        /// </summary>
+        inline  void    setMaxValue(const real3& value)
+        {
+            _max    =   value;
+        }
+        /// <summary>
+        /// 指定轴是否限制取值范围
+        /// </summary>
+        inline  bool    axisLimit(int axis) const
+        {
+            return  (axis >= 0 && axis < 3) ? _axisLimit[axis] : false;
+        }
+        /// <summary>
+        /// 设置指定轴是否限制取值范围
+        /// </summary>
+        inline  void    setAxisLimit(int axis,bool bFlag)
+        {
+            if (axis >= 0 && axis < 3)
+                _axisLimit[axis]    =   bFlag;
+        }
+        /// <summary>
+        /// 调用该函数，返回约束结果；勾选的轴把结果夹到 [最小值,最大值] 内
         /// </summary>
         /// <param name="currentWorld"></param>
         /// <param name="time"></param>
@@ -80,7 +127,16 @@ namespace FE
         {
             UNUSED(time);
             FETransform   desired   =   currentWorld;
-            desired.setPosition(effectiveTarget() + _offset.position());
+            real3         position  =   effectiveTarget() + _offset.position();
+            for (int i = 0; i < 3; ++i)
+            {
+                if (!_axisLimit[i])
+                    continue;
+                const   real    low     =   std::min(_min[i],_max[i]);
+                const   real    high    =   std::max(_min[i],_max[i]);
+                position[i] =   std::min(std::max(position[i],low),high);
+            }
+            desired.setPosition(position);
             return                  desired;
         }
         /// <summary>
@@ -128,6 +184,18 @@ namespace FE
         /// 附加时是否自动记录偏移
         /// </summary>
         bool        _maintainOffset =   true;
+        /// <summary>
+        /// 各轴取值范围下限(默认 -10)
+        /// </summary>
+        real3       _min            =   real3(-10.0f,-10.0f,-10.0f);
+        /// <summary>
+        /// 各轴取值范围上限(默认 10)
+        /// </summary>
+        real3       _max            =   real3(10.0f,10.0f,10.0f);
+        /// <summary>
+        /// 各轴是否限制取值范围(默认不限制,行为与旧版一致)
+        /// </summary>
+        bool        _axisLimit[3]   =   {   false,false,false   };
     };
 
     using   ConstraintTrans =   SharedPtr<FEConstraintTrans>;

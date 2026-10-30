@@ -77,6 +77,14 @@ namespace   FE
             _rowsDirty  =   true;
         }
         /// <summary>
+        /// 单选指定对象(供属性面板拾取结束后把选中恢复到约束所有者节点)
+        /// </summary>
+        /// <param name="object">目标对象</param>
+        void    select(const Object& object)
+        {
+            selectSingle(object);
+        }
+        /// <summary>
         /// 按名称递归查找节点并单选(供脚本自动化按名选中节点使用)
         /// </summary>
         /// <param name="name">节点名称(精确匹配)</param>
@@ -175,6 +183,12 @@ namespace   FE
         /// <param name="node">目标节点</param>
         /// <param name="playbackName">目标播放器名(来自动画系统已有播放器)</param>
         void    addAnimationsToPlayback(Node node,const String& playbackName);
+        /// <summary>
+        /// 从播放器移除:把节点上已加入该播放器的动画取消登记,走撤销栈
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <param name="playbackName">目标播放器名(来自动画系统已有播放器)</param>
+        void    removeAnimationsFromPlayback(Node node,const String& playbackName);
         /// <summary>
         /// 添加/移除指定类型的约束(已存在则移除),走撤销栈
         /// </summary>

@@ -769,7 +769,7 @@ namespace   FE
         ImGui::Separator();
 
         /// <summary>
-        /// 动画子菜单:创建动画 / 添加到播放器(选择动画系统已有播放器) / 删除动画
+        /// 动画子菜单:创建动画 / 播放器条目(未加入为"添加到播放器: 名",已加入为"从播放器移除: 名") / 删除动画
         /// </summary>
         FEAnimationSys*     animSys     =   _scene->animationSystem();
         const   auto        nodeAnims   =   node->objects<FEAnimation>();
@@ -777,33 +777,37 @@ namespace   FE
         {
             if (ImGui::MenuItem("创建动画"))
                 createAnimation(node);
-            const   bool    canAdd  =   animSys != nullptr && !nodeAnims.empty();
-            if (ImGui::BeginMenu("添加到播放器",canAdd))
+            if (ImGui::MenuItem("删除动画",nullptr,false,!nodeAnims.empty()))
+                removeAnimations(node);
+            const   bool    canPick =   animSys != nullptr && !nodeAnims.empty();
+            if (ImGui::BeginMenu("添加到播放器",canPick))
             {
-                if (!canAdd || animSys->playbacks().empty())
+                if (!canPick || animSys->playbacks().empty())
                     ImGui::MenuItem("暂无播放器",nullptr,false,false);
                 else
                 {
                     for (auto& var : animSys->playbacks())
                     {
                         Playback&   playback    =   var.second;
-                        bool    addable =   false;
-                        for (const FEAnimation* anim : nodeAnims)
-                        {
-                            if (!animationInPlayback(playback.get(),anim))
+                        /// 统计该播放器已包含的动画数量:全部包含时条目改为"从播放器移除"
+                        const   int     inside  =   int(std::count_if(nodeAnims.begin(),nodeAnims.end()
+                            ,[&playback](const FEAnimation* anim)
                             {
-                                addable =   true;
-                                break;
-                            }
+                                return  animationInPlayback(playback.get(),anim);
+                            }));
+                        const   bool    allInside   =   inside == int(nodeAnims.size());
+                        const   String  label   =   (allInside ? "从播放器移除: " : "添加到播放器: ") + var.first;
+                        if (ImGui::MenuItem(label.c_str()))
+                        {
+                            if (allInside)
+                                removeAnimationsFromPlayback(node,var.first);
+                            else
+                                addAnimationsToPlayback(node,var.first);
                         }
-                        if (ImGui::MenuItem(var.first.c_str(),nullptr,false,addable))
-                            addAnimationsToPlayback(node,var.first);
                     }
                 }
                 ImGui::EndMenu();
             }
-            if (ImGui::MenuItem("删除动画",nullptr,false,!nodeAnims.empty()))
-                removeAnimations(node);
             ImGui::EndMenu();
         }
 
@@ -1032,6 +1036,43 @@ namespace   FE
             sys->addObject(anim.get(),playbackName);
     }
 
+    void    FEModelTree::removeAnimationsFromPlayback(Node node,const String& playbackName)
+    {
+        if (node == nullptr || _scene == nullptr)
+            return;
+        FEAnimationSys* sys =   _scene->animationSystem();
+        if (sys == nullptr)
+            return;
+        Playback    playback    =   nullptr;
+        auto        itr         =   sys->playbacks().find(playbackName);
+        if (itr != sys->playbacks().end())
+            playback    =   itr->second;
+        if (playback == nullptr)
+            return;
+        Animations      anims;
+        for (FEAnimation* anim : node->objects<FEAnimation>())
+        {
+            if (anim != nullptr && animationInPlayback(playback.get(),anim))
+                anims.emplace_back(anim);
+        }
+        if (anims.empty())
+            return;
+        /// <summary>
+        /// 动画登记状态变化不会触发节点树事件,这里手动置脏刷新动画标记
+        /// </summary>
+        _rowsDirty  =   true;
+        if (_undoStack != nullptr)
+        {
+            _undoStack->push(new FEEditorAnimationCmd(*_scene,node,anims
+                                                      ,FEEditorAnimationCmd::AM_Unregister
+                                                      ,"从播放器移除: " + playbackName
+                                                      ,playbackName));
+            return;
+        }
+        for (Animation& anim : anims)
+            sys->removeObject(anim.get());
+    }
+
     bool    FEModelTree::hasConstraint(Node node,ConstraintKind kind) const
     {
         if (node == nullptr)
@@ -1110,6 +1151,10 @@ namespace   FE
             return;
 
         const   bool    add =   !hasConstraint(node,kind);
+        /// <summary>
+        /// 约束是节点上的组件,增删不会触发节点树事件,这里手动置脏刷新行内约束标记
+        /// </summary>
+        _rowsDirty  =   true;
         if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorConstraintCmd(*_scene,node,constraint,add
