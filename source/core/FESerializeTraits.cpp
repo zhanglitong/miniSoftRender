@@ -256,9 +256,17 @@ namespace   FE
             {
                 Object  result  =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
                 if (result == nullptr)
+                {
+                    LOG_ERR("FENode::deserialize/child %u read failed,child dropped",i);
                     continue;
-                else
-                    _childs.emplace_back(result->as<FENode>());
+                }
+                Node    child   =   result->as<FENode>();
+                if (child == nullptr)
+                {
+                    LOG_ERR("FENode::deserialize/child %u is not a node,child dropped",i);
+                    continue;
+                }
+                _childs.emplace_back(child);
             }
         }
     }
@@ -383,10 +391,16 @@ namespace   FE
             {
                 auto    ptr =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
                 if (ptr == nullptr)
+                {
+                    LOG_ERR("FEMesh::deserialize/primitive %u read failed,dropped",i);
                     continue;
+                }
                 auto    pri =   ptr->cast<FEPrimitive>();
                 if (pri == nullptr) 
+                {
+                    LOG_ERR("FEMesh::deserialize/primitive %u is not a primitive,dropped",i);
                     continue;
+                }
                 _primitives.push_back(pri);
             }
         }
@@ -406,10 +420,16 @@ namespace   FE
                 FEAttribute attr    =   reader.readValue<FEAttribute>();
                 auto        ptr     =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
                 if (ptr == nullptr)
+                {
+                    LOG_ERR("FEMesh::deserialize/buffer %u read failed,dropped",i);
                     continue;
+                }
                 auto        obj     =   ptr->cast<FEBuffer>();
                 if (obj == nullptr) 
+                {
+                    LOG_ERR("FEMesh::deserialize/buffer %u is not a buffer,dropped",i);
                     continue;
+                }
                 FEAttribyteBuffer   data(_ctx,obj,attr);
                 _buffers.push_back(data);
             }

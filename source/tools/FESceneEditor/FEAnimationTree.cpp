@@ -48,48 +48,101 @@ namespace
         _anchor         =   Object();
         _searchBuf[0]   =   '\0';
         _searchQuery.clear();
+        _dirty          =   true;
     }
 
-    void    FEAnimationTree::reload(FEAnimationSys* sys)
+    bool    FEAnimationTree::reload(FEAnimationSys* sys)
     {
-        PlaybackEntries entries;
-        if (sys != nullptr)
+        /// <summary>
+        /// 动画树默认有一个默认播放器:绑定场景后补建一次;
+        /// 用户删除后不再自动重建,避免"删不掉"
+        /// </summary>
+        if (sys != nullptr && !_defaultEnsured)
         {
-            /// <summary>
-            /// 动画树默认有一个默认播放器:绑定场景后补建一次;
-            /// 用户删除后不再自动重建,避免"删不掉"
-            /// </summary>
-            if (!_defaultEnsured)
-            {
-                sys->getOrCreate();
-                _defaultEnsured =   true;
-            }
+            sys->getOrCreate();
+            _defaultEnsured =   true;
+        }
+
+        /// <summary>
+        /// 先做轻量比较:播放器与动画列表未变化时跳过重建,
+        /// 避免每帧重新分配容器与字符串(仅供比较,不产生新的数据副本)
+        /// </summary>
+        bool    changed =   false;
+        if (sys == nullptr)
+        {
+            changed =   !_playbackEntries.empty();
+        }
+        else
+        {
+            size_t  index   =   0;
             for (auto& var : sys->playbacks())
             {
                 if (!var.second)
                     continue;
-                PlaybackEntry   entry;
-                entry._playback =   var.second;
-                for (const Animation& anim : var.second->objects())
+                if (index >= _playbackEntries.size()
+                    || _playbackEntries[index]._playback != var.second)
                 {
-                    if (anim)
-                        entry._anims.push_back(anim);
+                    changed =   true;
+                    break;
                 }
-                entries.push_back(std::move(entry));
+                const   Animations& cur     =   var.second->objects();
+                const   Animations& old     =   _playbackEntries[index]._anims;
+                size_t  animIndex           =   0;
+                for (const Animation& anim : cur)
+                {
+                    if (!anim)
+                        continue;
+                    if (animIndex >= old.size() || old[animIndex] != anim)
+                    {
+                        changed =   true;
+                        break;
+                    }
+                    ++animIndex;
+                }
+                if (!changed && animIndex != old.size())
+                    changed =   true;
+                if (changed)
+                    break;
+                ++index;
             }
+            if (!changed && index != _playbackEntries.size())
+                changed =   true;
         }
-        _playbackEntries.swap(entries);
 
-        /// <summary>
-        /// 汇总各播放器的动画,供时间线计算范围与查找轨道
-        /// </summary>
-        Animations  anims;
-        for (const PlaybackEntry& entry : _playbackEntries)
+        if (changed)
         {
-            for (const Animation& anim : entry._anims)
-                anims.push_back(anim);
+            PlaybackEntries entries;
+            if (sys != nullptr)
+            {
+                for (auto& var : sys->playbacks())
+                {
+                    if (!var.second)
+                        continue;
+                    PlaybackEntry   entry;
+                    entry._playback =   var.second;
+                    for (const Animation& anim : var.second->objects())
+                    {
+                        if (anim)
+                            entry._anims.push_back(anim);
+                    }
+                    entries.push_back(std::move(entry));
+                }
+            }
+            _playbackEntries.swap(entries);
+
+            /// <summary>
+            /// 汇总各播放器的动画,供时间线计算范围与查找轨道
+            /// </summary>
+            Animations  anims;
+            for (const PlaybackEntry& entry : _playbackEntries)
+            {
+                for (const Animation& anim : entry._anims)
+                    anims.push_back(anim);
+            }
+            _anims.swap(anims);
+            _dirty  =   true;
         }
-        _anims.swap(anims);
+
         /// <summary>
         /// 活动动画已不在动画系统中(如在模型树里被删除)时立即释放,
         /// 避免时间线继续显示已删除动画的轨道
@@ -108,6 +161,15 @@ namespace
             if (!found)
                 _activeAnim =   Animation();
         }
+        return  changed;
+    }
+
+    bool    FEAnimationTree::rebuildIfDirty()
+    {
+        if (!_dirty)
+            return  false;
+        rebuild();
+        return  true;
     }
 
     void    FEAnimationTree::rebuild()
@@ -243,6 +305,7 @@ namespace
             _selected   =   _selection.empty() ? Object() : _selection.back();
         if (_anchor && !isSelected(_anchor))
             _anchor     =   Object();
+        _dirty  =   false;
     }
 
     bool    FEAnimationTree::isNodeCollapsed(const Node& node) const
@@ -307,14 +370,23 @@ namespace
         ImGui::SameLine();
         ImGui::PushItemWidth(searchW);
         if (ImGui::InputText("##tl_search",_searchBuf,sizeof(_searchBuf),ImGuiInputTextFlags_EnterReturnsTrue))
+        {
             _searchQuery.assign(_searchBuf);
+            _dirty  =   true;
+        }
         ImGui::PopItemWidth();
         ImGui::SameLine();
         if (iconButton(kGlyphCaseMatch,text::kCaseMatchShort,text::kCaseMatch,_searchCase))
+        {
             _searchCase =   !_searchCase;
+            _dirty      =   true;
+        }
         ImGui::SameLine();
         if (iconButton(kGlyphWholeMatch,text::kWholeMatchShort,text::kWholeMatch,_searchWhole))
+        {
             _searchWhole    =   !_searchWhole;
+            _dirty          =   true;
+        }
     }
 
     void    FEAnimationTree::drawNames(const Layout& layout) const
@@ -460,6 +532,7 @@ namespace
             {
                 bool&   collapsed   =   _collapsedPlaybacks[item.playback().get()];
                 collapsed   =   !collapsed;
+                _dirty      =   true;
             }
             return  true;
         case FEAnimItem::Type::Node:
@@ -470,6 +543,7 @@ namespace
             {
                 bool&   collapsed   =   _collapsedNodes[item.node().get()];
                 collapsed   =   !collapsed;
+                _dirty      =   true;
             }
             return  true;
         case FEAnimItem::Type::Animation:
@@ -481,6 +555,7 @@ namespace
                 bool&   collapsed   =   _collapsed[anim];
                 collapsed   =   !collapsed;
                 _activeAnim =   anim;
+                _dirty      =   true;
             }
             return  true;
         case FEAnimItem::Type::Track:

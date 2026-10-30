@@ -97,10 +97,16 @@ namespace   FE
             auto    object  =   FEObjectHelper::readObject(_ctx,reader,version,ctx);
             assert(object != nullptr);
             if (object == nullptr)
+            {
+                LOG_ERR("FEImage::deserialize/layer %u read failed,dropped",i);
                 continue;
+            }
             auto    buffer  =   object->as<FEBuffer>();
             if (buffer == nullptr)
+            {
+                LOG_ERR("FEImage::deserialize/layer %u is not a buffer,dropped",i);
                 continue;
+            }
             cInf._buffers.emplace_back(buffer);
         }
     }

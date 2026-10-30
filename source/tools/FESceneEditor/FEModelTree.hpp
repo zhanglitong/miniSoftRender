@@ -430,5 +430,9 @@ namespace   FE
         /// 下一帧把焦点交给输入框
         /// </summary>
         bool                    _renameFocus    =   false;
+        /// <summary>
+        /// 原名称超出重命名缓冲长度,输入框已清空(避免把截断后的名字写回节点)
+        /// </summary>
+        bool                    _renameTruncated    =   false;
     };
 }

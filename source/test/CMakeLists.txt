@@ -6,6 +6,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
 set_target_properties(imgui PROPERTIES FOLDER "3rdparty/imgui")
 
 add_subdirectory ("test.uuid")
+add_subdirectory ("test.core")
 add_subdirectory ("test.http")
 add_subdirectory ("test.http.page")
 add_subdirectory ("test.format")

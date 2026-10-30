@@ -64,9 +64,15 @@ namespace   FE
             do
             {  
                 if(reader.read(infor)  !=  sizeof(infor))
+                {
+                    LOG_ERR("readObject/chunk header truncated at %zu",nCur);
                     break;
+                }
                 if(reader.read(clsId)  !=  sizeof(clsId))
+                {
+                    LOG_ERR("readObject/chunk class id truncated at %zu",nCur);
                     break;
+                }
                 /// 相同,直接使用构建器
                 if (clsId == xctx.preCLSId)
                 {
@@ -80,6 +86,7 @@ namespace   FE
                 }
                 if (result == nullptr)
                 {
+                    LOG_ERR("readObject/failed to create object %s at %zu,skip chunk", clsId.toString().c_str(),nCur);
                     reader.skip(infor._length - sizeof(infor) - sizeof(clsId));
                     break;
                 }   
@@ -112,7 +119,7 @@ namespace   FE
             if (pCreator == nullptr)
             {
                 auto    name    =   clsId.toString();
-                LOG_INF("_ctx.objectCreator().isExist(%s) return nullptr",name.c_str());
+                LOG_ERR("_ctx.objectCreator().isExist(%s) return nullptr",name.c_str());
                 return  nullptr;
             }
             
@@ -120,7 +127,7 @@ namespace   FE
             if (result == nullptr)
             {
                 auto    name    =   clsId.toString();
-                LOG_INF("(*pCreator)(_ctx,{}) return nullptr");
+                LOG_ERR("(*pCreator)(_ctx,{}) return nullptr for %s",name.c_str());
                 return  nullptr;
             }
             return  result;

@@ -977,7 +977,15 @@ namespace   FE
         if (ImGui::MenuItem("重命名..."))
         {
             _renameTarget   =   object;
-            std::snprintf(_renameBuf,sizeof(_renameBuf),"%s",objectName(object).c_str());
+            const   String  current     =   objectName(object);
+            /// <summary>
+            /// 名称超出输入缓冲时不写入半截名字,改为提示用户重新输入
+            /// </summary>
+            _renameTruncated   =   current.size() >= sizeof(_renameBuf);
+            if (_renameTruncated)
+                _renameBuf[0]   =   '\0';
+            else
+                std::snprintf(_renameBuf,sizeof(_renameBuf),"%s",current.c_str());
             _renamePopup    =   true;
             _renameFocus    =   true;
         }
@@ -1096,6 +1104,9 @@ namespace   FE
             return;
 
         ImGui::TextUnformatted("节点名称");
+        if (_renameTruncated)
+            ImGui::TextColored(ImVec4(0.95f,0.72f,0.25f,1.0f),
+                               "原名称超出 %d 字符,已清空,请重新输入",int(ui::kRenameBufSize) - 1);
         ImGui::PushItemWidth(240.0f);
         /// <summary>
         /// 弹窗刚打开时把键盘焦点交给输入框,可直接输入
@@ -1119,12 +1130,14 @@ namespace   FE
                 node    =   _renameTarget->cast<FENode>();
             if (node && _renameBuf[0] != '\0')
                 renameNode(node,_renameBuf);
-            _renameTarget   =   Object();
+            _renameTarget       =   Object();
+            _renameTruncated    =   false;
             ImGui::CloseCurrentPopup();
         }
         else if (cancel)
         {
-            _renameTarget   =   Object();
+            _renameTarget       =   Object();
+            _renameTruncated    =   false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();

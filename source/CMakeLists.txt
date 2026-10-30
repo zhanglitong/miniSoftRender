@@ -6,7 +6,7 @@ add_subdirectory ("test")
 add_subdirectory ("renderSystem")
 
 # ===== Shader 编译自动化（公共位置）=====
-# 所有可执行程序经 core 传递依赖 CompileShaders，构建前自动把
+# 所有可执行程序经 core 传递依赖 CompileShaders，构建前自动把 
 # bin/data/shader/source 下的着色器编译为 cache 中的 SPIR-V，
 # 避免 cache 被清后运行时缺 shader 崩溃（VKCPipeline 空指针）。
 set(SHADER_SRC_DIR      ${CMAKE_SOURCE_DIR}/bin/data/shader/source)

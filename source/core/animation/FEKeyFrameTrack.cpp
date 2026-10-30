@@ -5,6 +5,9 @@
 #include    "../inc/FENodeHelper.hpp"
 #include    "../inc/animation/FEKeyFrameTrack.hpp"
 
+#include    <type_traits>
+#include    <variant>
+
 namespace FE
 {
     using   KFOff   =   FEKeyFrameTrack::KFOff;
@@ -221,6 +224,23 @@ namespace FE
                 case 12:    _values =   RgbaObject(ptr->as<FEColorObject>());       break;
                 case 13:    _values =   AlphaObject(ptr->as<FEAlphaObject>());      break;
                 }
+                /// <summary>
+                /// 类型与文件中记录的不一致时值为空,后续采样会得到空值,这里上报便于定位损坏数据
+                /// </summary>
+                const   bool    castOk  =   std::visit([](auto&& val) -> bool
+                {
+                    using   T   =   std::decay_t<decltype(val)>;
+                    if constexpr (std::is_same_v<T,std::monostate>)
+                        return  false;
+                    else
+                        return  val != nullptr;
+                },_values);
+                if (!castOk)
+                    LOG_ERR("FEKeyFrameTrack::deserialize/value array type %u mismatch",vIndex);
+            }
+            else
+            {
+                LOG_ERR("FEKeyFrameTrack::deserialize/value array type %u read failed",vIndex);
             }
         }
             

@@ -47,6 +47,20 @@ namespace
     /// 文件名为空时确认按钮的淡显透明度
     /// </summary>
     constexpr   float   kDisabledAlpha      =   0.45f;
+
+    /// <summary>
+    /// 写入固定长度缓冲:内容超长时截断并返回 false,由调用方给出提示,避免静默改写
+    /// </summary>
+    bool    copyToBuf(char* dst,size_t size,const std::string& src)
+    {
+        if (size == 0)
+            return  false;
+        const   size_t  n   =   std::min(src.size(),size - 1);
+        if (n > 0)
+            std::memcpy(dst,src.data(),n);
+        dst[n]  =   '\0';
+        return  n == src.size();
+    }
 }
 
     void    FEFileDialog::open(Mode mode,const std::string& title,const std::vector<Filter>& filters,
@@ -58,13 +72,12 @@ namespace
         _filterIndex    =   0;
         _ext    =   _filters.empty() ? std::string() : _filters.front()._ext;
         _notice.clear();
+        _truncNotice.clear();
         _selected   =   -1;
         _nameBuf[0] =   '\0';
-        if (!defaultName.empty())
-        {
-            strncpy(_nameBuf,defaultName.c_str(),sizeof(_nameBuf) - 1);
-            _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
-        }
+        if (!defaultName.empty()
+            && !copyToBuf(_nameBuf,sizeof(_nameBuf),defaultName))
+            _truncNotice =   "文件名过长,已截断:" + defaultName;
         /// <summary>
         /// 初始目录不存在时回落到当前工作目录
         /// </summary>
@@ -81,6 +94,8 @@ namespace
     {
         _mode   =   kNone;
         _entries.clear();
+        _notice.clear();
+        _truncNotice.clear();
         _dirty  =   true;
     }
 
@@ -154,8 +169,8 @@ namespace
 
     void    FEFileDialog::setPathBuf(const std::string& utf8Path)
     {
-        strncpy(_pathBuf,utf8Path.c_str(),sizeof(_pathBuf) - 1);
-        _pathBuf[sizeof(_pathBuf) - 1]  =   '\0';
+        if (!copyToBuf(_pathBuf,sizeof(_pathBuf),utf8Path))
+            _truncNotice    =   "路径过长,已截断";
     }
 
     void    FEFileDialog::gotoPath(const std::string& text)
@@ -194,8 +209,8 @@ namespace
         /// </summary>
         if (std::filesystem::is_regular_file(target,ec) && !ec)
         {
-            strncpy(_nameBuf,target.filename().u8string().c_str(),sizeof(_nameBuf) - 1);
-            _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
+            if (!copyToBuf(_nameBuf,sizeof(_nameBuf),target.filename().u8string()))
+                _truncNotice    =   "文件名过长,已截断";
             enter(target.parent_path());
             return;
         }
@@ -364,8 +379,8 @@ namespace
                     }
                     else
                     {
-                        strncpy(_nameBuf,entry._name.c_str(),sizeof(_nameBuf) - 1);
-                        _nameBuf[sizeof(_nameBuf) - 1]  =   '\0';
+                        if (!copyToBuf(_nameBuf,sizeof(_nameBuf),entry._name))
+                            _truncNotice    =   "文件名过长,已截断:" + entry._name;
                         if (ImGui::IsMouseDoubleClicked(0))
                             confirmed   =   true;
                     }
@@ -375,6 +390,11 @@ namespace
             ImGui::EndChild();
             if (!_notice.empty())
                 ImGui::TextDisabled("%s",_notice.c_str());
+            /// <summary>
+            /// 输入缓冲被截断时给出可见提示,避免用户以为写入的是完整路径/文件名
+            /// </summary>
+            if (!_truncNotice.empty())
+                ImGui::TextColored(ImVec4(0.95f,0.72f,0.25f,1.0f),"%s",_truncNotice.c_str());
 
             /// <summary>
             /// 文件名输入框:回车等同确认

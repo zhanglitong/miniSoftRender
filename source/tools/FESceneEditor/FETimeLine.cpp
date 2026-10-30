@@ -904,6 +904,10 @@ namespace
     {
         if (_scene == nullptr)
             return;
+        /// <summary>
+        /// 数据修改后行列表(轨道/关键帧)可能变化,标记下一帧重建
+        /// </summary>
+        _tree.markDirty();
         FEAnimationSys* system  =   _scene->animationSystem();
         if (system != nullptr)
         {
@@ -925,10 +929,11 @@ namespace
         _iconFont   =   iconFont;
         ensureNode();
         /// <summary>
-        /// 动画树数据来自动画系统:只有"添加到播放器"登记的动画才会显示
+        /// 动画树数据来自动画系统:只有"添加到播放器"登记的动画才会显示;
+        /// 播放器/动画列表未变化时不重建行列表(仅数据失效时才重建)
         /// </summary>
         _tree.reload(_scene->animationSystem());
-        _tree.rebuild();
+        _tree.rebuildIfDirty();
 
         ImGuiIO&    io          =   ImGui::GetIO();
         const   float   displayW    =   io.DisplaySize.x;

@@ -92,14 +92,24 @@ namespace   FE
         /// </summary>
         void    reset();
         /// <summary>
-        /// 从动画系统重新收集已登记的动画
+        /// 从动画系统重新收集已登记的动画;仅在播放器/动画列表发生变化时才重建数据
         /// </summary>
         /// <param name="sys">动画系统(动画树的数据来源)</param>
-        void    reload(FEAnimationSys* sys);
+        /// <returns>数据是否发生变化(变化时需要重建行列表)</returns>
+        bool    reload(FEAnimationSys* sys);
         /// <summary>
         /// 重建行列表(节点 + 动画 + 轨道),并按当前搜索条件过滤
         /// </summary>
         void    rebuild();
+        /// <summary>
+        /// 标记行列表失效(数据修改后下一帧重建,避免每帧无条件重建)
+        /// </summary>
+        void    markDirty()         {   _dirty  =   true;  }
+        /// <summary>
+        /// 仅在失效时重建行列表
+        /// </summary>
+        /// <returns>是否执行了重建</returns>
+        bool    rebuildIfDirty();
         const   Animations&             animations() const  {   return  _anims;   }
         Animations&                     animations()        {   return  _anims;   }
         const   AnimItems&              rows() const        {   return  _rows;    }
@@ -167,6 +177,10 @@ namespace   FE
         /// 行列表
         /// </summary>
         AnimItems                   _rows;
+        /// <summary>
+        /// 行列表是否需要重建(动画列表/轨道/折叠/搜索条件变化时置位)
+        /// </summary>
+        bool                        _dirty      =   true;
         /// <summary>
         /// 动画树选中集合(行对象指针;主选中项用于 Shift 范围锚点)
         /// </summary>

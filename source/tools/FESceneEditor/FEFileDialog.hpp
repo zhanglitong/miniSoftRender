@@ -169,6 +169,10 @@ namespace   FE
         /// </summary>
         std::string _notice;
         /// <summary>
+        /// 输入缓冲被截断的提示(文件名/路径超出固定缓冲长度)
+        /// </summary>
+        std::string _truncNotice;
+        /// <summary>
         /// 首次绘制时需要 SetNextWindowSize
         /// </summary>
         bool        _firstFrame =   true;
