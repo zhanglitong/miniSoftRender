@@ -5,6 +5,8 @@
 
 #include    "FEFileDialog.hpp"
 
+#include    "FEUiStrings.hpp"
+
 #include    "../../../inc/FEUnused.hpp"
 
 #include    <algorithm>
@@ -15,6 +17,38 @@
 
 namespace   FE
 {
+namespace
+{
+    /// <summary>
+    /// 首次打开时的对话框尺寸上限与屏幕边距
+    /// </summary>
+    constexpr   float   kDialogMaxW         =   720.0f;
+    constexpr   float   kDialogMaxH         =   460.0f;
+    constexpr   float   kDialogScreenMargin =   40.0f;
+    /// <summary>
+    /// 文件列表最小高度/宽度
+    /// </summary>
+    constexpr   float   kListMinH           =   80.0f;
+    constexpr   float   kListMinW           =   200.0f;
+    /// <summary>
+    /// 列表高度预留的行数:无文件类型下拉/有文件类型下拉
+    /// </summary>
+    constexpr   float   kListRowsNoFilter   =   4.5f;
+    constexpr   float   kListRowsWithFilter =   5.5f;
+    /// <summary>
+    /// 左侧导航栏宽度
+    /// </summary>
+    constexpr   float   kNavWidth           =   132.0f;
+    /// <summary>
+    /// 底部按钮宽度
+    /// </summary>
+    constexpr   float   kButtonWidth        =   96.0f;
+    /// <summary>
+    /// 文件名为空时确认按钮的淡显透明度
+    /// </summary>
+    constexpr   float   kDisabledAlpha      =   0.45f;
+}
+
     void    FEFileDialog::open(Mode mode,const std::string& title,const std::vector<Filter>& filters,
                                const std::string& dir,const std::string& defaultName)
     {
@@ -260,8 +294,8 @@ namespace   FE
         const   ImGuiIO&    io  =   ImGui::GetIO();
         if (_firstFrame)
         {
-            const   ImVec2  dlgSize =   ImVec2(std::min(720.0f,io.DisplaySize.x - 40.0f),
-                                               std::min(460.0f,io.DisplaySize.y - 40.0f));
+            const   ImVec2  dlgSize =   ImVec2(std::min(kDialogMaxW,io.DisplaySize.x - kDialogScreenMargin),
+                                               std::min(kDialogMaxH,io.DisplaySize.y - kDialogScreenMargin));
             ImGui::SetNextWindowPos(ImVec2((io.DisplaySize.x - dlgSize.x) * 0.5f,
                                           (io.DisplaySize.y - dlgSize.y) * 0.5f),ImGuiCond_Always);
             ImGui::SetNextWindowSize(dlgSize,ImGuiCond_Always);
@@ -272,8 +306,9 @@ namespace   FE
             /// <summary>
             /// 高度预留:位置栏 + 文件名 + 底部按钮(多过滤器时再加一行文件类型)
             /// </summary>
-            const   float   listH   =   std::max(80.0f,ImGui::GetWindowHeight()
-                                                 - rowH * (_filters.size() > 1 ? 5.5f : 4.5f));
+            const   float   listH   =   std::max(kListMinH,ImGui::GetWindowHeight()
+                                                 - rowH * (_filters.size() > 1 ? kListRowsWithFilter
+                                                                               : kListRowsNoFilter));
 
             /// <summary>
             /// 位置栏:上级目录 + 可编辑地址栏(可直接输入路径或盘符,回车跳转) + 转到
@@ -297,8 +332,8 @@ namespace   FE
             /// <summary>
             /// 左侧导航栏 + 右侧文件列表(仿资源管理器的双栏布局)
             /// </summary>
-            const   float   navW    =   132.0f;
-            const   float   listW   =   std::max(200.0f,ImGui::GetWindowWidth() - navW
+            const   float   navW    =   kNavWidth;
+            const   float   listW   =   std::max(kListMinW,ImGui::GetWindowWidth() - navW
                                                  - style.ItemSpacing.x - style.WindowPadding.x * 2.0f);
             ImGui::BeginChild("##fesr_fd_nav",ImVec2(navW,listH),true);
             for (const auto& item : _quickItems)
@@ -375,12 +410,12 @@ namespace   FE
             /// 底部按钮:确定 / 取消(文件名为空时"确定"淡显且不可用)
             /// </summary>
             const   bool    hasName =   (_nameBuf[0] != '\0');
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha,hasName ? 1.0f : 0.45f);
-            if (ImGui::Button(_mode == kSave ? "保存" : "打开",ImVec2(96.0f,0.0f)) && hasName)
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha,hasName ? 1.0f : kDisabledAlpha);
+            if (ImGui::Button(_mode == kSave ? "保存" : "打开",ImVec2(kButtonWidth,0.0f)) && hasName)
                 confirmed   =   true;
             ImGui::PopStyleVar();
             ImGui::SameLine();
-            if (ImGui::Button("取消",ImVec2(96.0f,0.0f)))
+            if (ImGui::Button(FE::ui::text::kCancel,ImVec2(kButtonWidth,0.0f)))
                 cancelled   =   true;
 
             /// <summary>

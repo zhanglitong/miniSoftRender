@@ -18,6 +18,41 @@
 
 namespace   FE
 {
+namespace
+{
+    /// <summary>
+    /// 分组标题栏版式
+    /// </summary>
+    constexpr   float   kMinWidth          =   80.0f;
+    constexpr   float   kArrowHotWidth     =   26.0f;
+    constexpr   float   kAccentBarWidth    =   3.0f;
+    constexpr   float   kArrowCenterX      =   13.0f;
+    constexpr   float   kArrowRadiusScale  =   0.26f;
+    constexpr   float   kArrowWingOffset   =   0.6f;
+    constexpr   float   kArrowTipOffset    =   0.9f;
+    constexpr   float   kTitleOffsetX      =   28.0f;
+    constexpr   float   kHeaderRounding    =   3.0f;
+    constexpr   float   kAccentRounding    =   2.0f;
+    /// <summary>
+    /// 标题栏底色与分隔线
+    /// </summary>
+    const   ImU32   kHeaderHoverBg     =   IM_COL32(255,255,255,20);
+    const   ImU32   kHeaderBg          =   IM_COL32(255,255,255,10);
+    const   ImU32   kSeparatorColor    =   IM_COL32(255,255,255,22);
+    /// <summary>
+    /// 组内容上下留白
+    /// </summary>
+    constexpr   float   kContentGap        =   4.0f;
+    /// <summary>
+    /// 属性行版式
+    /// </summary>
+    constexpr   float   kRowLabelWidth     =   22.0f;
+    constexpr   float   kRowGap            =   6.0f;
+    constexpr   float   kRowMinValueWidth  =   48.0f;
+    constexpr   float   kRowLabelOffsetX   =   2.0f;
+    constexpr   float   kRowLineGap        =   2.0f;
+}
+
     class   FECollapseGroup
     {
     public:
@@ -38,8 +73,8 @@ namespace   FE
             const   float   headerH =   FE::ui::rowHeight();
             const   ImVec2  start   =   ImGui::GetCursorScreenPos();
             float           width   =   ImGui::GetContentRegionAvail().x;
-            if (width < 80.0f)
-                width   =   80.0f;
+            if (width < kMinWidth)
+                width   =   kMinWidth;
 
             ImGui::PushID(this);
             ImGui::SetCursorScreenPos(start);
@@ -50,7 +85,7 @@ namespace   FE
             /// <summary>
             /// 箭头热区:标题栏左侧一小段
             /// </summary>
-            const   bool    onArrow =   mouse.x < start.x + 26.0f;
+            const   bool    onArrow =   mouse.x < start.x + kArrowHotWidth;
 
             /// <summary>
             /// 双击标题栏切换;箭头区的双击在第一次单击时已经切换过,这里不再重复,
@@ -65,42 +100,47 @@ namespace   FE
                 _open   =   !_open;
 
             ImDrawList*     dl  =   ImGui::GetWindowDrawList();
-            const   ImU32   bg  =   hovered ?   IM_COL32(255,255,255,20)
-                                            :   IM_COL32(255,255,255,10);
-            dl->AddRectFilled(start,ImVec2(start.x + width,start.y + headerH),bg,3.0f);
+            const   ImU32   bg  =   hovered ?   kHeaderHoverBg : kHeaderBg;
+            dl->AddRectFilled(start,ImVec2(start.x + width,start.y + headerH),bg,kHeaderRounding);
             /// <summary>
             /// 左侧强调条
             /// </summary>
-            dl->AddRectFilled(start,ImVec2(start.x + 3.0f,start.y + headerH),FE::ui::kAccent,2.0f);
+            dl->AddRectFilled(start,ImVec2(start.x + kAccentBarWidth,start.y + headerH),
+                              FE::ui::kAccent,kAccentRounding);
 
             /// <summary>
             /// 展开箭头:展开时朝下,折叠时朝右
             /// </summary>
-            const   float   cx  =   start.x + 13.0f;
+            const   float   cx  =   start.x + kArrowCenterX;
             const   float   cy  =   start.y + headerH * 0.5f;
-            const   float   r   =   ImGui::GetFontSize() * 0.26f;
+            const   float   r   =   ImGui::GetFontSize() * kArrowRadiusScale;
             if (_open)
-                dl->AddTriangleFilled(ImVec2(cx - r,cy - r * 0.6f),
-                                      ImVec2(cx + r,cy - r * 0.6f),
-                                      ImVec2(cx,cy + r * 0.9f),FE::ui::kArrowColor);
+                dl->AddTriangleFilled(ImVec2(cx - r,cy - r * kArrowWingOffset),
+                                      ImVec2(cx + r,cy - r * kArrowWingOffset),
+                                      ImVec2(cx,cy + r * kArrowTipOffset),FE::ui::kArrowColor);
             else
-                dl->AddTriangleFilled(ImVec2(cx - r * 0.6f,cy - r),
-                                      ImVec2(cx - r * 0.6f,cy + r),
-                                      ImVec2(cx + r * 0.9f,cy),FE::ui::kArrowColor);
+                dl->AddTriangleFilled(ImVec2(cx - r * kArrowWingOffset,cy - r),
+                                      ImVec2(cx - r * kArrowWingOffset,cy + r),
+                                      ImVec2(cx + r * kArrowTipOffset,cy),FE::ui::kArrowColor);
 
             /// <summary>
             /// 标题文字(垂直居中)
             /// </summary>
-            dl->AddText(ImVec2(start.x + 28.0f,cy - ImGui::GetFontSize() * 0.5f),
+            dl->AddText(ImVec2(start.x + kTitleOffsetX,cy - ImGui::GetFontSize() * 0.5f),
                         FE::ui::kTextColor,_title.c_str());
 
             dl->AddLine(ImVec2(start.x,start.y + headerH - 0.5f),
                         ImVec2(start.x + width,start.y + headerH - 0.5f),
-                        IM_COL32(255,255,255,22));
+                        kSeparatorColor);
 
             if (_open)
             {
                 ImGui::Indent(FE::ui::kIndent);
+                /// <summary>
+                /// 组内容上方留白:与 end() 中组下方的间隔保持一致,
+                /// 否则首行(X)离标题栏过近、末行(Z)离下一组过远
+                /// </summary>
+                ImGui::Dummy(ImVec2(0.0f,kContentGap));
                 _indented   =   true;
             }
             return  _open;
@@ -116,7 +156,7 @@ namespace   FE
                 _indented   =   false;
             }
             ImGui::PopID();
-            ImGui::Dummy(ImVec2(0.0f,4.0f));
+            ImGui::Dummy(ImVec2(0.0f,kContentGap));
         }
         /// <summary>
         /// 一行属性:标签 + 数值编辑框 + 勾选框。
@@ -136,15 +176,16 @@ namespace   FE
             const   ImVec2  start   =   ImGui::GetCursorScreenPos();
             const   float   frameH  =   ImGui::GetFrameHeight();
             const   float   avail   =   ImGui::GetContentRegionAvail().x;
-            const   float   labelW  =   22.0f;
+            const   float   labelW  =   kRowLabelWidth;
             const   float   checkW  =   frameH;
-            const   float   gap     =   6.0f;
+            const   float   gap     =   kRowGap;
             float           valueW  =   avail - labelW - checkW - gap;
-            if (valueW < 48.0f)
-                valueW  =   48.0f;
+            if (valueW < kRowMinValueWidth)
+                valueW  =   kRowMinValueWidth;
 
             ImDrawList*     dl      =   ImGui::GetWindowDrawList();
-            dl->AddText(ImVec2(start.x + 2.0f,start.y + (frameH - ImGui::GetFontSize()) * 0.5f),
+            dl->AddText(ImVec2(start.x + kRowLabelOffsetX,
+                               start.y + (frameH - ImGui::GetFontSize()) * 0.5f),
                         FE::ui::kTextColor,label);
 
             bool    changed =   false;
@@ -163,7 +204,7 @@ namespace   FE
             /// <summary>
             /// 光标移到下一行
             /// </summary>
-            ImGui::SetCursorScreenPos(ImVec2(start.x,start.y + frameH + 2.0f));
+            ImGui::SetCursorScreenPos(ImVec2(start.x,start.y + frameH + kRowLineGap));
             ImGui::Dummy(ImVec2(0.0f,0.0f));
             return  changed;
         }

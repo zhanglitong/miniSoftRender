@@ -267,6 +267,10 @@ namespace   FE
         /// Font Awesome 图标字体,随 ImGui 上下文一起销毁
         /// </summary>
         ImFont*                     _iconFont   =   nullptr;
+        /// <summary>
+        /// 关于窗口标题字体(仅拉丁字形,避免重复加载整套中文)
+        /// </summary>
+        ImFont*                     _titleFont  =   nullptr;
         FEScene*                    _scene      =   nullptr;
         /// <summary>
         /// 引擎上下文(创建几何体/节点/材质时需要)

@@ -605,11 +605,6 @@ namespace   FE
         virtual void    endSetProp(const real& tm,bool bModify) override;
     protected:
         /// <summary>
-        /// 约束计算
-        /// </summary>
-        void            solve(const real& tm);
-    protected:
-        /// <summary>
         /// 允许 FENodeHelper 维护组件列表顺序,安全修改组件优先级
         /// </summary>
         friend  class   FENodeHelper;

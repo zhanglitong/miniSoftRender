@@ -17,6 +17,7 @@
 
 #include    "FECollapseGroup.hpp"
 #include    "FETimeLine.hpp"
+#include    "FEUiStrings.hpp"
 
 #include    "../../../inc/FEEulerObject.hpp"
 #include    "../../../inc/constraint/FEConstraintTrans.hpp"
@@ -52,7 +53,7 @@ namespace   FE
             return  object;
         }
         /// <summary>
-        /// 绘制三个变换分组、颜色分组与节点已挂载的约束分组;node 为空时显示提示文字
+        /// 绘制「对象属性」大组(变换/颜色/显隐)与「约束」大组;node 为空时显示提示文字
         /// </summary>
         /// <param name="node">当前选中节点</param>
         /// <param name="timeLine">时间线(提供当前时间的关键帧状态与添加/移除),可为 nullptr</param>
@@ -64,12 +65,21 @@ namespace   FE
                 ImGui::TextDisabled("未选择节点");
                 return;
             }
-            drawGroup(_translate,node,GK_TRANSLATE,timeLine);
-            drawGroup(_scale,node,GK_SCALE,timeLine);
-            drawGroup(_rotate,node,GK_ROTATE,timeLine);
-            drawColorGroup(node,timeLine);
-            drawVisibleGroup(node,timeLine);
-            drawConstraints(node,selection);
+            /// 大组「对象属性」:位置/缩放/旋转/颜色/显隐
+            if (_objectGroup.begin())
+            {
+                drawGroup(_translate,node,GK_TRANSLATE,timeLine);
+                drawGroup(_scale,node,GK_SCALE,timeLine);
+                drawGroup(_rotate,node,GK_ROTATE,timeLine);
+                drawColorGroup(node,timeLine);
+                drawVisibleGroup(node,timeLine);
+            }
+            _objectGroup.end();
+
+            /// 大组「约束」:节点已挂载的各类约束分组
+            if (_constraintGroup.begin())
+                drawConstraints(node,selection);
+            _constraintGroup.end();
         }
     protected:
         /// <summary>
@@ -376,7 +386,7 @@ namespace   FE
             /// 行2:对象名称编辑框(只读;只显示已绑定目标,拾取中的候选对象不提前显示)
             Node    shown   =   con->targetNode();
             const   char*   name    =   (shown != nullptr && shown->name() != nullptr)
-                                      ? shown->name() : "无";
+                                      ? shown->name() : ui::text::kNone;
             char    buffer[256] =   {};
             std::snprintf(buffer,sizeof(buffer),"%s",name);
             ImGui::PushItemWidth(-1.0f);
@@ -593,7 +603,7 @@ namespace   FE
             ImGui::TextUnformatted(label);
             ImGui::SameLine();
             const   char*   text    =   (target != nullptr && target->name() != nullptr)
-                                      ? target->name() : "无";
+                                      ? target->name() : ui::text::kNone;
             const   char*   show    =   (text != nullptr && text[0] != '\0') ? text : "(未命名)";
             ImGui::TextDisabled("%s",show);
             ImGui::SameLine();
@@ -788,23 +798,23 @@ namespace   FE
         /// <summary>
         /// 平移约束分组
         /// </summary>
-        FECollapseGroup     _transGroup     =   FECollapseGroup("平移约束");
+        FECollapseGroup     _transGroup     =   FECollapseGroup(ui::text::kTransConstraint);
         /// <summary>
         /// 跟随约束分组
         /// </summary>
-        FECollapseGroup     _followGroup    =   FECollapseGroup("跟随约束");
+        FECollapseGroup     _followGroup    =   FECollapseGroup(ui::text::kFollowConstraint);
         /// <summary>
         /// 朝向约束分组
         /// </summary>
-        FECollapseGroup     _lookAtGroup    =   FECollapseGroup("朝向约束");
+        FECollapseGroup     _lookAtGroup    =   FECollapseGroup(ui::text::kLookAtConstraint);
         /// <summary>
         /// 路径约束分组
         /// </summary>
-        FECollapseGroup     _pathGroup      =   FECollapseGroup("路径约束");
+        FECollapseGroup     _pathGroup      =   FECollapseGroup(ui::text::kPathConstraint);
         /// <summary>
         /// 驱动约束分组
         /// </summary>
-        FECollapseGroup     _driveGroup     =   FECollapseGroup("驱动约束");
+        FECollapseGroup     _driveGroup     =   FECollapseGroup(ui::text::kDriveConstraint);
         /// <summary>
         /// 是否处于约束目标拾取状态
         /// </summary>
@@ -846,5 +856,13 @@ namespace   FE
         /// 显隐分组(显示勾选框 + 关键帧)
         /// </summary>
         FECollapseGroup     _visibleGroup   =   FECollapseGroup("显隐");
+        /// <summary>
+        /// 对象属性大组(包装位置/缩放/旋转/颜色/显隐)
+        /// </summary>
+        FECollapseGroup     _objectGroup    =   FECollapseGroup("对象属性");
+        /// <summary>
+        /// 约束大组(包装所有约束分组)
+        /// </summary>
+        FECollapseGroup     _constraintGroup    =   FECollapseGroup("约束");
     };
 }

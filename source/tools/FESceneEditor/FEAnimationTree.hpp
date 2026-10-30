@@ -8,6 +8,7 @@
 #pragma     once
 
 #include    "FEAnimItem.hpp"
+#include    "FEUiMetrics.hpp"
 
 #include    "../../../inc/animation/FEPlayback.hpp"
 #include    "../../../inc/animation/FEAnimation.hpp"
@@ -195,7 +196,7 @@ namespace   FE
         /// <summary>
         /// 搜索框输入缓冲
         /// </summary>
-        char                        _searchBuf[64]  =   {   0   };
+        char                        _searchBuf[ui::kSearchBufSize]  =   {   0   };
         /// <summary>
         /// 已执行的搜索关键字(回车后才生效)
         /// </summary>

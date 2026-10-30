@@ -4,6 +4,8 @@
 
 #include    "FEUndoView.hpp"
 #include    "FEUiStyle.hpp"
+#include    "FEUiMetrics.hpp"
+#include    "FEUiStrings.hpp"
 
 #include    <cstdio>
 #include    <imgui.h>
@@ -11,9 +13,22 @@
 namespace
 {
     /// <summary>
-    /// 功能区高度:窗口默认落在其下方,与 FEEditorUi 的 kRibbonH 保持一致
+    /// 撤销窗口默认位置与尺寸
     /// </summary>
-    const   float   kRibbonH    =   128.0f;
+    constexpr   float   kWindowX          =   316.0f;
+    constexpr   float   kWindowYOffset    =   8.0f;
+    constexpr   float   kWindowW          =   320.0f;
+    constexpr   float   kWindowH          =   420.0f;
+    /// <summary>
+    /// 行最小宽度、圆角与文字左边距
+    /// </summary>
+    constexpr   float   kRowMinWidth      =   1.0f;
+    constexpr   float   kRowRounding      =   2.0f;
+    constexpr   float   kRowTextOffsetX   =   4.0f;
+    /// <summary>
+    /// 条目标签缓冲长度
+    /// </summary>
+    constexpr   int     kLabelBufSize     =   512;
 }
 
 namespace   FE
@@ -36,8 +51,9 @@ namespace   FE
         /// <summary>
         /// 首次打开落在模型树右侧,避免遮挡其它面板
         /// </summary>
-        ImGui::SetNextWindowPos(ImVec2(316.0f,kRibbonH + 8.0f),ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(320.0f,420.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(kWindowX,FE::ui::kRibbonHeight + kWindowYOffset),
+                                ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(kWindowW,kWindowH),ImGuiCond_FirstUseEver);
         if (ImGui::Begin("撤销历史",&_open))
         {
             const   int     count   =   stack.count();
@@ -57,10 +73,10 @@ namespace   FE
             const   float   spacing     =   ImGui::GetStyle().ItemSpacing.x;
             const   float   buttonW     =   (ImGui::GetContentRegionAvail().x - spacing) * 0.5f;
             const   float   buttonH     =   ImGui::GetFrameHeight();
-            if (ImGui::Button("重置",ImVec2(buttonW,buttonH)))
+            if (ImGui::Button(FE::ui::text::kReset,ImVec2(buttonW,buttonH)))
                 target  =   0;
             ImGui::SameLine();
-            if (ImGui::Button("清空",ImVec2(buttonW,buttonH)))
+            if (ImGui::Button(FE::ui::text::kClear,ImVec2(buttonW,buttonH)))
                 clearRedo   =   true;
 
             ImGui::TextDisabled("已执行 %d / 共 %d 条",index,count);
@@ -96,9 +112,9 @@ namespace   FE
                     const   bool    undone  =   (i >= index);
                     const   ImVec2  start   =   ImGui::GetCursorScreenPos();
                     float           width   =   ImGui::GetContentRegionAvail().x;
-                    if (width < 1.0f)
-                        width   =   1.0f;
-                    char    label[512]  =   {};
+                    if (width < kRowMinWidth)
+                        width   =   kRowMinWidth;
+                    char    label[kLabelBufSize]  =   {};
                     snprintf(label,sizeof(label),"%3d  %s",i + 1,stack.text(i).c_str());
 
                     ImGui::PushID(i);
@@ -116,10 +132,10 @@ namespace   FE
                     ImDrawList*     dl      =   ImGui::GetWindowDrawList();
                     const   ImVec2  end     =   ImVec2(start.x + width,start.y + rowHeight);
                     if (i == index - 1)
-                        dl->AddRectFilled(start,end,ui::kRowSelected,2.0f);
+                        dl->AddRectFilled(start,end,ui::kRowSelected,kRowRounding);
                     else if (hovered)
-                        dl->AddRectFilled(start,end,ui::kRowHover,2.0f);
-                    dl->AddText(ImVec2(start.x + 4.0f,start.y + textOffset)
+                        dl->AddRectFilled(start,end,ui::kRowHover,kRowRounding);
+                    dl->AddText(ImVec2(start.x + kRowTextOffsetX,start.y + textOffset)
                                 ,(i == index - 1) ? ui::kTextSelected
                                                   : (undone ? dimColor : ui::kTextColor)
                                 ,label);

@@ -19,6 +19,11 @@ namespace
     const   float   kWindowY    =   136.0f;
 
     /// <summary>
+    /// 自定义轴心/轴向的拖动步进
+    /// </summary>
+    const   float   kAxisDragSpeed  =   0.1f;
+
+    /// <summary>
     /// 计算选区的中心点(世界空间)
     /// </summary>
     /// <param name="objects">选区</param>
@@ -138,7 +143,7 @@ namespace   FE
         if (grpUser.begin())
         {
             float   values[3]   =   { (float)setting.userCenter.x,(float)setting.userCenter.y,(float)setting.userCenter.z };
-            if (ImGui::DragFloat3("##userCenter",values,0.1f))
+            if (ImGui::DragFloat3("##userCenter",values,kAxisDragSpeed))
                 setting.userCenter =   real3(values[0],values[1],values[2]);
             if (ImGui::Button("锚点填充"))
                 setting.userCenter =   selectionCenter(selection,false);
@@ -148,7 +153,7 @@ namespace   FE
         if (grpAxis.begin())
         {
             float   values[3]   =   { (float)setting.customAxis.x,(float)setting.customAxis.y,(float)setting.customAxis.z };
-            if (ImGui::DragFloat3("##customAxis",values,0.1f))
+            if (ImGui::DragFloat3("##customAxis",values,kAxisDragSpeed))
                 setting.customAxis =   real3(values[0],values[1],values[2]);
             if (ImGui::Button("归一化"))
             {

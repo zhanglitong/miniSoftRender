@@ -13,6 +13,8 @@
 
 #pragma     once
 
+#include    "FEUiMetrics.hpp"
+
 #include    "../../../inc/node/FENodeTree.hpp"
 
 #include    <imgui.h>
@@ -135,8 +137,31 @@ namespace   FE
         using   Rows    =   std::vector<RowData>;
     protected:
         void    collectRows(const Object& object,int depth);
+        /// <summary>
+        /// 搜索态收集行:忽略折叠,保留命中节点及其祖先路径;
+        /// 子树无任何命中时整段不加入行列表
+        /// </summary>
+        /// <param name="object">子树根对象</param>
+        /// <param name="depth">层级</param>
+        /// <returns>子树内是否存在命中</returns>
+        bool    collectRowsFiltered(const Object& object,int depth);
+        /// <summary>
+        /// 名称是否命中当前搜索(支持大小写匹配/全匹配)
+        /// </summary>
+        /// <param name="name">待匹配名称</param>
+        /// <returns>true 命中或未开启搜索</returns>
+        bool    nameMatches(const String& name) const;
         void    drawRow(const RowData& row,int index,float width,float rowHeight);
         void    drawToolbar();
+        /// <summary>
+        /// 工具栏图标按钮(搜索选项开关),图标字体缺失时退回文字
+        /// </summary>
+        /// <param name="glyph">图标字形</param>
+        /// <param name="text">无图标时的文字</param>
+        /// <param name="tip">悬停提示</param>
+        /// <param name="active">是否处于开启状态(蓝色高亮)</param>
+        /// <returns>本帧是否被点击</returns>
+        bool    iconButton(const char* glyph,const char* text,const char* tip,bool active);
         void    handleContextMenu();
         void    drawRenamePopup();
         /// <summary>
@@ -343,6 +368,22 @@ namespace   FE
         /// 被隔离的节点(支持多个,已在节点树中被删除的会被自动剔除)
         /// </summary>
         Nodes                   _isolated;
+        /// <summary>
+        /// 搜索框文本
+        /// </summary>
+        char                    _searchBuf[ui::kSearchBufSize] =   {   0   };
+        /// <summary>
+        /// 已提交的搜索词(回车生效)
+        /// </summary>
+        String                  _searchQuery;
+        /// <summary>
+        /// 搜索选项:大小写匹配
+        /// </summary>
+        bool                    _searchCase     =   false;
+        /// <summary>
+        /// 搜索选项:全匹配
+        /// </summary>
+        bool                    _searchWhole    =   false;
         Rows                    _rows;
         /// <summary>
         /// 行列表是否需要重建(由 add/remove 事件与本地结构变更置位)
@@ -383,7 +424,7 @@ namespace   FE
         /// </summary>
         int                     _dropMode   =   0;
         Object                  _renameTarget;
-        char                    _renameBuf[128] =   {   0   };
+        char                    _renameBuf[ui::kRenameBufSize] =   {   0   };
         bool                    _renamePopup    =   false;
         /// <summary>
         /// 下一帧把焦点交给输入框

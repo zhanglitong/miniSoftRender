@@ -29,6 +29,16 @@ USING_PLUGIN(rs_webgpu);
 namespace
 {
     /// <summary>
+    /// 主窗口默认尺寸
+    /// </summary>
+    const   int     kDefaultWindowWidth    =   1280;
+    const   int     kDefaultWindowHeight   =   720;
+    /// <summary>
+    /// 控制台退出时等待渲染线程清理完成的超时(毫秒)
+    /// </summary>
+    const   DWORD   kCleanupWaitMs         =   4500;
+
+    /// <summary>
     /// 渲染窗口句柄与"清理完成"事件,供控制台事件处理线程使用
     /// </summary>
     HWND    g_renderWnd =   nullptr;
@@ -47,7 +57,7 @@ namespace
         if (g_renderWnd != nullptr)
             PostMessageA(g_renderWnd,WM_CLOSE,0,0);
         if (g_cleaned != nullptr)
-            WaitForSingleObject(g_cleaned,4500);
+            WaitForSingleObject(g_cleaned,kCleanupWaitMs);
         return  TRUE;
     }
 }
@@ -75,8 +85,8 @@ int     main(int argc,char* argv[])
     FEEditorUi  ui;
 
     FEApp::CreateInfo   info    =   {};
-    info._width     =   1280;
-    info._height    =   720;
+    info._width     =   kDefaultWindowWidth;
+    info._height    =   kDefaultWindowHeight;
     info._appInst   =   GetModuleHandle(nullptr);
     info._notify    =   [&](const FEMessage& msg)
     {

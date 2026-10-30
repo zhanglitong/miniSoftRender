@@ -8,6 +8,9 @@
 
 #include    "FEEditorUi.hpp"
 
+#include    "FEIconGlyphs.hpp"
+#include    "FEUiMetrics.hpp"
+#include    "FEUiStrings.hpp"
 #include    "FEEditorUndoCmds.hpp"
 #include    "FEPropertyView.hpp"
 #include    "FESettingPropertyModel.hpp"
@@ -52,15 +55,14 @@
 #include    <string>
 #include    <vector>
 
+using   namespace   FE::ui;
+
 namespace
 {
     /// <summary>
-    /// Ribbon 外观常量(暗色主题)
+    /// Ribbon 外观常量(暗色主题):强调色/文字色取自 FEUiStyle
     /// </summary>
-    const   ImU32   kAccent     =   IM_COL32(74,144,226,255);
     const   ImU32   kIconColor  =   IM_COL32(205,210,220,255);
-    const   ImU32   kTextColor  =   IM_COL32(214,219,229,255);
-    const   ImU32   kTextMuted  =   IM_COL32(140,146,158,255);
     const   ImU32   kTabBarBg   =   IM_COL32(30,33,40,255);
     const   ImU32   kRibbonBg   =   IM_COL32(41,44,52,255);
 
@@ -97,10 +99,6 @@ namespace
     /// </summary>
     const   float   kGroupStartX    =   6.0f;
     /// <summary>
-    /// 功能区总高(分组内容 64 + 标题行,留出上下边距)
-    /// </summary>
-    const   float   kRibbonH    =   128.0f;
-    /// <summary>
     /// 内容放不下时,左右滚动箭头的宽度
     /// </summary>
     const   float   kArrowW     =   18.0f;
@@ -108,6 +106,147 @@ namespace
     /// 点击滚动箭头时每次滚动的像素数
     /// </summary>
     const   float   kScrollStep =   160.0f;
+    /// <summary>
+    /// 按钮/标签/箭头的圆角
+    /// </summary>
+    const   float   kRibbonRounding  =   3.0f;
+    /// <summary>
+    /// 按钮在文字宽度之外额外留出的宽度
+    /// </summary>
+    const   float   kRibbonButtonPadW  =   12.0f;
+    /// <summary>
+    /// 文字超过按钮宽度减该值后折成两行
+    /// </summary>
+    const   float   kRibbonWrapPad     =   8.0f;
+    /// <summary>
+    /// 文字贴左边时的最小左边距
+    /// </summary>
+    const   float   kRibbonTextMinX    =   2.0f;
+    /// <summary>
+    /// 分组标题与按钮底边的间距
+    /// </summary>
+    const   float   kGroupTitleGapY    =   3.0f;
+    /// <summary>
+    /// 标签页水平/垂直留白与底部强调线高度
+    /// </summary>
+    const   float   kTabHPad           =   26.0f;
+    const   float   kTabHeight         =   28.0f;
+    const   float   kTabUnderlineH     =   2.0f;
+    /// <summary>
+    /// 标签条右边界/信息文字边距与纵向偏移
+    /// </summary>
+    const   float   kInfoMarginX       =   8.0f;
+    const   float   kTabStartX         =   6.0f;
+    const   float   kTabSpacing        =   2.0f;
+    const   float   kInfoOffsetY       =   5.0f;
+    /// <summary>
+    /// 标签条底边相对功能区的上移量
+    /// </summary>
+    const   float   kTabBarBottomGap   =   4.0f;
+    /// <summary>
+    /// 滚动箭头绘制参数:线宽、X/Y 方向半长与线厚
+    /// </summary>
+    const   float   kArrowDx           =   3.5f;
+    const   float   kArrowDy           =   4.5f;
+    const   float   kArrowThickness    =   1.6f;
+    /// <summary>
+    /// Ribbon 交互态底色/描边
+    /// </summary>
+    const   ImU32   kRibbonCheckedFill  =   IM_COL32(74,144,226,70);
+    const   ImU32   kRibbonHoverFill    =   IM_COL32(255,255,255,20);
+    const   ImU32   kRibbonHoverBorder  =   IM_COL32(255,255,255,40);
+    const   ImU32   kTabHoverFill       =   IM_COL32(255,255,255,18);
+    const   ImU32   kRibbonDivider      =   IM_COL32(255,255,255,26);
+    const   ImU32   kRibbonTextDisabled =   IM_COL32(120,124,134,255);
+    const   ImU32   kArrowDisabled      =   IM_COL32(92,96,106,255);
+    const   ImU32   kShortcutGrid       =   IM_COL32(66,70,78,255);
+
+    /// <summary>
+    /// 配置窗口默认位置与尺寸
+    /// </summary>
+    const   float   kSettingWindowW     =   560.0f;
+    const   float   kSettingWindowH     =   600.0f;
+    const   float   kSettingWindowX     =   32.0f;
+    const   float   kSettingWindowYOff  =   16.0f;
+    /// <summary>
+    /// 快捷键对话框尺寸上限/下限、屏幕边距与位置偏移
+    /// </summary>
+    const   float   kShortcutDlgW       =   640.0f;
+    const   float   kShortcutDlgH       =   520.0f;
+    const   float   kShortcutDlgMinH    =   240.0f;
+    const   float   kShortcutScreenPad  =   16.0f;
+    const   float   kShortcutPosPad     =   8.0f;
+    const   float   kShortcutBottomPad  =   24.0f;
+    const   float   kShortcutYOff       =   12.0f;
+    /// <summary>
+    /// 快捷键列表版式:列宽比例、行高增量、单元格/底线/底部留白与按钮宽度
+    /// </summary>
+    const   float   kShortcutSplitRatio =   0.48f;
+    const   float   kShortcutRowPadH    =   12.0f;
+    const   float   kShortcutCellPadX   =   6.0f;
+    const   float   kShortcutGridLineW  =   1.0f;
+    const   float   kShortcutFooterGap  =   6.0f;
+    const   float   kShortcutBtnPadW    =   28.0f;
+    /// <summary>
+    /// 关于窗口尺寸、品牌区与信息行版式
+    /// </summary>
+    const   float   kAboutWindowW       =   420.0f;
+    const   float   kAboutYOff          =   16.0f;
+    const   float   kAboutPad           =   16.0f;
+    const   float   kAboutHeroH         =   92.0f;
+    const   float   kAboutAccentW       =   3.0f;
+    const   float   kAboutIconCx        =   46.0f;
+    const   float   kAboutIconR         =   24.0f;
+    const   float   kAboutTextX         =   84.0f;
+    const   float   kAboutTitleY        =   22.0f;
+    const   float   kAboutSubY          =   50.0f;
+    const   float   kAboutTitleFontSize =   22.0f;
+    const   float   kAboutChipPadX      =   8.0f;
+    const   float   kAboutChipH         =   20.0f;
+    const   float   kAboutChipY         =   12.0f;
+    const   float   kAboutSectionGap    =   14.0f;
+    const   float   kAboutSectionBarW   =   3.0f;
+    const   float   kAboutRowH          =   22.0f;
+    const   float   kAboutRowPadX       =   8.0f;
+    const   float   kAboutRowRounding   =   3.0f;
+    const   float   kAboutFooterGap     =   8.0f;
+    const   float   kAboutBtnPadX       =   18.0f;
+    /// <summary>
+    /// 关于窗口配色
+    /// </summary>
+    const   ImU32   kAboutHeroBg       =   IM_COL32(31,35,43,255);
+    const   ImU32   kAboutChipBg       =   IM_COL32(74,144,226,55);
+    const   ImU32   kAboutChipBorder   =   IM_COL32(74,144,226,170);
+    const   ImU32   kAboutChipText     =   IM_COL32(120,190,255,255);
+    const   ImU32   kAboutDivider      =   IM_COL32(255,255,255,26);
+    const   ImU32   kAboutRowAlt       =   IM_COL32(255,255,255,7);
+    /// <summary>
+    /// 模型树/属性/UI 预览窗口的默认位置与尺寸
+    /// </summary>
+    const   float   kModelTreeX         =   8.0f;
+    const   float   kModelTreeYOff      =   8.0f;
+    const   float   kModelTreeW         =   300.0f;
+    const   float   kModelTreeH         =   420.0f;
+    const   float   kPropertyX          =   316.0f;
+    const   float   kPropertyYOff       =   8.0f;
+    const   float   kPropertyW          =   300.0f;
+    const   float   kPropertyH          =   360.0f;
+    const   float   kUiPreviewX         =   80.0f;
+    const   float   kUiPreviewYOff      =   16.0f;
+    const   float   kUiPreviewW         =   900.0f;
+    const   float   kUiPreviewH         =   560.0f;
+    /// <summary>
+    /// 默认中文字体字号
+    /// </summary>
+    const   float   kDefaultFontSize    =   16.0f;
+    /// <summary>
+    /// 右上角信息栏缓冲长度
+    /// </summary>
+    const   int     kInfoBufSize        =   1200;
+    /// <summary>
+    /// 脚本截图等待超时(毫秒)
+    /// </summary>
+    const   double  kShotTimeoutMs      =   3000.0;
 
     /// <summary>
     /// Windows 虚拟键码(只用到这几种;不把 windows.h 引进 UI 层)
@@ -264,76 +403,6 @@ namespace
     /// </summary>
     const   float   kIconTextGap    =   4.0f;
     /// <summary>
-    /// .ui 里未登记的图标统一回退到该字形(shapes)
-    /// </summary>
-    const   unsigned int    kIconDefault    =   0xF61F;
-
-    /// <summary>
-    /// 图标文件名(不含目录与扩展名)到 Font Awesome 码位的映射。
-    /// 键取自 bin/data/ui/res 下的图标文件名,新增图标时在此登记即可
-    /// </summary>
-    struct  FEIconGlyph
-    {
-        /// <summary>
-        /// 图标文件名(不含 .png),对应 .ui 里 :/EditorRes/res/&lt;name&gt;.png
-        /// </summary>
-        const   char*           _name;
-        /// <summary>
-        /// Font Awesome 私有区码位
-        /// </summary>
-        unsigned int            _code;
-    };
-
-    const   FEIconGlyph     kIconGlyphs[]   =
-    {
-        { "about",              0xF05A },   ///< info-circle
-        { "align_back",         0xF070 },   ///< eye-slash
-        { "align_bottom",       0xF063 },   ///< arrow-down
-        { "align_front",        0xF06E },   ///< eye
-        { "align_left",         0xF036 },   ///< align-left
-        { "align_right",        0xF038 },   ///< align-right
-        { "align_rotate",       0xF2F1 },   ///< sync-alt
-        { "align_scale",        0xF31E },   ///< expand-arrows-alt
-        { "align_top",          0xF062 },   ///< arrow-up
-        { "align_x",            0xF337 },   ///< arrows-alt-h
-        { "align_y",            0xF338 },   ///< arrows-alt-v
-        { "align_z",            0xF14E },   ///< compass
-        { "bbox_center",        0xF140 },   ///< bullseye
-        { "cone_frustum",       0xF1CE },   ///< circle-notch
-        { "cover.reset",        0xF2EA },   ///< undo-alt
-        { "cube",               0xF1B2 },   ///< cube
-        { "cylinder",           0xF1C0 },   ///< database
-        { "hyperboloid",        0xF5FD },   ///< layer-group
-        { "ico_FirstFrame",     0xF048 },   ///< step-backward
-        { "ico_LastFrame",      0xF051 },   ///< step-forward
-        { "ico_Move",           0xF0B2 },   ///< arrows-alt
-        { "ico_NextFrame",      0xF04E },   ///< forward
-        { "ico_Pause",          0xF04C },   ///< pause
-        { "ico_PreFrame",       0xF04A },   ///< backward
-        { "ico_Redo",           0xF01E },   ///< redo
-        { "ico_Rotate",         0xF021 },   ///< refresh
-        { "ico_RunBack",        0xF049 },   ///< fast-backward
-        { "ico_RunFront",       0xF050 },   ///< fast-forward
-        { "ico_Scale",          0xF065 },   ///< expand
-        { "ico_Undo",           0xF0E2 },   ///< undo
-        { "mark",               0xF3C5 },   ///< map-marker-alt
-        { "maximum",            0xF102 },   ///< angle-double-up
-        { "minimum",            0xF103 },   ///< angle-double-down
-        { "model_load",         0xF56F },   ///< file-import
-        { "node_close",         0xF00D },   ///< times
-        { "pyramid_frustum",    0xF61F },   ///< shapes
-        { "scene_open",         0xF07C },   ///< folder-open
-        { "scene_save",         0xF0C7 },   ///< save
-        { "sphere",             0xF111 },   ///< circle
-        { "spherical_cap",      0xF192 },   ///< dot-circle
-        { "square_pyramid",     0xF0D8 },   ///< caret-up
-        { "torus",              0xF1CE },   ///< circle-notch
-        { "torus_knot",         0xF126 },   ///< code-branch
-        { "torus_sector",       0xF200 },   ///< chart-pie
-        { "torus_solid",        0xF111 },   ///< circle
-    };
-
-    /// <summary>
     /// 从图标路径中取出文件名(去掉目录与扩展名)
     /// </summary>
     /// <param name="path">.ui 中的图标路径,例如 :/EditorRes/res/cube.png</param>
@@ -462,7 +531,7 @@ namespace
         float   textW   =   0.0f;
         for (const auto* action : actions)
             textW   =   std::max(textW,ImGui::CalcTextSize(action->_text.c_str()).x);
-        metrics._btnW   =   std::min(std::max(kMinButtonW,std::max(textW,kIconFontSize) + 12.0f),kButtonMaxW);
+        metrics._btnW   =   std::min(std::max(kMinButtonW,std::max(textW,kIconFontSize) + kRibbonButtonPadW),kButtonMaxW);
         metrics._btnH   =   kContentH;
         metrics._groupW =   float(metrics._cols) * metrics._btnW + kGroupPadX * 2.0f;
         return  metrics;
@@ -518,15 +587,15 @@ namespace
         /// </summary>
         if (action->_checkable && action->_checked)
         {
-            dl->AddRectFilled(pos,end,IM_COL32(74,144,226,70),3.0f);
-            dl->AddRect(pos,end,kAccent,3.0f);
+            dl->AddRectFilled(pos,end,kRibbonCheckedFill,kRibbonRounding);
+            dl->AddRect(pos,end,kAccent,kRibbonRounding);
         }
         if (hovered)
         {
-            dl->AddRectFilled(pos,end,IM_COL32(255,255,255,20),3.0f);
-            dl->AddRect(pos,end,IM_COL32(255,255,255,40),3.0f);
+            dl->AddRectFilled(pos,end,kRibbonHoverFill,kRibbonRounding);
+            dl->AddRect(pos,end,kRibbonHoverBorder,kRibbonRounding);
         }
-        const   ImU32   fg      =   !action->_enabled ? IM_COL32(120,124,134,255)
+        const   ImU32   fg      =   !action->_enabled ? kRibbonTextDisabled
                                     : (hovered ? IM_COL32(255,255,255,255) : kTextColor);
         /// <summary>
         /// 图标通路:所有动作都画图标,.ui 未登记时回退默认字形
@@ -536,7 +605,7 @@ namespace
             codepointToUtf8(iconCodepoint(action->_icon),glyph);
         std::string     first   =   action->_text;
         std::string     second;
-        if (ImGui::CalcTextSize(action->_text.c_str()).x > size.x - 8.0f)
+        if (ImGui::CalcTextSize(action->_text.c_str()).x > size.x - kRibbonWrapPad)
             splitTwoLines(action->_text,first,second);
         const   float   lineH   =   ImGui::GetTextLineHeight();
         const   float   textH   =   second.empty() ? lineH : lineH * 2.0f;
@@ -556,12 +625,12 @@ namespace
             ty  +=  kIconFontSize + gap;
         }
         const   ImVec2  firstSize   =   ImGui::CalcTextSize(first.c_str());
-        dl->AddText(ImVec2(std::max(pos.x + 2.0f,pos.x + (size.x - firstSize.x) * 0.5f),ty),
+        dl->AddText(ImVec2(std::max(pos.x + kRibbonTextMinX,pos.x + (size.x - firstSize.x) * 0.5f),ty),
                     fg,first.c_str());
         if (!second.empty())
         {
             const   ImVec2  secondSize  =   ImGui::CalcTextSize(second.c_str());
-            dl->AddText(ImVec2(std::max(pos.x + 2.0f,pos.x + (size.x - secondSize.x) * 0.5f),ty + lineH),
+            dl->AddText(ImVec2(std::max(pos.x + kRibbonTextMinX,pos.x + (size.x - secondSize.x) * 0.5f),ty + lineH),
                         fg,second.c_str());
         }
         dl->PopClipRect();
@@ -615,14 +684,16 @@ namespace
         /// 分组标题居中于按钮区下方(标题行占功能区剩余高度)
         /// </summary>
         const   ImVec2  titleSize   =   ImGui::CalcTextSize(title);
-        dl->AddText(ImVec2(wp.x + x + (metrics._groupW - titleSize.x) * 0.5f,wp.y + kGroupRowY + kContentH + 3.0f),
+        dl->AddText(ImVec2(wp.x + x + (metrics._groupW - titleSize.x) * 0.5f,
+                           wp.y + kGroupRowY + kContentH + kGroupTitleGapY),
                     kTextMuted,title);
         /// <summary>
         /// 组间分隔竖线
         /// </summary>
         const   float   lineX   =   wp.x + x + metrics._groupW + kGroupGap * 0.5f;
         dl->AddLine(ImVec2(lineX,wp.y + kGroupRowY),
-                    ImVec2(lineX,wp.y + kGroupRowY + kContentH + 3.0f + titleSize.y),IM_COL32(255,255,255,26));
+                    ImVec2(lineX,wp.y + kGroupRowY + kContentH + kGroupTitleGapY + titleSize.y),
+                    kRibbonDivider);
         return  metrics._groupW + kGroupGap;
     }
     /// <summary>
@@ -634,7 +705,7 @@ namespace
     bool    ribbonTab(const char* label,bool selected)
     {
         const   ImVec2  textSize    =   ImGui::CalcTextSize(label);
-        const   ImVec2  size        =   ImVec2(textSize.x + 26.0f,28.0f);
+        const   ImVec2  size        =   ImVec2(textSize.x + kTabHPad,kTabHeight);
         const   ImVec2  pos         =   ImGui::GetCursorScreenPos();
         const   bool    pressed     =   ImGui::InvisibleButton(label,size);
         const   bool    hovered     =   ImGui::IsItemHovered();
@@ -642,11 +713,12 @@ namespace
         if (selected)
         {
             dl->AddRectFilled(pos,ImVec2(pos.x + size.x,pos.y + size.y),kRibbonBg);
-            dl->AddRectFilled(ImVec2(pos.x,pos.y + size.y - 2.0f),ImVec2(pos.x + size.x,pos.y + size.y),kAccent);
+            dl->AddRectFilled(ImVec2(pos.x,pos.y + size.y - kTabUnderlineH),
+                              ImVec2(pos.x + size.x,pos.y + size.y),kAccent);
         }
         else if (hovered)
         {
-            dl->AddRectFilled(pos,ImVec2(pos.x + size.x,pos.y + size.y),IM_COL32(255,255,255,18));
+            dl->AddRectFilled(pos,ImVec2(pos.x + size.x,pos.y + size.y),kTabHoverFill);
         }
         dl->AddText(ImVec2(pos.x + (size.x - textSize.x) * 0.5f,pos.y + (size.y - textSize.y) * 0.5f),
                     selected ? IM_COL32(255,255,255,255) : kTextColor,label);
@@ -671,16 +743,16 @@ namespace
         const   ImVec2  end     =   ImVec2(pos.x + size,pos.y + size);
         if (hovered && enabled)
         {
-            dl->AddRectFilled(pos,end,IM_COL32(255,255,255,20),3.0f);
-            dl->AddRect(pos,end,IM_COL32(255,255,255,40),3.0f);
+            dl->AddRectFilled(pos,end,kRibbonHoverFill,kRibbonRounding);
+            dl->AddRect(pos,end,kRibbonHoverBorder,kRibbonRounding);
         }
         const   ImU32   color   =   enabled ? (hovered ? IM_COL32(255,255,255,255) : kTextColor)
-                                            : IM_COL32(92,96,106,255);
+                                            : kArrowDisabled;
         const   float   cx      =   pos.x + size * 0.5f;
         const   float   cy      =   pos.y + size * 0.5f;
-        const   float   dx      =   right ? 3.5f : -3.5f;
-        dl->AddLine(ImVec2(cx - dx,cy - 4.5f),ImVec2(cx + dx,cy),color,1.6f);
-        dl->AddLine(ImVec2(cx + dx,cy),ImVec2(cx - dx,cy + 4.5f),color,1.6f);
+        const   float   dx      =   right ? kArrowDx : -kArrowDx;
+        dl->AddLine(ImVec2(cx - dx,cy - kArrowDy),ImVec2(cx + dx,cy),color,kArrowThickness);
+        dl->AddLine(ImVec2(cx + dx,cy),ImVec2(cx - dx,cy + kArrowDy),color,kArrowThickness);
         return  pressed && enabled;
     }
 }
@@ -833,10 +905,15 @@ namespace   FE
         /// 上传字体图集(RGBA8);TexID 仅作占位,后端始终绑定该纹理。
         /// 先加载宋体作为默认字体以支持中文,失败时回退 ImGui 内置字体
         /// </summary>
-        ImFont* cnFont  =   io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\simsun.ttc",16.0f,nullptr,
+        ImFont* cnFont  =   io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\simsun.ttc",kDefaultFontSize,nullptr,
                                                           io.Fonts->GetGlyphRangesChineseFull());
         if (cnFont != nullptr)
             io.FontDefault  =   cnFont;
+        /// <summary>
+        /// 关于页标题:同一字体文件只加载拉丁字形,字号更大且不会撑大图集
+        /// </summary>
+        _titleFont  =   io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\simsun.ttc",
+                                                     kAboutTitleFontSize);
 
         /// <summary>
         /// Ribbon 图标:Font Awesome 实心图标字体,只加载 kIconGlyphs 里用到的码位,
@@ -1348,7 +1425,7 @@ namespace   FE
             /// 窗口模式不能直接回读颜色附件:请求引擎在下一帧开头(acquire 之后、
             /// 记录本帧命令之前)抓一帧,由 runScript 每帧轮询取回后再写文件
             _shotPath       =   out.u8string();
-            _shotDeadline   =   scriptClockMs() + 3000.0;
+            _shotDeadline   =   scriptClockMs() + kShotTimeoutMs;
             _scene->requestCapture();
             scriptLog("shot request " + _shotPath);
             return;
@@ -1490,8 +1567,9 @@ namespace   FE
             return;
 
         bool    open    =   true;
-        ImGui::SetNextWindowSize(ImVec2(560.0f,600.0f),ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(32.0f,kRibbonH + 16.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(kSettingWindowW,kSettingWindowH),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(kSettingWindowX,kRibbonHeight + kSettingWindowYOff),
+                               ImGuiCond_FirstUseEver);
         if (ImGui::Begin("配置",&open,ImGuiWindowFlags_NoCollapse))
         {
             const   std::string path    =   FEShortcutConfig::exeXmlPath();
@@ -1542,11 +1620,13 @@ namespace   FE
         /// 首次打开居中显示,尺寸不超过可用区域(小窗口下自动收缩,避免按钮被裁掉)
         /// </summary>
         const   ImVec2  display =   ImGui::GetIO().DisplaySize;
-        const   ImVec2  dlgSize =   ImVec2(std::min(640.0f,display.x - 16.0f),
-                                           std::min(520.0f,std::max(240.0f,display.y - kRibbonH - 24.0f)));
-        const   float   posX    =   std::max(8.0f,(display.x - dlgSize.x) * 0.5f);
+        const   ImVec2  dlgSize =   ImVec2(std::min(kShortcutDlgW,display.x - kShortcutScreenPad),
+                                           std::min(kShortcutDlgH,
+                                                    std::max(kShortcutDlgMinH,
+                                                             display.y - kRibbonHeight - kShortcutBottomPad)));
+        const   float   posX    =   std::max(kShortcutPosPad,(display.x - dlgSize.x) * 0.5f);
         ImGui::SetNextWindowSize(dlgSize,ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(posX,kRibbonH + 12.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(posX,kRibbonHeight + kShortcutYOff),ImGuiCond_FirstUseEver);
         if (ImGui::Begin("快捷键设置",&open,ImGuiWindowFlags_NoCollapse))
         {
             ImGui::TextColored(ImVec4(0.55f,0.57f,0.62f,1.0f),
@@ -1559,16 +1639,16 @@ namespace   FE
             /// </summary>
             const   float   footerH =   ImGui::GetTextLineHeightWithSpacing()
                                     +   ImGui::GetFrameHeight()
-                                    +   ImGui::GetStyle().ItemSpacing.y + 6.0f;
+                                    +   ImGui::GetStyle().ItemSpacing.y + kShortcutFooterGap;
             ImGui::BeginChild("##shortcut_list",ImVec2(0.0f,-footerH),true);
             {
                 /// <summary>
                 /// 表头:动作 / 快捷键(两列居中,与参考图一致)
                 /// </summary>
-                const   float   split   =   ImGui::GetWindowContentRegionWidth() * 0.48f;
-                const   float   rowH    =   ImGui::GetTextLineHeight() + 12.0f;
+                const   float   split   =   ImGui::GetWindowContentRegionWidth() * kShortcutSplitRatio;
+                const   float   rowH    =   ImGui::GetTextLineHeight() + kShortcutRowPadH;
                 const   float   listW   =   ImGui::GetWindowContentRegionWidth();
-                const   ImU32   gridCol =   IM_COL32(66,70,78,255);
+                const   ImU32   gridCol =   kShortcutGrid;
                 const   ImVec2  header  =   ImGui::GetCursorScreenPos();
                 const   float   head1X  =   (split - ImGui::CalcTextSize("动作").x) * 0.5f;
                 const   float   head2X  =   split + (listW - split - ImGui::CalcTextSize("快捷键").x) * 0.5f;
@@ -1614,20 +1694,21 @@ namespace   FE
                     /// 列分隔线与行底线,做出表格的观感
                     /// </summary>
                     dl->AddLine(ImVec2(pos.x + split,pos.y),ImVec2(pos.x + split,pos.y + rowH),gridCol);
-                    dl->AddLine(ImVec2(pos.x,pos.y + rowH - 1.0f),ImVec2(pos.x + listW,pos.y + rowH - 1.0f),gridCol);
-                    dl->AddText(ImVec2(pos.x + 6.0f,textY),color,item._text.c_str());
+                    dl->AddLine(ImVec2(pos.x,pos.y + rowH - kShortcutGridLineW),
+                                ImVec2(pos.x + listW,pos.y + rowH - kShortcutGridLineW),gridCol);
+                    dl->AddText(ImVec2(pos.x + kShortcutCellPadX,textY),color,item._text.c_str());
                     if (recording)
                     {
                         std::string preview =   "按下按键…";
                         if (_recordPressed && _recordKey != 0)
                             preview =   FEShortcutConfig::comboText(_recordKey,_recordCtrl,
                                                                     _recordShift,_recordAlt);
-                        dl->AddText(ImVec2(pos.x + split + 6.0f,textY),kAccent,preview.c_str());
+                        dl->AddText(ImVec2(pos.x + split + kShortcutCellPadX,textY),kAccent,preview.c_str());
                     }
                     else
                     {
                         const   std::string combo   =   _shortcuts.text(i);
-                        dl->AddText(ImVec2(pos.x + split + 6.0f,textY),
+                        dl->AddText(ImVec2(pos.x + split + kShortcutCellPadX,textY),
                                     combo.empty() ? kTextMuted : kTextColor,
                                     combo.empty() ? "" : combo.c_str());
                     }
@@ -1676,20 +1757,20 @@ namespace   FE
             /// <summary>
             /// 右下角:关闭(丢弃改动) / 确定(写入 XML)
             /// </summary>
-            const   float   closeW  =   ImGui::CalcTextSize("关闭").x + 28.0f;
-            const   float   okW     =   ImGui::CalcTextSize("确定").x + 28.0f;
+            const   float   closeW  =   ImGui::CalcTextSize(text::kClose).x + kShortcutBtnPadW;
+            const   float   okW     =   ImGui::CalcTextSize(text::kConfirm).x + kShortcutBtnPadW;
             const   float   rightX  =   ImGui::GetWindowContentRegionMax().x - closeW - okW
                                      -   ImGui::GetStyle().ItemSpacing.x;
             ImGui::SameLine();
             ImGui::SetCursorPosX(rightX);
-            if (ImGui::Button("关闭",ImVec2(closeW,0.0f)))
+            if (ImGui::Button(text::kClose,ImVec2(closeW,0.0f)))
             {
                 discardShortcutChanges();
                 _shortcutOpen   =   false;
                 open            =   false;
             }
             ImGui::SameLine();
-            if (ImGui::Button("确定",ImVec2(okW,0.0f)))
+            if (ImGui::Button(text::kConfirm,ImVec2(okW,0.0f)))
             {
                 bool    saved   =   false;
                 if (_ctx != nullptr)
@@ -1713,7 +1794,7 @@ namespace   FE
         ImGui::End();
 
         /// <summary>
-        /// 标题栏的 X 与"关闭"等价:丢弃未保存的改动
+        /// 标题栏的 X 与text::kClose等价:丢弃未保存的改动
         /// </summary>
         if (!open && _shortcutOpen)
         {
@@ -1736,7 +1817,7 @@ namespace   FE
         syncTransformTools();
 
         ImGui::SetNextWindowPos(ImVec2(0.0f,0.0f),ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(width,kRibbonH),ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(width,kRibbonHeight),ImGuiCond_Always);
         ImGui::SetNextWindowBgAlpha(1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0.0f,0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,0.0f);
@@ -1754,12 +1835,12 @@ namespace   FE
         {
             ImDrawList*     dl          =   ImGui::GetWindowDrawList();
             const   ImVec2  wp          =   ImGui::GetWindowPos();
-            const   float   barBottom   =   kGroupRowY - 4.0f;
+            const   float   barBottom   =   kGroupRowY - kTabBarBottomGap;
             /// <summary>
             /// 标签条与功能区两层底色;选中标签与功能区同色,视觉上连成一体
             /// </summary>
             dl->AddRectFilled(wp,ImVec2(wp.x + width,wp.y + barBottom),kTabBarBg);
-            dl->AddRectFilled(ImVec2(wp.x,wp.y + barBottom),ImVec2(wp.x + width,wp.y + kRibbonH),kRibbonBg);
+            dl->AddRectFilled(ImVec2(wp.x,wp.y + barBottom),ImVec2(wp.x + width,wp.y + kRibbonHeight),kRibbonBg);
 
             /// <summary>
             /// 标签页行:MainWindow.ui 的主菜单即 Ribbon 的 Page
@@ -1775,7 +1856,7 @@ namespace   FE
             }
             if (_activeTab < 0 || _activeTab >= int(pages.size()))
                 _activeTab  =   0;
-            ImGui::SetCursorPos(ImVec2(6.0f,kTabRowY));
+            ImGui::SetCursorPos(ImVec2(kTabStartX,kTabRowY));
             for (int i = 0; i < int(pages.size()); ++i)
             {
                 if (ribbonTab(pages[size_t(i)]->_text.c_str(),_activeTab == i))
@@ -1786,7 +1867,7 @@ namespace   FE
                     /// </summary>
                     _ribbonScrollX  =   0.0f;
                 }
-                ImGui::SameLine(0.0f,2.0f);
+                ImGui::SameLine(0.0f,kTabSpacing);
             }
             /// <summary>
             /// 标签行右边界:右上角信息从这里开始,避免与标签重叠
@@ -1799,17 +1880,18 @@ namespace   FE
             {
                 const   std::string projectName =   _projectName.empty() ? std::string("未命名工程")
                                                                          : _projectName;
-                char    info[1200]  =   {};
+                char    info[kInfoBufSize]  =   {};
                 if (_statusText.empty())
                     snprintf(info,sizeof(info),"%s   %.1f FPS",projectName.c_str(),io.Framerate);
                 else
                     snprintf(info,sizeof(info),"%s   %.1f FPS   |   %s",projectName.c_str(),io.Framerate,
                              _statusText.c_str());
                 const   ImVec2  infoSize    =   ImGui::CalcTextSize(info);
-                const   float   infoRight   =   width - 8.0f;
-                const   float   infoLeft    =   std::max(tabRight,8.0f);
+                const   float   infoRight   =   width - kInfoMarginX;
+                const   float   infoLeft    =   std::max(tabRight,kInfoMarginX);
                 dl->PushClipRect(ImVec2(wp.x + infoLeft,wp.y),ImVec2(wp.x + infoRight,wp.y + barBottom),true);
-                ImGui::SetCursorPos(ImVec2(std::max(infoLeft,infoRight - infoSize.x),kTabRowY + 5.0f));
+                ImGui::SetCursorPos(ImVec2(std::max(infoLeft,infoRight - infoSize.x),
+                                           kTabRowY + kInfoOffsetY));
                 ImGui::TextDisabled("%s",info);
                 dl->PopClipRect();
             }
@@ -1883,7 +1965,7 @@ namespace   FE
                 /// 按钮内容整体左移 scrollX,并裁剪到可视区间
                 /// </summary>
                 dl->PushClipRect(ImVec2(wp.x + viewL,wp.y + barBottom),
-                                 ImVec2(wp.x + viewR,wp.y + kRibbonH),true);
+                                 ImVec2(wp.x + viewR,wp.y + kRibbonHeight),true);
                 float   x   =   viewL - _ribbonScrollX;
                 for (const auto& group : groups)
                 {
@@ -1925,16 +2007,132 @@ namespace   FE
             /// <summary>
             /// 首次打开落在功能区下方居中,避免盖住标签与按钮
             /// </summary>
-            ImGui::SetNextWindowPos(ImVec2((width - 360.0f) * 0.5f,kRibbonH + 16.0f),ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(360.0f,0.0f),ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2((width - kAboutWindowW) * 0.5f,kRibbonHeight + kAboutYOff),
+                                    ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(kAboutWindowW,0.0f),ImGuiCond_FirstUseEver);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(kAboutPad,kAboutPad));
             if (ImGui::Begin("关于 FESceneEditor",&_aboutOpen,ImGuiWindowFlags_NoCollapse))
             {
-                ImGui::Text("miniSoftRender 场景编辑器");
-                ImGui::Separator();
-                ImGui::Text("Dear ImGui %s",ImGui::GetVersion());
-                ImGui::Text("帧率 %.1f FPS",ImGui::GetIO().Framerate);
+                ImDrawList*     dl      =   ImGui::GetWindowDrawList();
+                const   float   availW  =   ImGui::GetContentRegionAvail().x;
+
+                /// <summary>
+                /// 品牌区:深色底 + 左侧强调条 + 图标徽章 + 标题/副标题/版本标签
+                /// </summary>
+                const   ImVec2  heroPos =   ImGui::GetCursorScreenPos();
+                const   ImVec2  heroEnd(heroPos.x + availW,heroPos.y + kAboutHeroH);
+                dl->AddRectFilled(heroPos,heroEnd,kAboutHeroBg,kAboutRowRounding);
+                dl->AddRectFilled(heroPos,ImVec2(heroPos.x + kAboutAccentW,heroEnd.y),
+                                  ui::kAccent,kAboutRowRounding);
+
+                const   ImVec2  iconCenter(heroPos.x + kAboutIconCx,
+                                           heroPos.y + kAboutHeroH * 0.5f);
+                dl->AddCircleFilled(iconCenter,kAboutIconR,IM_COL32(255,255,255,18));
+                if (_iconFont != nullptr)
+                {
+                    ImGui::PushFont(_iconFont);
+                    const   ImVec2  glyphSize   =   ImGui::CalcTextSize(ui::kGlyphCube);
+                    dl->AddText(ImVec2(iconCenter.x - glyphSize.x * 0.5f,
+                                       iconCenter.y - glyphSize.y * 0.5f),
+                                ui::kAccent,ui::kGlyphCube);
+                    ImGui::PopFont();
+                }
+
+                const   float   textX   =   heroPos.x + kAboutTextX;
+                if (_titleFont != nullptr)
+                    ImGui::PushFont(_titleFont);
+                dl->AddText(ImVec2(textX,heroPos.y + kAboutTitleY),ui::kTextColor,"FESceneEditor");
+                if (_titleFont != nullptr)
+                    ImGui::PopFont();
+                dl->AddText(ImVec2(textX,heroPos.y + kAboutSubY),ui::kTextMuted,
+                            "miniSoftRender 场景编辑器");
+
+                /// <summary>
+                /// 右上角版本标签
+                /// </summary>
+                const   char*   chip    =   "开发版";
+                const   ImVec2  chipSize=   ImGui::CalcTextSize(chip);
+                const   ImVec2  chipMin(heroEnd.x - chipSize.x - kAboutChipPadX * 2.0f,
+                                        heroPos.y + kAboutChipY);
+                const   ImVec2  chipMax(chipMin.x + chipSize.x + kAboutChipPadX * 2.0f,
+                                        chipMin.y + kAboutChipH);
+                dl->AddRectFilled(chipMin,chipMax,kAboutChipBg,kAboutChipH * 0.5f);
+                dl->AddRect(chipMin,chipMax,kAboutChipBorder,kAboutChipH * 0.5f);
+                dl->AddText(ImVec2(chipMin.x + kAboutChipPadX,
+                                   chipMin.y + (kAboutChipH - chipSize.y) * 0.5f),
+                            kAboutChipText,chip);
+
+                ImGui::Dummy(ImVec2(0.0f,kAboutHeroH));
+
+                /// <summary>
+                /// 分组标题:左侧短强调条 + 标题文字
+                /// </summary>
+                auto    section =   [&](const char* title)
+                {
+                    ImGui::Dummy(ImVec2(0.0f,kAboutSectionGap));
+                    const   ImVec2  p   =   ImGui::GetCursorScreenPos();
+                    dl->AddRectFilled(p,ImVec2(p.x + kAboutSectionBarW,
+                                               p.y + ImGui::GetTextLineHeight()),ui::kAccent);
+                    dl->AddText(ImVec2(p.x + kAboutSectionBarW + kAboutRowPadX,p.y),
+                                ui::kTextColor,title);
+                    ImGui::Dummy(ImVec2(0.0f,ImGui::GetTextLineHeight()));
+                };
+                /// <summary>
+                /// 信息行:左侧标签、右侧取值,交替行用极淡底色区分
+                /// </summary>
+                auto    infoRow =   [&](const char* label,const char* value,bool alt)
+                {
+                    const   ImVec2  p       =   ImGui::GetCursorScreenPos();
+                    const   float   rowW    =   ImGui::GetContentRegionAvail().x;
+                    const   float   lineY   =   p.y + (kAboutRowH - ImGui::GetTextLineHeight()) * 0.5f;
+                    if (alt)
+                        dl->AddRectFilled(p,ImVec2(p.x + rowW,p.y + kAboutRowH),
+                                          kAboutRowAlt,kAboutRowRounding);
+                    dl->AddText(ImVec2(p.x + kAboutRowPadX,lineY),ui::kTextMuted,label);
+                    const   ImVec2  valueSize   =   ImGui::CalcTextSize(value);
+                    dl->AddText(ImVec2(p.x + rowW - valueSize.x - kAboutRowPadX,
+                                       p.y + (kAboutRowH - valueSize.y) * 0.5f),
+                                ui::kTextColor,value);
+                    ImGui::Dummy(ImVec2(0.0f,kAboutRowH));
+                };
+
+                char    buffer[64]  =   {};
+                section("运行环境");
+                infoRow("渲染后端","Vulkan",true);
+                std::snprintf(buffer,sizeof(buffer),"Dear ImGui %s",ImGui::GetVersion());
+                infoRow("界面框架",buffer,false);
+                const   ImVec2  display  =   ImGui::GetIO().DisplaySize;
+                std::snprintf(buffer,sizeof(buffer),"%.0f × %.0f",display.x,display.y);
+                infoRow("显示分辨率",buffer,true);
+                std::snprintf(buffer,sizeof(buffer),"%.1f FPS",ImGui::GetIO().Framerate);
+                infoRow("帧率",buffer,false);
+                std::snprintf(buffer,sizeof(buffer),"Windows x64 / MSVC %d",_MSC_VER);
+                infoRow("构建环境",buffer,true);
+                std::snprintf(buffer,sizeof(buffer),"%s %s",__DATE__,__TIME__);
+                infoRow("构建时间",buffer,false);
+
+                section("关于");
+                ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x);
+                ImGui::TextWrapped("实时场景编辑器,用于 miniSoftRender 引擎的节点编排、"
+                                   "材质与光照调试,以及动画时间线与关键帧编辑。");
+                ImGui::PopTextWrapPos();
+
+                /// <summary>
+                /// 底部:分隔线 + 版权 + 右对齐关闭按钮
+                /// </summary>
+                ImGui::Dummy(ImVec2(0.0f,kAboutSectionGap));
+                const   ImVec2  footerPos   =   ImGui::GetCursorScreenPos();
+                dl->AddLine(footerPos,ImVec2(footerPos.x + availW,footerPos.y),kAboutDivider);
+                ImGui::Dummy(ImVec2(0.0f,kAboutFooterGap));
+                ImGui::TextDisabled("Copyright (C) miniSoftRender Project");
+                const   float   closeW  =   ImGui::CalcTextSize(ui::text::kClose).x + kAboutBtnPadX;
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - closeW);
+                if (ImGui::Button(ui::text::kClose,ImVec2(closeW,0.0f)))
+                    _aboutOpen  =   false;
             }
             ImGui::End();
+            ImGui::PopStyleVar();
         }
 
         drawFileDialog();
@@ -2088,6 +2286,13 @@ namespace   FE
             /// 坐标轴编辑窗口开关;只改 UI 状态,不改场景
             /// </summary>
             _axisOpen   =   !_axisOpen;
+        }
+        else if (name == "action_about")
+        {
+            /// <summary>
+            /// 关于窗口:非模态,点击菜单后重新显示
+            /// </summary>
+            _aboutOpen  =   true;
         }
         else if (name == "action_move" || name == "action_rotation" || name == "action_scale")
         {
@@ -2437,8 +2642,8 @@ namespace   FE
     {
         if (!_treeOpen)
             return;
-        ImGui::SetNextWindowPos(ImVec2(8.0f,kRibbonH + 8.0f),ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(300.0f,420.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(kModelTreeX,kRibbonHeight + kModelTreeYOff),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(kModelTreeW,kModelTreeH),ImGuiCond_FirstUseEver);
         if (ImGui::Begin("模型树",&_treeOpen))
         {
             /// <summary>
@@ -2461,8 +2666,8 @@ namespace   FE
         /// <summary>
         /// 首次打开落在模型树右侧,避免与模型树重叠
         /// </summary>
-        ImGui::SetNextWindowPos(ImVec2(316.0f,kRibbonH + 8.0f),ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(300.0f,360.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(kPropertyX,kRibbonHeight + kPropertyYOff),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(kPropertyW,kPropertyH),ImGuiCond_FirstUseEver);
         /// <summary>
         /// 数据来源:模型树当前选中节点;未选中时面板显示提示文字。
         /// 约束目标拾取期间改为固定显示约束所有者对象(拾取点击只更新候选目标)
@@ -2520,8 +2725,8 @@ namespace   FE
         /// <summary>
         /// 首次打开落在功能区下方,避免遮挡标签页
         /// </summary>
-        ImGui::SetNextWindowPos(ImVec2(80.0f,kRibbonH + 16.0f),ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(900.0f,560.0f),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(kUiPreviewX,kRibbonHeight + kUiPreviewYOff),ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(kUiPreviewW,kUiPreviewH),ImGuiCond_FirstUseEver);
         if (ImGui::Begin("UI 预览 - MainWindow.ui",&_uiPreviewOpen))
         {
             if (_uiDoc.root() == nullptr)

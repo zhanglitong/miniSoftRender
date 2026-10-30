@@ -4,6 +4,8 @@
 #include    <functional>
 #include    <vector>
 
+#include    "FEUiStrings.hpp"
+
 #include    "../../../inc/FEUndoCmd.hpp"
 #include    "../../../inc/animation/FEAnimation.hpp"
 #include    "../../../inc/animation/FEAnimationSys.hpp"
@@ -411,7 +413,7 @@ namespace   FE
             for (const Animation& anim : anims)
             {
                 bool    found   =   false;
-                String  name    =   "default";
+                String  name    =   ui::text::kDefaultPlaybackStorage;
                 if (sys != nullptr && anim != nullptr)
                 {
                     for (auto& var : sys->playbacks())

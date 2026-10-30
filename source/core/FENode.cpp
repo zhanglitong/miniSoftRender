@@ -3,7 +3,6 @@
 #include    "../inc/graphic/FEScene.h"
 #include    "../inc/FEPropertyIndex.hpp"
 #include    "../inc/FEEulerObject.hpp"
-#include    "../inc/constraint/FEConstraint.hpp"
 
 namespace   FE
 {
@@ -400,19 +399,6 @@ namespace   FE
         if (bModify)
         {
             fireChanged();
-        }
-    }
-
-    void    FENode::solve(const real& tm)
-    {
-        for (auto& var : _coms)
-        {
-            auto    constr  =   dynamic_cast<FEConstraint*>(var.get());
-            if (constr == nullptr)
-                continue;
-            FETransform solved  =   constr->solve(_gloabal, tm);
-            setGlobalTranslation(solved.position());
-            setGlobalRotation(quatr(solved.rotation()));
         }
     }
 

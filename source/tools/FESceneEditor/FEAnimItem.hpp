@@ -11,10 +11,25 @@
 #include    "../../../inc/animation/FEKeyFrameTrack.hpp"
 #include    "../../../inc/node/FENode.hpp"
 
+#include    "FEUiStrings.hpp"
+
 #include    <vector>
 
 namespace   FE
 {
+    /// <summary>
+    /// 播放器显示名:默认播放器在引擎内以 "default" 为键,
+    /// 界面统一显示为 "默认播放器",避免破坏工程文件与脚本兼容性
+    /// </summary>
+    inline  String  playbackDisplayName(const String& name)
+    {
+        if (name.empty())
+            return  "Playback";
+        return  name == ui::text::kDefaultPlaybackStorage
+                ? String(ui::text::kDefaultPlaybackDisplay)
+                : name;
+    }
+
     class   FEAnimItem
     {
     public:

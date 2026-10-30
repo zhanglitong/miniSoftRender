@@ -2,7 +2,9 @@
 
 #include    "FEEditorUndoCmds.hpp"
 #include    "FEModelTree.hpp"
+#include    "FEIconGlyphs.hpp"
 #include    "FEUiStyle.hpp"
+#include    "FEUiStrings.hpp"
 
 #include    "../../../inc/animation/FEAnimationHelper.hpp"
 #include    "../../../inc/animation/FEAnimationSys.hpp"
@@ -30,16 +32,97 @@ namespace   FE
 namespace
 {
     /// <summary>
-    /// 工具栏图标(Font Awesome 5 Solid 码位)
+    /// 总帧数默认值/上限、帧率范围与浮点比较阈值
     /// </summary>
-    const   char*   kGlyphStepBack     =   u8"\uf048";
-    const   char*   kGlyphStepForward  =   u8"\uf051";
-    const   char*   kGlyphPlay         =   u8"\uf04b";
-    const   char*   kGlyphPause        =   u8"\uf04c";
+    constexpr   int     kDefaultTotalFrames =   150;
+    constexpr   int     kMaxTotalFrames     =   100000;
+    constexpr   float   kMinFps             =   1.0f;
+    constexpr   float   kMaxFps             =   240.0f;
+    constexpr   double  kFrameEpsilon       =   0.001;
     /// <summary>
-    /// 添加关键帧(加号)
+    /// 画布最小尺寸与标尺高度留白
     /// </summary>
-    const   char*   kGlyphAddKey       =   u8"\uf067";
+    constexpr   float   kMinCanvasW         =   64.0f;
+    constexpr   float   kMinCanvasH         =   48.0f;
+    constexpr   float   kRulerPadH          =   8.0f;
+    /// <summary>
+    /// 名称列宽度上下限(右侧为时间线保留的最小宽度)
+    /// </summary>
+    constexpr   float   kMinNameW           =   80.0f;
+    constexpr   float   kNameReserveW       =   120.0f;
+    /// <summary>
+    /// 面板高度下限/顶部留白/默认占比与上边缘拖动条高度
+    /// </summary>
+    constexpr   float   kPanelMinH          =   190.0f;
+    constexpr   float   kPanelTopMargin     =   80.0f;
+    constexpr   float   kPanelDefaultRatio  =   0.34f;
+    constexpr   float   kResizeHandleH      =   4.0f;
+    constexpr   float   kResizeLineW        =   2.0f;
+    constexpr   float   kResizeLineY        =   0.5f;
+    /// <summary>
+    /// 面板内边距
+    /// </summary>
+    constexpr   float   kWindowPadX         =   6.0f;
+    constexpr   float   kWindowPadY         =   4.0f;
+    /// <summary>
+    /// 数值输入框宽度与右键菜单输入框宽度
+    /// </summary>
+    constexpr   float   kFieldW             =   64.0f;
+    constexpr   float   kMenuFieldW         =   240.0f;
+    /// <summary>
+    /// 播放速率范围与拖动步进
+    /// </summary>
+    constexpr   float   kSpeedMin           =   0.1f;
+    constexpr   float   kSpeedMax           =   60.0f;
+    constexpr   float   kSpeedDrag          =   0.05f;
+    /// <summary>
+    /// 滚轮缩放/滚动的步进参数
+    /// </summary>
+    constexpr   float   kZoomIn             =   1.2f;
+    constexpr   float   kZoomOut            =   0.8f;
+    constexpr   float   kMinFramePixel      =   1.0f;
+    constexpr   float   kMaxFramePixel      =   100.0f;
+    constexpr   double  kWheelFrameStep     =   20.0;
+    constexpr   float   kWheelRowMul        =   2.0f;
+    /// <summary>
+    /// 关键帧命中半径与绘制半径
+    /// </summary>
+    constexpr   float   kKeyHitRadius       =   6.0f;
+    constexpr   float   kSummaryKeyRadius   =   3.0f;
+    constexpr   float   kKeyRadius          =   5.0f;
+    constexpr   float   kRangeBlockInsetY   =   4.0f;
+    constexpr   float   kKeyBlockRounding   =   3.0f;
+    /// <summary>
+    /// 标尺刻度/播放头/分隔条/滚动条几何
+    /// </summary>
+    constexpr   float   kTickMinGap         =   64.0f;
+    constexpr   float   kTickMarkH          =   5.0f;
+    constexpr   float   kRulerTextY         =   2.0f;
+    constexpr   float   kTitlePadX          =   12.0f;
+    constexpr   float   kPlayheadLineW      =   2.0f;
+    constexpr   float   kPlayheadTriHalf    =   6.0f;
+    constexpr   float   kPlayheadTriTop     =   3.0f;
+    constexpr   float   kPlayheadTriH       =   8.0f;
+    constexpr   float   kPlayheadLabelPadX  =   4.0f;
+    constexpr   float   kSplitterHotTol     =   1.0f;
+    constexpr   float   kSplitterIdleW      =   2.0f;
+    constexpr   float   kGripStep           =   4.0f;
+    constexpr   float   kGripInset          =   1.0f;
+    constexpr   float   kSbInset            =   2.0f;
+    constexpr   float   kSbRounding         =   3.0f;
+    /// <summary>
+    /// 名称列折叠箭头尺寸与左边距
+    /// </summary>
+    constexpr   float   kRowIconScale       =   0.6f;
+    constexpr   float   kRowArrowOffset     =   2.0f;
+    /// <summary>
+    /// 关键帧拖动的最小像素变化(小于该值视为点击)
+    /// </summary>
+    constexpr   float   kDragPixelEps       =   0.5f;
+    /// <summary>
+    /// 垂直/水平滚动条滑块的最小长度
+    /// </summary>
+    constexpr   float   kMinThumbSize       =   24.0f;
 
     /// <summary>
     /// 动画树行缩进层级:播放器 0 / 节点 1 / 动画 2 / 轨道 3
@@ -331,7 +414,7 @@ namespace
     {
     public:
         CreateAnimCmd(Node node,Animation anim,RefreshFn refresh)
-            :FEUndoCmd("创建动画")
+            :FEUndoCmd(text::kCreateAnimation)
             ,_node(node)
             ,_anim(anim)
             ,_refresh(std::move(refresh))
@@ -446,7 +529,7 @@ namespace
         _curTime        =   0;
         _viewLeftFrame  =   0;
         _scrollY        =   0;
-        _totalFrames    =   150;
+        _totalFrames    =   kDefaultTotalFrames;
         _totalManual    =   false;
         _status.clear();
     }
@@ -467,10 +550,10 @@ namespace
 
     void    FETimeLine::setFps(float fps)
     {
-        if (fps < 1.0f)
-            fps =   1.0f;
-        if (fps > 240.0f)
-            fps =   240.0f;
+        if (fps < kMinFps)
+            fps =   kMinFps;
+        if (fps > kMaxFps)
+            fps =   kMaxFps;
         _fps    =   fps;
     }
 
@@ -498,7 +581,7 @@ namespace
                 node            =   selected->cast<FENode>();
         }
         /// <summary>
-        /// 只记录模型树当前节点,供"创建动画"使用;动画树内容由动画系统决定,
+        /// 只记录模型树当前节点,供text::kCreateAnimation使用;动画树内容由动画系统决定,
         /// 不跟随模型树选择变化
         /// </summary>
         _node   =   Node(node);
@@ -518,9 +601,9 @@ namespace
         /// <summary>
         /// 已经停在端点时,换向播放从另一端重新开始
         /// </summary>
-        if (dir > 0 && cur >= lastFrame - 0.001)
+        if (dir > 0 && cur >= lastFrame - kFrameEpsilon)
             _curTime    =   real(firstFrame / double(_fps));
-        else if (dir < 0 && cur <= firstFrame + 0.001)
+        else if (dir < 0 && cur <= firstFrame + kFrameEpsilon)
             _curTime    =   real(lastFrame / double(_fps));
         _playDir    =   dir;
     }
@@ -529,7 +612,7 @@ namespace
     {
         bool    any =   false;
         double  lo  =   0.0;
-        double  hi  =   150.0;
+        double  hi  =   double(kDefaultTotalFrames);
         for (auto& anim : _tree.animations())
         {
             if (!anim || !anim->clip())
@@ -609,7 +692,7 @@ namespace
         if (_vScroll)
         {
             const   float   ratio       =   _vTrackH / (_vTrackH + _scrollMax);
-            _vThumbH    =   std::max(24.0f,_vTrackH * ratio);
+            _vThumbH    =   std::max(kMinThumbSize,_vTrackH * ratio);
             _vThumbTop  =   _vTrackTop + (_vTrackH - _vThumbH) * (_scrollY / _scrollMax);
         }
         else
@@ -626,7 +709,7 @@ namespace
         if (_hScroll)
         {
             const   double  visibleFrames   =   double(_hTrackW) / double(_framePixel);
-            _hThumbW    =   std::max(24.0f,_hTrackW * float(visibleFrames / (visibleFrames + _viewMax)));
+            _hThumbW    =   std::max(kMinThumbSize,_hTrackW * float(visibleFrames / (visibleFrames + _viewMax)));
             _hThumbLeft =   _hTrackLeft + (_hTrackW - _hThumbW) * float(_viewLeftFrame / _viewMax);
         }
         else
@@ -679,7 +762,7 @@ namespace
         const   Animation   anim    =   _tree.rowAnim(row);
         const   real    offset  =   anim ? anim->offset() : 0;
         const   auto&   times   =   track->_times->values();
-        const   float   radius  =   6.0f;
+        const   float   radius  =   kKeyHitRadius;
         for (size_t i = 0; i < times.size(); ++i)
         {
             const   float   cx  =   xForFrame(double(times[i] + offset) * double(_fps));
@@ -788,7 +871,7 @@ namespace
             target  =   frames.back();
         else if (mode == 1)
         {
-            auto    itr =   std::lower_bound(frames.begin(),frames.end(),cur - 0.001);
+            auto    itr =   std::lower_bound(frames.begin(),frames.end(),cur - kFrameEpsilon);
             if (itr != frames.begin())
                 target  =   *(itr - 1);
             else
@@ -796,7 +879,7 @@ namespace
         }
         else if (mode == 2)
         {
-            auto    itr =   std::upper_bound(frames.begin(),frames.end(),cur + 0.001);
+            auto    itr =   std::upper_bound(frames.begin(),frames.end(),cur + kFrameEpsilon);
             target  =   (itr != frames.end()) ? *itr : frames.back();
         }
         setCurFrame(int(std::lround(target)));
@@ -853,9 +936,9 @@ namespace
         /// <summary>
         /// 面板高度:上边缘可拖动调整;未调整过时按显示高度自适应
         /// </summary>
-        const   float   minPanelH   =   190.0f;
-        const   float   maxPanelH   =   std::max(minPanelH,displayH - 80.0f);
-        float   panelH  =   (_panelH > 0.0f) ? _panelH : displayH * 0.34f;
+        const   float   minPanelH   =   kPanelMinH;
+        const   float   maxPanelH   =   std::max(minPanelH,displayH - kPanelTopMargin);
+        float   panelH  =   (_panelH > 0.0f) ? _panelH : displayH * kPanelDefaultRatio;
         panelH  =   std::max(minPanelH,std::min(panelH,maxPanelH));
 
         ImGui::SetNextWindowPos(ImVec2(0.0f,displayH - panelH),ImGuiCond_Always);
@@ -867,7 +950,7 @@ namespace
                                             |   ImGuiWindowFlags_NoScrollbar
                                             |   ImGuiWindowFlags_NoScrollWithMouse
                                             |   ImGuiWindowFlags_NoCollapse;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(6.0f,4.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(kWindowPadX,kWindowPadY));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,0.0f);
         ImGui::Begin("##FETimeLine",nullptr,flags);
         ImGui::PopStyleVar(2);
@@ -915,8 +998,8 @@ namespace
         /// </summary>
         const   ImVec2  canvasPos   =   ImGui::GetCursorScreenPos();
         const   ImVec2  avail       =   ImGui::GetContentRegionAvail();
-        const   float   canvasW     =   std::max(avail.x,64.0f);
-        const   float   canvasH     =   std::max(avail.y,48.0f);
+        const   float   canvasW     =   std::max(avail.x,kMinCanvasW);
+        const   float   canvasH     =   std::max(avail.y,kMinCanvasH);
         ImGui::InvisibleButton("##tl_canvas",ImVec2(canvasW,canvasH));
         const   bool    hovered     =   ImGui::IsItemHovered();
 
@@ -924,7 +1007,7 @@ namespace
         _canvasY    =   canvasPos.y;
         _canvasW    =   canvasW;
         _canvasH    =   canvasH;
-        _rulerH     =   ImGui::GetTextLineHeight() + 8.0f;
+        _rulerH     =   ImGui::GetTextLineHeight() + kRulerPadH;
         /// <summary>
         /// 行高与模型树一致:行距 = 字体大小 × 2.4,扣除行间距后为行高
         /// </summary>
@@ -933,8 +1016,8 @@ namespace
         /// <summary>
         /// 名称列宽度由分割条拖动决定,这里只保证上下限
         /// </summary>
-        const   float   minNameW    =   80.0f;
-        const   float   maxNameW    =   std::max(minNameW,canvasW - 120.0f - _splitterW);
+        const   float   minNameW    =   kMinNameW;
+        const   float   maxNameW    =   std::max(minNameW,canvasW - kNameReserveW - _splitterW);
         _nameW      =   std::max(minNameW,std::min(_nameW,maxNameW));
         _timelineX  =   _canvasX + _nameW + _splitterW;
 
@@ -956,7 +1039,7 @@ namespace
         const   ImVec2  winPos  =   ImGui::GetWindowPos();
         const   ImVec2  winSize =   ImGui::GetWindowSize();
         ImGui::SetCursorScreenPos(winPos);
-        ImGui::InvisibleButton("##tl_resize_top",ImVec2(winSize.x,4.0f));
+        ImGui::InvisibleButton("##tl_resize_top",ImVec2(winSize.x,kResizeHandleH));
         const   bool    edgeHot =   ImGui::IsItemHovered() || ImGui::IsItemActive();
         if (edgeHot)
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
@@ -972,9 +1055,9 @@ namespace
         }
         if (edgeHot)
         {
-            ImGui::GetWindowDrawList()->AddLine(ImVec2(winPos.x,winPos.y + 0.5f),
-                                                ImVec2(winPos.x + winSize.x,winPos.y + 0.5f),
-                                                IM_COL32(70,165,255,255),2.0f);
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(winPos.x,winPos.y + kResizeLineY),
+                                                ImVec2(winPos.x + winSize.x,winPos.y + kResizeLineY),
+                                                IM_COL32(70,165,255,255),kResizeLineW);
         }
 
         ImGui::End();
@@ -1091,8 +1174,8 @@ namespace
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("速率");
         ImGui::SameLine();
-        ImGui::PushItemWidth(64.0f);
-        ImGui::DragFloat("##tl_speed",&_speed,0.05f,0.1f,60.0f,"%.2f");
+        ImGui::PushItemWidth(kFieldW);
+        ImGui::DragFloat("##tl_speed",&_speed,kSpeedDrag,kSpeedMin,kSpeedMax,"%.2f");
         ImGui::PopItemWidth();
 
         /// <summary>
@@ -1105,7 +1188,7 @@ namespace
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("帧");
         ImGui::SameLine();
-        ImGui::PushItemWidth(64.0f);
+        ImGui::PushItemWidth(kFieldW);
         int     frame   =   curFrame();
         if (ImGui::DragInt("##tl_curframe",&frame,1.0f,0,int(std::lround(lastFrame))))
             setCurFrame(frame);
@@ -1118,9 +1201,9 @@ namespace
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("总帧");
         ImGui::SameLine();
-        ImGui::PushItemWidth(64.0f);
+        ImGui::PushItemWidth(kFieldW);
         int     total   =   int(std::lround(lastFrame));
-        if (ImGui::DragInt("##tl_totalframes",&total,1.0f,1,100000))
+        if (ImGui::DragInt("##tl_totalframes",&total,1.0f,1,kMaxTotalFrames))
         {
             _totalFrames    =   std::max(1,total);
             _totalManual    =   true;
@@ -1137,7 +1220,7 @@ namespace
         ImGui::Text("时间 %.2f s",double(curFrame()) / double(_fps));
 
         ImGui::SameLine();
-        if (iconButton(kGlyphAddKey,"添加关键帧","添加关键帧"))
+        if (iconButton(kGlyphAddKey,text::kAddKeyframe,text::kAddKeyframe))
             addKeyframe();
 
         if (!_status.empty())
@@ -1149,13 +1232,13 @@ namespace
         /// <summary>
         /// 关闭按钮右对齐
         /// </summary>
-        const   ImVec2  labelSize   =   ImGui::CalcTextSize("关闭");
+        const   ImVec2  labelSize   =   ImGui::CalcTextSize(text::kClose);
         const   float   closeW      =   labelSize.x + style.FramePadding.x * 2.0f;
         const   float   maxX        =   ImGui::GetWindowContentRegionMax().x;
         const   float   lastRight   =   ImGui::GetItemRectMax().x - winX;
         const   float   closeX      =   std::max(maxX - closeW,lastRight + style.ItemSpacing.x);
         ImGui::SameLine(closeX);
-        if (ImGui::Button("关闭",ImVec2(closeW,0.0f)))
+        if (ImGui::Button(text::kClose,ImVec2(closeW,0.0f)))
             _open   =   false;
     }
 
@@ -1243,13 +1326,13 @@ namespace
                 const   float   x1  =   xForFrame(double(rng.y) * double(_fps));
                 if (x1 > x0)
                 {
-                    const   ImVec2  p0(std::max(x0,_timelineX),y0 + 4.0f);
-                    const   ImVec2  p1(std::min(x1,contentRight),y0 + _rowH - 4.0f);
+                    const   ImVec2  p0(std::max(x0,_timelineX),y0 + kRangeBlockInsetY);
+                    const   ImVec2  p1(std::min(x1,contentRight),y0 + _rowH - kRangeBlockInsetY);
                     if (p1.x > p0.x && p1.y > p0.y)
                     {
                         const   bool    active  =   (anim == _tree.activeAnim());
-                        drawList->AddRectFilled(p0,p1,active ? IM_COL32(0,120,215,90) : IM_COL32(128,128,128,90),3.0f);
-                        drawList->AddRect(p0,p1,active ? IM_COL32(70,165,255,220) : IM_COL32(150,152,160,200),3.0f);
+                        drawList->AddRectFilled(p0,p1,active ? IM_COL32(0,120,215,90) : IM_COL32(128,128,128,90),kKeyBlockRounding);
+                        drawList->AddRect(p0,p1,active ? IM_COL32(70,165,255,220) : IM_COL32(150,152,160,200),kKeyBlockRounding);
                     }
                 }
 
@@ -1266,7 +1349,7 @@ namespace
                         const   float   cx  =   xForFrame(double(tm + offset) * double(_fps));
                         if (cx < _timelineX || cx > contentRight)
                             continue;
-                        drawList->AddCircleFilled(ImVec2(cx,centerY),3.0f,IM_COL32(120,125,135,220));
+                        drawList->AddCircleFilled(ImVec2(cx,centerY),kSummaryKeyRadius,IM_COL32(120,125,135,220));
                     }
                 }
             }
@@ -1284,13 +1367,13 @@ namespace
                         continue;
                     if (isKeySelected(track,k))
                     {
-                        drawList->AddCircleFilled(ImVec2(cx,centerY),5.0f,IM_COL32(0,150,220,220));
-                        drawList->AddCircle(ImVec2(cx,centerY),5.0f,IM_COL32(255,255,255,230));
+                        drawList->AddCircleFilled(ImVec2(cx,centerY),kKeyRadius,IM_COL32(0,150,220,220));
+                        drawList->AddCircle(ImVec2(cx,centerY),kKeyRadius,IM_COL32(255,255,255,230));
                     }
                     else
                     {
-                        drawList->AddCircleFilled(ImVec2(cx,centerY),5.0f,IM_COL32(95,100,110,255));
-                        drawList->AddCircle(ImVec2(cx,centerY),5.0f,IM_COL32(155,160,170,255));
+                        drawList->AddCircleFilled(ImVec2(cx,centerY),kKeyRadius,IM_COL32(95,100,110,255));
+                        drawList->AddCircle(ImVec2(cx,centerY),kKeyRadius,IM_COL32(155,160,170,255));
                     }
                 }
             }
@@ -1322,7 +1405,7 @@ namespace
         {
             const   char*   title       =   "动画树";
             const   ImVec2  titleSize   =   ImGui::CalcTextSize(title);
-            drawList->AddText(ImVec2(_canvasX + 12.0f,
+            drawList->AddText(ImVec2(_canvasX + kTitlePadX,
                                      _canvasY + (_rulerH - titleSize.y) * 0.5f),
                               IM_COL32(225,230,240,255),title);
         }
@@ -1333,7 +1416,7 @@ namespace
         for (double s : kSteps)
         {
             step    =   s;
-            if (s * double(_framePixel) >= 64.0)
+            if (s * double(_framePixel) >= kTickMinGap)
                 break;
         }
         const   double  viewLeft    =   _viewLeftFrame;
@@ -1344,11 +1427,11 @@ namespace
             const   float   x   =   xForFrame(f);
             if (x < _timelineX || x > bottomRight.x)
                 continue;
-            drawList->AddLine(ImVec2(x,_canvasY + _rulerH - 5.0f),ImVec2(x,contentBottom),colLine);
+            drawList->AddLine(ImVec2(x,_canvasY + _rulerH - kTickMarkH),ImVec2(x,contentBottom),colLine);
             char    buffer[32]  =   {   0   };
             std::snprintf(buffer,sizeof(buffer),"%d",int(std::lround(f)));
             const   ImVec2  textSize    =   ImGui::CalcTextSize(buffer);
-            drawList->AddText(ImVec2(x - textSize.x * 0.5f,_canvasY + 2.0f),IM_COL32(205,210,220,255),buffer);
+            drawList->AddText(ImVec2(x - textSize.x * 0.5f,_canvasY + kRulerTextY),IM_COL32(205,210,220,255),buffer);
         }
 
         /// <summary>
@@ -1357,15 +1440,15 @@ namespace
         const   float   playX   =   xForFrame(double(_curTime) * double(_fps));
         if (playX >= _timelineX && playX <= contentRight)
         {
-            drawList->AddLine(ImVec2(playX,rowsTop),ImVec2(playX,contentBottom),IM_COL32(255,92,82,230),2.0f);
-            const   float   triY    =   _canvasY + 3.0f;
-            drawList->AddTriangleFilled(ImVec2(playX - 6.0f,triY),
-                                        ImVec2(playX + 6.0f,triY),
-                                        ImVec2(playX,triY + 8.0f),IM_COL32(255,92,82,255));
+            drawList->AddLine(ImVec2(playX,rowsTop),ImVec2(playX,contentBottom),IM_COL32(255,92,82,230),kPlayheadLineW);
+            const   float   triY    =   _canvasY + kPlayheadTriTop;
+            drawList->AddTriangleFilled(ImVec2(playX - kPlayheadTriHalf,triY),
+                                        ImVec2(playX + kPlayheadTriHalf,triY),
+                                        ImVec2(playX,triY + kPlayheadTriH),IM_COL32(255,92,82,255));
             char    buffer[32]  =   {   0   };
             std::snprintf(buffer,sizeof(buffer),"%d",curFrame());
             const   ImVec2  textSize    =   ImGui::CalcTextSize(buffer);
-            const   ImVec2  textPos(playX + 4.0f,_canvasY + 1.0f);
+            const   ImVec2  textPos(playX + kPlayheadLabelPadX,_canvasY + 1.0f);
             drawList->AddRectFilled(ImVec2(textPos.x - 2.0f,textPos.y - 1.0f),
                                     ImVec2(textPos.x + textSize.x + 2.0f,textPos.y + ImGui::GetTextLineHeight() + 1.0f),
                                     IM_COL32(20,22,26,220));
@@ -1379,14 +1462,14 @@ namespace
         const   bool    splitterActive  =   (_dragMode == DM_Splitter);
         const   float   splitterX       =   _timelineX - _splitterW * 0.5f;
         const   bool    splitterHot     =   splitterActive
-                                        ||  (hovered && std::fabs(mouse.x - splitterX) <= _splitterW * 0.5f + 1.0f);
+                                        ||  (hovered && std::fabs(mouse.x - splitterX) <= _splitterW * 0.5f + kSplitterHotTol);
         /// <summary>
         /// 间隙底色
         /// </summary>
         drawList->AddRectFilled(ImVec2(nameRight,_canvasY),
                                 ImVec2(_timelineX,bottomRight.y),
                                 IM_COL32(22,24,29,255));
-        const   float   splitW      =   splitterHot ? _splitterW : 2.0f;
+        const   float   splitW      =   splitterHot ? _splitterW : kSplitterIdleW;
         const   ImU32   colStrip    =   splitterActive ? IM_COL32(70,165,255,255)
                                       : splitterHot    ? IM_COL32(120,170,235,255)
                                                        : IM_COL32(110,117,132,255);
@@ -1401,9 +1484,9 @@ namespace
                                                 : IM_COL32(190,198,214,255);
         for (int i = -1; i <= 1; ++i)
         {
-            const   float   gy  =   gripY + float(i) * 4.0f;
-            drawList->AddLine(ImVec2(splitterX - _splitterW * 0.5f + 1.0f,gy),
-                              ImVec2(splitterX + _splitterW * 0.5f - 1.0f,gy),
+            const   float   gy  =   gripY + float(i) * kGripStep;
+            drawList->AddLine(ImVec2(splitterX - _splitterW * 0.5f + kGripInset,gy),
+                              ImVec2(splitterX + _splitterW * 0.5f - kGripInset,gy),
                               gripCol,1.0f);
         }
         if (splitterHot)
@@ -1426,9 +1509,9 @@ namespace
                                 &&  mouse.y <= _vThumbTop + _vThumbH);
             if (hot)
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            drawList->AddRectFilled(ImVec2(x0 + 2.0f,_vThumbTop),
-                                    ImVec2(bottomRight.x - 2.0f,_vThumbTop + _vThumbH),
-                                    hot ? colSbHot : colSbThumb,3.0f);
+            drawList->AddRectFilled(ImVec2(x0 + kSbInset,_vThumbTop),
+                                    ImVec2(bottomRight.x - kSbInset,_vThumbTop + _vThumbH),
+                                    hot ? colSbHot : colSbThumb,kSbRounding);
         }
         if (_hScroll)
         {
@@ -1441,9 +1524,9 @@ namespace
                                 &&  mouse.x <= _hThumbLeft + _hThumbW);
             if (hot)
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            drawList->AddRectFilled(ImVec2(_hThumbLeft,y0 + 2.0f),
-                                    ImVec2(_hThumbLeft + _hThumbW,bottomRight.y - 2.0f),
-                                    hot ? colSbHot : colSbThumb,3.0f);
+            drawList->AddRectFilled(ImVec2(_hThumbLeft,y0 + kSbInset),
+                                    ImVec2(_hThumbLeft + _hThumbW,bottomRight.y - kSbInset),
+                                    hot ? colSbHot : colSbThumb,kSbRounding);
         }
 
         /// <summary>
@@ -1478,15 +1561,15 @@ namespace
         /// </summary>
         const   float   splitterX   =   _timelineX - _splitterW * 0.5f;
         const   bool    inSplitter  =   mouse.y >= _canvasY && mouse.y <= _canvasY + _canvasH
-                                    &&  std::fabs(mouse.x - splitterX) <= _splitterW * 0.5f + 1.0f;
+                                    &&  std::fabs(mouse.x - splitterX) <= _splitterW * 0.5f + kSplitterHotTol;
         if (hovered && inSplitter && ImGui::IsMouseClicked(0))
             _dragMode   =   DM_Splitter;
         if (_dragMode == DM_Splitter)
         {
             if (ImGui::IsMouseDown(0))
             {
-                const   float   minNameW    =   80.0f;
-                const   float   maxNameW    =   std::max(minNameW,_canvasW - 120.0f - _splitterW);
+                const   float   minNameW    =   kMinNameW;
+                const   float   maxNameW    =   std::max(minNameW,_canvasW - kNameReserveW - _splitterW);
                 _nameW      =   std::max(minNameW,
                                          std::min(mouse.x - _canvasX - _splitterW * 0.5f,maxNameW));
                 _timelineX  =   _canvasX + _nameW + _splitterW;
@@ -1505,8 +1588,8 @@ namespace
             if (io.KeyCtrl)
             {
                 const   double  anchor  =   frameForX(mouse.x);
-                float   newPixel        =   _framePixel * (io.MouseWheel > 0.0f ? 1.2f : 0.8f);
-                newPixel                =   std::max(1.0f,std::min(newPixel,100.0f));
+                float   newPixel        =   _framePixel * (io.MouseWheel > 0.0f ? kZoomIn : kZoomOut);
+                newPixel                =   std::max(kMinFramePixel,std::min(newPixel,kMaxFramePixel));
                 _framePixel             =   newPixel;
                 _viewLeftFrame          =   anchor - (double(mouse.x) - double(_timelineX)) / double(_framePixel);
                 if (_viewLeftFrame < 0.0)
@@ -1514,12 +1597,12 @@ namespace
             }
             else if (io.KeyShift)
             {
-                _viewLeftFrame  -=  double(io.MouseWheel) * 20.0;
+                _viewLeftFrame  -=  double(io.MouseWheel) * kWheelFrameStep;
                 _viewLeftFrame  =   std::max(0.0,std::min(_viewLeftFrame,_viewMax));
             }
             else
             {
-                _scrollY    -=  io.MouseWheel * _rowStep * 2.0f;
+                _scrollY    -=  io.MouseWheel * _rowStep * kWheelRowMul;
                 _scrollY    =   std::max(0.0f,std::min(_scrollY,_scrollMax));
             }
         }
@@ -1654,8 +1737,8 @@ namespace
                     if (row >= 0)
                     {
                         const   auto&   item    =   _tree.rows()[size_t(row)];
-                        const   float   iconSize=   _rowH * 0.6f;
-                        const   float   arrowX  =   _canvasX + 2.0f
+                        const   float   iconSize=   _rowH * kRowIconScale;
+                        const   float   arrowX  =   _canvasX + kRowArrowOffset
                                                 +   kIndent * float(animRowDepth(item.type()));
                         const   bool    onArrow =   item.type() != FEAnimItem::Type::Track
                                                 &&  mouse.x >= arrowX
@@ -1854,7 +1937,7 @@ namespace
         if (ImGui::BeginPopup("##tl_anim_context"))
         {
             const   Animation   anim    =   _ctxAnim;
-            if (ImGui::MenuItem("删除动画",nullptr,false,anim != nullptr))
+            if (ImGui::MenuItem(text::kDeleteAnimation,nullptr,false,anim != nullptr))
                 removeAnimation(anim);
             ImGui::EndPopup();
         }
@@ -1878,14 +1961,15 @@ namespace
         if (ImGui::BeginPopup("##tl_playback_context"))
         {
             const   Playback    playback    =   _ctxPlayback;
-            if (ImGui::MenuItem("重命名播放器",nullptr,false,playback != nullptr))
+            if (ImGui::MenuItem(text::kRenamePlayback,nullptr,false,playback != nullptr))
             {
                 _renamePlayback         =   playback;
                 _renamePlaybackOpen     =   true;
                 _renamePlaybackFocus    =   true;
-                std::snprintf(_renamePlaybackBuf,sizeof(_renamePlaybackBuf),"%s",playback->name().c_str());
+                const   String  shown   =   playback ? playbackDisplayName(playback->name()) : String();
+                std::snprintf(_renamePlaybackBuf,sizeof(_renamePlaybackBuf),"%s",shown.c_str());
             }
-            if (ImGui::MenuItem("删除播放器",nullptr,false,playback != nullptr))
+            if (ImGui::MenuItem(text::kDeletePlayback,nullptr,false,playback != nullptr))
                 removePlayback(playback);
             ImGui::EndPopup();
         }
@@ -1907,7 +1991,7 @@ namespace
         }
         if (ImGui::BeginPopup("##tl_playback_create"))
         {
-            if (ImGui::MenuItem("创建播放器"))
+            if (ImGui::MenuItem(text::kCreatePlayback))
                 createPlayback();
             ImGui::EndPopup();
         }
@@ -1917,13 +2001,13 @@ namespace
         /// </summary>
         if (_renamePlaybackOpen)
         {
-            ImGui::OpenPopup("重命名播放器");
+            ImGui::OpenPopup(text::kRenamePlayback);
             _renamePlaybackOpen =   false;
         }
-        if (ImGui::BeginPopupModal("重命名播放器",nullptr,ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(text::kRenamePlayback,nullptr,ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::TextUnformatted("播放器名称");
-            ImGui::PushItemWidth(240.0f);
+            ImGui::PushItemWidth(kMenuFieldW);
             if (_renamePlaybackFocus)
             {
                 ImGui::SetKeyboardFocusHere();
@@ -1933,9 +2017,9 @@ namespace
                                                          sizeof(_renamePlaybackBuf),
                                                          ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::PopItemWidth();
-            const   bool    commit  =   ImGui::Button("确定") || enter;
+            const   bool    commit  =   ImGui::Button(text::kConfirm) || enter;
             ImGui::SameLine();
-            const   bool    cancel  =   ImGui::Button("取消");
+            const   bool    cancel  =   ImGui::Button(text::kCancel);
             if (commit)
             {
                 if (_renamePlaybackBuf[0] != '\0')
@@ -1982,7 +2066,7 @@ namespace
 
     void    FETimeLine::applyKeyDrag(float deltaPixel)
     {
-        if (std::fabs(deltaPixel) < 0.5f || _selKeys.empty())
+        if (std::fabs(deltaPixel) < kDragPixelEps || _selKeys.empty())
             return;
 
         const   real    deltaTime   =   real(double(deltaPixel) / double(_framePixel) / double(_fps));
@@ -2053,7 +2137,7 @@ namespace
 
     void    FETimeLine::applyOffsetDrag(float deltaPixel)
     {
-        if (std::fabs(deltaPixel) < 0.5f || _dragAnims.empty())
+        if (std::fabs(deltaPixel) < kDragPixelEps || _dragAnims.empty())
             return;
 
         const   real    deltaTime   =   real(double(deltaPixel) / double(_framePixel) / double(_fps));
@@ -2251,7 +2335,7 @@ namespace
             return;
 
         if (_undoStack != nullptr)
-            _undoStack->push(new SetTrackStatesCmd(std::move(edits),"删除关键帧",[this]() {   refreshScene();  }));
+            _undoStack->push(new SetTrackStatesCmd(std::move(edits),text::kDeleteKeyframe,[this]() {   refreshScene();  }));
         else
         {
             for (auto& edit : edits)
@@ -2302,7 +2386,7 @@ namespace
     {
         if (!_node)
         {
-            _status =   "请先在模型树中选择节点";
+            _status =   text::kSelectNodeFirst;
             return;
         }
         if (!_node->objects<FEAnimation>().empty())
@@ -2358,7 +2442,7 @@ namespace
         else if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorAnimationCmd(*_scene,node,Animations{anim}
-                                                      ,FEEditorAnimationCmd::AM_Detach,"删除动画"));
+                                                      ,FEEditorAnimationCmd::AM_Detach,text::kDeleteAnimation));
         }
         else
         {
@@ -2476,7 +2560,7 @@ namespace
             else
                 sel =   _selKeys.erase(sel);
         }
-        _status =   "已删除播放器:" + name;
+        _status =   "已删除播放器:" + playbackDisplayName(name);
     }
 
     void    FETimeLine::renamePlayback(Playback playback,const String& newName)
@@ -2484,7 +2568,11 @@ namespace
         if (_scene == nullptr || !playback)
             return;
         const   String  oldName =   playback->name();
-        if (newName.empty() || newName == oldName)
+        /// <summary>
+        /// 默认播放器存储名仍是 "default",界面显示为 "默认播放器";
+        /// 原样确认显示名时不做真实重命名,避免下次自动新建出第二个默认播放器
+        /// </summary>
+        if (newName.empty() || newName == oldName || newName == playbackDisplayName(oldName))
             return;
         FEAnimationSys* sys =   _scene->animationSystem();
         if (sys == nullptr)
@@ -2522,7 +2610,7 @@ namespace
             anim    =   _tree.animations().front();
         if (!anim)
         {
-            _status =   "请先在模型树右键「动画」子菜单「添加到播放器」";
+            _status =   text::kAddToPlaybackHint;
             return;
         }
 
@@ -2536,12 +2624,12 @@ namespace
             node    =   _node;
         if (!node)
         {
-            _status =   "动画没有所属节点";
+            _status =   text::kAnimationMissingNode;
             return;
         }
         if (!anim->clip())
         {
-            _status =   "动画没有可用的 clip";
+            _status =   text::kAnimationMissingClip;
             return;
         }
         /// 打帧时间吸附到帧,避免关键帧落在两帧之间
@@ -2564,7 +2652,7 @@ namespace
             changed =   FEAnimationHelper::updateNodeKeyFrame(anim,_curTime,node);
         if (!changed)
         {
-            _status =   "当前帧没有产生关键帧变化";
+            _status =   text::kNoKeyframeChange;
             return;
         }
 
@@ -2590,7 +2678,7 @@ namespace
             return;
 
         if (_undoStack != nullptr)
-            _undoStack->push(new SetTrackStatesCmd(std::move(edits),"添加关键帧",[this]() {    refreshScene();  }));
+            _undoStack->push(new SetTrackStatesCmd(std::move(edits),text::kAddKeyframe,[this]() {    refreshScene();  }));
         else
         {
             for (auto& edit : edits)
@@ -2633,7 +2721,7 @@ namespace
             anim    =   _tree.animations().front();
         if (!anim)
         {
-            _status =   "请先在模型树右键「动画」子菜单「添加到播放器」";
+            _status =   text::kAddToPlaybackHint;
             return  false;
         }
 
@@ -2647,13 +2735,13 @@ namespace
             node    =   _node;
         if (!node)
         {
-            _status =   "动画没有所属节点";
+            _status =   text::kAnimationMissingNode;
             return  false;
         }
         AnimClip    clip    =   anim->clip();
         if (!clip)
         {
-            _status =   "动画没有可用的 clip";
+            _status =   text::kAnimationMissingClip;
             return  false;
         }
         /// 打帧时间吸附到帧,避免关键帧落在两帧之间
@@ -2687,7 +2775,7 @@ namespace
             if (edits.empty())
                 return  true;
             if (_undoStack != nullptr)
-                _undoStack->push(new SetTrackStatesCmd(std::move(edits),"删除关键帧",[this]() {   refreshScene();    }));
+                _undoStack->push(new SetTrackStatesCmd(std::move(edits),text::kDeleteKeyframe,[this]() {   refreshScene();    }));
             else
             {
                 for (auto& edit : edits)
@@ -2718,7 +2806,7 @@ namespace
             changed =   FEAnimationHelper::updateNodeKeyFrame(anim,_curTime,node,bits);
         if (!changed)
         {
-            _status =   "当前帧没有产生关键帧变化";
+            _status =   text::kNoKeyframeChange;
             return  false;
         }
 
@@ -2744,7 +2832,7 @@ namespace
             return  false;
 
         if (_undoStack != nullptr)
-            _undoStack->push(new SetTrackStatesCmd(std::move(edits),"添加关键帧",[this]() {    refreshScene();  }));
+            _undoStack->push(new SetTrackStatesCmd(std::move(edits),text::kAddKeyframe,[this]() {    refreshScene();  }));
         else
         {
             for (auto& edit : edits)

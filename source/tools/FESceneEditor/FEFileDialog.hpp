@@ -1,5 +1,7 @@
 #pragma     once
 
+#include    "FEUiMetrics.hpp"
+
 #include    <filesystem>
 #include    <string>
 #include    <vector>
@@ -144,11 +146,11 @@ namespace   FE
         /// <summary>
         /// 文件名输入缓冲
         /// </summary>
-        char        _nameBuf[260]   =   {   0   };
+        char        _nameBuf[ui::kFileNameBufSize]   =   {   0   };
         /// <summary>
         /// 地址栏输入缓冲(当前目录;可直接编辑以跳转,含盘符根)
         /// </summary>
-        char        _pathBuf[1024]  =   {   0   };
+        char        _pathBuf[ui::kPathBufSize]  =   {   0   };
         std::vector<Entry>      _entries;
         /// <summary>
         /// 左侧导航栏的快捷跳转项(弹出对话框时构建一次)

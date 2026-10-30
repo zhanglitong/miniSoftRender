@@ -3,8 +3,11 @@
 /// </summary>
 
 #include    "FEModelTree.hpp"
+#include    "FEAnimItem.hpp"
 #include    "FEEditorUndoCmds.hpp"
+#include    "FEIconGlyphs.hpp"
 #include    "FEUiStyle.hpp"
+#include    "FEUiStrings.hpp"
 
 #include    "../../../inc/FEUndoStack.hpp"
 #include    "../../../inc/graphic/FEScene.h"
@@ -17,29 +20,21 @@
 #include    "../../../inc/constraint/FEConstraintDrive.hpp"
 
 #include    <algorithm>
+#include    <cctype>
 #include    <cstdio>
 #include    <functional>
+
+using   namespace   FE::ui;
 
 namespace
 {
     /// <summary>
-    /// Font Awesome 字形:节点/对象
+    /// 拖拽嵌入目标时的整行高亮底色:强调色半透明
     /// </summary>
-    const   char*   kGlyphCube     =   u8"\uf1b2";
+    const   ImU32   kDropFill      =   withAlpha(kAccent,56);
     /// <summary>
-    /// Font Awesome 字形:显示
+    /// 隐藏节点行的图标色
     /// </summary>
-    const   char*   kGlyphEye      =   u8"\uf06e";
-    /// <summary>
-    /// Font Awesome 字形:隐藏
-    /// </summary>
-    const   char*   kGlyphEyeOff   =   u8"\uf070";
-
-    /// <summary>
-    /// 拖拽嵌入目标时的整行高亮底色
-    /// </summary>
-    const   ImU32   kDropFill      =   IM_COL32(74,144,226,56);
-    const   ImU32   kTextHidden    =   IM_COL32(140,146,158,255);
     const   ImU32   kIconHidden    =   IM_COL32(110,116,128,255);
 
     /// <summary>
@@ -194,6 +189,10 @@ namespace   FE
         _rows.clear();
         if (_nodeTree != nullptr)
         {
+            /// <summary>
+            /// 搜索态:忽略折叠,只保留命中节点及其祖先路径;范围仍受隔离限制
+            /// </summary>
+            const   bool    searching   =   !_searchQuery.empty();
             if (_isolate)
             {
                 /// <summary>
@@ -210,12 +209,24 @@ namespace   FE
                 if (_isolated.empty())
                     _isolate    =   false;
                 for (const Node& node : _isolated)
-                    collectRows(Object(const_cast<FENode*>(node.get())),0);
+                {
+                    const   Object  object(const_cast<FENode*>(node.get()));
+                    if (searching)
+                        collectRowsFiltered(object,0);
+                    else
+                        collectRows(object,0);
+                }
             }
             else
             {
                 for (const auto& node : _nodeTree->topLevelNodes())
-                    collectRows(Object(const_cast<FENode*>(node.get())),0);
+                {
+                    const   Object  object(const_cast<FENode*>(node.get()));
+                    if (searching)
+                        collectRowsFiltered(object,0);
+                    else
+                        collectRows(object,0);
+                }
             }
         }
         /// <summary>
@@ -328,7 +339,7 @@ namespace   FE
         ImGui::BeginChild("##model_tree_rows",ImVec2(0,0),false);
         if (_rows.empty())
         {
-            ImGui::TextDisabled("场景为空");
+            ImGui::TextDisabled(_searchQuery.empty() ? "场景为空" : text::kNoMatch);
         }
         const   float   width   =   std::max(1.0f,ImGui::GetContentRegionAvail().x);
         for (size_t i = 0; i < _rows.size(); ++i)
@@ -486,43 +497,101 @@ namespace   FE
     void    FEModelTree::drawToolbar()
     {
         /// <summary>
-        /// 隔离按钮(位于"展开全部"之前):隔离状态下按钮显示绿色,再次点击取消隔离。
-        /// Push/Pop 必须使用点击前的状态,否则首次点击时按钮翻转 _isolate 后
-        /// 会弹出从未 Push 过的颜色栈(ImGuiColorMod::back 断言崩溃)
+        /// 搜索栏(参考动画树):搜索框 + 大小写匹配 + 全匹配,回车执行搜索;
+        /// 右侧为隔离按钮,已移除统计项
+        /// </summary>
+        const   ImGuiStyle& style   =   ImGui::GetStyle();
+        const   float   btnH    =   ImGui::GetFrameHeight();
+        const   float   searchW =   std::max(60.0f,std::min(
+                                    ImGui::GetContentRegionAvail().x
+                                    -   ImGui::CalcTextSize(text::kSearch).x
+                                    -   btnH * 3.0f
+                                    -   style.ItemSpacing.x * 5.0f,240.0f));
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(text::kSearch);
+        ImGui::SameLine();
+        ImGui::PushItemWidth(searchW);
+        if (ImGui::InputText("##model_search",_searchBuf,sizeof(_searchBuf),
+                             ImGuiInputTextFlags_EnterReturnsTrue))
+        {
+            _searchQuery.assign(_searchBuf);
+            _rowsDirty  =   true;
+        }
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if (iconButton(kGlyphCaseMatch,text::kCaseMatchShort,text::kCaseMatch,_searchCase))
+        {
+            _searchCase =   !_searchCase;
+            _rowsDirty  =   true;
+        }
+        ImGui::SameLine();
+        if (iconButton(kGlyphWholeMatch,text::kWholeMatchShort,text::kWholeMatch,_searchWhole))
+        {
+            _searchWhole    =   !_searchWhole;
+            _rowsDirty      =   true;
+        }
+
+        /// <summary>
+        /// 隔离按钮固定到整行最右侧:自绘小圆点,未隔离灰色、隔离中绿色,再次点击取消隔离
         /// </summary>
         const   bool    isolating   =   _isolate;
-        if (isolating)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.13f,0.52f,0.24f,1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.17f,0.64f,0.30f,1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.10f,0.42f,0.19f,1.0f));
-        }
-        if (ImGui::Button("隔离"))
+        const   float   rightX      =   std::max(ImGui::GetCursorPosX() + style.ItemSpacing.x,
+                                                 ImGui::GetCursorPosX()
+                                                 +   ImGui::GetContentRegionAvail().x
+                                                 -   btnH);
+        ImGui::SameLine(rightX);
+        const   ImVec2  pos         =   ImGui::GetCursorScreenPos();
+        const   ImVec2  size        =   ImVec2(btnH,btnH);
+        ImGui::InvisibleButton("##isolate",size);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(isolating ? "取消隔离" : "隔离选中节点");
+        if (ImGui::IsItemClicked(0))
             toggleIsolation();
-        if (isolating)
-            ImGui::PopStyleColor(3);
-        ImGui::SameLine();
-        if (ImGui::Button("展开全部"))
-        {
-            /// 只处理当前显示在树上的根(隔离时为被隔离节点)
-            for (const RowData& row : _rows)
-            {
-                if (row._depth == 0)
-                    setExpanded(row._object,true,true);
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("折叠全部"))
-        {
-            for (const RowData& row : _rows)
-            {
-                if (row._depth == 0)
-                    setExpanded(row._object,false,true);
-            }
-        }
-        ImGui::SameLine();
-        ImGui::TextDisabled("%d 项",int(_rows.size()));
+
+        ImDrawList*     dl          =   ImGui::GetWindowDrawList();
+        if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+            dl->AddRectFilled(pos,ImVec2(pos.x + size.x,pos.y + size.y),
+                              IM_COL32(255,255,255,22),3.0f);
+        /// <summary>
+        /// 圆点半径取控件高度的 28%,与搜索框/按钮的视觉重量更协调
+        /// </summary>
+        dl->AddCircleFilled(ImVec2(pos.x + size.x * 0.5f,pos.y + size.y * 0.5f),
+                            btnH * 0.28f,
+                            isolating ? IM_COL32(92,199,107,255) : IM_COL32(148,153,163,255),20);
         ImGui::Separator();
+    }
+
+    bool    FEModelTree::iconButton(const char* glyph,const char* text,const char* tip,bool active)
+    {
+        const   bool    useIcon =   _iconFont != nullptr;
+        const   float   btnH    =   ImGui::GetFrameHeight();
+        const   ImVec2  size    =   ImVec2(btnH,btnH);
+        const   ImVec2  pos     =   ImGui::GetCursorScreenPos();
+
+        ImGui::PushID(glyph);
+        if (active)
+            ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.24f,0.52f,0.86f,1.0f));
+        const   bool    clicked =   ImGui::Button("##model_icon",size);
+        if (active)
+            ImGui::PopStyleColor();
+        ImGui::PopID();
+
+        /// <summary>
+        /// 自绘图标/文字,居中到按钮中心(图标字体缺失时退回文字)
+        /// </summary>
+        const   ImFont* font    =   useIcon ? _iconFont : ImGui::GetFont();
+        const   float   fontSz  =   ImGui::GetFontSize();
+        const   ImVec2  label   =   font->CalcTextSizeA(fontSz,4096.0f,0.0f,
+                                                       useIcon ? glyph : text,
+                                                       nullptr,nullptr);
+        ImGui::GetWindowDrawList()->AddText(font,fontSz,
+                                            ImVec2(pos.x + (size.x - label.x) * 0.5f,
+                                                   pos.y + (size.y - label.y) * 0.5f),
+                                            ImGui::GetColorU32(ImGuiCol_Text),
+                                            useIcon ? glyph : text);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s",tip);
+        return  clicked;
     }
 
     void    FEModelTree::toggleIsolation()
@@ -583,6 +652,70 @@ namespace   FE
             collectRows(Object(const_cast<FEObject*>(&child)),depth + 1);
             return  true;
         });
+    }
+
+    bool    FEModelTree::collectRowsFiltered(const Object& object,int depth)
+    {
+        if (!object)
+            return  false;
+
+        /// <summary>
+        /// 先占位再收集子孙:子树没有任何命中时把整段行回滚,避免残留祖先路径
+        /// </summary>
+        const   size_t  start   =   _rows.size();
+        bool            matched =   nameMatches(objectName(object));
+        RowData         row;
+        row._object     =   object;
+        row._depth      =   depth;
+        row._hasChild   =   object->objectCount() > 0;
+        /// <summary>
+        /// 搜索态忽略折叠标记,保证命中项始终可见
+        /// </summary>
+        row._expanded   =   row._hasChild;
+        _rows.push_back(row);
+
+        bool    childMatched    =   false;
+        object->traverseObject([this,depth,&childMatched](const FEObject& child,const FEObject&,
+                                                          const FEObject::FETrvsCtx&,uint) -> bool
+        {
+            if (collectRowsFiltered(Object(const_cast<FEObject*>(&child)),depth + 1))
+                childMatched    =   true;
+            return  true;
+        });
+        if (!matched && !childMatched)
+        {
+            _rows.resize(start);
+            return  false;
+        }
+        /// <summary>
+        /// 箭头与展开状态按实际加入的子行决定
+        /// </summary>
+        RowData&        added   =   _rows[start];
+        added._hasChild         =   _rows.size() > start + 1;
+        added._expanded         =   added._hasChild;
+        return  true;
+    }
+
+    bool    FEModelTree::nameMatches(const String& name) const
+    {
+        if (_searchQuery.empty())
+            return  true;
+
+        String  hay     =   name;
+        String  needle  =   _searchQuery;
+        if (!_searchCase)
+        {
+            auto    lower   =   [](String& s)
+            {
+                for (auto& c : s)
+                    c   =   char(std::tolower(static_cast<unsigned char>(c)));
+            };
+            lower(hay);
+            lower(needle);
+        }
+        if (_searchWhole)
+            return  hay == needle;
+        return  hay.find(needle) !=  String::npos;
     }
 
     void    FEModelTree::drawRow(const RowData& row,int index,float width,float rowHeight)
@@ -706,7 +839,7 @@ namespace   FE
         const   String          name    =   objectName(row._object);
         ImGui::PushClipRect(ImVec2(textX,pos.y),ImVec2(eyeX - 4.0f,pos.y + rowHeight),true);
         dl->AddText(ImVec2(textX,textY),
-                    selected ? kTextSelected : (visible ? kTextColor : kTextHidden),
+                    selected ? kTextSelected : (visible ? kTextColor : kTextMuted),
                     name.c_str());
         ImGui::PopClipRect();
 
@@ -775,9 +908,9 @@ namespace   FE
         const   auto        nodeAnims   =   node->objects<FEAnimation>();
         if (ImGui::BeginMenu("动画"))
         {
-            if (ImGui::MenuItem("创建动画"))
+            if (ImGui::MenuItem(text::kCreateAnimation))
                 createAnimation(node);
-            if (ImGui::MenuItem("删除动画",nullptr,false,!nodeAnims.empty()))
+            if (ImGui::MenuItem(text::kDeleteAnimation,nullptr,false,!nodeAnims.empty()))
                 removeAnimations(node);
             const   bool    canPick =   animSys != nullptr && !nodeAnims.empty();
             if (ImGui::BeginMenu("添加到播放器",canPick))
@@ -796,7 +929,8 @@ namespace   FE
                                 return  animationInPlayback(playback.get(),anim);
                             }));
                         const   bool    allInside   =   inside == int(nodeAnims.size());
-                        const   String  label   =   (allInside ? "从播放器移除: " : "添加到播放器: ") + var.first;
+                        const   String  label   =   (allInside ? "从播放器移除: " : "添加到播放器: ")
+                                                  +   playbackDisplayName(var.first);
                         if (ImGui::MenuItem(label.c_str()))
                         {
                             if (allInside)
@@ -818,7 +952,8 @@ namespace   FE
         {
             static  const   char*   kConstraintNames[]  =
             {
-                "平移约束","跟随约束","朝向约束","路径约束","驱动约束"
+                text::kTransConstraint,text::kFollowConstraint,text::kLookAtConstraint,
+                text::kPathConstraint,text::kDriveConstraint
             };
             for (int i = 0; i < CK_COUNT; ++i)
             {
@@ -857,9 +992,9 @@ namespace   FE
                                                      sizeof(_renameBuf),
                                                      ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::PopItemWidth();
-        const   bool    commit  =   ImGui::Button("确定") || enter;
+        const   bool    commit  =   ImGui::Button(text::kConfirm) || enter;
         ImGui::SameLine();
-        const   bool    cancel  =   ImGui::Button("取消");
+        const   bool    cancel  =   ImGui::Button(text::kCancel);
         if (commit)
         {
             Node    node;
@@ -961,7 +1096,7 @@ namespace   FE
         if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorAnimationCmd(*_scene,node,{anim}
-                                                      ,FEEditorAnimationCmd::AM_Attach,"创建动画"));
+                                                      ,FEEditorAnimationCmd::AM_Attach,text::kCreateAnimation));
             return;
         }
         node->addComponent(anim.get());
@@ -986,7 +1121,7 @@ namespace   FE
         if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorAnimationCmd(*_scene,node,anims
-                                                      ,FEEditorAnimationCmd::AM_Detach,"删除动画"));
+                                                      ,FEEditorAnimationCmd::AM_Detach,text::kDeleteAnimation));
             return;
         }
         FEAnimationSys* sys =   _scene->animationSystem();
@@ -1158,7 +1293,7 @@ namespace   FE
         if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorConstraintCmd(*_scene,node,constraint,add
-                                                      ,add ? "添加约束" : "移除约束"));
+                                                      ,add ? text::kAddConstraint : text::kRemoveConstraint));
             return;
         }
         FEConstraintSys*    sys =   _scene->constraintSystem();

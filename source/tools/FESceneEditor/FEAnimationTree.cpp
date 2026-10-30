@@ -1,5 +1,7 @@
 #include    "FEAnimationTree.hpp"
 #include    "FEUiStyle.hpp"
+#include    "FEIconGlyphs.hpp"
+#include    "FEUiStrings.hpp"
 
 #include    "../../../inc/animation/FEAnimationSys.hpp"
 
@@ -15,12 +17,6 @@ namespace   FE
 
 namespace
 {
-    /// <summary>
-    /// 搜索选项图标:大小写匹配(字母 A)/全匹配(等号)
-    /// </summary>
-    const   char*   kGlyphCaseMatch    =   u8"\uf031";
-    const   char*   kGlyphWholeMatch   =   u8"\uf52c";
-
     /// <summary>
     /// 行缩进层级:播放器 0 / 节点 1 / 动画 2 / 轨道 3
     /// </summary>
@@ -302,22 +298,22 @@ namespace
         /// </summary>
         const   float   iconW       =   26.0f;
         const   float   reserve     =   iconW * 2.0f
-                                    +   ImGui::CalcTextSize("搜索").x
+                                    +   ImGui::CalcTextSize(text::kSearch).x
                                     +   style.ItemSpacing.x * 3.0f;
         float   searchW =   groupWidth - reserve;
         searchW =   std::max(60.0f,std::min(searchW,240.0f));
         ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("搜索");
+        ImGui::TextUnformatted(text::kSearch);
         ImGui::SameLine();
         ImGui::PushItemWidth(searchW);
         if (ImGui::InputText("##tl_search",_searchBuf,sizeof(_searchBuf),ImGuiInputTextFlags_EnterReturnsTrue))
             _searchQuery.assign(_searchBuf);
         ImGui::PopItemWidth();
         ImGui::SameLine();
-        if (iconButton(kGlyphCaseMatch,"Aa","大小写匹配",_searchCase))
+        if (iconButton(kGlyphCaseMatch,text::kCaseMatchShort,text::kCaseMatch,_searchCase))
             _searchCase =   !_searchCase;
         ImGui::SameLine();
-        if (iconButton(kGlyphWholeMatch,"全","全匹配",_searchWhole))
+        if (iconButton(kGlyphWholeMatch,text::kWholeMatchShort,text::kWholeMatch,_searchWhole))
             _searchWhole    =   !_searchWhole;
     }
 
@@ -378,6 +374,7 @@ namespace
 
             bool            collapsed   =   false;
             const   char*   name        =   "";
+            String          playbackName;
             ImU32           textColor   =   kTextColor;
             switch (item.type())
             {
@@ -385,9 +382,9 @@ namespace
                 {
                     const   Playback    playback    =   item.playback();
                     collapsed   =   isPlaybackCollapsed(playback);
-                    name        =   (playback && !playback->name().empty())
-                                    ? playback->name().c_str()
-                                    : "Playback";
+                    playbackName    =   playback ? playbackDisplayName(playback->name())
+                                                 : String("Playback");
+                    name        =   playbackName.c_str();
                     textColor   =   IM_COL32(150,205,140,255);
                 }
                 break;

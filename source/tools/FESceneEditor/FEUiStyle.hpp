@@ -77,5 +77,18 @@ namespace   ui
     /// 强调色(拖放提示/高亮线)
     /// </summary>
     constexpr   ImU32   kAccent        =   IM_COL32(74,144,226,255);
+
+    /// <summary>
+    /// 次要文字色(禁用/隐藏项)
+    /// </summary>
+    constexpr   ImU32   kTextMuted     =   IM_COL32(140,146,158,255);
+
+    /// <summary>
+    /// 替换颜色的 alpha 通道(ImU32 高 8 位为 alpha)
+    /// </summary>
+    constexpr   ImU32   withAlpha(ImU32 color,unsigned char alpha)
+    {
+        return  (color & 0x00FFFFFFu) | (ImU32(alpha) << 24);
+    }
 }
 }

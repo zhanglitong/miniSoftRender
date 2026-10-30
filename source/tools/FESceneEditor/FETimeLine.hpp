@@ -15,6 +15,8 @@
 
 #pragma     once
 
+#include    "FEUiMetrics.hpp"
+
 #include    "../../../inc/animation/FEAnimation.hpp"
 #include    "../../../inc/animation/FEKeyFrameTrack.hpp"
 #include    "../../../inc/FEUndoStack.hpp"
@@ -385,21 +387,21 @@ namespace   FE
         /// <summary>
         /// 动画树(名称列)宽度,可由分割条拖动调整
         /// </summary>
-        float                       _nameW          =   340.0f;
+        float                       _nameW          =   ui::kTimelineNameWidth;
         /// <summary>
         /// 动画树与时间线之间的间隙,分割条绘制在该间隙内
         /// </summary>
-        float                       _splitterW      =   6.0f;
+        float                       _splitterW      =   ui::kTimelineSplitterWidth;
         float                       _timelineX      =   0.0f;
-        float                       _rulerH         =   24.0f;
+        float                       _rulerH         =   ui::kTimelineRulerHeight;
         /// <summary>
         /// 行高(不含行间距,与模型树一致)
         /// </summary>
-        float                       _rowH           =   24.0f;
+        float                       _rowH           =   ui::kTimelineRowHeight;
         /// <summary>
         /// 行步进 = 行高 + 行间距,所有行位置/滚动/命中计算都用它
         /// </summary>
-        float                       _rowStep        =   28.0f;
+        float                       _rowStep        =   ui::kTimelineRowStep;
         /// <summary>
         /// 滚动条几何(每帧由 updateScrollMetrics 更新;仅内容超出可视区时显示)
         /// </summary>
@@ -467,7 +469,7 @@ namespace   FE
         Playback                    _renamePlayback;
         bool                        _renamePlaybackOpen     =   false;
         bool                        _renamePlaybackFocus    =   false;
-        char                        _renamePlaybackBuf[64]  =   {   0   };
+        char                        _renamePlaybackBuf[ui::kRenameBufSize]  =   {   0   };
         /// <summary>
         /// 工具栏提示
         /// </summary>
