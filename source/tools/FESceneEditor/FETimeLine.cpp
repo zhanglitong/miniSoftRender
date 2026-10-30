@@ -1839,6 +1839,30 @@ namespace
             setCurFrame(int(std::lround(frameForX(mouse.x))));
 
         /// <summary>
+        /// 拖动动画范围时实时预览:按"原始 offset + 当前位移"直接改写,
+        /// 但不写入撤销栈,松开时再合并成一条 SetOffsetCmd
+        /// </summary>
+        if (_dragMode == DM_Offset && ImGui::IsMouseDown(0))
+        {
+            const   float   deltaX  =   mouse.x - _pressX;
+            if (std::fabs(deltaX) >= kDragPixelEps)
+            {
+                real    deltaTime   =   real(double(deltaX) / double(_framePixel) / double(_fps));
+                bool    dirty       =   false;
+                for (size_t i = 0; i < _dragAnims.size(); ++i)
+                {
+                    if (!_dragAnims[i])
+                        continue;
+                    real    base    =   (i < _dragOffsets.size()) ?   _dragOffsets[i] : _dragAnims[i]->offset();
+                    _dragAnims[i]->setOffset(base + deltaTime);
+                    dirty   =   true;
+                }
+                if (dirty)
+                    refreshScene();
+            }
+        }
+
+        /// <summary>
         /// 释放左键
         /// </summary>
         if (ImGui::IsMouseReleased(0))
@@ -2137,29 +2161,36 @@ namespace
 
     void    FETimeLine::applyOffsetDrag(float deltaPixel)
     {
-        if (std::fabs(deltaPixel) < kDragPixelEps || _dragAnims.empty())
+        if (_dragAnims.empty())
             return;
 
         const   real    deltaTime   =   real(double(deltaPixel) / double(_framePixel) / double(_fps));
+        /// <summary>
+        /// 以拖动起点记录的原始 offset 为基准计算终值;
+        /// 无论最终位移是否达到阈值,都要把 preview 写入的值落定,
+        /// 否则拖回原点后松开会残留上一帧的预览偏移
+        /// </summary>
         SetOffsetCmd::Offsets    offsets;
         for (size_t i = 0; i < _dragAnims.size(); ++i)
         {
             if (!_dragAnims[i])
                 continue;
             const   real    oldOffset   =   (i < _dragOffsets.size()) ? _dragOffsets[i] : _dragAnims[i]->offset();
-            offsets.push_back({_dragAnims[i],oldOffset,oldOffset + deltaTime});
+            const   real    newOffset   =   oldOffset + deltaTime;
+            _dragAnims[i]->setOffset(newOffset);
+            offsets.push_back({_dragAnims[i],oldOffset,newOffset});
         }
         if (offsets.empty())
             return;
 
-        if (_undoStack != nullptr)
+        /// <summary>
+        /// 位移小于阈值视为点击,不产生撤销记录
+        /// </summary>
+        const   bool    changed =   std::fabs(deltaPixel) >= kDragPixelEps;
+        if (_undoStack != nullptr && changed)
             _undoStack->push(new SetOffsetCmd(std::move(offsets),"拖动动画范围",[this]() {  refreshScene();  }));
         else
-        {
-            for (auto& item : offsets)
-                item._anim->setOffset(item._new);
             refreshScene();
-        }
     }
 
     void    FETimeLine::boxSelect(float x0,float y0,float x1,float y1)

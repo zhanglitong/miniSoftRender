@@ -875,6 +875,93 @@ namespace   FE
                             ,ImVec2(style.ItemSpacing.x,spacingY));
 
         const   Object  object  =   _context;
+        /// <summary>
+        /// 选中的是动画对象:只提供播放器归属操作,
+        /// 未加入 → "添加到播放器"子菜单列出所有播放器;
+        /// 已加入 → "从播放器移除"
+        /// </summary>
+        FEAnimation*    animation   =   (object != nullptr)
+                                      ? const_cast<FEObject*>(object.get())->cast<FEAnimation>()
+                                      : nullptr;
+        if (animation != nullptr && _scene != nullptr)
+        {
+            FEAnimationSys* sys     =   _scene->animationSystem();
+            bool    inside  =   false;
+            if (sys != nullptr)
+            {
+                for (auto& var : sys->playbacks())
+                {
+                    if (animationInPlayback(var.second.get(),animation))
+                    {
+                        inside  =   true;
+                        break;
+                    }
+                }
+            }
+            /// <summary>
+            /// 动画对象所属节点:撤销命令需要节点来刷新动画标记
+            /// </summary>
+            Node    ownerNode;
+            if (animation->owner() != nullptr)
+                ownerNode   =   Node(animation->owner()->cast<FENode>());
+            auto    apply   =   [&](const String& playbackName,bool add)
+            {
+                if (sys == nullptr)
+                    return;
+                Animations  anims;
+                anims.emplace_back(animation);
+                _rowsDirty  =   true;
+                if (_undoStack != nullptr)
+                {
+                    _undoStack->push(new FEEditorAnimationCmd(*_scene,ownerNode,anims
+                        ,add ? FEEditorAnimationCmd::AM_Register
+                             : FEEditorAnimationCmd::AM_Unregister
+                        ,(add ? "添加到播放器: " : "从播放器移除: ") + playbackName
+                        ,playbackName));
+                    return;
+                }
+                if (add)
+                    sys->addObject(animation,playbackName);
+                else
+                    sys->removeObject(animation);
+            };
+            if (!inside)
+            {
+                if (ImGui::BeginMenu("添加到播放器",sys != nullptr))
+                {
+                    bool    any =   false;
+                    for (auto& var : sys->playbacks())
+                    {
+                        if (animationInPlayback(var.second.get(),animation))
+                            continue;
+                        any =   true;
+                        if (ImGui::MenuItem(playbackDisplayName(var.first).c_str()))
+                            apply(var.first,true);
+                    }
+                    if (!any)
+                        ImGui::MenuItem("暂无可用播放器",nullptr,false,false);
+                    ImGui::EndMenu();
+                }
+            }
+            else if (ImGui::MenuItem("从播放器移除"))
+            {
+                String  playbackName;
+                for (auto& var : sys->playbacks())
+                {
+                    if (animationInPlayback(var.second.get(),animation))
+                    {
+                        playbackName    =   var.first;
+                        break;
+                    }
+                }
+                if (!playbackName.empty())
+                    apply(playbackName,false);
+            }
+
+            ImGui::PopStyleVar();
+            ImGui::EndPopup();
+            return;
+        }
         const   Node    node    =   nodeOf(object);
         if (!object || !node || _scene == nullptr)
         {
@@ -913,34 +1000,64 @@ namespace   FE
             if (ImGui::MenuItem(text::kDeleteAnimation,nullptr,false,!nodeAnims.empty()))
                 removeAnimations(node);
             const   bool    canPick =   animSys != nullptr && !nodeAnims.empty();
-            if (ImGui::BeginMenu("添加到播放器",canPick))
+            /// <summary>
+            /// 预先统计每个播放器已包含该节点的动画数量,
+            /// 供"添加到播放器"/"从播放器移除"两个子菜单判断可用性
+            /// </summary>
+            std::vector<std::pair<String,int>>  playbackStates;
+            if (animSys != nullptr && !nodeAnims.empty())
             {
-                if (!canPick || animSys->playbacks().empty())
-                    ImGui::MenuItem("暂无播放器",nullptr,false,false);
-                else
+                for (auto& var : animSys->playbacks())
                 {
-                    for (auto& var : animSys->playbacks())
-                    {
-                        Playback&   playback    =   var.second;
-                        /// 统计该播放器已包含的动画数量:全部包含时条目改为"从播放器移除"
-                        const   int     inside  =   int(std::count_if(nodeAnims.begin(),nodeAnims.end()
-                            ,[&playback](const FEAnimation* anim)
-                            {
-                                return  animationInPlayback(playback.get(),anim);
-                            }));
-                        const   bool    allInside   =   inside == int(nodeAnims.size());
-                        const   String  label   =   (allInside ? "从播放器移除: " : "添加到播放器: ")
-                                                  +   playbackDisplayName(var.first);
-                        if (ImGui::MenuItem(label.c_str()))
+                    const   int     inside  =   int(std::count_if(nodeAnims.begin(),nodeAnims.end()
+                        ,[&var](const FEAnimation* anim)
                         {
-                            if (allInside)
-                                removeAnimationsFromPlayback(node,var.first);
-                            else
-                                addAnimationsToPlayback(node,var.first);
-                        }
+                            return  animationInPlayback(var.second.get(),anim);
+                        }));
+                    playbackStates.emplace_back(var.first,inside);
+                }
+            }
+            /// <summary>
+            /// 按是否已加入播放器只显示一个子菜单:
+            /// 未加入 → "添加到播放器";已加入 → "从播放器移除"
+            /// </summary>
+            const   bool    anyInside   =   std::any_of(playbackStates.begin(),playbackStates.end()
+                ,[](const std::pair<String,int>& state) {    return  state.second > 0;   });
+            if (!anyInside)
+            {
+                /// <summary>
+                /// 添加到播放器:条目只显示播放器名
+                /// </summary>
+                if (ImGui::BeginMenu("添加到播放器",canPick))
+                {
+                    bool    any =   false;
+                    for (auto& state : playbackStates)
+                    {
+                        if (state.second == int(nodeAnims.size()))
+                            continue;
+                        any =   true;
+                        if (ImGui::MenuItem(playbackDisplayName(state.first).c_str()))
+                            addAnimationsToPlayback(node,state.first);
+                    }
+                    if (!any)
+                        ImGui::MenuItem("暂无可添加项",nullptr,false,false);
+                    ImGui::EndMenu();
+                }
+            }
+            else
+            {
+                /// <summary>
+                /// 已加入播放器:直接给出"从播放器移除"菜单项(不再展开播放器子菜单);
+                /// 若多个播放器都包含这些动画,一并移除
+                /// </summary>
+                if (ImGui::MenuItem("从播放器移除",nullptr,false,canPick))
+                {
+                    for (auto& state : playbackStates)
+                    {
+                        if (state.second > 0)
+                            removeAnimationsFromPlayback(node,state.first);
                     }
                 }
-                ImGui::EndMenu();
             }
             ImGui::EndMenu();
         }
