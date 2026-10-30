@@ -52,7 +52,7 @@ namespace   FE
             return  object;
         }
         /// <summary>
-        /// 绘制三个变换分组与节点已挂载的约束分组;node 为空时显示提示文字
+        /// 绘制三个变换分组、颜色分组与节点已挂载的约束分组;node 为空时显示提示文字
         /// </summary>
         /// <param name="node">当前选中节点</param>
         /// <param name="timeLine">时间线(提供当前时间的关键帧状态与添加/移除),可为 nullptr</param>
@@ -67,6 +67,8 @@ namespace   FE
             drawGroup(_translate,node,GK_TRANSLATE,timeLine);
             drawGroup(_scale,node,GK_SCALE,timeLine);
             drawGroup(_rotate,node,GK_ROTATE,timeLine);
+            drawColorGroup(node,timeLine);
+            drawVisibleGroup(node,timeLine);
             drawConstraints(node,selection);
         }
     protected:
@@ -181,6 +183,100 @@ namespace   FE
                     node->setLocalEuler(next);
             }
             group.end();
+        }
+        /// <summary>
+        /// 颜色分组内容:RGB 与 Alpha 两行,分别对应独立的关键帧轨道,可单独控制
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <param name="timeLine">时间线,可为 nullptr(此时 check 只显示不响应)</param>
+        void    drawColorGroup(FENode* node,FETimeLine* timeLine)
+        {
+            if (!_colorGroup.begin())
+            {
+                _colorGroup.end();
+                return;
+            }
+            const   bool    locked  =   timeLine != nullptr && timeLine->isPlaying();
+
+            /// 每帧从节点读取颜色,保证动画/脚本等外部改动能同步显示
+            const   Rgba8   color   =   node->color();
+            float           rgb[3]  =
+            {
+                float(color.value().r) / 255.0f,
+                float(color.value().g) / 255.0f,
+                float(color.value().b) / 255.0f,
+            };
+            float           alpha   =   float(color.value().a) / 255.0f;
+
+            bool    rgbKeyed    =   timeLine != nullptr && timeLine->hasKeyframe(PROP_COLOR_RGB);
+            bool    alphaKeyed  =   timeLine != nullptr && timeLine->hasKeyframe(PROP_COLOR_ALPHA);
+            bool    rgbToggled  =   false;
+            bool    alphaToggled    =   false;
+            bool    edited      =   false;
+            if (propertyRow("RGB",kColorLabelWidth,[&]()
+                {
+                    return  ImGui::ColorEdit3("##color",rgb);
+                },rgbKeyed,&rgbToggled))
+                edited  =   true;
+            if (propertyRow("Alpha",kColorLabelWidth,[&]()
+                {
+                    return  ImGui::DragFloat("##alpha",&alpha,0.01f,0.0f,1.0f,"%.3f");
+                },alphaKeyed,&alphaToggled))
+                edited  =   true;
+
+            /// 单独点击 check:按对应属性添加/移除当前时间的关键帧
+            if (rgbToggled && timeLine != nullptr)
+                timeLine->toggleKeyframe(PROP_COLOR_RGB);
+            if (alphaToggled && timeLine != nullptr)
+                timeLine->toggleKeyframe(PROP_COLOR_ALPHA);
+
+            if (edited && !locked)
+            {
+                node->setColor(Rgba8(colorByte(rgb[0]),colorByte(rgb[1])
+                                     ,colorByte(rgb[2]),colorByte(alpha)));
+            }
+            _colorGroup.end();
+        }
+        /// <summary>
+        /// 显隐分组内容:一个"显示"勾选框,右侧为 PROP_VISIBLE 关键帧勾选框
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <param name="timeLine">时间线,可为 nullptr(此时 check 只显示不响应)</param>
+        void    drawVisibleGroup(FENode* node,FETimeLine* timeLine)
+        {
+            if (!_visibleGroup.begin())
+            {
+                _visibleGroup.end();
+                return;
+            }
+            const   bool    locked  =   timeLine != nullptr && timeLine->isPlaying();
+            bool            visible =   node->flags().hasFlag(FLAG_VISIBLE);
+            bool            keyed   =   timeLine != nullptr && timeLine->hasKeyframe(PROP_VISIBLE);
+            bool            toggled =   false;
+            const   bool    edited  =   propertyRow("显示",kColorLabelWidth,[&]()
+            {
+                return  ImGui::Checkbox("##visible",&visible);
+            },keyed,&toggled);
+
+            if (toggled && timeLine != nullptr)
+                timeLine->toggleKeyframe(PROP_VISIBLE);
+            if (edited && !locked)
+                setNodeVisible(node,visible);
+            _visibleGroup.end();
+        }
+        /// <summary>
+        /// 设置节点显隐:与模型树一致,显示时额外打 FLAG_UPDATE,并通知渲染刷新
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <param name="visible">是否显示</param>
+        static  void    setNodeVisible(FENode* node,bool visible)
+        {
+            if (visible)
+                node->flags().addFlag(FLAG_VISIBLE | FLAG_UPDATE);
+            else
+                node->flags().removeFlag(FLAG_VISIBLE);
+            node->flags().addFlag(FENode::FLAG_PROP_STATE);
+            node->fireChanged();
         }
         /// <summary>
         /// 绘制节点已挂载的约束分组:没有对应约束时整组不显示
@@ -540,6 +636,60 @@ namespace   FE
                 setter(real3(values[0],values[1],values[2]));
         }
         /// <summary>
+        /// 属性行:标签 + 任意编辑控件(由 draw 绘制) + 关键帧勾选框
+        /// </summary>
+        /// <param name="label">行标签(组内唯一)</param>
+        /// <param name="labelWidth">标签列宽度(像素)</param>
+        /// <param name="draw">绘制编辑控件的回调,返回 true 表示被修改</param>
+        /// <param name="keyed">当前时间该属性是否有关键帧(输入输出)</param>
+        /// <param name="keyToggled">本次勾选框是否被点击(可为 nullptr)</param>
+        /// <returns>true 表示数值被修改</returns>
+        template<class Draw>
+        static  bool    propertyRow(const char* label,float labelWidth,const Draw& draw,
+                                    bool& keyed,bool* keyToggled = nullptr)
+        {
+            const   ImVec2  start   =   ImGui::GetCursorScreenPos();
+            const   float   frameH  =   ImGui::GetFrameHeight();
+            const   float   avail   =   ImGui::GetContentRegionAvail().x;
+            const   float   checkW  =   frameH;
+            const   float   gap     =   6.0f;
+            float           valueW  =   avail - labelWidth - checkW - gap;
+            if (valueW < 80.0f)
+                valueW  =   80.0f;
+
+            ImDrawList*     dl      =   ImGui::GetWindowDrawList();
+            dl->AddText(ImVec2(start.x + 2.0f,start.y + (frameH - ImGui::GetFontSize()) * 0.5f),
+                        FE::ui::kTextColor,label);
+
+            bool    changed =   false;
+            ImGui::PushID(label);
+            ImGui::SetCursorScreenPos(ImVec2(start.x + labelWidth,start.y));
+            ImGui::PushItemWidth(valueW);
+            changed =   draw();
+            ImGui::PopItemWidth();
+
+            ImGui::SetCursorScreenPos(ImVec2(start.x + labelWidth + valueW + gap,start.y));
+            if (ImGui::Checkbox("##keyed",&keyed) && keyToggled != nullptr)
+                *keyToggled =   true;
+            ImGui::PopID();
+
+            /// 光标移到下一行
+            ImGui::SetCursorScreenPos(ImVec2(start.x,start.y + frameH + 2.0f));
+            ImGui::Dummy(ImVec2(0.0f,0.0f));
+            return  changed;
+        }
+        /// <summary>
+        /// 归一化浮点颜色分量转 8 位(0..1 → 0..255)
+        /// </summary>
+        static  uint8   colorByte(float value)
+        {
+            if (value < 0.0f)
+                value   =   0.0f;
+            if (value > 1.0f)
+                value   =   1.0f;
+            return  uint8(value * 255.0f + 0.5f);
+        }
+        /// <summary>
         /// 约束分组中的一行:标签 + 单个数值编辑框(不带关键帧勾选框)
         /// </summary>
         /// <param name="label">行标签(组内唯一)</param>
@@ -622,6 +772,10 @@ namespace   FE
         /// 约束行的标签列宽度(像素):保证中文标签不与数值框重叠
         /// </summary>
         static  constexpr   float   kValueLabelWidth   =   64.0f;
+        /// <summary>
+        /// 颜色行标签列宽度(像素):容纳 "RGB" / "Alpha"
+        /// </summary>
+        static  constexpr   float   kColorLabelWidth   =   40.0f;
     protected:
         /// <summary>
         /// 当前选中对象列表(约束的目标节点拾取/驱动节点加入)
@@ -684,5 +838,13 @@ namespace   FE
         /// 旋转分组(欧拉角,单位:度)
         /// </summary>
         FECollapseGroup     _rotate     =   FECollapseGroup("旋转");
+        /// <summary>
+        /// 颜色分组(RGB 与 Alpha 两行,可分别打关键帧)
+        /// </summary>
+        FECollapseGroup     _colorGroup =   FECollapseGroup("颜色");
+        /// <summary>
+        /// 显隐分组(显示勾选框 + 关键帧)
+        /// </summary>
+        FECollapseGroup     _visibleGroup   =   FECollapseGroup("显隐");
     };
 }

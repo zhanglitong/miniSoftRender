@@ -352,6 +352,14 @@ namespace   FE
                 flags().addFlag(FLAG_PROP_COLOR);
             }
             return  true;
+        case PROP_VISIBLE:
+            /// 显隐由 FLAG_VISIBLE 控制,变化后需要通知渲染刷新
+            if (std::get<uint8>(value) != 0)
+                flags().addFlag(FLAG_VISIBLE | FLAG_UPDATE);
+            else
+                flags().removeFlag(FLAG_VISIBLE);
+            flags().addFlag(FLAG_PROP_STATE);
+            return  true;
         default:
             assert(0!=0);
             return  false;
@@ -378,6 +386,7 @@ namespace   FE
         case PROP_QUAT:             return  _local.rotation();
         case PROP_COLOR_RGB:        return  _color.value();
         case PROP_COLOR_ALPHA:      return  _color.value().a;
+        case PROP_VISIBLE:          return  uint8(flags().hasFlag(FLAG_VISIBLE) ? 1 : 0);
         case PROP_G_TRANSFORM_XYZ:  return  globalTranslation();
         default:
             assert(0!=0);
