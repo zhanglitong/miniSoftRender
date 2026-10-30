@@ -363,10 +363,10 @@ namespace   FE
     };
 
     /// <summary>
-    /// 动画命令(右键"创建动画/删除动画/添加到动画树"):
-    /// AM_Attach  仅在节点上挂载动画组件(不登记动画树),undo 摘除;
+    /// 动画命令(右键"创建动画/删除动画/添加到播放器"):
+    /// AM_Attach  仅在节点上挂载动画组件(不登记动画系统),undo 摘除;
     /// AM_Detach  从动画系统摘除并删除组件,undo 重新添加;
-    /// AM_Register 仅登记到动画系统(动画树),undo 取消登记
+    /// AM_Register 把动画登记到指定播放器,undo 恢复构造时的归属
     /// 命令持有动画组件的强引用,undo/redo 往返期间对象保持存活
     /// </summary>
     class   FEEditorAnimationCmd :public FEUndoCmd
@@ -375,7 +375,7 @@ namespace   FE
         enum    Mode
         {
             /// <summary>
-            /// 新建动画:只挂到节点(不登记动画树)
+            /// 新建动画:只挂到节点(不登记动画系统)
             /// </summary>
             AM_Attach,
             /// <summary>
@@ -383,17 +383,19 @@ namespace   FE
             /// </summary>
             AM_Detach,
             /// <summary>
-            /// 添加到动画树:只登记到动画系统
+            /// 添加到播放器:登记到指定播放器
             /// </summary>
             AM_Register,
         };
     public:
-        FEEditorAnimationCmd(FEScene& scene,const Node& node,const Animations& anims,Mode mode,const String& text)
+        FEEditorAnimationCmd(FEScene& scene,const Node& node,const Animations& anims,Mode mode,const String& text
+                             ,const String& targetPlayback = {})
             :FEUndoCmd(text)
             ,_scene(scene)
             ,_node(node)
             ,_anims(anims)
             ,_mode(mode)
+            ,_targetPlayback(targetPlayback)
         {
             /// <summary>
             /// 记录构造时各动画的登记状态:创建动画不再自动登记动画树,
@@ -404,6 +406,7 @@ namespace   FE
             for (const Animation& anim : anims)
             {
                 bool    found   =   false;
+                String  name    =   "default";
                 if (sys != nullptr && anim != nullptr)
                 {
                     for (auto& var : sys->playbacks())
@@ -414,6 +417,8 @@ namespace   FE
                         {
                             if (item == anim)
                             {
+                                /// 记录所属播放器名:重做时按该名登记回原播放器
+                                name    =   var.first;
                                 found   =   true;
                                 break;
                             }
@@ -423,6 +428,18 @@ namespace   FE
                     }
                 }
                 _registered.push_back(found);
+                _playbackNames.push_back(name);
+            }
+            /// <summary>
+            /// 删除动画时组件 detach 会把节点回落到动画覆盖前的原始姿态,
+            /// 这个姿态变化属于同一条撤销记录:记下删除前的姿态,undo 时恢复
+            /// </summary>
+            if (_mode == AM_Detach && _node != nullptr)
+            {
+                _hasPose        =   true;
+                _posePos        =   _node->localTranslation();
+                _poseScale      =   _node->localScaling();
+                _poseRot        =   _node->localRotation();
             }
         }
     public:
@@ -431,7 +448,19 @@ namespace   FE
             switch (_mode)
             {
             case AM_Attach:     attach(true);                           break;
-            case AM_Detach:     registerAnims(false);   attach(false);  break;
+            case AM_Detach:
+                registerAnims(false);
+                attach(false);
+                /// 首次重做记录回落后的原始姿态;之后再重做直接套用,
+                /// 不依赖动画内部只生效一次的原始变换记录
+                if (_hasPose)
+                {
+                    if (_hasRestored)
+                        applyPose(_restoredPos,_restoredScale,_restoredRot);
+                    else
+                        captureRestored();
+                }
+                break;
             case AM_Register:   registerAnims(true);                    break;
             }
         }
@@ -440,11 +469,43 @@ namespace   FE
             switch (_mode)
             {
             case AM_Attach:     attach(false);                          break;
-            case AM_Detach:     attach(true);   restoreRegistration();   break;
-            case AM_Register:   registerAnims(false);                   break;
+            case AM_Detach:
+                attach(true);
+                restoreRegistration();
+                /// 恢复删除前的姿态,撤销后节点与删除前完全一致
+                if (_hasPose)
+                    applyPose(_posePos,_poseScale,_poseRot);
+                break;
+            case AM_Register:   undoRegister();                         break;
             }
         }
     protected:
+        /// <summary>
+        /// 把节点本地姿态写成指定值,并加入动画系统更新列表,
+        /// 保证撤销/重做当帧就刷新世界变换
+        /// </summary>
+        void    applyPose(const real3& pos,const real3& scale,const quatr& rot)
+        {
+            if (_node == nullptr)
+                return;
+            _node->setLocalTranslation(pos);
+            _node->setLocalScaling(scale);
+            _node->setLocalRotation(rot);
+            if (FEAnimationSys* sys =   _scene.animationSystem())
+                sys->updateList().addObject(Object(_node.get()));
+        }
+        /// <summary>
+        /// 记录动画摘除后节点回落到的姿态,后续重做直接套用
+        /// </summary>
+        void    captureRestored()
+        {
+            if (_node == nullptr)
+                return;
+            _hasRestored    =   true;
+            _restoredPos    =   _node->localTranslation();
+            _restoredScale  =   _node->localScaling();
+            _restoredRot    =   _node->localRotation();
+        }
         /// <summary>
         /// 挂载/摘除动画组件
         /// </summary>
@@ -464,7 +525,8 @@ namespace   FE
             }
         }
         /// <summary>
-        /// 登记/取消登记到动画系统(即动画树)
+        /// 登记/取消登记到动画系统(即动画树);登记时优先使用目标播放器,
+        /// 未指定目标时回到构造时记录的归属播放器
         /// </summary>
         /// <param name="add">true 登记 / false 取消登记</param>
         void    registerAnims(bool add)
@@ -472,14 +534,36 @@ namespace   FE
             FEAnimationSys* sys =   _scene.animationSystem();
             if (sys == nullptr)
                 return;
-            for (Animation& anim : _anims)
+            for (size_t i = 0; i < _anims.size(); ++i)
             {
-                if (anim == nullptr)
+                if (_anims[i] == nullptr)
                     continue;
                 if (add)
-                    sys->addObject(anim.get());
+                {
+                    const   String& name    =   _targetPlayback.empty() ? _playbackNames[i] : _targetPlayback;
+                    sys->addObject(_anims[i].get(),name);
+                }
                 else
-                    sys->removeObject(anim.get());
+                    sys->removeObject(_anims[i].get());
+            }
+        }
+        /// <summary>
+        /// 撤销"添加到播放器":原本已登记的动画回到其原播放器,
+        /// 原本未登记的动画则从动画系统摘除
+        /// </summary>
+        void    undoRegister()
+        {
+            FEAnimationSys* sys =   _scene.animationSystem();
+            if (sys == nullptr)
+                return;
+            for (size_t i = 0; i < _anims.size(); ++i)
+            {
+                if (_anims[i] == nullptr)
+                    continue;
+                if (i < _registered.size() && _registered[i])
+                    sys->addObject(_anims[i].get(),_playbackNames[i]);
+                else
+                    sys->removeObject(_anims[i].get());
             }
         }
         /// <summary>
@@ -494,7 +578,7 @@ namespace   FE
             {
                 if (_anims[i] == nullptr || !_registered[i])
                     continue;
-                sys->addObject(_anims[i].get());
+                sys->addObject(_anims[i].get(),_playbackNames[i]);
             }
         }
     protected:
@@ -503,9 +587,31 @@ namespace   FE
         Animations      _anims;
         Mode            _mode;
         /// <summary>
+        /// 目标播放器名(仅 AM_Register 使用),空串表示沿用构造时记录的归属
+        /// </summary>
+        String          _targetPlayback;
+        /// <summary>
         /// 构造时各动画是否已登记到动画系统(与 _anims 一一对应)
         /// </summary>
         std::vector<bool>   _registered;
+        /// <summary>
+        /// 构造时各动画所属的播放器名(与 _anims 一一对应),未登记时记录 default
+        /// </summary>
+        std::vector<String> _playbackNames;
+        /// <summary>
+        /// 删除动画前节点的本地姿态(仅 AM_Detach 记录),undo 时恢复
+        /// </summary>
+        bool                _hasPose    =   false;
+        real3               _posePos    =   {};
+        real3               _poseScale  =   {};
+        quatr               _poseRot    =   {};
+        /// <summary>
+        /// 动画摘除后节点回落到的姿态(首次重做时记录,重复重做直接套用)
+        /// </summary>
+        bool                _hasRestored     =   false;
+        real3               _restoredPos     =   {};
+        real3               _restoredScale   =   {};
+        quatr               _restoredRot     =   {};
     };
 
     /// <summary>

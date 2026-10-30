@@ -1,3 +1,4 @@
+#include    <cmath>
 #include    <cstdio>
 #include    <cstring>
 #include    <filesystem>
@@ -217,6 +218,66 @@ static  void    testNodeFileRoundTrip(FEContext& ctx)
     fs::remove(path);
 }
 
+/// ==================== 节点累计欧拉角账本往返 ====================
+/// 旋转朝向由四元数表示,圈数由账本(_eulerDeg)携带;序列化必须一起保存,
+/// 否则重开工程后多圈旋转会退回 ±180°
+static  void    testNodeEulerLedgerRoundTrip(FEContext& ctx)
+{
+    Node    root =   new FENode(ctx);
+    root->setName("ledger_root");
+    root->setLocalEuler(real3(0.0,0.0,720.0));
+    Node    child =   new FENode(ctx);
+    child->setName("ledger_child");
+    child->setLocalEuler(real3(30.0,0.0,720.0));
+    root->addChild(child);
+    Node    plain =   new FENode(ctx);
+    plain->setName("plain_child");
+    root->addChild(plain);
+
+    Buffer  buf  =   new FEBuffer(ctx);
+    buf->cInfo()._buffer.resize(1024 * 1024);
+    FEWriterMemory  writer(ctx,buf);
+    FESerializeCtx  xsCtx;
+    FEFileFormat    fmt =   makeFormat();
+    auto    writerFmt   =   FEFileFormatHelper::queryWriter(ctx,fmt);
+    check(writerFmt != nullptr,"ledger: query writer");
+    if (writerFmt == nullptr)
+        return;
+    check(writerFmt->writeBuffer({root.get()},writer),"ledger: write buffer");
+    uint64  written =   writer.tell();
+    check(written > 0,"ledger: buffer bytes");
+    buf->cInfo()._buffer.resize(size_t(written));
+
+    auto    readerFmt =   FEFileFormatHelper::queryReader(ctx,fmt);
+    check(readerFmt != nullptr,"ledger: query reader");
+    if (readerFmt == nullptr)
+        return;
+    Objects objects =   readerFmt->readBuffers({buf});
+    check(objects.size() == 1,"ledger: object count");
+    if (objects.size() != 1)
+        return;
+    Node    loaded =   objects[0]->cast<FENode>();
+    check(loaded != nullptr,"ledger: root is node");
+    if (loaded == nullptr)
+        return;
+    check(loaded->localEulerValid(),"ledger: root valid");
+    check(std::abs(loaded->localEuler().z - 720.0) <= 1e-3,"ledger: root Z 720");
+    check(loaded->children().size() == 2,"ledger: child count");
+    if (loaded->children().size() != 2)
+        return;
+    const   auto&   childL  =   loaded->children()[0];
+    check(childL->localEulerValid(),"ledger: child valid");
+    check(std::abs(childL->localEuler().z - 720.0) <= 1e-3,"ledger: child Z 720");
+    check(std::abs(childL->localEuler().x - 30.0) <= 1e-3,"ledger: child X 30");
+    quatr   expected    =   quatr(glm::radians(real3(30.0,0.0,0.0)));
+    check(std::abs((real)glm::dot(quatr(childL->localRotation()),expected)) >= 1.0 - 1e-6,
+        "ledger: child orientation 30deg");
+    /// 未设置账本的节点应保持"无效",回退四元数换算(±180° 语义)
+    const   auto&   plainL  =   loaded->children()[1];
+    check(!plainL->localEulerValid(),"ledger: plain invalid");
+    check(std::abs(plainL->localEuler().z) <= 1e-3,"ledger: plain Z 0");
+}
+
 int     main(int argc,char** argv)
 {
     UNUSED(argc,argv);
@@ -227,6 +288,7 @@ int     main(int argc,char** argv)
     testPropertyRoundTrip(ctx);
     testNodeMemoryRoundTrip(ctx);
     testNodeFileRoundTrip(ctx);
+    testNodeEulerLedgerRoundTrip(ctx);
     printf("=== %d passed, %d failed ===\n",g_pass,g_fail);
 
     return  g_fail == 0 ? 0 : 1;

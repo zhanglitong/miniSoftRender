@@ -64,6 +64,8 @@ namespace   FE
                 /// 如果0,说明classId == UUIDOF(FENode);
                 /// 在读取node的时候用作判断是否需要 通过creator 创建,否则直接new FENode,提升性能
                 uint16  _nodeBase   :1;
+                /// 是否写累计欧拉角账本(可超过 ±180°);旧文件没有该位,读取时按四元数换算
+                uint16  _hasEuler   :1;
             };
             uint16  _value;
         };
@@ -78,6 +80,7 @@ namespace   FE
             _hasScale       =   flag>>8;
             _hasRotate      =   flag>>9;
             _nodeBase       =   flag>>10;
+            _hasEuler       =   flag>>11;
         }
     };
 
@@ -107,6 +110,8 @@ namespace   FE
         bits._hasScale      =   _local._scale     ==  float3(1,1,1)  ? 0 : 1;
         bits._hasTrans      =   _local._position  ==  real3(0,0,0)   ? 0 : 1;
         bits._hasRotate     =   _local.rotation() ==  quatf(1,0,0,0) ? 0 : 1;
+        /// 账本有效时一并保存,重开工程后累计圈数不丢(与四元数等价,渲染不受影响)
+        bits._hasEuler      =   _local.eulerValid()                    ? 1 : 0;
         bits._hasGeometry   =   _mesh       ? 1 : 0;
         bits._hasMaterial   =   _material   ? 1 : 0;
 
@@ -125,6 +130,7 @@ namespace   FE
         if (bits._hasScale )    writer.write(_local._scale);
         if (bits._hasTrans )    writer.write(_local._position);
         if (bits._hasRotate )   writer.write(_local._rotation);
+        if (bits._hasEuler  )   writer.write(_local._eulerDeg);
         if (bits._hasColor )    writer.write(_color);
         if (_mesh)              writer.write(_mesh->objectId());
         if (_material)          writer.write(_material->objectId());
@@ -169,6 +175,11 @@ namespace   FE
         if (bits._hasScale )    reader.read(_local._scale);
         if (bits._hasTrans )    reader.read(_local._position);
         if (bits._hasRotate )   reader.read(_local._rotation);
+        if (bits._hasEuler  )
+        {
+            reader.read(_local._eulerDeg);
+            _local._eulerValid  =   true;
+        }
         if (bits._hasColor)     reader.read(_color);
        
         /// 读几何体

@@ -127,24 +127,14 @@ namespace FE
 
     void    FEPlayback::setClipTime(const real& clipTime)
     {
-        _clipTime   =   std::clamp(clipTime,_range.x,_range.y);
+        /// 不做播放器级裁剪:每个动画自行判断时间是否落在自己的范围内,
+        /// 范围外保持节点当前姿态(空动画的 _range 是 (-1,-1),裁剪会把时间错误地夹到 -1)
+        _clipTime   =   clipTime;
 
         for (auto& var : _objects)
         {
             var->update(_clipTime);
         }
-
-        /// if (_cache.empty())
-        /// {
-        ///     for (auto& var : _objects)
-        ///     {
-        ///         var->update(_clipTime);
-        ///     }
-        /// }
-        /// else
-        /// {
-        ///     updateBatch(_clipTime,0);
-        /// }
     }
 
     void    FEPlayback::updateBatch(const real& clipTime,const real& delta)
@@ -285,10 +275,20 @@ namespace FE
 
     void    FEPlayback::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const
     {
-        UNUSED(chunk,version,ctx);
+        UNUSED(version,ctx);
+        FEChunkBits bits(chunk._flags);
+        /// 播放器名仅在非默认值时写入;旧文件该位恒为 0,读取时回落 "default"
+        bits._bit0      =   (_name.empty() || _name == "default") ? 0 : 1;
+        chunk._flags    =   bits._value;
+
         writer.write(_playMode);
         writer.write(_timeMode);
         writer.write(_timeScale);
+        if (bits._bit0)
+        {
+            auto    result  =   writer.write(_name);
+            UNUSED(result);
+        }
         
         uint    count   =   (uint)_objects.size();
         writer.write(count);
@@ -299,14 +299,17 @@ namespace FE
     }
     void    FEPlayback::deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx)
     {
-        UNUSED(reader);
-        UNUSED(chunk);
-        UNUSED(version);
-        UNUSED(ctx);
+        UNUSED(version,ctx);
 
+        FEChunkBits bits(chunk._flags);
         reader.read(_playMode);
         reader.read(_timeMode);
         reader.read(_timeScale);
+        /// 播放器名:默认值不落盘,旧文件无该位时保持默认名
+        _name   =   "default";
+        if (bits._bit0)
+            reader.read(_name);
+
         uint            count   =   reader.readValue<uint>();
         Animations      objects;
         objects.reserve(count);

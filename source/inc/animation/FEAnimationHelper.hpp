@@ -152,6 +152,84 @@ namespace FE
             }
         }
         /// <summary>
+        /// 确保 clip 中存在覆盖 propBits 的变换轨道,缺失时补建
+        /// (clip 只有位置轨道时,拖动旋转打帧也能落帧)
+        /// 同组已有整组轨道则跳过;同组已有部分轴轨道时只补缺失的轴;
+        /// 同组没有任何轨道时补一条整组轨道
+        /// </summary>
+        /// <param name="clip">目标 clip</param>
+        /// <param name="_ctx">上下文</param>
+        /// <param name="propBits">需要覆盖的属性位</param>
+        static  void    ensureTracks(AnimClip clip, FEContext& _ctx, NodeProperyBits propBits)
+        {
+            if (!clip)
+                return;
+            /// <summary>
+            /// 一个变换分组:整组位/整组属性 + 三个轴位/轴属性
+            /// </summary>
+            struct  Group
+            {
+                NodeProperyBit  _groupBit;
+                NodeProperyBit  _axisBits[3];
+                PropIndex       _groupProp;
+                PropIndex       _axisProps[3];
+            };
+            static  const   Group   kGroups[3]  =
+            {
+                {   NP_TRANSFORM_XYZ,{   NP_TRANSFORM_X,NP_TRANSFORM_Y,NP_TRANSFORM_Z   },
+                    PROP_TRANSFORM_XYZ,{   PROP_TRANSFORM_X,PROP_TRANSFORM_Y,PROP_TRANSFORM_Z   } },
+                {   NP_SCALE_XYZ,{   NP_SCALE_X,NP_SCALE_Y,NP_SCALE_Z   },
+                    PROP_SCALE_XYZ,{   PROP_SCALE_X,PROP_SCALE_Y,PROP_SCALE_Z   } },
+                {   NP_ROTATE_XYZ,{   NP_ROTATE_X,NP_ROTATE_Y,NP_ROTATE_Z   },
+                    PROP_ROTATE_XYZ,{   PROP_ROTATE_X,PROP_ROTATE_Y,PROP_ROTATE_Z   } },
+            };
+            auto    hasTrack    =   [&](PropIndex prop) -> bool
+            {
+                for (auto& track : clip->tracks())
+                {
+                    if (track && track->propertyIndex() == prop)
+                        return  true;
+                }
+                return  false;
+            };
+            for (auto& group : kGroups)
+            {
+                bool    requested       =   propBits.hasFlag(group._groupBit);
+                bool    axisRequested[3]=   {   false,false,false   };
+                for (int i = 0; i < 3; ++i)
+                {
+                    if (propBits.hasFlag(group._axisBits[i]))
+                    {
+                        requested       =   true;
+                        axisRequested[i]=   true;
+                    }
+                }
+                if (!requested)
+                    continue;
+                /// 整组轨道已存在,全部通道都被覆盖
+                if (hasTrack(group._groupProp))
+                    continue;
+                /// 四元数轨道同样覆盖整个旋转,避免重复写入旋转
+                if (group._groupBit == NP_ROTATE_XYZ && hasTrack(PROP_QUAT))
+                    continue;
+                bool    hasAxis =   false;
+                for (int i = 0; i < 3; ++i)
+                    hasAxis =   hasAxis || hasTrack(group._axisProps[i]);
+                /// 同组没有任何轨道:补一条整组轨道
+                if (!hasAxis)
+                {
+                    addDefaultTracks(clip,_ctx,NodeProperyBits(group._groupBit));
+                    continue;
+                }
+                /// 同组已有部分轴轨道:只补缺失的轴
+                for (int i = 0; i < 3; ++i)
+                {
+                    if (axisRequested[i] && !hasTrack(group._axisProps[i]))
+                        addDefaultTracks(clip,_ctx,NodeProperyBits(group._axisBits[i]));
+                }
+            }
+        }
+        /// <summary>
         /// 动画中添加关键帧数据,time 时间，如果时间点存在,返回失败,propBits 指定哪些属性轨道需要添加关键帧
         /// 动画数据来自node,如果anim 如果没有对应的属性track，即使 propBits 指定，也不需要添加
         /// 如果anim:clip 中没有 track,则返回false
@@ -174,18 +252,17 @@ namespace FE
             real    internalTime    =   time - anim->offset();
 
             /// <summary>
-            /// 取当前显示姿态:采样变换生效时用它(未打帧通道已由节点本地变换播种),
-            /// 未生效(停用/超范围)时节点显示的是本地变换
+            /// 取当前显示姿态:一律读 owner(节点的本地通道值)。
+            /// 编辑只写 owner,动画本地副本仅用于采样与回放,可能落后于一次尚未采样的编辑;
             /// 关键帧记录本地通道值,不能用 globalTransform 分解,否则父子层级会重复叠加父变换
             /// </summary>
-            bool    bSampled    =   anim->getTransform() != nullptr;
-            auto&   sampled     =   anim->transform();
-            real3   pos         =   bSampled ? real3(sampled.position())  : real3(node->localTranslation());
-            real3   scale       =   bSampled ? real3(sampled.scale())     : real3(node->localScaling());
-            quatr   rot         =   bSampled ? sampled.rotation()         : node->localRotation();
+            real3   pos         =   node->localTranslation();
+            real3   scale       =   node->localScaling();
+            quatr   rot         =   node->localRotation();
             
-            auto    eulerRad    =   quatToEuler(rot);
-            real3   eulerDeg(RAD2DEG(eulerRad.x),RAD2DEG(eulerRad.y),RAD2DEG(eulerRad.z));
+            /// 读节点的累计欧拉角账本(度,可超过 ±180°、可多圈),而不是从四元数换算:
+            /// 四元数只表示朝向,换算结果固定在 ±180°,打帧会把圈数丢掉
+            real3   eulerDeg    =   node->localEuler();
 
             /// 颜色/透明度/可见性
             auto    nodeColor   =   node->color();
@@ -419,15 +496,14 @@ namespace FE
             real    internalTime    =   time - anim->offset();
 
             /// <summary>
-            /// 取当前显示姿态:采样变换生效时用它,否则用节点本地变换
+            /// 取当前显示姿态:一律读 owner(节点本地通道值);编辑只写 owner,
+            /// 动画本地副本可能落后于一次尚未采样的编辑
             /// </summary>
-            bool    bSampled    =   anim->getTransform() != nullptr;
-            auto&   sampled     =   anim->transform();
-            real3   pos         =   bSampled ? real3(sampled.position())  : real3(node->localTranslation());
-            real3   scale       =   bSampled ? real3(sampled.scale())     : real3(node->localScaling());
-            quatr   rot         =   bSampled ? sampled.rotation()         : node->localRotation();
-            auto    eulerRad    =   quatToEuler(rot);
-            real3   eulerDeg(RAD2DEG(eulerRad.x),RAD2DEG(eulerRad.y),RAD2DEG(eulerRad.z));
+            real3   pos         =   node->localTranslation();
+            real3   scale       =   node->localScaling();
+            quatr   rot         =   node->localRotation();
+            /// 读节点的累计欧拉角账本(度),保留圈数;不要用 quatToEuler 换算
+            real3   eulerDeg    =   node->localEuler();
 
             /// 颜色/透明度/可见性
             auto    nodeColor   =   node->color();

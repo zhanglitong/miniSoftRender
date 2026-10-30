@@ -181,6 +181,48 @@ namespace   FE
             return  *this;
         }
         /// <summary>
+        /// 本地欧拉角(度)。账本有效时为累计角(可超过 ±180°、可多圈),
+        /// 否则由四元数换算(范围 ±180°)
+        /// </summary>
+        inline  real3   localEuler() const
+        {
+            return  real3(_local.euler());
+        }
+        /// <summary>
+        /// 本地累计欧拉角账本是否有效
+        /// </summary>
+        inline  bool    localEulerValid() const
+        {
+            return  _local.eulerValid();
+        }
+        /// <summary>
+        /// 用欧拉角(度)设置本地旋转;不做 ±180° 归一化,账本保留传入值
+        /// </summary>
+        inline  FENode& setLocalEuler(const real3& eulerDegrees)
+        {
+            _local.setEuler(float3(eulerDegrees));
+            flags().addFlag(FLAG_PROP_ROT);
+            return  *this;
+        }
+        /// <summary>
+        /// 只同步累计欧拉角账本(不改变四元数),采样回写时使用
+        /// </summary>
+        inline  FENode& adoptLocalEuler(const real3& eulerDegrees,bool valid = true)
+        {
+            _local.adoptEuler(float3(eulerDegrees),valid);
+            return  *this;
+        }
+        /// <summary>
+        /// 用四元数设置本地旋转,同时把累计欧拉角账本展开到上一次账本附近,
+        /// 保留累计圈数(抓手拖拽、任意轴增量旋转使用)
+        /// </summary>
+        inline  FENode& setLocalRotationAccumulated(const quatr& rot)
+        {
+            _local.setRotationUnwrapped(quatf(rot),float3(localEuler()));
+            flags().addFlag(FLAG_PROP_ROT);
+            return  *this;
+        }
+        /// <summary>
         /// 设置 从世界到节点的位置变换
         /// </summary>
         /// <param name="vec">从世界到节点的位置变换</param>

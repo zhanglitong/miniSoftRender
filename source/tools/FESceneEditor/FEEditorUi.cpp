@@ -2473,7 +2473,8 @@ namespace   FE
             if (selected)
                 node            =   selected->cast<FENode>();
             /// <summary>
-            /// 时间线提供当前时间的关键帧状态(check)与添加/移除关键帧
+            /// 时间线提供当前时间的关键帧状态(check)与添加/移除关键帧。
+            /// 旋转值由节点自己的累计欧拉角账本提供,面板不再需要额外参数
             /// </summary>
             _propertyPanel.draw(node,&_timeLine);
         }
@@ -2644,6 +2645,23 @@ namespace   FE
                 item->_checked  =   scaleOn;
         }
 
+        /// <summary>
+        /// 播放中禁止编辑:清空抓手的编辑对象,暂停后选区变化会自动重新推给抓手
+        /// </summary>
+        if  (_timeLine.isPlaying())
+        {
+            if  (!_toolSelection.empty())
+            {
+                if (moveOn)
+                    move->as<FENodeMoveEditor>()->setObjects({});
+                if (rotateOn)
+                    rotate->as<FENodeRotateEditor>()->setObjects({});
+                if (scaleOn)
+                    scale->as<FENodeScaleEditor>()->setObjects({});
+                _toolSelection.clear();
+            }
+            return;
+        }
         /// <summary>
         /// 模型树选区变化后,把新选区推给已显示的抓手(与 Qt 版选中事件一致)
         /// </summary>

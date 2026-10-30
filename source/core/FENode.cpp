@@ -302,12 +302,35 @@ namespace   FE
             _local._scale      =   std::get<real3>(value);
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
-        /// 欧拉角实现
+        /// 欧拉角实现:写入累计欧拉角账本,不做 ±180° 归一化
         case PROP_ROTATE_X:
+            {
+                real3   euler   =   localEuler();
+                euler.x         =   std::get<real>(value);
+                _local.setEuler(float3(euler));
+                flags().addFlag(FLAG_PROP_ROT);
+            }
+            return  true;
         case PROP_ROTATE_Y:
+            {
+                real3   euler   =   localEuler();
+                euler.y         =   std::get<real>(value);
+                _local.setEuler(float3(euler));
+                flags().addFlag(FLAG_PROP_ROT);
+            }
+            return  true;
         case PROP_ROTATE_Z:
+            {
+                real3   euler   =   localEuler();
+                euler.z         =   std::get<real>(value);
+                _local.setEuler(float3(euler));
+                flags().addFlag(FLAG_PROP_ROT);
+            }
+            return  true;
         case PROP_ROTATE_XYZ:
-            return  false;
+            _local.setEuler(float3(std::get<real3>(value)));
+            flags().addFlag(FLAG_PROP_ROT);
+            return  true;
         case PROP_QUAT:
             flags().addFlag(FLAG_PROP_ROT); 
             _local.setRotation(std::get<quatf>(value));
@@ -347,10 +370,11 @@ namespace   FE
         case PROP_SCALE_Y:          return  _local._scale.y;
         case PROP_SCALE_Z:          return  _local._scale.z;
         case PROP_SCALE_XYZ:        return  _local._scale;
-        case PROP_ROTATE_X:         return  RAD2DEG(quatToEuler(_local.rotation()).x);
-        case PROP_ROTATE_Y:         return  RAD2DEG(quatToEuler(_local.rotation()).y);
-        case PROP_ROTATE_Z:         return  RAD2DEG(quatToEuler(_local.rotation()).z);
-        case PROP_ROTATE_XYZ:       return  quatToEuler(_local.rotation());
+        /// localEuler() 已经是角度(度),不能再做一次 RAD2DEG(会放大 57 倍)
+        case PROP_ROTATE_X:         return  localEuler().x;
+        case PROP_ROTATE_Y:         return  localEuler().y;
+        case PROP_ROTATE_Z:         return  localEuler().z;
+        case PROP_ROTATE_XYZ:       return  localEuler();
         case PROP_QUAT:             return  _local.rotation();
         case PROP_COLOR_RGB:        return  _color.value();
         case PROP_COLOR_ALPHA:      return  _color.value().a;

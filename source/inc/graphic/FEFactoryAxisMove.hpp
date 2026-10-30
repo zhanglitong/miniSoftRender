@@ -111,7 +111,6 @@ namespace   FE
             auto        pl      =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
             bindMaterial(cmd,_mat.get(),PRI_TRIANGLE_FAN);
-            cmd->setDepthTest(false);
             FECmdBuffer::Viewport   viewPort    =   
             {
                 0.0f,0.0f,(float)_ctx.windowsWidth(),(float)_ctx.windowsHeight(),0.0f,1.0f
@@ -121,8 +120,10 @@ namespace   FE
             cmd->setViewport(0,  1,  &viewPort);
             cmd->setScissor(0,   1,  &rect);
             cmd->setCullMode(CullMode::CM_NULL);
-            cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
+            /// appDynamicState 内部会把深度测试重置为 true,必须在其之后关闭,
+            /// 否则编辑轴被场景模型遮挡(与旋转轴一致)
+            cmd->setDepthTest(false);
             cmd->bindVBO(0,_axisArrowVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
             /// 绘制箭头
@@ -153,8 +154,9 @@ namespace   FE
             pl      =   _mat->pipeline(PRI_LINES)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
             bindMaterial(cmd,_mat.get(),PRI_LINES);
-            cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_LINES);
+            /// appDynamicState 内部会把深度测试重置为 true,必须在其之后关闭
+            cmd->setDepthTest(false);
             cmd->bindVBO(0,_axisLineVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
               
@@ -206,8 +208,9 @@ namespace   FE
             pl      =   _mat->pipeline(PRI_TRIANGLE_FAN)->as<FEGPipeline>();
             cmd->bindPipeline(pl);
             bindMaterial(cmd,_mat.get(),PRI_TRIANGLE_FAN);
-            cmd->setDepthTest(false);
             _mat->appDynamicState(cmd,PRI_TRIANGLE_FAN);
+            /// appDynamicState 内部会把深度测试重置为 true,必须在其之后关闭
+            cmd->setDepthTest(false);
             cmd->bindVBO(0,_axisLineVBO,0);
             cmd->bindIBO(_axisLineIBO,0,INDEX_UINT16);
 

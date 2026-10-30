@@ -39,6 +39,22 @@ namespace FE
         {
             return  _objects;
         }
+        /// <summary>
+        /// 查找作用于指定对象的动画(播放器记录的动画列表顺序即查找顺序)
+        /// </summary>
+        /// <param name="owner">动画作用的对象(节点)</param>
+        /// <returns>动画组件,没有时返回 nullptr</returns>
+        Animation   animationOf(Object owner) const
+        {
+            if (owner == nullptr)
+                return  nullptr;
+            for (const Animation& anim : _objects)
+            {
+                if (anim != nullptr && anim->owner() == owner)
+                    return  anim;
+            }
+            return  nullptr;
+        }
     public:
         struct  TrackObject
         {
@@ -156,7 +172,7 @@ namespace FE
             return  _status;
         }
         /// <summary>
-        /// 播放器名:动画系统以该名作为索引键,动画按 playbackName 登记到对应播放器
+        /// 播放器名:动画系统以该名作为索引键,播放器记录自己持有的动画列表
         /// </summary>
         const   String& name() const
         {

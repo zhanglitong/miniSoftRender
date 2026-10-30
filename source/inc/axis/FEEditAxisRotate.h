@@ -223,10 +223,15 @@ namespace   FE
         ///旋转计算
         /// </summary>
         void    calcRotate(const int2& start, const int2& end, real& rAngle);
-        real    rotateX(const int2& start, const int2& end, const real3& axis);
-        real    rotateY(const int2& start, const int2& end, const real3& axis);
-        real    rotateZ(const int2& start, const int2& end, const real3& axis);
-        real    rotateSC(const int2& start, const int2& end, const real3& axis);
+        /// <summary>
+        /// 旋转平面上的真实夹角(度,相对拖拽起点),按上一次累计角做 ±360 展开
+        /// 说明:旧实现用切线投影长度近似角度,拖拽超过 180 度后投影方向反转会回退
+        /// </summary>
+        real    rotateOnPlane(const int2& start, const int2& end, const real3& axis);
+        /// <summary>
+        /// 切线投影方式(环面侧对视线时的退化处理),像素长度近似角度
+        /// </summary>
+        real    rotateByTangent(const int2& start, const int2& end, const real3& axis, real radius);
         /// <summary>
         ///计算切线与扇形
         /// </summary>

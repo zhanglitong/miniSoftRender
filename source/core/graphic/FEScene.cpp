@@ -694,11 +694,18 @@ namespace   FE
             return  false;
         }
         Nodes   nodes;
+        Playbacks   playbacks;
         for (auto var : objects)
         {   
             Node    node    =   var->cast<FENode>();
             if (node == nullptr)
+            {
+                /// 非节点根:播放器(名字与动画列表),加载后要登记回动画系统
+                Playback    playback    =   var->cast<FEPlayback>();
+                if (playback != nullptr)
+                    playbacks.push_back(playback);
                 continue;
+            }
             node->flags().addFlag(FE::FLAG_UPDATE);
             node->update();
             nodes.push_back(node);
@@ -714,6 +721,15 @@ namespace   FE
         /// 注意 clear() 会重置输入系统,内部已重新登记场景自带的浏览/编辑工具
         /// </summary>
         clear();
+        /// <summary>
+        /// 先把从工程文件读出的播放器登记回动画系统:动画的归属(属于哪个播放器)
+        /// 由播放器恢复,随后 dispatch 的 addObject 不会再把这些动画塞回 default
+        /// </summary>
+        if (auto  sys =   animationSystem())
+        {
+            for (auto& playback: playbacks)
+                sys->addPlayback(playback);
+        }
         dispatchNodesToSystem(nodes);
         addNodesToTree(nodes);
 
@@ -748,6 +764,16 @@ namespace   FE
         for (size_t i = 0; i < nodes.size(); i++)
         {
             objects[i]  =   nodes[i].get();
+        }
+        /// 播放器(名字与动画列表)作为独立根一起写入:
+        /// 写入器只沿节点依赖收集对象,播放器不被节点引用,不单独加根会整段丢失
+        if (auto  sys =   animationSystem())
+        {
+            for (auto& var: sys->playbacks())
+            {
+                if (var.second != nullptr)
+                    objects.push_back(var.second.get());
+            }
         }
         if(writer->writeFile(objects,fileName))
             return  true;

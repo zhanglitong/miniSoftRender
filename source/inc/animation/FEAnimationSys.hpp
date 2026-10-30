@@ -33,7 +33,7 @@ namespace   FE
             return  _playbacks;
         }
         /// <summary>
-        /// 查找节点上登记的第一个动画组件(按播放器顺序)
+        /// 查找节点上登记的第一个动画组件(按播放器顺序,查找由播放器完成)
         /// </summary>
         Animation   animationOf(Object owner)
         {
@@ -41,16 +41,17 @@ namespace   FE
                 return  nullptr;
             for (auto& var : _playbacks)
             {
-                for (auto& anim : var.second->objects())
-                {
-                    if (anim != nullptr && anim->owner() == owner)
-                        return  anim;
-                }
+                if (var.second == nullptr)
+                    continue;
+                Animation   anim    =   var.second->animationOf(owner);
+                if (anim != nullptr)
+                    return  anim;
             }
             return  nullptr;
         }
         /// <summary>
-        /// 编辑写值:节点有动画时走动画(同时更新节点与动画本地副本),否则直接写节点
+        /// 编辑写值:只修改目标对象(节点)属性,不写关键帧;
+        /// 打帧由时间线的“打帧”动作负责
         /// </summary>
         /// <param name="node">目标节点</param>
         /// <param name="prop">属性索引</param>
@@ -62,7 +63,14 @@ namespace   FE
                 return  false;
             Animation   anim    =   animationOf(node);
             if (anim != nullptr)
+            {
+                /// 播放中禁止编辑:播放驱动会在下一帧用采样值覆盖编辑结果,
+                /// 而且编辑值对应的时间与播放时间不一致,写进去没有意义
+                Playback    playback    =   playbackOf(anim);
+                if (playback != nullptr && playback->status() == FEPlayback::PS_Running)
+                    return  false;
                 return  anim->setProperty(prop,value);
+            }
             return  node->setProperty(prop,value);
         }
         /// <summary>
@@ -83,7 +91,9 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// 添加组件
+        /// 添加组件(场景分发路径):
+        /// 已归属某个播放器的动画保持原归属(打开工程后由播放器恢复的分组不被冲掉),
+        /// 未登记的动画登记到默认播放器
         /// </summary>
         /// <param name="com"></param>
         /// <returns></returns>
@@ -92,8 +102,57 @@ namespace   FE
             if (com == nullptr)
                 return  0;
             FEAnimation*    anim    =   (FEAnimation*)(com->as<FEAnimation>());
-            /// 按组件记录的播放器名登记,便于撤销后重做回到原播放器
-            return  getOrCreate(anim->playbackName())->addObject(anim);
+            if (anim == nullptr)
+                return  0;
+            if (playbackOf(anim) != nullptr)
+                return  0;
+            return  getOrCreate("default")->addObject(anim);
+        }
+        /// <summary>
+        /// 把动画登记到指定播放器:动画是被管理对象,只归属一个播放器,
+        /// 已登记到其它播放器时先从原播放器摘除
+        /// </summary>
+        /// <param name="com">动画组件</param>
+        /// <param name="playbackName">播放器名,空串表示 default</param>
+        /// <returns>返回登记成功的动画数</returns>
+        size_t  addObject(Component com,const String& playbackName)
+        {
+            if (com == nullptr)
+                return  0;
+            FEAnimation*    anim    =   (FEAnimation*)(com->as<FEAnimation>());
+            if (anim == nullptr)
+                return  0;
+            const   String  name    =   playbackName.empty() ? String("default") : playbackName;
+            Playback        target  =   getOrCreate(name);
+            Playback        owner   =   playbackOf(anim);
+            if (owner != nullptr && owner != target)
+                owner->removeObject(anim);
+            return  target->addObject(anim);
+        }
+        /// <summary>
+        /// 登记一个已存在的播放器(从工程文件加载时使用):
+        /// 同名播放器已存在时自动加后缀,避免覆盖
+        /// </summary>
+        /// <param name="playback">播放器对象</param>
+        /// <returns>1 登记成功,0 已登记或对象无效</returns>
+        size_t  addPlayback(Playback playback)
+        {
+            if (playback == nullptr)
+                return  0;
+            const   String  name    =   playback->name().empty() ? String("default") : playback->name();
+            auto            itr     =   _playbacks.find(name);
+            if (itr != _playbacks.end() && itr->second == playback)
+                return  0;
+            String  unique  =   name;
+            int     index   =   1;
+            while (_playbacks.find(unique) != _playbacks.end())
+            {
+                unique  =   name + std::to_string(index);
+                ++index;
+            }
+            playback->setName(unique);
+            _playbacks[unique]  =   playback;
+            return  1;
         }
         virtual size_t  addObjects(const Components&  coms) override
         {
@@ -138,7 +197,9 @@ namespace   FE
             _playbacks.clear();
         }
         /// <summary>
-        /// 组件每一帧更新
+        /// 组件每一帧更新:只有播放中的播放器才推进并采样,
+        /// 采样结果由动画自身在 update 内实时写入节点本地变换;
+        /// 暂停时不做任何处理,节点保持当前姿态
         /// </summary>
         /// <param name="deltaTm"></param>
         /// <returns></returns>
@@ -147,13 +208,6 @@ namespace   FE
             for (auto& var : _playbacks)
             {
                 var.second->update(tmDelta);
-            }
-            /// 采样结果直接写入节点本地变换(与约束求解过程一致,节点不再反向依赖动画组件)
-            /// 播放暂停时也执行,保证编辑器跳帧后节点处于最新采样姿态
-            for (auto& var : _playbacks)
-            {
-                for (auto& anim : var.second->objects())
-                    anim->applyTransform();
             }
         }
         /// <summary>
@@ -178,6 +232,27 @@ namespace   FE
             }
         }
     protected:
+        /// <summary>
+        /// 查找动画所属的播放器:动画是被播放器管理的对象,最多归属一个播放器
+        /// </summary>
+        /// <param name="anim">动画组件</param>
+        /// <returns>所属播放器,未登记时返回 nullptr</returns>
+        Playback    playbackOf(const Animation& anim) const
+        {
+            if (anim == nullptr)
+                return  nullptr;
+            for (const auto& var : _playbacks)
+            {
+                if (var.second == nullptr)
+                    continue;
+                for (const Animation& item : var.second->objects())
+                {
+                    if (item == anim)
+                        return  var.second;
+                }
+            }
+            return  nullptr;
+        }
         /// <summary>
         /// 从所有播放器中摘除这些组件对应的动画:
         /// 组件可能被登记在任意命名播放器下,删除时只遍历已有播放器,不创建新播放器

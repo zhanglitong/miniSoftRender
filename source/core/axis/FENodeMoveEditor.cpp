@@ -2,7 +2,6 @@
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/graphic/FEScene.h"
 #include    "../../inc/axis/FENodeMoveEditor.h"
-#include    "../../inc/animation/FEAnimationSys.hpp"
 
 namespace   FE
 {
@@ -86,9 +85,8 @@ namespace   FE
                                         , FEEditAxisMove& sender)
     {
         UNUSED(status,absoluteOffset,sender);
-        /// 编辑写值:节点有动画时同时更新动画本地副本
-        auto    animSys     =   _ctx.scene()->animationSystem();
-
+        /// 编辑只写对象自身的属性,不经过动画系统:
+        /// 动画数据由打帧动作单独记录,编辑过程不应触碰动画本地副本
         for (auto object : _objects)
         {
             
@@ -102,12 +100,7 @@ namespace   FE
             real3   nValue  =   curVal + relativeOffset;
             /// 仅在实际有变化时才 setProperty (跳过 EditStart/EditEnd 的 0 偏移)
             if  (nValue != curVal)
-            {
-                if (animSys != nullptr)
-                    bModify |=  animSys->setNodeProperty(object,PROP_TRANSFORM_XYZ,nValue);
-                else
-                    bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,nValue);
-            }
+                bModify =   object->setProperty(PROP_TRANSFORM_XYZ,nValue);
             object->endSetProp(_ctx.deltaTime(),bModify);
         }
     }

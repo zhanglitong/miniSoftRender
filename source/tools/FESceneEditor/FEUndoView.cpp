@@ -3,6 +3,7 @@
 /// </summary>
 
 #include    "FEUndoView.hpp"
+#include    "FEUiStyle.hpp"
 
 #include    <cstdio>
 #include    <imgui.h>
@@ -76,6 +77,14 @@ namespace   FE
             else
             {
                 const   ImVec4  dim     =   ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+                /// <summary>
+                /// 行高与模型树一致:高度取 ui::rowHeight(),行之间留 ui::kRowGap,
+                /// 文字按 (行高 - 文本行高) / 2 垂直居中
+                /// </summary>
+                const   float   rowHeight   =   ui::rowHeight();
+                const   float   rowGap      =   ui::kRowGap;
+                const   float   textOffset  =   (rowHeight - ImGui::GetTextLineHeight()) * 0.5f;
+                const   ImU32   dimColor    =   ImGui::GetColorU32(dim);
                 ImGui::BeginChild("##undo_list",ImVec2(0.0f,0.0f),false,
                                   ImGuiWindowFlags_HorizontalScrollbar);
                 for (int i = 0; i < count; ++i)
@@ -85,18 +94,40 @@ namespace   FE
                     /// 游标之前(含游标)为已执行状态
                     /// </summary>
                     const   bool    undone  =   (i >= index);
+                    const   ImVec2  start   =   ImGui::GetCursorScreenPos();
+                    float           width   =   ImGui::GetContentRegionAvail().x;
+                    if (width < 1.0f)
+                        width   =   1.0f;
                     char    label[512]  =   {};
-                    snprintf(label,sizeof(label),"%3d  %s###undo_row_%d"
-                             ,i + 1,stack.text(i).c_str(),i);
-                    if (undone)
-                        ImGui::PushStyleColor(ImGuiCol_Text,dim);
-                    /// <summary>
-                    /// 选中态落在最后一条已执行的命令上,与 QUndoView 的当前位置一致
-                    /// </summary>
-                    if (ImGui::Selectable(label,i == index - 1))
+                    snprintf(label,sizeof(label),"%3d  %s",i + 1,stack.text(i).c_str());
+
+                    ImGui::PushID(i);
+                    ImGui::SetCursorScreenPos(start);
+                    const   bool    pressed =   ImGui::InvisibleButton("##undo_row"
+                                                                      ,ImVec2(width,rowHeight));
+                    const   bool    hovered =   ImGui::IsItemHovered();
+                    ImGui::PopID();
+                    if (pressed)
                         target  =   i + 1;
-                    if (undone)
-                        ImGui::PopStyleColor();
+
+                    /// <summary>
+                    /// 行底色:选中态落在最后一条已执行的命令上,悬停行用淡色
+                    /// </summary>
+                    ImDrawList*     dl      =   ImGui::GetWindowDrawList();
+                    const   ImVec2  end     =   ImVec2(start.x + width,start.y + rowHeight);
+                    if (i == index - 1)
+                        dl->AddRectFilled(start,end,ui::kRowSelected,2.0f);
+                    else if (hovered)
+                        dl->AddRectFilled(start,end,ui::kRowHover,2.0f);
+                    dl->AddText(ImVec2(start.x + 4.0f,start.y + textOffset)
+                                ,(i == index - 1) ? ui::kTextSelected
+                                                  : (undone ? dimColor : ui::kTextColor)
+                                ,label);
+
+                    /// <summary>
+                    /// 光标移到下一行:行高 + 行间距,与模型树行步进一致
+                    /// </summary>
+                    ImGui::SetCursorScreenPos(ImVec2(start.x,start.y + rowHeight + rowGap));
                 }
                 ImGui::EndChild();
             }

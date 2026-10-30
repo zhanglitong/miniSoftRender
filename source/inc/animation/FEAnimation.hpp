@@ -52,17 +52,6 @@ namespace FE
             _name   =   name;
         }
         /// <summary>
-        /// 所属播放器名:动画系统按该名把组件登记到对应 playback(默认 "default")
-        /// </summary>
-        const   auto&   playbackName() const
-        {
-            return  _playbackName;
-        }
-        inline  void    setPlaybackName(const String& name)
-        {
-            _playbackName   =   name;
-        }
-        /// <summary>
         /// 返回节点自身的transform;不含组件信息
         /// </summary>
         /// <returns></returns>
@@ -73,20 +62,6 @@ namespace FE
         const   auto&   transform() const
         {
             return  _transform;
-        }
-        /// <summary>
-        /// 旋转中心点(本地空间):编辑轴编辑时由轴编辑器写入,动画驱动节点时据此计算绕点旋转
-        /// </summary>
-        const   auto&   rotationCenter() const
-        {
-            return  _transform.rotationCenter();
-        }
-        /// <summary>
-        /// 设置旋转中心点(本地空间),原点表示绕节点自身原点旋转
-        /// </summary>
-        inline  void    setRotationCenter(const real3& center)
-        {
-            _transform.setRotationCenter(center);
         }
         /// <summary>
         /// 关联所有者
@@ -259,13 +234,6 @@ namespace FE
         /// <returns>true 该属性属于变换并已写入;false 非变换属性,未做处理</returns>
         bool    setTransformProperty(int prop,const KFValue& value);
         /// <summary>
-        /// 把编辑后的通道写入 clip 关键帧(该时间点存在则覆盖,否则新增)。
-        /// 按轨道自身粒度换算值类型(位置 XYZ / X-Y-Z、旋转欧拉角 / 四元数),
-        /// 类型不匹配的轨道会被跳过
-        /// </summary>
-        /// <param name="prop">被编辑的属性索引</param>
-        void    writeTransformKey(int prop);
-        /// <summary>
         /// 记录采样变换是否已覆盖到节点;由覆盖转为不覆盖时标记节点重新计算变换
         /// </summary>
         /// <param name="applied"></param>
@@ -325,11 +293,6 @@ namespace FE
         bool                _bSampled       =   false;
         TrackResults        _results; 
         String              _name;
-        /// <summary>
-        /// 所属播放器名:重新添加到系统时按该名登记,撤销/重做后可回到原播放器
-        /// (不参与序列化,打开工程后回落为 "default")
-        /// </summary>
-        String              _playbackName   =   "default";
     };
 
     using   Animation       =   SharedPtr<FEAnimation>;

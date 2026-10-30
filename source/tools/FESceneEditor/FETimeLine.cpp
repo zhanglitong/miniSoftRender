@@ -222,8 +222,10 @@ namespace
             for (auto& edit : _edits)
             {
                 applyTrackState(edit._old);
-                if (edit._recreated && edit._clip)
-                    edit._clip->clearObjects();
+                /// 本次新建的轨道从 clip 移除:只能移除该轨道,不能清空整个 clip
+                /// (补充缺失轨道的打帧只会新建缺失的那一条)
+                if (edit._recreated && edit._clip && edit._new._track)
+                    edit._clip->removeObject(edit._new._track);
             }
             if (_refresh)
                 _refresh();
@@ -323,7 +325,7 @@ namespace
 
     /// <summary>
     /// 创建动画组件命令:只把动画挂到节点上,不登记到动画树
-    /// (要让动画出现在动画树,需在模型树右键「添加到动画树」)
+    /// (要让动画出现在动画树,需在模型树右键「动画」子菜单「添加到播放器」)
     /// </summary>
     class   CreateAnimCmd :public FEUndoCmd
     {
@@ -840,7 +842,7 @@ namespace
         _iconFont   =   iconFont;
         ensureNode();
         /// <summary>
-        /// 动画树数据来自动画系统:只有"添加到动画树"登记的动画才会显示
+        /// 动画树数据来自动画系统:只有"添加到播放器"登记的动画才会显示
         /// </summary>
         _tree.reload(_scene->animationSystem());
         _tree.rebuild();
@@ -2331,7 +2333,7 @@ namespace
         /// </summary>
         if (_modelTree != nullptr)
             _modelTree->refresh();
-        _status     =   "已创建动画,可在模型树右键「添加到动画树」";
+        _status     =   "已创建动画,可在模型树右键「动画」子菜单「添加到播放器」";
     }
 
     void    FETimeLine::removeAnimation(Animation anim)
@@ -2507,14 +2509,6 @@ namespace
         playbacks.erase(itr);
         playbacks[newName]  =   playback;
         playback->setName(newName);
-        /// <summary>
-        /// 同步动画记录的播放器名:重新登记(撤销/重做)时仍回到该播放器
-        /// </summary>
-        for (Animation& anim : playback->objects())
-        {
-            if (anim)
-                anim->setPlaybackName(newName);
-        }
 
         _tree.reload(sys);
         _tree.rebuild();
@@ -2528,7 +2522,7 @@ namespace
             anim    =   _tree.animations().front();
         if (!anim)
         {
-            _status =   "请先在模型树右键「添加到动画树」";
+            _status =   "请先在模型树右键「动画」子菜单「添加到播放器」";
             return;
         }
 
@@ -2550,18 +2544,20 @@ namespace
             _status =   "动画没有可用的 clip";
             return;
         }
+        /// 打帧时间吸附到帧,避免关键帧落在两帧之间
+        _curTime    =   real(curFrame()) / real(_fps);
 
         auto    clip        =   anim->clip();
-        const   bool    emptyClip   =   clip->tracks().empty();
         std::vector<TrackState> oldStates;
         for (auto& track : clip->tracks())
             oldStates.push_back(snapshotTrack(track));
+        /// 记录已有轨道:自动补齐的新轨道要单独标记,撤销时只移除它们
+        std::vector<KeyFrameTrack>  existingTracks  =   clip->tracks();
 
         /// <summary>
-        /// 空 clip 先补默认轨道(位置/缩放/旋转)
+        /// 补齐缺失的默认变换轨道(位置/缩放/旋转),空 clip 与只有部分轨道的 clip 都适用
         /// </summary>
-        if (emptyClip)
-            FEAnimationHelper::addDefaultTracks(clip,node->ctx());
+        FEAnimationHelper::ensureTracks(clip,node->ctx(),NP_Default);
 
         bool    changed =   FEAnimationHelper::addNodeKeyFrame(anim,_curTime,node);
         if (!changed)
@@ -2587,7 +2583,7 @@ namespace
             }
             edit._new   =   snapshotTrack(track);
             edit._clip  =   clip;
-            edit._recreated =   emptyClip;
+            edit._recreated =   std::find(existingTracks.begin(),existingTracks.end(),track) == existingTracks.end();
             edits.push_back(std::move(edit));
         }
         if (edits.empty())
@@ -2637,7 +2633,7 @@ namespace
             anim    =   _tree.animations().front();
         if (!anim)
         {
-            _status =   "请先在模型树右键「添加到动画树」";
+            _status =   "请先在模型树右键「动画」子菜单「添加到播放器」";
             return  false;
         }
 
@@ -2660,6 +2656,8 @@ namespace
             _status =   "动画没有可用的 clip";
             return  false;
         }
+        /// 打帧时间吸附到帧,避免关键帧落在两帧之间
+        _curTime    =   real(curFrame()) / real(_fps);
 
         /// <summary>
         /// 当前时间已有关键帧:按属性移除
@@ -2703,18 +2701,18 @@ namespace
         /// <summary>
         /// 没有关键帧:按属性添加
         /// </summary>
-        const   bool    emptyClip   =   clip->tracks().empty();
         std::vector<TrackState> oldStates;
         for (auto& track : clip->tracks())
             oldStates.push_back(snapshotTrack(track));
-
-        /// <summary>
-        /// 空 clip 先补默认轨道(位置/缩放/旋转)
-        /// </summary>
-        if (emptyClip)
-            FEAnimationHelper::addDefaultTracks(clip,node->ctx());
+        /// 记录已有轨道:自动补齐的新轨道要单独标记,撤销时只移除它们
+        std::vector<KeyFrameTrack>  existingTracks  =   clip->tracks();
 
         const   NodeProperyBits bits(keyBitsForProperty(prop));
+        /// <summary>
+        /// 补齐该属性对应的缺失轨道(clip 只有位置轨道时,旋转也能落帧)
+        /// </summary>
+        FEAnimationHelper::ensureTracks(clip,node->ctx(),bits);
+
         bool    changed =   FEAnimationHelper::addNodeKeyFrame(anim,_curTime,node,bits);
         if (!changed)
             changed =   FEAnimationHelper::updateNodeKeyFrame(anim,_curTime,node,bits);
@@ -2739,7 +2737,7 @@ namespace
             }
             edit._new   =   snapshotTrack(track);
             edit._clip  =   clip;
-            edit._recreated =   emptyClip;
+            edit._recreated =   std::find(existingTracks.begin(),existingTracks.end(),track) == existingTracks.end();
             edits.push_back(std::move(edit));
         }
         if (edits.empty())

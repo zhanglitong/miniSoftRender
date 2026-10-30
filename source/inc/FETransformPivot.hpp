@@ -29,7 +29,7 @@ namespace FE
             FETransformPivot  t;
             t._position     =   pos;
             t._scale        =   sc;
-            t._rotation     =   quatf(glm::radians(eulerDegrees));
+            t.setEuler(eulerDegrees);
             return  t;
         }
 
@@ -51,19 +51,29 @@ namespace FE
         /// </summary>
         inline  FETransformPivot&  setPosition(const real3& v)   { _position = v;    return *this; }
         /// <summary>
-        /// 设置旋转（四元数）
+        /// 设置旋转（四元数）。朝向发生变化时,累计欧拉角账本失效,退回 ±180° 换算;
+        /// 朝向未变时保留账本(与 FETransform 语义一致)
         /// </summary>
-        inline  FETransformPivot&  setRotation(const quatf& q)   { _rotation = q;    return *this; }
+        inline  FETransformPivot&  setRotation(const quatf& q)
+        {
+            if (q != _rotation)
+                _eulerValid     =   false;
+            _rotation       =   q;
+            return  *this;
+        }
         /// <summary>
         /// 设置缩放，返回 *this 便于链式调用
         /// </summary>
         inline  FETransformPivot&  setScale(const float3& s)     { _scale = s;       return *this; }
         /// <summary>
-        /// 用欧拉角（单位：度）设置旋转
+        /// 用欧拉角（单位：度）设置旋转;同时写入累计欧拉角账本,不做 ±180° 归一化,
+        /// 因此传入 720° 时账本保留 720°(四元数仍是等价朝向)
         /// </summary>
         inline  FETransformPivot&  setEuler(const float3& eulerDegrees)
         {
             _rotation   =   quatf(glm::radians(eulerDegrees));
+            _eulerDeg   =   eulerDegrees;
+            _eulerValid =   true;
             return  *this;
         }
 

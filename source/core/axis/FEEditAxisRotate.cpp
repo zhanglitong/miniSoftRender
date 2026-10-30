@@ -308,24 +308,9 @@ namespace   FE
         rAngle = 0.0;
         if (_rotationAngleWeight <= std::numeric_limits<float>::epsilon())
             return;
-        switch (_selectedAxis)
-        {
-        case FEEditAxisRotate::AXIS_X:
-            rAngle = this->rotateX(start, end, _rotationAxis) * _rotationAngleWeight;
-            break;
-        case FEEditAxisRotate::AXIS_Y:
-            rAngle = this->rotateY(start, end, _rotationAxis) * _rotationAngleWeight;
-            break;
-        case FEEditAxisRotate::AXIS_Z:
-            rAngle = this->rotateZ(start, end, _rotationAxis) * _rotationAngleWeight;
-            break;
-        case FEEditAxisRotate::AXIS_SC:
-            rAngle = this->rotateSC(start, end, _rotationAxis) * _rotationAngleWeight;
-            break;
-        default:
-            rAngle = 0.0;
-            break;
-        }
+        /// 旋转平面上的真实夹角(相对拖拽起点),按上一次累计角做 ±360 展开,
+        /// 保证拖拽超过 180 度时可以持续累加,而不是在切点投影反转后回退
+        rAngle = this->rotateOnPlane(start, end, _rotationAxis) * _rotationAngleWeight;
         ///角度吸附
         if (_adsorptionEnabled && _adsorptionFlags.hasFlag(FEEditAxisRotate::AdsorptionFlag::AF_Angle))
         {
@@ -440,104 +425,61 @@ namespace   FE
         return FEEditAxisRotate::AXIS_NULL;
     }
 
-    real FEEditAxisRotate::rotateX(const int2& start, const int2& end, const real3& axis)
+    real FEEditAxisRotate::rotateOnPlane(const int2& start, const int2& end, const real3& axis)
     {
-        FECamera& camera = _ctx.activeCamera();
-        real3       vtStart;
-        real3       vtEnd;
-        calcTangentAndFan(axis, _radiusBall, vtStart, vtEnd);
-        if (vtStart == vtEnd)
+        FECamera&   camera  =   _ctx.activeCamera();
+        real3       norAxis =   normalize(axis);
+        if (length(norAxis) <= std::numeric_limits<float>::epsilon())
             return _offAngle;
-        Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-        Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
-        real3 retPtStart;
-        real3 retPtEnd;
-        if (FE::calcRaySurFaceInsPt(rayStart, camera.getDir(), position(), retPtStart)
-            && FE::calcRaySurFaceInsPt(rayEnd, camera.getDir(), position(), retPtEnd))
-        {
-            real3 norV = FE::normalize(retPtEnd - retPtStart);
-            real3 norVt = FE::normalize(vtEnd - vtStart);
-            real3 vPos = FE::closePointOnVector(norVt, retPtStart, retPtEnd);
-            real off = FE::distance(retPtStart, vPos);
-            off = off / camera.pixelU(position());
-            if (dot(norV, norVt) < 0)///计算拖动方向与切线方向是否相同
-                off = -off;
-            return off;
-        }
-        return _offAngle;
-    }
-    real FEEditAxisRotate::rotateY(const int2& start, const int2& end, const real3& axis)
-    {
-        FECamera& camera = _ctx.activeCamera();
-        real3       vtStart;
-        real3       vtEnd;
-        calcTangentAndFan(axis, _radiusBall, vtStart, vtEnd);
-        if (vtStart == vtEnd)
+        /// 环面几乎侧对视线(法线与视线接近垂直)时,射线与旋转平面近似平行,求交退化,
+        /// 此时退回切线投影方式,保证仍然可以拖动旋转
+        if (std::abs(dot(norAxis, camera.getDir())) <= 0.25)
+            return rotateByTangent(start, end, norAxis,
+                _selectedAxis == FEEditAxisRotate::AXIS_SC ? _radiusCircle : _radiusBall);
+        Ray     rayStart    =   camera.createRayFromScreen(start.x, start.y);
+        Ray     rayEnd      =   camera.createRayFromScreen(end.x, end.y);
+        real3   ptStart;
+        real3   ptEnd;
+        /// 射线与旋转平面(过抓手中心、法线为旋转轴)求交
+        if (!FE::calcRaySurFaceInsPt(rayStart, norAxis, position(), ptStart)
+            || FE::calcRaySurFaceInsPt(rayEnd, norAxis, position(), ptEnd))
+            return rotateByTangent(start, end, norAxis,
+                _selectedAxis == FEEditAxisRotate::AXIS_SC ? _radiusCircle : _radiusBall);
+        real3   vStart  =   ptStart - position();
+        real3   vEnd    =   ptEnd - position();
+        real    lenStart =  length(vStart);
+        real    lenEnd   =  length(vEnd);
+        if (lenStart <= std::numeric_limits<float>::epsilon()
+            || lenEnd <= std::numeric_limits<float>::epsilon())
             return _offAngle;
-        Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-        Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
-        real3 retPtStart;
-        real3 retPtEnd;
-        if (FE::calcRaySurFaceInsPt(rayStart, camera.getDir(), position(), retPtStart)
-            && FE::calcRaySurFaceInsPt(rayEnd, camera.getDir(), position(), retPtEnd))
-        {
-            real3 norV = FE::normalize(retPtEnd - retPtStart);
-            real3 norVt = FE::normalize(vtEnd - vtStart);
-            real3 vPos = FE::closePointOnVector(norVt, retPtStart, retPtEnd);
-            real off = FE::distance(retPtStart, vPos);
-            off = off / camera.pixelU(position());
-            if (dot(norV, norVt) < 0)
-                off = -off;
-            return off;
-        }
-        return _offAngle;
+        /// 有符号夹角(度):绕轴从起点方向转到当前方向
+        real    deg     =   RAD2DEG(atan2(dot(cross(vStart, vEnd), norAxis), dot(vStart, vEnd)));
+        /// 相对上一次累计角展开 ±360,拖拽超过 180 度时可以继续累加
+        real    turns   =   std::round((_offAngle - deg) / 360.0);
+        return  deg + turns * 360.0;
     }
-    real FEEditAxisRotate::rotateZ(const int2& start, const int2& end, const real3& axis)
+
+    /// 切线投影方式(环面侧对视线时的退化处理):把鼠标位移投影到拖拽起始处的切线,
+    /// 以像素长度近似角度(1px≈1度),与旧实现一致
+    real FEEditAxisRotate::rotateByTangent(const int2& start, const int2& end, const real3& axis, real radius)
     {
-        FECamera& camera  =   _ctx.activeCamera();
+        FECamera&   camera  =   _ctx.activeCamera();
         real3       vtStart;
         real3       vtEnd;
-        calcTangentAndFan(axis, _radiusBall, vtStart, vtEnd);
-        if (vtStart == vtEnd)
-            return _offAngle;
-        Ray rayStart = camera.createRayFromScreen(start.x, start.y);
-        Ray rayEnd = camera.createRayFromScreen(end.x, end.y);
-        real3 retPtStart;
-        real3 retPtEnd;
-        if (FE::calcRaySurFaceInsPt(rayStart, camera.getDir(), position(), retPtStart)
-            && FE::calcRaySurFaceInsPt(rayEnd, camera.getDir(), position(), retPtEnd))
-        {
-            real3 norV = FE::normalize(retPtEnd - retPtStart);
-            real3 norVt = FE::normalize(vtEnd - vtStart);
-            real3 vPos = FE::closePointOnVector(norVt, retPtStart, retPtEnd);
-            real off = FE::distance(retPtStart, vPos);
-            off = off / camera.pixelU(position());
-            if (dot(norV, norVt) < 0)
-                off = -off;
-            return off;
-        }
-        return _offAngle;
-    }
-    real FEEditAxisRotate::rotateSC(const int2& start, const int2& end, const real3& axis)
-    {
-        FECamera& camera  =   _ctx.activeCamera();
-        real3       vtStart;
-        real3       vtEnd;
-        calcTangentAndFan(axis, _radiusCircle, vtStart, vtEnd);
+        calcTangentAndFan(axis, radius, vtStart, vtEnd);
         if (vtStart == vtEnd)
             return _offAngle;
         Ray     rayStart    =   camera.createRayFromScreen(start.x, start.y);
         Ray     rayEnd      =   camera.createRayFromScreen(end.x, end.y);
-        real3   retPtStart;
-        real3   retPtEnd;
-        if (FE::calcRaySurFaceInsPt(rayStart, camera.getDir(), position(), retPtStart)
-            && FE::calcRaySurFaceInsPt(rayEnd, camera.getDir(), position(), retPtEnd))
+        real3   ptStart;
+        real3   ptEnd;
+        if (FE::calcRaySurFaceInsPt(rayStart, camera.getDir(), position(), ptStart)
+            && FE::calcRaySurFaceInsPt(rayEnd, camera.getDir(), position(), ptEnd))
         {
-            real3 norV = FE::normalize(retPtEnd - retPtStart);
-            real3 norVt = FE::normalize(vtEnd - vtStart);
-            real3 vPos = FE::closePointOnVector(norVt, retPtStart, retPtEnd);
-            real off = FE::distance(retPtStart, vPos);
-            off = off / camera.pixelU(position());
+            real3   norV    =   FE::normalize(ptEnd - ptStart);
+            real3   norVt   =   FE::normalize(vtEnd - vtStart);
+            real3   vPos    =   FE::closePointOnVector(norVt, ptStart, ptEnd);
+            real    off     =   FE::distance(ptStart, vPos) / camera.pixelU(position());
             if (dot(norV, norVt) < 0)
                 off = -off;
             return off;
@@ -593,7 +535,8 @@ namespace   FE
             _fan.push_back(tangentPos);
             /// CELL 中 step=1 度, angleAxis 接收度数; FE 的 angleAxis 接收弧度, 统一转弧度
             real step = real(DEG2RAD(1.0));
-            real total = real(DEG2RAD(std::abs(_offAngle)));
+            /// 累计角可能超过 360 度(多圈拖拽),扇形只表示一圈内的角度
+            real total = real(DEG2RAD(std::min<real>(std::abs(_offAngle),360.0)));
             for (real i = 0; i < total; i += step)
             {
                 quatr quat(1, 0, 0, 0);

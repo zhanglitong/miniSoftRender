@@ -170,10 +170,11 @@ namespace   FE
         /// <param name="node">目标节点</param>
         void    removeAnimations(Node node);
         /// <summary>
-        /// 添加到动画树:把节点上尚未登记的动画登记到动画系统,走撤销栈
+        /// 添加到播放器:把节点上尚未加入该播放器的动画登记到指定播放器,走撤销栈
         /// </summary>
         /// <param name="node">目标节点</param>
-        void    addAnimationsToTree(Node node);
+        /// <param name="playbackName">目标播放器名(来自动画系统已有播放器)</param>
+        void    addAnimationsToPlayback(Node node,const String& playbackName);
         /// <summary>
         /// 添加/移除指定类型的约束(已存在则移除),走撤销栈
         /// </summary>

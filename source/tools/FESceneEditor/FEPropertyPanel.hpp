@@ -90,6 +90,10 @@ namespace   FE
                 group.end();
                 return;
             }
+            /// <summary>
+            /// 播放中禁止编辑:播放驱动每帧用采样值覆盖节点,编辑结果不会保留
+            /// </summary>
+            const   bool    locked  =   timeLine != nullptr && timeLine->isPlaying();
 
             /// <summary>
             /// 每帧从节点读取当前值,保证抓手/动画等外部改动能反映到面板
@@ -107,8 +111,9 @@ namespace   FE
             }
             else
             {
-                /// quatToEuler 返回角度(度)
-                current =   quatToEuler(node->localRotation());
+                /// 节点累计欧拉角账本(度):拖拽/打帧后保留圈数,可超过 ±180;
+                /// 账本失效时节点会退回四元数换算(范围 ±180)
+                current =   node->localEuler();
                 speed   =   kRotSpeed;
                 fmt     =   "%.1f";
             }
@@ -136,7 +141,7 @@ namespace   FE
                     timeLine->toggleKeyframe(prop);
             }
 
-            if (edited)
+            if (edited && !locked)
             {
                 const   real3   next(values[0],values[1],values[2]);
                 if (kind == GK_TRANSLATE)
@@ -144,8 +149,8 @@ namespace   FE
                 else if (kind == GK_SCALE)
                     node->setLocalScaling(next);
                 else
-                    /// eulerToQuat 接受角度(度)
-                    node->setLocalRotation(eulerToQuat(next));
+                    /// 角度(度),直接写入累计欧拉角账本,不做 ±180 归一化
+                    node->setLocalEuler(next);
             }
             group.end();
         }

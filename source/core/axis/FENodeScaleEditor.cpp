@@ -2,7 +2,6 @@
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/graphic/FEScene.h"
 #include    "../../inc/axis/FENodeScaleEditor.h"
-#include    "../../inc/animation/FEAnimationSys.hpp"
 
 namespace   FE
 {
@@ -81,8 +80,7 @@ namespace   FE
                                         , FEEditAxisScale& sender)
     {
         UNUSED(status,absoluteOffset,sender);
-        /// 编辑写值:节点有动画时同时更新动画本地副本
-        auto        animSys =   _ctx.scene()->animationSystem();
+        /// 编辑只写对象自身的属性,不经过动画系统:动画数据由打帧动作单独记录
         real3       pivot   =   position();
         for (auto object : _objects)
         {
@@ -114,19 +112,9 @@ namespace   FE
 
             object->beginSetProp();
             if  (newLocalPos != localPos)
-            {
-                if (animSys != nullptr)
-                    bModify |=  animSys->setNodeProperty(object,PROP_TRANSFORM_XYZ,newLocalPos);
-                else
-                    bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,newLocalPos);
-            }
+                bModify |=  object->setProperty(PROP_TRANSFORM_XYZ,newLocalPos);
             if  (newScale != curScale)
-            {
-                if (animSys != nullptr)
-                    bModify |=  animSys->setNodeProperty(object,PROP_SCALE_XYZ,newScale);
-                else
-                    bModify |=  object->setProperty(PROP_SCALE_XYZ,newScale);
-            }
+                bModify |=  object->setProperty(PROP_SCALE_XYZ,newScale);
             object->endSetProp(_ctx.deltaTime(),bModify);
         }
     }

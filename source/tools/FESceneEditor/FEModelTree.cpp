@@ -100,19 +100,16 @@ namespace
         }
     }
     /// <summary>
-    /// 动画是否已登记到动画系统(动画树)
+    /// 动画是否已在指定播放器中
     /// </summary>
-    bool    animationRegistered(FE::FEAnimationSys* sys,const FE::FEAnimation* anim)
+    bool    animationInPlayback(FE::FEPlayback* playback,const FE::FEAnimation* anim)
     {
-        if (sys == nullptr || anim == nullptr)
+        if (playback == nullptr || anim == nullptr)
             return  false;
-        for (auto& var : sys->playbacks())
+        for (const FE::Animation& item : playback->objects())
         {
-            for (const FE::Animation& item : var.second->objects())
-            {
-                if (item.get() == anim)
-                    return  true;
-            }
+            if (item.get() == anim)
+                return  true;
         }
         return  false;
     }
@@ -772,26 +769,39 @@ namespace   FE
         ImGui::Separator();
 
         /// <summary>
-        /// 动画子菜单:创建动画 / 添加到动画树 / 删除动画
+        /// 动画子菜单:创建动画 / 添加到播放器(选择动画系统已有播放器) / 删除动画
         /// </summary>
         FEAnimationSys*     animSys     =   _scene->animationSystem();
         const   auto        nodeAnims   =   node->objects<FEAnimation>();
-        bool                allRegistered   =   !nodeAnims.empty();
-        for (const FEAnimation* anim : nodeAnims)
-        {
-            if (!animationRegistered(animSys,anim))
-            {
-                allRegistered   =   false;
-                break;
-            }
-        }
         if (ImGui::BeginMenu("动画"))
         {
             if (ImGui::MenuItem("创建动画"))
                 createAnimation(node);
-            if (ImGui::MenuItem("添加到动画树",nullptr,false,
-                                animSys != nullptr && !nodeAnims.empty() && !allRegistered))
-                addAnimationsToTree(node);
+            const   bool    canAdd  =   animSys != nullptr && !nodeAnims.empty();
+            if (ImGui::BeginMenu("添加到播放器",canAdd))
+            {
+                if (!canAdd || animSys->playbacks().empty())
+                    ImGui::MenuItem("暂无播放器",nullptr,false,false);
+                else
+                {
+                    for (auto& var : animSys->playbacks())
+                    {
+                        Playback&   playback    =   var.second;
+                        bool    addable =   false;
+                        for (const FEAnimation* anim : nodeAnims)
+                        {
+                            if (!animationInPlayback(playback.get(),anim))
+                            {
+                                addable =   true;
+                                break;
+                            }
+                        }
+                        if (ImGui::MenuItem(var.first.c_str(),nullptr,false,addable))
+                            addAnimationsToPlayback(node,var.first);
+                    }
+                }
+                ImGui::EndMenu();
+            }
             if (ImGui::MenuItem("删除动画",nullptr,false,!nodeAnims.empty()))
                 removeAnimations(node);
             ImGui::EndMenu();
@@ -935,7 +945,7 @@ namespace   FE
             return;
         /// <summary>
         /// 新建带默认(位置/缩放/旋转)轨道的动画,只挂到节点上;
-        /// 需要在动画树中编辑时,再右键「添加到动画树」
+        /// 需要在动画树中编辑时,再右键「动画」子菜单「添加到播放器」
         /// </summary>
         Animation   anim    =   FEAnimationHelper::createNodeAnimtion(node->ctx());
         if (anim == nullptr)
@@ -985,30 +995,41 @@ namespace   FE
             node->removeComponent(anim.get());
     }
 
-    void    FEModelTree::addAnimationsToTree(Node node)
+    void    FEModelTree::addAnimationsToPlayback(Node node,const String& playbackName)
     {
         if (node == nullptr || _scene == nullptr)
             return;
         FEAnimationSys* sys =   _scene->animationSystem();
+        if (sys == nullptr)
+            return;
+        Playback    playback    =   nullptr;
+        auto        itr         =   sys->playbacks().find(playbackName);
+        if (itr != sys->playbacks().end())
+            playback    =   itr->second;
+        if (playback == nullptr)
+            return;
         Animations      anims;
         for (FEAnimation* anim : node->objects<FEAnimation>())
         {
-            if (anim != nullptr && !animationRegistered(sys,anim))
+            if (anim != nullptr && !animationInPlayback(playback.get(),anim))
                 anims.emplace_back(anim);
         }
         if (anims.empty())
             return;
+        /// <summary>
+        /// 动画登记状态变化不会触发节点树事件,这里手动置脏刷新动画标记
+        /// </summary>
+        _rowsDirty  =   true;
         if (_undoStack != nullptr)
         {
             _undoStack->push(new FEEditorAnimationCmd(*_scene,node,anims
-                                                      ,FEEditorAnimationCmd::AM_Register,"添加到动画树"));
+                                                      ,FEEditorAnimationCmd::AM_Register
+                                                      ,"添加到播放器: " + playbackName
+                                                      ,playbackName));
             return;
         }
-        if (sys != nullptr)
-        {
-            for (Animation& anim : anims)
-                sys->addObject(anim.get());
-        }
+        for (Animation& anim : anims)
+            sys->addObject(anim.get(),playbackName);
     }
 
     bool    FEModelTree::hasConstraint(Node node,ConstraintKind kind) const

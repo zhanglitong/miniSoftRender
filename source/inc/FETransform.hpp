@@ -10,7 +10,9 @@ namespace FE
     /// 提供：
     ///   - 成员访问：position() / rotation() / scale() (公开访问器)
     ///   - 设置器：setPosition / setRotation / setScale (链式)
-    ///   - 欧拉角辅助：euler() / setEuler() / fromEuler()（按需从四元数换算,不另存）
+    ///   - 欧拉角辅助：euler() / setEuler() / fromEuler()
+    ///     （除四元数外另存一份“累计欧拉角账本”:四元数只表示朝向,分不清 0°/720°,
+    ///       账本用于属性面板显示、打帧与多圈插值;渲染/矩阵仍只以四元数为准）
     ///   - 矩阵生成：toMatrix() / toInverseMatrix() / fromMatrix()
     ///   - 数学方法：compose / inverted / operator*
     ///   - 混合方法：lerp / slerp / lerpTo
@@ -38,8 +40,17 @@ namespace FE
             FETransform  t;
             t._position     =   pos;
             t._scale        =   sc;
-            t._rotation     =   quatf(glm::radians(eulerDegrees));
+            t.setEuler(eulerDegrees);
             return  t;
+        }
+
+        /// <summary>
+        /// 把角度按 360° 的整数倍平移,取离 reference 最近的等价角
+        /// (用于把四元数换算出的 ±180° 结果展开到累计角度附近)
+        /// </summary>
+        static  real    unwrapAngle(real angle,real reference)
+        {
+            return  angle + 360.0 * std::round((reference - angle) / 360.0);
         }
 
         /// <summary>
@@ -60,11 +71,29 @@ namespace FE
         /// </summary>
         inline  FETransform&    setPosition(const real3& v)   { _position = v; return *this; }
         /// <summary>
-        /// 设置旋转（四元数）
+        /// 设置旋转（四元数）。朝向发生变化时,累计欧拉角账本失效,退回 ±180° 换算;
+        /// 朝向未变时保留账本,避免每帧无意义地丢失累计圈数
         /// </summary>
         inline  FETransform&    setRotation(const quatf& q)
         {
-            _rotation   =   q;
+            if (q != _rotation)
+                _eulerValid     =   false;
+            _rotation       =   q;
+            return  *this;
+        }
+        /// <summary>
+        /// 用四元数设置旋转,同时把欧拉角账本展开到 reference 附近(保留累计圈数)。
+        /// 适合抓手拖拽、任意轴增量旋转:位姿由四元数保证,角度由账本累计
+        /// </summary>
+        inline  FETransform&    setRotationUnwrapped(const quatf& q,const float3& reference)
+        {
+            _rotation       =   q;
+            float3  e       =   glm::degrees(glm::eulerAngles(q));
+            e.x             =   float(unwrapAngle(e.x,reference.x));
+            e.y             =   float(unwrapAngle(e.y,reference.y));
+            e.z             =   float(unwrapAngle(e.z,reference.z));
+            _eulerDeg       =   e;
+            _eulerValid     =   true;
             return  *this;
         }
         /// <summary>
@@ -73,19 +102,38 @@ namespace FE
         inline  FETransform&    setScale(const float3& s)     { _scale = s;     return *this; }
 
         /// <summary>
-        /// 返回欧拉角（单位：度），由四元数实时换算，范围 ±180
+        /// 返回欧拉角（单位：度）。账本有效时返回累计角(可超过 ±180°、可多圈),
+        /// 否则由四元数实时换算(范围 ±180°)
         /// </summary>
         inline  float3          euler() const
         {
-            return  glm::degrees(glm::eulerAngles(_rotation));
+            return  _eulerValid ? _eulerDeg : glm::degrees(glm::eulerAngles(_rotation));
         }
+        /// <summary>
+        /// 累计欧拉角账本是否有效(与当前四元数一致)
+        /// </summary>
+        inline  bool            eulerValid() const  {   return  _eulerValid;   }
 
         /// <summary>
-        /// 用欧拉角（单位：度）设置旋转
+        /// 用欧拉角（单位：度）设置旋转;同时写入账本,不做 ±180° 归一化,
+        /// 因此传入 720° 时账本保留 720°(四元数仍是等价朝向)
         /// </summary>
         inline  FETransform&    setEuler(const float3& eulerDegrees)
         {
             _rotation   =   quatf(glm::radians(eulerDegrees));
+            _eulerDeg   =   eulerDegrees;
+            _eulerValid =   true;
+            return  *this;
+        }
+
+        /// <summary>
+        /// 只同步欧拉角账本,不改变四元数。调用方需保证 eulerDegrees 与当前朝向等价
+        /// (采样回写时使用:位姿已由四元数写入,这里把累计角一并带过去)
+        /// </summary>
+        inline  FETransform&    adoptEuler(const float3& eulerDegrees, bool valid = true)
+        {
+            _eulerDeg   =   eulerDegrees;
+            _eulerValid =   valid;
             return  *this;
         }
 
@@ -228,6 +276,16 @@ namespace FE
         /// 缩放属性
         /// </summary>
         float3  _scale      =   float3(1);
+        /// <summary>
+        /// 累计欧拉角账本(单位:度,可超过 ±180°、可多圈)。
+        /// 只有 _eulerValid 时有效,且必须与 _rotation 等价(允许相差 360° 整数倍);
+        /// 渲染、矩阵、组合运算一律只用 _rotation
+        /// </summary>
+        float3  _eulerDeg   =   float3(0);
+        /// <summary>
+        /// 账本是否与当前四元数一致
+        /// </summary>
+        bool    _eulerValid =   false;
     };
 
 }

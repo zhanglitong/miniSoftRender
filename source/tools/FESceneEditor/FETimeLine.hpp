@@ -74,6 +74,10 @@ namespace   FE
         void    setFps(float fps);
         float   fps() const         {   return  _fps;   }
         /// <summary>
+        /// 是否正在播放(时间线自身推进时间);播放中禁止编辑节点姿态
+        /// </summary>
+        bool    isPlaying() const   {   return  _playDir != 0;  }
+        /// <summary>
         /// 跳到指定帧并重新采样动画
         /// </summary>
         /// <param name="frame">帧号</param>
