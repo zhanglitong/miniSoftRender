@@ -149,6 +149,7 @@
      </property>
      <addaction name="action_resetLayout"/>
      <addaction name="action_SettingViewer"/>
+     <addaction name="action_viewPad"/>
     </widget>
     <widget class="QMenu" name="menu_short">
      <property name="title">
@@ -161,6 +162,7 @@
       <string>动画</string>
      </property>
      <addaction name="action_TimeLine"/>
+     <addaction name="action_LogView"/>
     </widget>
     <addaction name="menu_opt"/>
     <addaction name="menu_short"/>
@@ -1018,6 +1020,14 @@
     <string>打开/关闭动画时间线面板</string>
    </property>
   </action>
+  <action name="action_LogView">
+   <property name="text">
+    <string>日志</string>
+   </property>
+   <property name="toolTip">
+    <string>打开/关闭输出日志面板</string>
+   </property>
+  </action>
   <action name="action_addCylinder">
    <property name="icon">
     <iconset resource="main.qrc">
@@ -1257,6 +1267,17 @@
   <action name="action_axisEditor">
    <property name="text">
     <string>坐标轴编辑</string>
+   </property>
+  </action>
+  <action name="action_viewPad">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>视图操作盘</string>
    </property>
   </action>
   <action name="action_mcpToggle">
