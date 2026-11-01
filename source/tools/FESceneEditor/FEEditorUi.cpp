@@ -309,6 +309,10 @@ namespace   FE
         /// </summary>
         _timeLine.bind(scene,&_undoStack,&_modelTree);
         /// <summary>
+        /// 视图操作盘:读取场景相机,轨道旋转/缩放的锚点来自上下文
+        /// </summary>
+        _viewPad.bind(scene,&ctx);
+        /// <summary>
         /// 模型树的层级/顺序调整入撤销栈,支持撤销/重做
         /// </summary>
         _modelTree.setUndoStack(&_undoStack);
@@ -317,9 +321,20 @@ namespace   FE
         /// </summary>
         _modelTree.setScene(scene);
         /// <summary>
-        /// 时间线窗口默认集成显示在编辑器底部
+        /// 底部标签页:时间线 + 输出日志,默认停在时间线页。
+        /// 新增底部窗口只需再 addPanel 一项,绘制流程不变
         /// </summary>
-        _timeLine.setOpen(true);
+        _timeLine._onClose  =   [this]() {   _bottomDock.hide();     };
+        _bottomDock.addPanel("timeline","时间线",
+                             [this]() {   _timeLine.drawContent(_iconFont);   },
+                             [this]() {   _timeLine.stopPlayback();           });
+        _bottomDock.addPanel("log","日志",
+                             [this]() {   _logView.drawContent();             });
+        _bottomDock.showPanel("timeline");
+        /// <summary>
+        /// 输出日志页订阅引擎日志(回调在此期间产生)
+        /// </summary>
+        _logView.bind(ctx);
         _attached   =   true;
         return  true;
     }
@@ -329,8 +344,15 @@ namespace   FE
         /// <summary>
         /// 先断开回调与后端链接,避免工厂在后续帧继续访问已释放对象
         /// </summary>
+        _viewPad.unbind();
         _modelTree.unbind();
         _modelTree.setScene(nullptr);
+        /// <summary>
+        /// 先解除日志回调与标签页绘制回调,再断开时间线
+        /// </summary>
+        _logView.unbind();
+        _bottomDock.clearPanels();
+        _timeLine._onClose  =   nullptr;
         _timeLine.unbind();
         if (_factory != nullptr)
         {

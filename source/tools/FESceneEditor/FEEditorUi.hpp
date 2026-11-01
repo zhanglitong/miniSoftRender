@@ -7,11 +7,14 @@
 #include    "FEUiDocument.hpp"
 #include    "FEUiRenderer.hpp"
 #include    "FEAxisSettingWindow.hpp"
+#include    "FEBottomDock.hpp"
 #include    "FEFileDialog.hpp"
+#include    "FELogView.hpp"
 #include    "FEModelTree.hpp"
 #include    "FEPropertyPanel.hpp"
 #include    "FETimeLine.hpp"
 #include    "FEUndoView.hpp"
+#include    "FEViewPad.hpp"
 #include    "FEShortcutConfig.hpp"
 
 #include    <filesystem>
@@ -230,9 +233,9 @@ namespace   FE
         /// </summary>
         void    drawModelTree();
         /// <summary>
-        /// 时间线编辑面板(参考 Qt 版 UiTickMgr)
+        /// 底部停靠面板(时间线 / 日志等标签页,后续窗口通过 addPanel 追加)
         /// </summary>
-        void    drawTimeLine();
+        void    drawBottomDock();
         /// <summary>
         /// 属性窗口:多个属性分组(位置/缩放/旋转),内容来自模型树当前选中节点
         /// </summary>
@@ -313,6 +316,14 @@ namespace   FE
         /// </summary>
         FETimeLine                  _timeLine;
         /// <summary>
+        /// 底部标签栏(时间线 / 日志,可继续追加)
+        /// </summary>
+        FEBottomDock                _bottomDock;
+        /// <summary>
+        /// 输出日志页:订阅 FELog 并实时显示
+        /// </summary>
+        FELogView                   _logView;
+        /// <summary>
         /// 属性面板内容(位置/缩放/旋转分组)
         /// </summary>
         FEPropertyPanel             _propertyPanel;
@@ -336,6 +347,10 @@ namespace   FE
         /// 撤销历史窗口(参考 Qt 的 QUndoView)
         /// </summary>
         FEUndoView                  _undoView;
+        /// <summary>
+        /// 视图操作盘(ViewCube + 罗盘环,停靠视口右上角)
+        /// </summary>
+        FEViewPad                   _viewPad;
         /// <summary>
         /// 当前 Ribbon 标签页(主菜单在 .ui 菜单栏中的序号)
         /// </summary>

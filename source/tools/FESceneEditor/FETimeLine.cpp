@@ -51,20 +51,6 @@ namespace
     constexpr   float   kMinNameW           =   80.0f;
     constexpr   float   kNameReserveW       =   120.0f;
     /// <summary>
-    /// 面板高度下限/顶部留白/默认占比与上边缘拖动条高度
-    /// </summary>
-    constexpr   float   kPanelMinH          =   190.0f;
-    constexpr   float   kPanelTopMargin     =   80.0f;
-    constexpr   float   kPanelDefaultRatio  =   0.34f;
-    constexpr   float   kResizeHandleH      =   4.0f;
-    constexpr   float   kResizeLineW        =   2.0f;
-    constexpr   float   kResizeLineY        =   0.5f;
-    /// <summary>
-    /// 面板内边距
-    /// </summary>
-    constexpr   float   kWindowPadX         =   6.0f;
-    constexpr   float   kWindowPadY         =   4.0f;
-    /// <summary>
     /// 数值输入框宽度与右键菜单输入框宽度
     /// </summary>
     constexpr   float   kFieldW             =   64.0f;
@@ -502,7 +488,6 @@ namespace
         _scene      =   nullptr;
         _undoStack  =   nullptr;
         _modelTree  =   nullptr;
-        _open       =   false;
     }
 
     void    FETimeLine::reset()
@@ -534,18 +519,9 @@ namespace
         _status.clear();
     }
 
-    void    FETimeLine::toggle()
+    void    FETimeLine::stopPlayback()
     {
-        setOpen(!_open);
-    }
-
-    void    FETimeLine::setOpen(bool open)
-    {
-        if (_open == open)
-            return;
-        _open   =   open;
-        if (_open)
-            refreshScene();
+        _playDir    =   0;
     }
 
     void    FETimeLine::setFps(float fps)
@@ -921,9 +897,9 @@ namespace
         }
     }
 
-    void    FETimeLine::draw(ImFont* iconFont)
+    void    FETimeLine::drawContent(ImFont* iconFont)
     {
-        if (!_open || _scene == nullptr)
+        if (_scene == nullptr)
             return;
 
         _iconFont   =   iconFont;
@@ -936,29 +912,6 @@ namespace
         _tree.rebuildIfDirty();
 
         ImGuiIO&    io          =   ImGui::GetIO();
-        const   float   displayW    =   io.DisplaySize.x;
-        const   float   displayH    =   io.DisplaySize.y;
-        /// <summary>
-        /// 面板高度:上边缘可拖动调整;未调整过时按显示高度自适应
-        /// </summary>
-        const   float   minPanelH   =   kPanelMinH;
-        const   float   maxPanelH   =   std::max(minPanelH,displayH - kPanelTopMargin);
-        float   panelH  =   (_panelH > 0.0f) ? _panelH : displayH * kPanelDefaultRatio;
-        panelH  =   std::max(minPanelH,std::min(panelH,maxPanelH));
-
-        ImGui::SetNextWindowPos(ImVec2(0.0f,displayH - panelH),ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(displayW,panelH),ImGuiCond_Always);
-        const   ImGuiWindowFlags    flags   =   ImGuiWindowFlags_NoTitleBar
-                                            |   ImGuiWindowFlags_NoResize
-                                            |   ImGuiWindowFlags_NoMove
-                                            |   ImGuiWindowFlags_NoSavedSettings
-                                            |   ImGuiWindowFlags_NoScrollbar
-                                            |   ImGuiWindowFlags_NoScrollWithMouse
-                                            |   ImGuiWindowFlags_NoCollapse;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(kWindowPadX,kWindowPadY));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,0.0f);
-        ImGui::Begin("##FETimeLine",nullptr,flags);
-        ImGui::PopStyleVar(2);
 
         /// <summary>
         /// 播放:由时间线自身推进时间,再让动画系统按该时间采样。
@@ -1036,36 +989,6 @@ namespace
         _timelineX  =   _canvasX + _nameW + _splitterW;
         drawCanvas(hovered);
         handleContextMenu();
-
-        /// <summary>
-        /// 上边缘拖动调整面板高度:整条上边缘都是拖动区。
-        /// 用最后提交的不可见按钮覆盖窗口顶部留白,避免与内部控件抢点击
-        /// </summary>
-        const   ImVec2  winPos  =   ImGui::GetWindowPos();
-        const   ImVec2  winSize =   ImGui::GetWindowSize();
-        ImGui::SetCursorScreenPos(winPos);
-        ImGui::InvisibleButton("##tl_resize_top",ImVec2(winSize.x,kResizeHandleH));
-        const   bool    edgeHot =   ImGui::IsItemHovered() || ImGui::IsItemActive();
-        if (edgeHot)
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-        if (ImGui::IsItemClicked(0))
-        {
-            _resizeStartY   =   io.MousePos.y;
-            _resizeStartH   =   panelH;
-        }
-        if (ImGui::IsItemActive())
-        {
-            _panelH =   std::max(minPanelH,
-                                std::min(_resizeStartH + (_resizeStartY - io.MousePos.y),maxPanelH));
-        }
-        if (edgeHot)
-        {
-            ImGui::GetWindowDrawList()->AddLine(ImVec2(winPos.x,winPos.y + kResizeLineY),
-                                                ImVec2(winPos.x + winSize.x,winPos.y + kResizeLineY),
-                                                IM_COL32(70,165,255,255),kResizeLineW);
-        }
-
-        ImGui::End();
     }
 
     bool    FETimeLine::iconButton(const char* glyph,const char* text,const char* tip,bool active)
@@ -1244,7 +1167,13 @@ namespace
         const   float   closeX      =   std::max(maxX - closeW,lastRight + style.ItemSpacing.x);
         ImGui::SameLine(closeX);
         if (ImGui::Button(text::kClose,ImVec2(closeW,0.0f)))
-            _open   =   false;
+        {
+            /// <summary>
+            /// 面板由 FEBottomDock 承载:通过回调整体收起,避免只隐藏内容留下空标签页
+            /// </summary>
+            if (_onClose)
+                _onClose();
+        }
     }
 
     void    FETimeLine::drawCanvas(bool hovered)

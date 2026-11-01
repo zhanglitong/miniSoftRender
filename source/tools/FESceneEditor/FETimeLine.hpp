@@ -10,7 +10,8 @@
 ///   - 工具栏分两组:动画树上方为搜索栏(回车执行,支持大小写/全匹配),
 ///     时间线上方为播放控制图标按钮;
 ///   - 所有数据修改经 FEUndoStack,支持撤销重做。
-/// 窗口是屏幕底部固定面板,由 Ribbon「设置 → 动画 → 时间线」开关。
+/// 内容由 FEBottomDock 的「时间线」标签页承载(与「日志」页合并为底部标签栏),
+/// 由 Ribbon「设置 → 动画 → 时间线」开关。
 /// </summary>
 
 #pragma     once
@@ -26,6 +27,7 @@
 
 #include    <imgui.h>
 
+#include    <functional>
 #include    <map>
 #include    <set>
 #include    <string>
@@ -53,23 +55,23 @@ namespace   FE
         /// </summary>
         void    unbind();
         /// <summary>
+        /// 工具栏「关闭」按钮的回调(由 FEBottomDock 注入,用于收起底部面板)
+        /// </summary>
+        std::function<void()>       _onClose;
+        /// <summary>
         /// 清空编辑状态(切换/重置/打开工程时调用)
         /// </summary>
         void    reset();
         /// <summary>
-        /// 显示/隐藏时间线面板
-        /// </summary>
-        void    toggle();
-        /// <summary>
-        /// 直接设置面板的显示状态
-        /// </summary>
-        void    setOpen(bool open);
-        bool    isOpen()  const    {   return  _open;  }
-        /// <summary>
-        /// 每帧绘制;未打开时直接返回
+        /// 每帧绘制标签页内容;未绑定场景时直接返回。
+        /// 窗口与标签栏由 FEBottomDock 提供,这里只画工具栏与画布
         /// </summary>
         /// <param name="iconFont">图标字体,可为 nullptr(为空时按钮回退为文字)</param>
-        void    draw(ImFont* iconFont);
+        void    drawContent(ImFont* iconFont);
+        /// <summary>
+        /// 停止播放(切到其它标签页时调用,避免隐藏后仍推进时间)
+        /// </summary>
+        void    stopPlayback();
         /// <summary>
         /// 设置动画帧率(默认 30)
         /// </summary>
@@ -313,7 +315,6 @@ namespace   FE
         /// 工具栏图标字体(来自 FEEditorUi 的 Font Awesome)
         /// </summary>
         ImFont*                     _iconFont   =   nullptr;
-        bool                        _open       =   false;
         /// <summary>
         /// 当前绑定的节点(模型树选中项)
         /// </summary>
@@ -347,15 +348,6 @@ namespace   FE
         /// 行垂直滚动偏移
         /// </summary>
         float                       _scrollY        =   0.0f;
-        /// <summary>
-        /// 面板高度(<=0 表示使用默认高度);上边缘可拖动调整
-        /// </summary>
-        float                       _panelH         =   -1.0f;
-        /// <summary>
-        /// 上边缘拖动调整高度时的起始高度与鼠标 y
-        /// </summary>
-        float                       _resizeStartH   =   0.0f;
-        float                       _resizeStartY   =   0.0f;
         /// <summary>
         /// 当前时间(秒)
         /// </summary>

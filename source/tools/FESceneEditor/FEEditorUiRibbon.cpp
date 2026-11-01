@@ -359,7 +359,7 @@ namespace   FE
         drawModelTree();
         drawProperty();
         drawAxisSetting();
-        drawTimeLine();
+        drawBottomDock();
         /// <summary>
         /// 撤销历史窗口:先把它自己的开关状态回写到动作勾选标志,再绘制
         /// </summary>
@@ -367,6 +367,12 @@ namespace   FE
         if (undoViewItem != nullptr)
             undoViewItem->_checked  =   _undoView.isOpen();
         _undoView.draw(_undoStack,_pendingActions);
+        /// <summary>
+        /// 视图操作盘:先把显隐状态回写到动作勾选标志(绘制放在最后,保证盘浮在最上层)
+        /// </summary>
+        FEUiMenuItem*   viewPadItem =   findActionItem(_uiDoc.menuBar(),"action_viewPad");
+        if (viewPadItem != nullptr)
+            viewPadItem->_checked   =   _viewPad.isOpen();
         drawUiPreview();
         drawShortcutSettings();
         /// <summary>
@@ -383,5 +389,9 @@ namespace   FE
             }
         }
         drawSettingViewer();
+        /// <summary>
+        /// 视图操作盘最后绘制:即使预览/设置窗口拖到右上角,操作盘仍浮在最上层
+        /// </summary>
+        _viewPad.draw();
     }
 }

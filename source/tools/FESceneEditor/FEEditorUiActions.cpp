@@ -159,9 +159,16 @@ namespace   FE
         else if (name == "action_TimeLine")
         {
             /// <summary>
-            /// 时间线面板开关;只改 UI 状态,不改场景
+            /// 底部面板的「时间线」标签页开关;只改 UI 状态,不改场景
             /// </summary>
-            _timeLine.toggle();
+            _bottomDock.togglePanel("timeline");
+        }
+        else if (name == "action_LogView")
+        {
+            /// <summary>
+            /// 底部面板的「日志」标签页开关;只改 UI 状态,不改场景
+            /// </summary>
+            _bottomDock.togglePanel("log");
         }
         else if (name == "action_undoView")
         {
@@ -176,6 +183,13 @@ namespace   FE
             /// 坐标轴编辑窗口开关;只改 UI 状态,不改场景
             /// </summary>
             _axisOpen   =   !_axisOpen;
+        }
+        else if (name == "action_viewPad")
+        {
+            /// <summary>
+            /// 视图操作盘显隐;只改 UI 状态,不改场景
+            /// </summary>
+            _viewPad.toggle();
         }
         else if (name == "action_about")
         {
@@ -544,9 +558,9 @@ namespace   FE
         ImGui::End();
     }
 
-    void    FEEditorUi::drawTimeLine()
+    void    FEEditorUi::drawBottomDock()
     {
-        _timeLine.draw(_iconFont);
+        _bottomDock.draw();
     }
 
     void    FEEditorUi::drawProperty()
@@ -862,7 +876,11 @@ namespace   FE
         case MSG_MOUSE_WHEEL:
             {
                 const auto& w   =   static_cast<const MsgMouseWheel&>(msg)._info;
-                io.MousePos     =   ImVec2(float(w._mouse.x),float(w._mouse.y));
+                /// <summary>
+                /// 滚轮消息里的坐标是屏幕坐标,而 ImGui 的 MousePos 用客户区坐标;
+                /// 直接赋值会把 UI 命中位置带偏(滚轮那一帧悬停失效),这里只更新滚轮量,
+                /// 光标位置沿用最近一次 WM_MOUSEMOVE(滚轮本身不移动光标)
+                /// </summary>
                 io.MouseWheel   =   float(w._zDelta) / 120.0f;
             }
             break;
