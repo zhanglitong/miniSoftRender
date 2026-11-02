@@ -2,6 +2,7 @@
 #include    "../FEApp.hpp"
 #include    "../FEPath.hpp"
 #include    <windows.h>
+#include    <windowsx.h>
 #include    <fcntl.h>
 #include    <io.h>
 #include    <ShellScalingAPI.h>
@@ -230,6 +231,34 @@ namespace   FE
         {
             return  true;
         }
+        /// <summary>
+        /// 鼠标消息坐标:lParam 是客户区坐标,须按有符号 16 位解析;
+        /// 拖拽出窗口(隐式捕获)时会出现负坐标,不能用无符号 LOWORD/HIWORD
+        /// </summary>
+        static  int2    mouseClientPos(LPARAM lParam)
+        {
+            return  int2(GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam));
+        }
+        /// <summary>
+        /// 滚轮消息 lParam 是屏幕坐标,先转成客户区坐标再派发
+        /// </summary>
+        static  int2    mouseWheelClientPos(HWND hWnd,LPARAM lParam)
+        {
+            POINT   pt  =   { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+            ScreenToClient(hWnd,&pt);
+            return  int2(pt.x,pt.y);
+        }
+        /// <summary>
+        /// 鼠标消息 wParam 只有 MK_* 位(没有 Alt),修饰键统一查键盘状态
+        /// </summary>
+        static  uint32  mouseModifierFlags()
+        {
+            uint32  flags   =   0;
+            if (GetKeyState(VK_CONTROL) & 0x8000)   flags   |=  FEMouseInfo::CtrlPressed;
+            if (GetKeyState(VK_SHIFT)   & 0x8000)   flags   |=  FEMouseInfo::ShiftPressed;
+            if (GetKeyState(VK_MENU)    & 0x8000)   flags   |=  FEMouseInfo::AltPressed;
+            return  flags;
+        }
         virtual LRESULT onMessage(MSG* pMsg)
         {
             HWND    hWnd    =   pMsg->hwnd;
@@ -243,19 +272,26 @@ namespace   FE
                 break;
             case WM_DESTROY:
                 onMessage(MsgDestroy());
-                break;
+                /// 统一在销毁时投递退出消息:即使窗口不是经 WM_CLOSE 关闭,
+                /// run() 的消息循环也能结束,不会在无窗口状态下空转
+                PostQuitMessage(0);
+                return  0;
             case WM_CLOSE:
                 onMessage(MsgClose());
                 DestroyWindow(hWnd);
-                PostQuitMessage(0);
-                break;
+                /// 窗口已销毁,不能再落到 DefWindowProc 的默认关闭处理
+                return  0;
             case WM_PAINT:
-                ValidateRect((HWND)_cInfo._window, NULL);
-                break;
+                ValidateRect(hWnd, NULL);
+                return  0;
             case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:
+                /// Alt 组合键走 WM_SYSKEYDOWN,同样要派发,
+                /// 否则 ImGui 收不到按键也不会更新 io.KeyAlt
                 onMessage(MsgKeyDown((uint)wParam));
                 break;
             case WM_KEYUP:
+            case WM_SYSKEYUP:
                 onMessage(MsgKeyUp((uint)wParam));
                 break;
             case WM_CHAR:
@@ -265,79 +301,72 @@ namespace   FE
             case WM_LBUTTONDOWN:
                 {
                     FEMouseInfo info;
-                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._mouse =   mouseClientPos(lParam);
                     info._states.addFlag(FEMouseInfo::LButtonPressed);
-
-                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
-                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
-                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    info._states.addFlags(mouseModifierFlags());
+                    _mouse      =   info._mouse;
                     onMessage(MsgLButtonDown(info));
                 }
                 break;
             case WM_RBUTTONDOWN:
                 {
                     FEMouseInfo info;
-                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._mouse =   mouseClientPos(lParam);
                     info._states.addFlag(FEMouseInfo::RButtonPressed);
-
-                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
-                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
-                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    info._states.addFlags(mouseModifierFlags());
+                    _mouse      =   info._mouse;
                     onMessage(MsgRButtonDown(info));
                 }
                 break;
             case WM_MBUTTONDOWN:
                 {
                     FEMouseInfo info;
-                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._mouse =   mouseClientPos(lParam);
                     info._states.addFlag(FEMouseInfo::MButtonPressed);
-
-                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
-                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
-                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    info._states.addFlags(mouseModifierFlags());
+                    _mouse      =   info._mouse;
                     onMessage(MsgMButtonDown(info));
                 }
                 break;
             case WM_LBUTTONUP:
                 {
                     FEMouseInfo info;
-                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
-
-                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
-                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
-                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    info._mouse =   mouseClientPos(lParam);
+                    info._states.addFlags(mouseModifierFlags());
+                    _mouse      =   info._mouse;
                     onMessage(MsgLButtonUp(info));
                 }
                 break;
             case WM_RBUTTONUP:
                 {
                     FEMouseInfo info;
-                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
-
-                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
-                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
-                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    info._mouse =   mouseClientPos(lParam);
+                    info._states.addFlags(mouseModifierFlags());
+                    _mouse      =   info._mouse;
                     onMessage(MsgRButtonUp(info));
                 }
                 break;
             case WM_MBUTTONUP:
                 {
                     FEMouseInfo info;
-                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
-
-                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
-                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
-                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    info._mouse =   mouseClientPos(lParam);
+                    info._states.addFlags(mouseModifierFlags());
+                    _mouse      =   info._mouse;
                     onMessage(MsgMButtonUp(info));
                 }
                 break;
             case WM_MOUSEWHEEL:
-                onMessage(MsgMouseWheel(FEMouseWheel(int2(LOWORD(lParam), HIWORD(lParam)),GET_WHEEL_DELTA_WPARAM(wParam))));
+                {
+                    /// 滚轮 lParam 是屏幕坐标,先转客户区再派发并同步 _mouse
+                    int2    mouse   =   mouseWheelClientPos(hWnd,lParam);
+                    _mouse          =   mouse;
+                    onMessage(MsgMouseWheel(FEMouseWheel(mouse,GET_WHEEL_DELTA_WPARAM(wParam))));
+                }
                 break;
             case WM_MOUSEMOVE:
                 {
                     FEMouseInfo info;
-                    info._mouse =   int2(LOWORD(lParam), HIWORD(lParam));
+                    info._mouse =   mouseClientPos(lParam);
                     info._prev  =   _mouse;
                     _mouse      =   info._mouse;
 
@@ -348,9 +377,7 @@ namespace   FE
                     if (wParam & MK_XBUTTON1)   info._states.addFlag(FEMouseInfo::XButton1Pressed);
                     if (wParam & MK_XBUTTON2)   info._states.addFlag(FEMouseInfo::XButton2Pressed);
 
-                    if (wParam & MK_CONTROL)    info._states.addFlag(FEMouseInfo::CtrlPressed);
-                    if (wParam & MK_SHIFT)      info._states.addFlag(FEMouseInfo::ShiftPressed);
-                    if (wParam & VK_MENU)       info._states.addFlag(FEMouseInfo::AltPressed);
+                    info._states.addFlags(mouseModifierFlags());
 
                     onMessage(MsgMouseMove(info));
                 }
@@ -394,30 +421,33 @@ namespace   FE
     public:
         static LRESULT CALLBACK  wndProcEx(HWND hWnd, UINT msgId, WPARAM wParam, LPARAM lParam)
         {
-            MSG msg;
+            MSG msg =   {};
             msg.hwnd    =   hWnd;
             msg.message =   msgId;
             msg.wParam  =   wParam;
             msg.lParam  =   lParam;
-#define GWL_USERDATA (-21)
-            if (WM_CREATE == msgId)
+            FEWinApp*   pThis   =   nullptr;
+            if (WM_NCCREATE == msgId)
             {
+                /// lpCreateParams 只在 WM_NCCREATE 可用,必须在此挂上对象指针:
+                /// 否则随后同步派发的 WM_GETMINMAXINFO/WM_CREATE 无法路由到本对象
                 CREATESTRUCT*   create_struct   =   (CREATESTRUCT*)lParam;
-                LPVOID          lpCreateParams  =   create_struct->lpCreateParams;
-                if (lpCreateParams)
+                pThis   =   (FEWinApp*)create_struct->lpCreateParams;
+                if (pThis)
                 {
-                    ::SetWindowLongPtr(hWnd, GWL_USERDATA, (DWORD_PTR)lpCreateParams);
-                    FEWinApp*   pThis   =   (FEWinApp*)lpCreateParams;
-                    return      pThis->onMessage(&msg);
+                    ::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pThis);
+                    /// WM_CREATE/WM_SIZE 在 CreateWindowExW 内同步派发,
+                    /// 此处置好句柄,保证 MsgCreate/MsgResize 里 rect() 有效
+                    pThis->_cInfo._window   =   hWnd;
                 }
             }
             else
             {
-                FEWinApp*   pThis   = (FEWinApp*)GetWindowLongPtr(hWnd, GWL_USERDATA);
-                if (pThis)
-                {
-                    return      pThis->onMessage(&msg);
-                }
+                pThis   =   (FEWinApp*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            }
+            if (pThis)
+            {
+                return      pThis->onMessage(&msg);
             }
             return ::DefWindowProcW(hWnd, msgId, wParam, lParam);
         }
