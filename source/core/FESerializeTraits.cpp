@@ -66,6 +66,8 @@ namespace   FE
                 uint16  _nodeBase   :1;
                 /// 是否写累计欧拉角账本(可超过 ±180°);旧文件没有该位,读取时按四元数换算
                 uint16  _hasEuler   :1;
+                /// 是否写旋转轴心(父空间);旧文件没有该位,按未设置处理
+                uint16  _hasCenter  :1;
             };
             uint16  _value;
         };
@@ -81,6 +83,7 @@ namespace   FE
             _hasRotate      =   flag>>9;
             _nodeBase       =   flag>>10;
             _hasEuler       =   flag>>11;
+            _hasCenter      =   flag>>12;
         }
     };
 
@@ -112,6 +115,7 @@ namespace   FE
         bits._hasRotate     =   _local.rotation() ==  quatf(1,0,0,0) ? 0 : 1;
         /// 账本有效时一并保存,重开工程后累计圈数不丢(与四元数等价,渲染不受影响)
         bits._hasEuler      =   _local.eulerValid()                    ? 1 : 0;
+        bits._hasCenter     =   hasRotationCenter()                    ? 1 : 0;
         bits._hasGeometry   =   _mesh       ? 1 : 0;
         bits._hasMaterial   =   _material   ? 1 : 0;
 
@@ -131,6 +135,7 @@ namespace   FE
         if (bits._hasTrans )    writer.write(_local._position);
         if (bits._hasRotate )   writer.write(_local._rotation);
         if (bits._hasEuler  )   writer.write(_local._eulerDeg);
+        if (bits._hasCenter )   writer.write(_rotationCenter);
         if (bits._hasColor )    writer.write(_color);
         if (_mesh)              writer.write(_mesh->objectId());
         if (_material)          writer.write(_material->objectId());
@@ -179,6 +184,11 @@ namespace   FE
         {
             reader.read(_local._eulerDeg);
             _local._eulerValid  =   true;
+        }
+        if (bits._hasCenter )
+        {
+            reader.read(_rotationCenter);
+            flags().addFlag(FLAG_ROTATION_CENTER);
         }
         if (bits._hasColor)     reader.read(_color);
        

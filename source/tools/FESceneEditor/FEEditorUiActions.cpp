@@ -617,9 +617,13 @@ namespace   FE
         if (!_axisOpen)
             return;
         /// <summary>
-        /// 轴编辑窗口:配置编辑轴的轴位置/编辑类型/坐标系/中心/自定义轴心轴向/禁用轴
+        /// 轴编辑窗口:配置编辑轴的轴位置/编辑类型/坐标系/中心/自定义轴心轴向/禁用轴。
+        /// 窗口把一次交互的前后配置快照返回,这里压入撤销栈;
+        /// 命令只改配置对象、不动场景,可直接在当前渲染趟执行
         /// </summary>
-        drawAxisSettingWindow(_axisSetting,_axisOpen,_modelTree.selection());
+        FEAxisSetting   before;
+        if (drawAxisSettingWindow(_axisSetting,_axisOpen,_modelTree.selection(),before))
+            _undoStack.push(new FEEditorAxisSettingCmd(_axisSetting,before,_axisSetting,"编辑轴设置"));
     }
 
     void    FEEditorUi::drawUiPreview()
@@ -677,57 +681,67 @@ namespace   FE
         /// <summary>
         /// 与 Qt 版一致:已显示则隐藏并清空编辑对象,否则显示并把模型树当前选区
         /// 交给抓手。抓手是常驻的渲染/输入工厂,切换只改可见标志,不产生撤销记录
+        /// 三个编辑轴互斥:显示一个时必须隐藏另外两个
         /// </summary>
         const   Objects&    selection   =   _modelTree.selection();
-        if (actionName == "action_move")
+        Component   moveCom     =   inputSys->query(UUIDOF(FENodeMoveEditor));
+        Component   rotateCom   =   inputSys->query(UUIDOF(FENodeRotateEditor));
+        Component   scaleCom    =   inputSys->query(UUIDOF(FENodeScaleEditor));
+        FENodeMoveEditor*   moveEditor  =   moveCom   != nullptr ? moveCom->as<FENodeMoveEditor>()     : nullptr;
+        FENodeRotateEditor* rotateEditor=   rotateCom != nullptr ? rotateCom->as<FENodeRotateEditor>() : nullptr;
+        FENodeScaleEditor*  scaleEditor =   scaleCom  != nullptr ? scaleCom->as<FENodeScaleEditor>()   : nullptr;
+
+        auto    hide    =   [](Component com, auto* editor)
         {
-            auto    com =   inputSys->query(UUIDOF(FENodeMoveEditor));
-            if (com == nullptr)
+            if  (com == nullptr || editor == nullptr)
                 return;
-            FENodeMoveEditor*   editor  =   com->as<FENodeMoveEditor>();
-            if (com->flags().hasFlag(FLAG_VISIBLE))
+            if  (com->flags().hasFlag(FLAG_VISIBLE))
             {
                 com->flags().removeFlag(FLAG_VISIBLE);
                 editor->setObjects({});
             }
+        };
+
+        if (actionName == "action_move")
+        {
+            if  (moveCom == nullptr || moveEditor == nullptr)
+                return;
+            if (moveCom->flags().hasFlag(FLAG_VISIBLE))
+                hide(moveCom,moveEditor);
             else
             {
-                com->flags().addFlag(FLAG_VISIBLE);
-                editor->setObjects(selection);
+                hide(rotateCom,rotateEditor);
+                hide(scaleCom,scaleEditor);
+                moveCom->flags().addFlag(FLAG_VISIBLE);
+                moveEditor->setObjects(selection);
             }
         }
         else if (actionName == "action_rotation")
         {
-            auto    com =   inputSys->query(UUIDOF(FENodeRotateEditor));
-            if (com == nullptr)
+            if  (rotateCom == nullptr || rotateEditor == nullptr)
                 return;
-            FENodeRotateEditor* editor  =   com->as<FENodeRotateEditor>();
-            if (com->flags().hasFlag(FLAG_VISIBLE))
-            {
-                com->flags().removeFlag(FLAG_VISIBLE);
-                editor->setObjects({});
-            }
+            if (rotateCom->flags().hasFlag(FLAG_VISIBLE))
+                hide(rotateCom,rotateEditor);
             else
             {
-                com->flags().addFlag(FLAG_VISIBLE);
-                editor->setObjects(selection);
+                hide(moveCom,moveEditor);
+                hide(scaleCom,scaleEditor);
+                rotateCom->flags().addFlag(FLAG_VISIBLE);
+                rotateEditor->setObjects(selection);
             }
         }
         else if (actionName == "action_scale")
         {
-            auto    com =   inputSys->query(UUIDOF(FENodeScaleEditor));
-            if (com == nullptr)
+            if  (scaleCom == nullptr || scaleEditor == nullptr)
                 return;
-            FENodeScaleEditor*  editor  =   com->as<FENodeScaleEditor>();
-            if (com->flags().hasFlag(FLAG_VISIBLE))
-            {
-                com->flags().removeFlag(FLAG_VISIBLE);
-                editor->setObjects({});
-            }
+            if (scaleCom->flags().hasFlag(FLAG_VISIBLE))
+                hide(scaleCom,scaleEditor);
             else
             {
-                com->flags().addFlag(FLAG_VISIBLE);
-                editor->setObjects(selection);
+                hide(moveCom,moveEditor);
+                hide(rotateCom,rotateEditor);
+                scaleCom->flags().addFlag(FLAG_VISIBLE);
+                scaleEditor->setObjects(selection);
             }
         }
         else
@@ -736,6 +750,32 @@ namespace   FE
         /// 本次已把选区交给抓手,记录后避免同一选区再触发一次 setObjects
         /// </summary>
         _toolSelection  =   selection;
+    }
+
+    void    FEEditorUi::onTransformEdit(int tool,FEEditAxis::EditStatus status,const Objects& objects)
+    {
+        /// <summary>
+        /// 拖动开始:记录节点姿态与轴配置,作为撤销记录的"修改前"
+        /// </summary>
+        if (status == FEEditAxis::EditStart)
+        {
+            _dragTool   =   tool;
+            _dragBefore.capture(objects,&_axisSetting);
+            return;
+        }
+        if (status != FEEditAxis::EditEnd || _dragTool != tool)
+            return;
+        _dragTool   =   -1;
+        /// <summary>
+        /// 拖动结束:抓取"修改后"快照;没有实际变化(例如只点击未拖动)不入栈
+        /// </summary>
+        FEEditorPoseState   after;
+        after.capture(objects,&_axisSetting);
+        if (_scene == nullptr || _dragBefore.same(after))
+            return;
+        const   String  text    =   tool == 0 ? String("移动对象")
+                                :   (tool == 1 ? String("旋转对象") : String("缩放对象"));
+        _undoStack.push(new FEEditorTransformCmd(*_scene,_axisSetting,text,_dragBefore,after));
     }
 
     void    FEEditorUi::syncTransformTools()
@@ -749,6 +789,32 @@ namespace   FE
         Component       move    =   inputSys->query(UUIDOF(FENodeMoveEditor));
         Component       rotate  =   inputSys->query(UUIDOF(FENodeRotateEditor));
         Component       scale   =   inputSys->query(UUIDOF(FENodeScaleEditor));
+        /// <summary>
+        /// 绑定拖动开始/结束通知:一次拖动只压入一条撤销记录。三个抓手齐备时绑定一次,
+        /// 换场景后输入系统里的抓手会重建,这里按输入系统指针变化重新绑定
+        /// </summary>
+        if  (_dragNotifyInput != inputSys)
+        {
+            FENodeMoveEditor*   moveEditor      =   move    != nullptr ? move->as<FENodeMoveEditor>()       : nullptr;
+            FENodeRotateEditor* rotateEditor    =   rotate  != nullptr ? rotate->as<FENodeRotateEditor>()   : nullptr;
+            FENodeScaleEditor*  scaleEditor     =   scale   != nullptr ? scale->as<FENodeScaleEditor>()     : nullptr;
+            if  (moveEditor != nullptr && rotateEditor != nullptr && scaleEditor != nullptr)
+            {
+                moveEditor->setEditNotify([this,moveEditor](FEEditAxis::EditStatus status)
+                {
+                    onTransformEdit(0,status,moveEditor->objects());
+                });
+                rotateEditor->setEditNotify([this,rotateEditor](FEEditAxis::EditStatus status)
+                {
+                    onTransformEdit(1,status,rotateEditor->objects());
+                });
+                scaleEditor->setEditNotify([this,scaleEditor](FEEditAxis::EditStatus status)
+                {
+                    onTransformEdit(2,status,scaleEditor->objects());
+                });
+                _dragNotifyInput    =   inputSys;
+            }
+        }
         const   bool    moveOn  =   move    != nullptr && move->flags().hasFlag(FLAG_VISIBLE);
         const   bool    rotateOn=   rotate  != nullptr && rotate->flags().hasFlag(FLAG_VISIBLE);
         const   bool    scaleOn =   scale   != nullptr && scale->flags().hasFlag(FLAG_VISIBLE);
@@ -757,6 +823,16 @@ namespace   FE
         /// </summary>
         if (rotateOn)
             rotate->as<FENodeRotateEditor>()->setAxisSetting(&_axisSetting);
+        /// <summary>
+        /// 轴配置每帧推送给移动抓手("编辑轴"模式下拖动编辑自定义轴心)
+        /// </summary>
+        if (moveOn)
+            move->as<FENodeMoveEditor>()->setAxisSetting(&_axisSetting);
+        /// <summary>
+        /// 轴配置每帧推送给缩放抓手(缩放枢轴、禁用轴、坐标系朝向)
+        /// </summary>
+        if (scaleOn)
+            scale->as<FENodeScaleEditor>()->setAxisSetting(&_axisSetting);
 
         /// <summary>
         /// 把抓手的实际可见状态回写到动作的勾选标志,

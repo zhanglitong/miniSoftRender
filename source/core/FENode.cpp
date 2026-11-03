@@ -27,6 +27,8 @@ namespace   FE
         _aabb       =   other._aabb         ;
 
         _gloabal    =   other._gloabal      ;
+        /// 是否已设置轴心随 flags 一起由 FEObject 拷贝构造复制
+        _rotationCenter     =   other._rotationCenter   ;
         _material   =   other._material     ; 
         _mesh       =   other._mesh         ; 
         _color      =   other._color        ;
@@ -359,6 +361,10 @@ namespace   FE
                 flags().removeFlag(FLAG_VISIBLE);
             flags().addFlag(FLAG_PROP_STATE);
             return  true;
+        case PROP_ROTATION_CENTER:
+            _rotationCenter     =   std::get<real3>(value);
+            flags().addFlag(FLAG_ROTATION_CENTER);
+            return  true;
         default:
             assert(0!=0);
             return  false;
@@ -387,6 +393,7 @@ namespace   FE
         case PROP_COLOR_ALPHA:      return  _color.value().a;
         case PROP_VISIBLE:          return  uint8(flags().hasFlag(FLAG_VISIBLE) ? 1 : 0);
         case PROP_G_TRANSFORM_XYZ:  return  globalTranslation();
+        case PROP_ROTATION_CENTER:  return  _rotationCenter;
         default:
             assert(0!=0);
             return  {};

@@ -329,17 +329,19 @@ namespace   FE
         _root   =   nullptr;
         delete  _menuBar;
         _menuBar    =   nullptr;
-        _error.clear();
     }
 
-    bool    FEUiDocument::load(const std::string& file)
+    bool    FEUiDocument::load(const std::string& file,std::string* error)
     {
         clear();
+        if (error != nullptr)
+            error->clear();
 
         std::FILE*  fp  =   std::fopen(file.c_str(),"rb");
         if (fp == nullptr)
         {
-            _error  =   "open failed: " + file;
+            if (error != nullptr)
+                *error  =   "open failed: " + file;
             return  false;
         }
         std::fseek(fp,0,SEEK_END);
@@ -348,15 +350,19 @@ namespace   FE
         if (size <= 0)
         {
             std::fclose(fp);
-            _error  =   "empty file: " + file;
+            if (error != nullptr)
+                *error  =   "empty file: " + file;
             return  false;
         }
-        _buffer.resize(size_t(size) + 1);
-        const   size_t  read    =   std::fread(_buffer.data(),1,size_t(size),fp);
+        /// <summary>
+        /// rapidxml 就地解析缓冲区;解析结果已转成 std::string,本缓冲区随函数返回销毁
+        /// </summary>
+        std::vector<char>   buffer(size_t(size) + 1);
+        const   size_t  read    =   std::fread(buffer.data(),1,size_t(size),fp);
         std::fclose(fp);
-        _buffer[read]   =   '\0';
+        buffer[read]   =   '\0';
 
-        char*   begin   =   _buffer.data();
+        char*   begin   =   buffer.data();
         /// <summary>
         /// 跳过 UTF-8 BOM
         /// </summary>
@@ -372,7 +378,8 @@ namespace   FE
         }
         catch (const rapidxml::parse_error& e)
         {
-            _error  =   std::string("parse error: ") + e.what();
+            if (error != nullptr)
+                *error  =   std::string("parse error: ") + e.what();
             return  false;
         }
 
@@ -380,7 +387,8 @@ namespace   FE
         auto*   widgetNode  =   (uiNode != nullptr) ? uiNode->first_node("widget") : nullptr;
         if (widgetNode == nullptr)
         {
-            _error  =   "no <ui>/<widget> node";
+            if (error != nullptr)
+                *error  =   "no <ui>/<widget> node";
             return  false;
         }
         _root   =   static_cast<FEUiWidget*>(parseWidget(widgetNode));
@@ -423,8 +431,6 @@ namespace   FE
             _menuBar->_text.clear();
         }
 
-        _buffer.clear();
-        _buffer.shrink_to_fit();
         return  _root != nullptr;
     }
 

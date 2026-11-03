@@ -103,8 +103,9 @@ namespace   FE
             }
         }
         /// <summary>
-        /// 按世界方向判断是否被禁用:只有与某个主轴几乎对齐时才按该轴处理
-        /// (球面/屏幕圆等任意方向不参与禁用)
+        /// 按世界方向判断是否被禁用:只有与某个世界主轴几乎对齐时才按该轴处理
+        /// 仅用于旋转轴向判断(球面/屏幕圆等任意方向、以及旋转后的局部轴不参与禁用),
+        /// 其余工具应使用 axisDisabled(int) 配合各自的 AXIS 枚举
         /// </summary>
         inline  bool    axisDisabled(const real3& axis) const
         {

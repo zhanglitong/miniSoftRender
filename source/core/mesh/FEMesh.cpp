@@ -8,10 +8,10 @@ constexpr const float   constDistance2          =   4;
 
 namespace   FE
 {
-    FEMesh*     FEMesh::setGeometry(FEGeometry* geo)
+    FEMesh&     FEMesh::setGeometry(FEGeometry* geo)
     {
         _geometry   =   geo;
-        return  this;
+        return  *this;
     }
     FEGeometry* FEMesh::geometry()
     {

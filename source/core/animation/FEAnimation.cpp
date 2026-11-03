@@ -68,90 +68,100 @@ namespace FE
         }
     }
 
-    bool    FEAnimation::setTransformProperty(int prop,const KFValue& value)
+    static  bool    applyTransformProperty(FETransform& tf,int prop,const KFValue& value)
     {
         switch(prop)
         {
         case PROP_TRANSFORM_X:
             {
-                real3   pos =   _transform.position();
+                real3   pos =   tf.position();
                 pos.x       =   std::get<real>(value);
-                _transform.setPosition(pos);
+                tf.setPosition(pos);
             }
             break;
         case PROP_TRANSFORM_Y:
             {
-                real3   pos =   _transform.position();
+                real3   pos =   tf.position();
                 pos.y       =   std::get<real>(value);
-                _transform.setPosition(pos);
+                tf.setPosition(pos);
             }
             break;
         case PROP_TRANSFORM_Z:
             {
-                real3   pos =   _transform.position();
+                real3   pos =   tf.position();
                 pos.z       =   std::get<real>(value);
-                _transform.setPosition(pos);
+                tf.setPosition(pos);
             }
             break;
         case PROP_TRANSFORM_XYZ:
-            _transform.setPosition(std::get<real3>(value));
+            tf.setPosition(std::get<real3>(value));
             break;
         case PROP_SCALE_X:
             {
-                float3  scl =   _transform.scale();
+                float3  scl =   tf.scale();
                 scl.x       =   (float)std::get<real>(value);
-                _transform.setScale(scl);
+                tf.setScale(scl);
             }
             break;
         case PROP_SCALE_Y:
             {
-                float3  scl =   _transform.scale();
+                float3  scl =   tf.scale();
                 scl.y       =   (float)std::get<real>(value);
-                _transform.setScale(scl);
+                tf.setScale(scl);
             }
             break;
         case PROP_SCALE_Z:
             {
-                float3  scl =   _transform.scale();
+                float3  scl =   tf.scale();
                 scl.z       =   (float)std::get<real>(value);
-                _transform.setScale(scl);
+                tf.setScale(scl);
             }
             break;
         case PROP_SCALE_XYZ:
-            _transform.setScale(float3(std::get<real3>(value)));
+            tf.setScale(float3(std::get<real3>(value)));
             break;
         case PROP_ROTATE_X:
             {
-                float3  euler   =   _transform.euler();
+                float3  euler   =   tf.euler();
                 euler.x         =   (float)std::get<real>(value);
-                _transform.setEuler(euler);
+                tf.setEuler(euler);
             }
             break;
         case PROP_ROTATE_Y:
             {
-                float3  euler   =   _transform.euler();
+                float3  euler   =   tf.euler();
                 euler.y         =   (float)std::get<real>(value);
-                _transform.setEuler(euler);
+                tf.setEuler(euler);
             }
             break;
         case PROP_ROTATE_Z:
             {
-                float3  euler   =   _transform.euler();
+                float3  euler   =   tf.euler();
                 euler.z         =   (float)std::get<real>(value);
-                _transform.setEuler(euler);
+                tf.setEuler(euler);
             }
             break;
         case PROP_ROTATE_XYZ:
-            _transform.setEuler(float3(std::get<real3>(value)));
+            tf.setEuler(float3(std::get<real3>(value)));
             break;
         case PROP_QUAT:
-            _transform.setRotation(std::get<quatf>(value));
+            /// 四元数轨道的值以 quatr 存储,采样结果也是 quatr;
+            /// 直接取 quatf 会抛 bad_variant_access,这里按实际类型兼容写入
+            if  (std::holds_alternative<quatr>(value))
+                tf.setRotation(quatf(std::get<quatr>(value)));
+            else if (std::holds_alternative<quatf>(value))
+                tf.setRotation(std::get<quatf>(value));
             break;
         default:
             /// 非变换属性:动画本地副本不保存,由调用方决定如何处理
             return  false;
         }
         return  true;
+    }
+
+    bool    FEAnimation::setTransformProperty(int prop,const KFValue& value)
+    {
+        return  applyTransformProperty(_transform,prop,value);
     }
 
     void    FEAnimation::beginSetProp()
@@ -305,6 +315,117 @@ namespace FE
         restoreLocal();
     }
 
+    bool    FEAnimation::drivesRotation() const
+    {
+        if (_clip == nullptr)
+            return  false;
+        for (auto& track : _clip->tracks())
+        {
+            if (track == nullptr || track->_times == nullptr
+                || track->_times->values().empty())
+                continue;
+            switch(track->propertyIndex())
+            {
+            case    PROP_ROTATE_X:
+            case    PROP_ROTATE_Y:
+            case    PROP_ROTATE_Z:
+            case    PROP_ROTATE_XYZ:
+            case    PROP_QUAT:
+                return  true;
+            default:
+                break;
+            }
+        }
+        return  false;
+    }
+    bool    FEAnimation::drivesPosition() const
+    {
+        if (_clip == nullptr)
+            return  false;
+        for (auto& track : _clip->tracks())
+        {
+            if (track == nullptr || track->_times == nullptr
+                || track->_times->values().empty())
+                continue;
+            switch(track->propertyIndex())
+            {
+            case    PROP_TRANSFORM_X:
+            case    PROP_TRANSFORM_Y:
+            case    PROP_TRANSFORM_Z:
+            case    PROP_TRANSFORM_XYZ:
+                return  true;
+            default:
+                break;
+            }
+        }
+        return  false;
+    }
+    bool    FEAnimation::segmentStartTime(real localTime,real& startTime) const
+    {
+        if (_clip == nullptr)
+            return  false;
+        /// 优先按位置轨道分界(位置与旋转在同一个关键帧上打帧,位置轨道即段边界)
+        const   FEKeyFrameTrack*    found   =   nullptr;
+        for (auto& track : _clip->tracks())
+        {
+            if (track == nullptr || track->_times == nullptr
+                || track->_times->values().empty())
+                continue;
+            const   auto    prop    =   track->propertyIndex();
+            if (prop == PROP_TRANSFORM_XYZ)
+            {
+                found   =   track.get();
+                break;
+            }
+            if (found == nullptr)
+            {
+                switch(prop)
+                {
+                case    PROP_TRANSFORM_X:
+                case    PROP_TRANSFORM_Y:
+                case    PROP_TRANSFORM_Z:
+                case    PROP_ROTATE_X:
+                case    PROP_ROTATE_Y:
+                case    PROP_ROTATE_Z:
+                case    PROP_ROTATE_XYZ:
+                case    PROP_QUAT:
+                    found   =   track.get();
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        if (found == nullptr)
+            return  false;
+        const   auto&   times   =   found->_times->values();
+        auto        itr     =   std::upper_bound(times.begin(),times.end(),localTime);
+        /// 时间落在第一个关键帧之前时以第一个关键帧作为段起点
+        if (itr == times.begin())
+        {
+            startTime   =   times.front();
+            return  true;
+        }
+        startTime   =   *(itr - 1);
+        return  true;
+    }
+    bool    FEAnimation::sampleTransformAt(real localTime,FETransform& out)
+    {
+        if (_clip == nullptr)
+            return  false;
+        TrackResults    results;
+        _clip->update(localTime,results);
+        bool    bAny    =   false;
+        for (auto& var : results)
+        {
+            if (!var._valid || !isTransformProperty(var._prop))
+                continue;
+            applyTransformProperty(out,var._prop,var._value);
+            bAny    =   true;
+        }
+        return  bAny;
+    }
+
     void    FEAnimation::applyTransform()
     {
         auto    node    =   _owner ? _owner->cast<FENode>() : nullptr;
@@ -317,12 +438,33 @@ namespace FE
             restoreOriginal();
             return;
         }
-        /// 采样结果就是节点本地变换,直接写入:
-        /// 编辑轴(旋转/缩放)已把绕轴心产生的位置变化写进节点本地位置并随关键帧保存,
-        /// 回放时不能再叠加一次轴心补偿,否则补偿量随旋转角度变化,播放时模型会逐帧漂移
-        node->setLocalTranslation(tf->position());
+        real3   pos         =   tf->position();
+        quatr   rot         =   quatr(tf->rotation());
+        /// 绕轴心回放:拖拽旋转时绕轴心产生的位置变化已烘焙进位置轨道,
+        /// 位置轨道线性插值会走弦线;节点记录了轴心且位置/旋转都由轨道驱动时,
+        /// 用段起点的关键帧姿态与采样旋转重建位置,使回放严格绕轴心走圆弧
+        if (node->hasRotationCenter() && drivesRotation() && drivesPosition())
+        {
+            real    segStart    =   0.0;
+            /// 段起点是本次旋转开始的那个关键帧(不是拖拽发生的时刻)
+            if (segmentStartTime(_clipTime - _offset,segStart))
+            {
+                /// 以节点当前本地变换为底,只覆盖轨道驱动的通道
+                FETransform base;
+                base.setPosition(node->localTranslation());
+                base.setScale(float3(node->localScaling()));
+                base.setRotation(node->localRotation());
+                if (sampleTransformAt(segStart,base))
+                {
+                    const   real3   pivot   =   node->rotationCenter();
+                    const   quatr   rel     =   rot * glm::inverse(quatr(base.rotation()));
+                    pos =   pivot + rel * (base.position() - pivot);
+                }
+            }
+        }
+        node->setLocalTranslation(pos);
         node->setLocalScaling(real3(tf->scale()));
-        node->setLocalRotation(quatr(tf->rotation()));
+        node->setLocalRotation(rot);
         /// 采样结果的累计欧拉角账本一并写回(旋转轨道是欧拉轨道时才有效;
         /// 四元数轨道没有圈数概念,退化为 ±180 换算)
         if (tf->eulerValid())

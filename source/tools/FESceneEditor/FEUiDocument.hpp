@@ -166,18 +166,18 @@ namespace   FE
     public:
         ~FEUiDocument();
         /// <summary>
-        /// 解析 .ui 文件;失败时 error() 给出原因,root() 为 nullptr
+        /// 解析 .ui 文件;失败时通过 error 返回原因,root() 为 nullptr
         /// </summary>
         /// <param name="file">.ui 文件路径</param>
+        /// <param name="error">失败原因(可为 nullptr)</param>
         /// <returns>true 解析成功</returns>
-        bool            load(const std::string& file);
+        bool            load(const std::string& file,std::string* error = nullptr);
         void            clear();
         FEUiWidget*     root()  const   {   return  _root;  }
         /// <summary>
         /// 菜单栏根节点:子节点为主菜单(Page),其子节点为分组(QMenu)或动作(QAction)
         /// </summary>
         FEUiMenuItem*   menuBar()   const   {   return  _menuBar;    }
-        const   std::string&    error() const   {   return  _error;    }
         /// <summary>
         /// 按控件名递归查找
         /// </summary>
@@ -200,10 +200,5 @@ namespace   FE
         /// 菜单栏根节点(Page/Group/Button 数据源)
         /// </summary>
         FEUiMenuItem*           _menuBar=   nullptr;
-        std::string             _error;
-        /// <summary>
-        /// rapidxml 就地解析缓冲区
-        /// </summary>
-        std::vector<char>       _buffer;
     };
 }

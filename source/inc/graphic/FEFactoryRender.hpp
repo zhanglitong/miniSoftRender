@@ -497,7 +497,7 @@ namespace   FE
         /// </summary>
         /// <param name="meshSet"></param>
         /// <returns>返回有多少给node带有mesh信息</returns>
-        static  uint        collectMesh(MeshUSet& meshSet,const Groups& grps);
+        static  uint    collectMesh(MeshUSet& meshSet,const Groups& grps);
         /// <summary>
         /// 把节点(含其带 mesh 的子节点)按 mesh key 分派到渲染工厂。
         /// reuseExisting 为 true 时优先复用场景中同 key 的非常驻工厂,

@@ -78,7 +78,14 @@ namespace   FE
         /// <param name="trans"></param>
         inline  void    setTranslation(const real3& trans)
         {
-            _gloabalMat[3] = glm::vec4(trans, 1.0f); 
+            /// 位置没变化时不请求重绘,避免编辑器每帧同步造成无效刷新
+            if (_gloabalMat[3][0] == trans.x
+                && _gloabalMat[3][1] == trans.y
+                && _gloabalMat[3][2] == trans.z)
+                return;
+            _gloabalMat[3] = glm::vec4(trans, 1.0f);
+            _internalFlags.addFlag(InteralFlag_Update);
+            _ctx.requireNextFrame();
         }
         inline  void    appTranslation(const real3& trans)
         {

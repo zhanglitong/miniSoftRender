@@ -100,6 +100,21 @@ namespace FE
         {
             return  _resourcePath;
         }
+        /// <summary>
+        /// 以资源根目录(resourcePath)为基准,把相对路径解析成绝对路径;
+        /// 传入的已是绝对路径时直接规范化。
+        /// weakly_canonical 不要求目标存在,所以引用未生成的文件也能得到完整路径
+        /// </summary>
+        /// <param name="relativePath">相对资源根目录的路径,如 "data/fonts/consola.ttf"</param>
+        /// <returns>规范化后的绝对路径</returns>
+        String      absolutePath(const String& relativePath) const
+        {
+            fs::path    rel(relativePath);
+            fs::path    abs =   rel.is_absolute()
+                                ?   rel
+                                :   fs::path(_resourcePath) / rel;
+            return  fs::weakly_canonical(abs).string();
+        }
         FEDevice&   device();
         
         FEScene*    scene();

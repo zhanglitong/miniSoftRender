@@ -76,7 +76,10 @@ namespace   FE
             FLAG_RECV_LIGHTING  =   (FLAG_RECV_SHADOW   << 1),
             FLAG_EFFECT_AO      =   (FLAG_RECV_LIGHTING << 1),
             FLAG_EFFECT_BLOOM   =   (FLAG_EFFECT_AO     << 1),
-            
+            /// <summary>
+            /// 已设置旋转轴心,轴心值保存在 _rotationCenter(父空间)
+            /// </summary>
+            FLAG_ROTATION_CENTER=   (FLAG_EFFECT_BLOOM  << 1),
         };
         enum    EModify
         {
@@ -222,6 +225,36 @@ namespace   FE
             flags().addFlag(FLAG_PROP_ROT);
             return  *this;
         }
+        /// <summary>
+        /// 是否已设置旋转轴心(父空间)
+        /// </summary>
+        inline  bool    hasRotationCenter() const
+        {
+            return  flags().hasFlag(FLAG_ROTATION_CENTER);
+        }
+        /// <summary>
+        /// 旋转轴心(父空间):位置轨道保存的是绕轴心旋转后的位置,
+        /// 回放时用它把位置重建到圆弧上
+        /// </summary>
+        inline  const   real3&  rotationCenter() const
+        {
+            return  _rotationCenter;
+        }
+        inline  FENode& setRotationCenter(const real3& center)
+        {
+            _rotationCenter    =   center;
+            flags().addFlag(FLAG_ROTATION_CENTER);
+            return  *this;
+        }
+        /// <summary>
+        /// 清除旋转轴心:平移/缩放改变位置与旋转的关系后,回放不再做圆弧重建
+        /// </summary>
+        inline  FENode& clearRotationCenter()
+        {
+            flags().removeFlag(FLAG_ROTATION_CENTER);
+            return  *this;
+        }
+
         /// <summary>
         /// 设置 从世界到节点的位置变换
         /// </summary>
@@ -611,6 +644,11 @@ namespace   FE
     protected:
         FETransform     _local;
         FETransform     _gloabal;
+        /// <summary>
+        /// 旋转轴心(父空间),是否已设置由 FLAG_ROTATION_CENTER 标记;
+        /// 动画回放据此重建位置
+        /// </summary>
+        real3           _rotationCenter   =   real3(0.0);
         RenderFlags     _renderBits;
         Rgba8           _color;
         aabb3r          _aabb;

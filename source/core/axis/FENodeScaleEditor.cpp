@@ -1,10 +1,56 @@
 
 #include    "../../inc/FEContext.hpp"
+#include    "../../inc/FECamera.hpp"
 #include    "../../inc/graphic/FEScene.h"
 #include    "../../inc/axis/FENodeScaleEditor.h"
 
 namespace   FE
 {
+    namespace
+    {
+        /// <summary>
+        /// 按编辑轴配置生成抓手的变换矩阵:位置由调用者决定,朝向由坐标系类型决定
+        /// </summary>
+        mat4r   calcAxisTransform(const FEAxisSetting* setting,Objects& objects
+                                , FEContext& ctx,const real3& pos)
+        {
+            quatr   rot(1.0,0.0,0.0,0.0);
+            if (setting != nullptr)
+            {
+                FENode* node    =   objects.empty() ? nullptr : objects.front()->cast<FENode>();
+                switch(setting->coordType)
+                {
+                case    ACT_Parent:
+                    if  (node != nullptr && node->parent() != nullptr)
+                        rot =   node->parent()->globalRotation();
+                    break;
+                case    ACT_Local:
+                    if  (node != nullptr)
+                        rot =   node->globalRotation();
+                    break;
+                case    ACT_Screen:
+                    {
+                        FECamera&   cam     =   ctx.activeCamera();
+                        real3       dir     =   normalize(cam.getDir());
+                        real3       right   =   normalize(cross(dir,cam.getUp()));
+                        real3       up      =   normalize(cross(right,dir));
+                        mat4r       mat(1.0);
+                        mat[0]  =   real4(right,0.0);
+                        mat[1]  =   real4(up,0.0);
+                        mat[2]  =   real4(dir,0.0);
+                        mat[3]  =   real4(pos,1.0);
+                        return  mat;
+                    }
+                default:
+                    break;
+                }
+            }
+            mat4r   mat     =   mat4_cast(rot);
+                    mat[3]  =   real4(pos,1.0);
+            return  mat;
+        }
+    }
+
     FENodeScaleEditor::FENodeScaleEditor(FEContext& ctx)
         :FEEditAxisScale(ctx)
     {
@@ -31,8 +77,11 @@ namespace   FE
             sync();
         }};
         /// 节点属性更改通知
+        /// 缩放拖拽期间跳过 sync:否则缩放的枢轴会跟随节点漂移
         ctx.scene()->nodeTree().eventsChangedNode() += {this,[this](const FENode*)
         {
+            if  (isScaleing())
+                return;
             sync();
         }};
 
@@ -64,14 +113,29 @@ namespace   FE
     }
     void    FENodeScaleEditor::sync()
     {
+        /// 拖拽期间枢轴必须保持稳定
+        if  (isScaleing())
+            return;
         aabb3dr box;
+        real3   sum(0.0);
+        size_t  count   =   0;
         for (auto& var: _objects)
         {
             auto    val =   var->getProperty(PROP_G_TRANSFORM_XYZ);
             if (std::holds_alternative<real3>(val))
-                box.merge(std::get<real3>(val));
+            {
+                const   real3   pos =   std::get<real3>(val);
+                box.merge(pos);
+                sum     +=  pos;
+                count   ++;
+            }
         }
-        setTranslation(box.center());
+        /// 轴位置类型:包围盒中心 / 位移均值
+        real3   pos =   (count > 0 && _axisSetting != nullptr
+                        && _axisSetting->posType == APT_Translation)
+                        ?   sum / real(count)
+                        :   box.center();
+        setTransform(calcAxisTransform(_axisSetting,_objects,_ctx,pos));
     }
     void    FENodeScaleEditor::onSAxis(
                                         FEEditAxis::EditStatus status
@@ -79,26 +143,54 @@ namespace   FE
                                         , const real3& absoluteOffset
                                         , FEEditAxisScale& sender)
     {
-        UNUSED(status,absoluteOffset,sender);
+        UNUSED(absoluteOffset,sender);
+        /// 编辑状态通知:宿主在拖动开始/结束时记录撤销起点与终点
+        if (_editNotify)
+            _editNotify(status);
+        /// "编辑轴"模式只用于编辑轴本身,不缩放节点
+        if  (_axisSetting != nullptr && _axisSetting->editType == AET_Axis)
+            return;
+        /// 禁用轴上的缩放系数保持 1
+        real3   factor  =   relativeOffset;
+        if  (_axisSetting != nullptr)
+        {
+            if  (_axisSetting->axisDisabled(0))  factor.x    =   real(1.0);
+            if  (_axisSetting->axisDisabled(1))  factor.y    =   real(1.0);
+            if  (_axisSetting->axisDisabled(2))  factor.z    =   real(1.0);
+        }
+        /// 实际发生缩放后,节点绕轴心旋转的位置关系不再成立:清除节点上的旋转轴心
+        if  (status == EditStatus::Editting && factor != real3(1.0))
+        {
+            for (auto& object : _objects)
+            {
+                FENode* node    =   object->cast<FENode>();
+                if  (node != nullptr)
+                    node->clearRotationCenter();
+            }
+        }
         /// 编辑只写对象自身的属性,不经过动画系统:动画数据由打帧动作单独记录
-        real3       pivot   =   position();
+        const   real3   editorPos   =   position();
         for (auto object : _objects)
         {
             bool    bModify =   false;
-            /// 读取全局位置,围绕编辑器位置缩放
+            /// 读取全局位置;枢轴由中心类型决定
             auto    gval    =   object->getProperty(PROP_G_TRANSFORM_XYZ);
             if (!std::holds_alternative<real3>(gval))
                 continue;
             real3   globalPos   =   std::get<real3>(gval);
-            real3   offset      =   globalPos - pivot;
-            real3   newGlobalPos=   pivot + offset * relativeOffset;
-            real3   posDelta    =   newGlobalPos - globalPos;
-            /// 读取局部位置,叠加位置增量
+            real3   pivot       =   _axisSetting ? _axisSetting->rotationCenter(editorPos,globalPos)
+                                                : editorPos;
+            real3   newGlobalPos=   pivot + (globalPos - pivot) * factor;
+            /// 读取局部位置,用父级逆变换把世界目标换算成局部目标
             auto    lval    =   object->getProperty(PROP_TRANSFORM_XYZ);
             if (!std::holds_alternative<real3>(lval))
                 continue;
             real3   localPos    =   std::get<real3>(lval);
-            real3   newLocalPos =   localPos + posDelta;
+            FENode* node        =   object->cast<FENode>();
+            mat4r   parentInv(1.0);
+            if  (node != nullptr && node->parent() != nullptr)
+                parentInv   =   inverse(node->parent()->globalTransform());
+            real3   newLocalPos =   real3(parentInv * real4(newGlobalPos,1.0));
             /// 读取局部缩放,乘以缩放系数
             auto    sval    =   object->getProperty(PROP_SCALE_XYZ);
             real3   curScale;
@@ -108,7 +200,7 @@ namespace   FE
                 curScale    =   real3(std::get<float3>(sval));
             else
                 continue;
-            real3   newScale    =   curScale * relativeOffset;
+            real3   newScale    =   curScale * factor;
 
             object->beginSetProp();
             if  (newLocalPos != localPos)

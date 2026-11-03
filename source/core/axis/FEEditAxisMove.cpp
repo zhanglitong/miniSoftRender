@@ -36,8 +36,6 @@ namespace   FE
     FEEditAxisMove::FEEditAxisMove(FEContext& ctx)
             : FEEditAxis(EditAxisTypeMove, ctx)
     {
-        _downPosWorld       =   real3(0.0);
-
         _bMouseDown         =   false;
         _downPos            =   int2(0);
         _startPos           =   int2(0);
@@ -55,8 +53,6 @@ namespace   FE
     FEEditAxisMove::FEEditAxisMove(const FEEditAxisMove& other)
         : FEEditAxis(EditAxisTypeMove, other._ctx)
     {
-        _downPosWorld       =   real3(0.0);
-
         _bMouseDown         =   false;
         _downPos            =   int2(0);
         _startPos           =   int2(0);
@@ -538,7 +534,6 @@ namespace   FE
     }
     bool    FEEditAxisMove::mouseButtonPress(const int2& pos)
     {
-        _downPosWorld   =   this->position();
         _bMouseDown     =   true;
         AXIS oldSelected    =   _selectedAxis;
         _selectedAxis   =   _hoveredAxis;
@@ -563,7 +558,6 @@ namespace   FE
     }
     bool    FEEditAxisMove::mouseButtonRelease(const int2& pos)
     {
-        _downPosWorld   =   this->position();
         _bMouseDown     =   false;
         if (isAxisSelected())
         {
@@ -618,8 +612,6 @@ namespace   FE
                 this->sendSelectedDelegate();
             }
         }
-        _downPosWorld = this->position();
-
         _bTouchDown = true;
         if (this->isAxisSelected())
         {
@@ -638,7 +630,6 @@ namespace   FE
     }
     bool    FEEditAxisMove::touchUp(const int2& pos)
     {
-        _downPosWorld   =   this->position();
         _bTouchDown     =   false;
         if (_bTouchPickup)
         {

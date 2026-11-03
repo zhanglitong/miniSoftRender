@@ -429,6 +429,46 @@ int     main(int argc, char** argv)
         checkReal("停用后:账本有效",nodeT->localEulerValid() ? 1.0 : 0.0,1.0);
     }
 
+    /// 6.12 绕轴心回放:轴心写入节点属性后,回放按旋转重建位置(圆弧),
+    ///      而不是位置关键帧线性插值(弦线)
+    {
+        Node    nodeC   =   new FENode(ctx);
+        const   real3   pivotC  =   real3(0.5,0.0,0.0);
+        nodeC->setLocalTranslation(real3(1.0,2.0,0.0));
+        nodeC->setLocalEuler(real3(0.0,0.0,0.0));
+        nodeC->setRotationCenter(pivotC);
+        Object  objC    =   Object(nodeC.get());
+        checkReal("轴心:已设置",nodeC->hasRotationCenter() ? 1.0 : 0.0,1.0);
+        real3   centerVal   =   std::get<real3>(objC->getProperty(PROP_ROTATION_CENTER));
+        checkReal("轴心:属性 X",centerVal.x,pivotC.x);
+        checkReal("轴心:属性 Y",centerVal.y,pivotC.y);
+
+        Animation   animC   =   FEAnimationHelper::createNodeAnimtion(ctx,NodeProperyBits(NP_TRANSFORM_XYZ|NP_ROTATE_XYZ));
+        nodeC->addComponent(Component(animC.get()));
+        scene->dispatchNodesToSystem({nodeC});
+        /// 0s 原始姿态;1s 绕轴心转 90°,位置是烘焙后的结果
+        FEAnimationHelper::addNodeKeyFrame(animC,0.0,nodeC);
+        const   real3   bakedPos    =   real3(-1.5,0.5,0.0);
+        nodeC->setLocalTranslation(bakedPos);
+        nodeC->setLocalEuler(real3(0.0,0.0,90.0));
+        FEAnimationHelper::addNodeKeyFrame(animC,1.0,nodeC);
+        animC->update(0.5);
+        nodeC->update();
+        /// 中点旋转 45°:位置应落在圆弧上 P + R45*(basePos-P)
+        const   real    radC    =   glm::radians(45.0);
+        const   real3   baseVec =   real3(1.0,2.0,0.0) - pivotC;
+        const   real3   expectC =   pivotC
+                                +   real3(std::cos(radC)*baseVec.x - std::sin(radC)*baseVec.y,
+                                          std::sin(radC)*baseVec.x + std::cos(radC)*baseVec.y,0.0);
+        real3   lposC   =   nodeC->localTranslation();
+        checkReal("轴心回放:圆弧 X",lposC.x,expectC.x);
+        checkReal("轴心回放:圆弧 Y",lposC.y,expectC.y);
+        /// 与位置键线性插值的弦线中点对比,确认不是旧行为
+        const   real3   chordC  =   (real3(1.0,2.0,0.0) + bakedPos) * real(0.5);
+        std::cout << "轴心回放 pos=[" << lposC.x << "," << lposC.y
+                  << "] arcX=" << expectC.x << " chordX=" << chordC.x << std::endl;
+    }
+
     /// 7. 恢复动画并交给播放器循环播放,进入渲染循环
     anim->setEnable(true);
     anim->update(0.0);

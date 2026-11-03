@@ -198,10 +198,6 @@ namespace   FE
         ///
         real3               _offMove;
         /// <summary>
-        ///开始移动时轴的位置
-        /// </summary>
-        real3               _downPosWorld;
-        /// <summary>
         ///鼠标按下的最后位置
         /// </summary>
         int2                _downPos;

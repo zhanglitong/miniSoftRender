@@ -52,6 +52,11 @@ namespace   FE
         /// global xyz
         /// </summary>
         PROP_G_TRANSFORM_XYZ,
+        /// <summary>
+        /// 旋转轴心(父空间),数据类型是 real3;
+        /// 回放时据采样旋转重建位置,使节点绕该轴心走圆弧而不是按位置键插值走弦线
+        /// </summary>
+        PROP_ROTATION_CENTER,
     };
 
     enum    NodeProperyBit

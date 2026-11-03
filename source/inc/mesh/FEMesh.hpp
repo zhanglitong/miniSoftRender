@@ -129,14 +129,14 @@ namespace   FE
         /// </summary>
         /// <param name="attrId"></param>
         /// <returns></returns>
-        inline  FEAttribyteBuffer*  get(FEAttribute attr)
+        inline  auto    get(FEAttribute attr)
         {
             for (auto& var : _buffers)
             {
                 if (var.attr().slot() == attr.slot())
                     return  &var;
             }
-            return  nullptr;
+            return  (FEAttribyteBuffer*)nullptr;
         }
         /// <summary>
         /// 设置mesh属性 数据
@@ -178,12 +178,12 @@ namespace   FE
         /// </summary>
         /// <param name="geo">参数化几何体,nullptr表示解除绑定</param>
         /// <returns></returns>
-        FEMesh* setGeometry(FEGeometry* geo);
+        FEMesh&         setGeometry(FEGeometry* geo);
         /// <summary>
         /// 获取绑定的参数化几何体,没有则返回nullptr
         /// </summary>
         /// <returns></returns>
-        FEGeometry* geometry();
+        FEGeometry*     geometry();
         /// <summary>
         /// 获取依赖的对象,序列化时先写几何体
         /// </summary>
@@ -266,7 +266,7 @@ namespace   FE
         /// <param name="version">版本号</param>
         /// <param name="ctx">上下文对象</param>
         /// <returns></returns>
-        virtual void        serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override;
+        virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chk ,uint version,FESerializeCtx& ctx) const override;
         /// <summary>
         /// 子类实现,只关注自己需要读取的数据
         /// </summary>
@@ -274,7 +274,7 @@ namespace   FE
         /// <param name="chk">数据头，子类可根据chk._flags字段读取控制</param>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chk,uint version,FESerializeCtx& ctx) override;
+        virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chk,uint version,FESerializeCtx& ctx) override;
     protected:
         /// <summary>
         /// 包围盒信息,通过顶点属性槽计算得到

@@ -1,6 +1,7 @@
 #pragma     once
 #include    <functional>
 #include    <format>
+#include    <vector>
 #include    "../FETransformPivot.hpp"
 #include    "../FEComponent.hpp"
 #include    "FEAnimClip.hpp"
@@ -238,6 +239,25 @@ namespace FE
         /// </summary>
         /// <param name="applied"></param>
         void    markApplied(bool applied);
+        /// <summary>
+        /// 动画是否真正驱动了旋转通道(存在带关键帧的旋转轨道)
+        /// 只有驱动旋转时才允许用绕轴心记录重建位置
+        /// </summary>
+        bool    drivesRotation() const;
+        /// <summary>
+        /// 动画是否驱动了位置通道(存在带关键帧的位置轨道)
+        /// 轴心圆弧重建要求位置与旋转都来自轨道
+        /// </summary>
+        bool    drivesPosition() const;
+        /// <summary>
+        /// 求绕轴心旋转的起始关键帧时间:返回不晚于 time 的最后一个位置关键帧时间
+        /// 不存在位置轨道时退化为旋转关键帧时间;没有任何关键帧时返回 false
+        /// </summary>
+        bool    segmentStartTime(real localTime,real& startTime) const;
+        /// <summary>
+        /// 在指定剪辑时间采样一组变换通道,结果写入 out(未驱动的通道保持 out 原值)
+        /// </summary>
+        bool    sampleTransformAt(real localTime,FETransform& out);
         /// <summary>
         /// 获取依赖的对象,子类实现
         /// </summary>

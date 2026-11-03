@@ -54,7 +54,8 @@ namespace   FE
             /// 设置上下文相关
             _ctx.setWindow(this);
             _ctx.setWorkPath(path());
-            _ctx.setResourcePath(path() + "/../");
+            /// 直接传绝对路径:exe 所在目录的上级,避免 "../" 这类相对片段
+            _ctx.setResourcePath(std::filesystem::path(path()).parent_path().string());
 
             return  true;
         }

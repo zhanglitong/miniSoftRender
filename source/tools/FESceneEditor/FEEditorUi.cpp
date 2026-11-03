@@ -271,9 +271,8 @@ namespace   FE
         /// </summary>
         {
             const   String  uiPath  =   ctx.resourcePath() + "/data/ui/MainWindow.ui";
-            if (!_uiDoc.load(uiPath))
+            if (!_uiDoc.load(uiPath,&_uiError))
             {
-                _uiError    =   _uiDoc.error();
                 std::cerr << "load ui failed: " << _uiError << std::endl;
             }
         }

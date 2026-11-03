@@ -7,6 +7,7 @@
 #include    "FEUiStrings.hpp"
 
 #include    "../../../inc/FEUndoCmd.hpp"
+#include    "../../../inc/axis/FEAxisSetting.hpp"
 #include    "../../../inc/animation/FEAnimation.hpp"
 #include    "../../../inc/animation/FEAnimationSys.hpp"
 #include    "../../../inc/constraint/FEConstraint.hpp"
@@ -680,5 +681,205 @@ namespace   FE
         Node        _node;
         Constraint  _constraint;
         bool        _add    =   true;
+    };
+
+    /// <summary>
+    /// 编辑轴配置命令(坐标轴编辑窗口):
+    /// 窗口把一次交互(拖动松开 / 一次点击)前后的配置快照提交过来,
+    /// redo/undo 直接把整份 FEAxisSetting 写回;三个抓手每帧读取该配置,
+    /// 因此撤销/重做后下一帧即按恢复后的配置重算
+    /// </summary>
+    class   FEEditorAxisSettingCmd :public FEUndoCmd
+    {
+    public:
+        FEEditorAxisSettingCmd(FEAxisSetting& setting,const FEAxisSetting& before
+                               ,const FEAxisSetting& after,const String& text)
+            :FEUndoCmd(text)
+            ,_setting(setting)
+            ,_before(before)
+            ,_after(after)
+        {}
+    public:
+        virtual void    redo()  override
+        {
+            _setting    =   _after;
+        }
+        virtual void    undo()  override
+        {
+            _setting    =   _before;
+        }
+    protected:
+        /// <summary>
+        /// 被编辑的轴配置对象(宿主持有,生命周期长于撤销栈)
+        /// </summary>
+        FEAxisSetting&  _setting;
+        /// <summary>
+        /// 修改前快照
+        /// </summary>
+        FEAxisSetting   _before;
+        /// <summary>
+        /// 修改后快照
+        /// </summary>
+        FEAxisSetting   _after;
+    };
+
+    /// <summary>
+    /// 抓手拖动前后的节点姿态快照(移动/旋转/缩放工具共用):
+    /// 同时记录轴配置,因为"编辑轴"模式下拖动直接修改自定义轴心/轴向而不动节点
+    /// </summary>
+    struct  FEEditorPoseState
+    {
+        struct  Entry
+        {
+            Node    _node;
+            real3   _position   =   {};
+            quatr   _rotation   =   {};
+            real3   _scaling    =   {};
+            bool    _hasCenter  =   false;
+            real3   _center     =   {};
+        };
+        /// <summary>
+        /// 抓取当前姿态(节点本地变换 + 旋转轴心 + 轴配置)
+        /// </summary>
+        void    capture(const Objects& objects,const FEAxisSetting* axis)
+        {
+            _entries.clear();
+            for (Object var : objects)
+            {
+                if (var == nullptr)
+                    continue;
+                Node    node    =   var->cast<FENode>();
+                if (node == nullptr)
+                    continue;
+                Entry   entry;
+                entry._node         =   node;
+                entry._position     =   node->localTranslation();
+                entry._rotation     =   node->localRotation();
+                entry._scaling      =   node->localScaling();
+                entry._hasCenter    =   node->hasRotationCenter();
+                entry._center       =   node->rotationCenter();
+                _entries.push_back(entry);
+            }
+            _hasAxis    =   axis != nullptr;
+            if (_hasAxis)
+                _axis   =   *axis;
+        }
+        /// <summary>
+        /// 两份姿态是否完全一致:没有实际拖动时不必产生撤销记录
+        /// </summary>
+        bool    same(const FEEditorPoseState& other) const
+        {
+            if (_hasAxis != other._hasAxis || _entries.size() != other._entries.size())
+                return  false;
+            if (_hasAxis && !sameAxis(_axis,other._axis))
+                return  false;
+            for (size_t i = 0; i < _entries.size(); ++i)
+            {
+                const   Entry&  a   =   _entries[i];
+                const   Entry&  b   =   other._entries[i];
+                if (a._node != b._node || a._hasCenter != b._hasCenter)
+                    return  false;
+                if (a._position != b._position || a._rotation != b._rotation || a._scaling != b._scaling)
+                    return  false;
+                if (a._hasCenter && a._center != b._center)
+                    return  false;
+            }
+            return  true;
+        }
+        /// <summary>
+        /// 把节点姿态与轴配置整体写回,并登记到动画系统更新队列以保证当帧刷新世界变换
+        /// </summary>
+        void    apply(FEScene* scene)
+        {
+            FEAnimationSys* sys =   scene != nullptr ? scene->animationSystem() : nullptr;
+            for (Entry& entry : _entries)
+            {
+                if (entry._node == nullptr)
+                    continue;
+                entry._node->setLocalTranslation(entry._position);
+                entry._node->setLocalScaling(entry._scaling);
+                entry._node->setLocalRotation(entry._rotation);
+                if (entry._hasCenter)
+                    entry._node->setRotationCenter(entry._center);
+                else
+                    entry._node->clearRotationCenter();
+                if (sys != nullptr)
+                    sys->updateList().addObject(Object(entry._node.get()));
+            }
+        }
+        /// <summary>
+        /// 轴配置比较(未在"编辑轴"模式下拖动时两边一致,不会产生记录)
+        /// </summary>
+        static  bool    sameAxis(const FEAxisSetting& a,const FEAxisSetting& b)
+        {
+            return  a.posType       ==  b.posType
+                &&  a.editType      ==  b.editType
+                &&  a.coordType     ==  b.coordType
+                &&  a.centerType    ==  b.centerType
+                &&  a.disableX      ==  b.disableX
+                &&  a.disableY      ==  b.disableY
+                &&  a.disableZ      ==  b.disableZ
+                &&  a.userCenter    ==  b.userCenter
+                &&  a.customAxis    ==  b.customAxis;
+        }
+
+        std::vector<Entry>  _entries;
+        /// <summary>
+        /// 是否包含轴配置快照
+        /// </summary>
+        bool                _hasAxis    =   false;
+        /// <summary>
+        /// 轴配置快照
+        /// </summary>
+        FEAxisSetting       _axis;
+    };
+
+    /// <summary>
+    /// 抓手拖动命令(移动/旋转/缩放工具):
+    /// 拖动开始时抓取姿态,结束时把前后快照压栈;redo/undo 整体写回。
+    /// 拖动结果已由抓手实时应用,故第一次 redo 跳过,避免重复设置姿态
+    /// </summary>
+    class   FEEditorTransformCmd :public FEUndoCmd
+    {
+    public:
+        FEEditorTransformCmd(FEScene& scene,FEAxisSetting& axis,const String& text
+                             ,const FEEditorPoseState& before,const FEEditorPoseState& after)
+            :FEUndoCmd(text)
+            ,_scene(scene)
+            ,_axis(axis)
+            ,_before(before)
+            ,_after(after)
+        {}
+    public:
+        virtual void    redo()  override
+        {
+            /// 拖动结束时状态已经就位,首次入栈不重复写回
+            if (_skipRedo)
+            {
+                _skipRedo    =   false;
+                return;
+            }
+            apply(_after);
+        }
+        virtual void    undo()  override
+        {
+            apply(_before);
+        }
+    protected:
+        void    apply(FEEditorPoseState& state)
+        {
+            state.apply(&_scene);
+            if (state._hasAxis)
+                _axis   =   state._axis;
+        }
+    protected:
+        FEScene&            _scene;
+        /// <summary>
+        /// 被拖动时同步修改的轴配置(宿主持有)
+        /// </summary>
+        FEAxisSetting&      _axis;
+        FEEditorPoseState   _before;
+        FEEditorPoseState   _after;
+        bool                _skipRedo   =   true;
     };
 }

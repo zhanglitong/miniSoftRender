@@ -14,6 +14,8 @@
 #include    "FEPropertyPanel.hpp"
 #include    "FETimeLine.hpp"
 #include    "FEUndoView.hpp"
+#include    "FEEditorUndoCmds.hpp"
+#include    "../../../inc/axis/FEAxis.h"
 #include    "FEViewPad.hpp"
 #include    "FEShortcutConfig.hpp"
 
@@ -263,6 +265,13 @@ namespace   FE
         /// 同时把抓手可见状态回写到动作的勾选标志
         /// </summary>
         void    syncTransformTools();
+        /// <summary>
+        /// 抓手拖动开始/结束通知:开始时记录姿态快照,结束时把前后快照压入撤销栈
+        /// </summary>
+        /// <param name="tool">0 移动 / 1 旋转 / 2 缩放</param>
+        /// <param name="status">编辑状态</param>
+        /// <param name="objects">抓手当前编辑的对象</param>
+        void    onTransformEdit(int tool,FEEditAxis::EditStatus status,const Objects& objects);
     protected:
         FEEditorImGuiFactory*       _factory    =   nullptr;
         FEImGuiBackend*             _backend    =   nullptr;
@@ -311,6 +320,18 @@ namespace   FE
         /// 上一次推给变换抓手的选区;用于避免选区未变时每帧重复 setObjects
         /// </summary>
         Objects                     _toolSelection;
+        /// <summary>
+        /// 抓手拖动开始时的姿态快照(撤销记录起点)
+        /// </summary>
+        FEEditorPoseState           _dragBefore;
+        /// <summary>
+        /// 当前正在拖动的抓手:0 移动 / 1 旋转 / 2 缩放 / -1 无
+        /// </summary>
+        int                         _dragTool       =   -1;
+        /// <summary>
+        /// 已挂上拖动通知的输入系统;换场景后需要重新挂
+        /// </summary>
+        FEInputSystem*              _dragNotifyInput=   nullptr;
         /// <summary>
         /// 时间线编辑面板
         /// </summary>
