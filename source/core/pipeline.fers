@@ -15,6 +15,7 @@
 		<file name="pipeline/v3.xml" input="v3.xml"/>
 		<file name="pipeline/v3Instance.xml" input="v3Instance.xml"/>
 		<file name="pipeline/v3c4.xml" input="v3c4.xml"/>
+		<file name="pipeline/v3n3c4.xml" input="v3n3c4.xml"/>
 	</folder>
 </root>
 

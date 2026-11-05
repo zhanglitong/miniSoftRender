@@ -179,6 +179,29 @@ namespace   FE
         Mesh    createTextOutlineMesh(const String& text,const float2& origin,
                                       float scale = 1.0f,uint curveSteps = 8,
                                       const Rgba8& color = Rgba8(255,255,255,255)) const;
+        /// <summary>
+        /// 矢量填充模式:提取字形轮廓并按非零环绕规则三角化,
+        /// 构建 PRI_TRIANGLES 网格(顶点为 pos(像素)+ color0)。
+        /// 带孔字形(如 'O'、'A' 的内部三角孔)通过环绕数抵消正确镂空,
+        /// 贝塞尔曲线按 curveSteps 段离散。
+        /// 坐标与 createTextMesh 一致:origin 为文本左上角,像素 y 向下。
+        /// 配合 FEMaterialV3C4 使用时,节点需按相机上方向做 y 翻转。
+        /// </summary>
+        Mesh    createTextFillMesh(const String& text,const float2& origin,
+                                   float scale = 1.0f,uint curveSteps = 8,
+                                   const Rgba8& color = Rgba8(255,255,255,255)) const;
+        /// <summary>
+        /// 矢量填充的实体(挤出)版本:在 createTextFillMesh 的前/后盖基础上,
+        /// 沿轮廓生成侧壁并挤出 depth 像素厚度,同时输出法线与顶点色。
+        /// 顶点布局为 pos + normal + color0 + uv0,可直接用受光/PBR 材质渲染
+        /// (法线用于明暗,厚度用于侧面轮廓,颜色为顶点色,
+        /// UV 为按字体像素尺寸归一化的平面映射,供需要 TEXCOORD0 的管线使用)。
+        /// 前盖位于 z = 0,后盖位于 z = -depth;原点/坐标约定同上。
+        /// </summary>
+        Mesh    createTextExtrudeMesh(const String& text,const float2& origin,
+                                      float scale = 1.0f,float depth = 8.0f,
+                                      uint curveSteps = 8,
+                                      const Rgba8& color = Rgba8(255,255,255,255)) const;
     protected:
         /// <summary>
         /// 纯 CPU 烘焙:渲染 SDF 字形、货架打包、写入图集并生成度量

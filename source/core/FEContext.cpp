@@ -115,6 +115,7 @@ namespace   FE
 
         DEFINE_CLASS_CREATOR(FEMaterialV3C4);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3);
+        DEFINE_CLASS_CREATOR(FEMaterialV3N3C4);
         DEFINE_CLASS_CREATOR(FEMaterialPBR);
         DEFINE_CLASS_CREATOR(FEMaterialPoint);
         DEFINE_CLASS_CREATOR(FEMaterialV3);
