@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.12)
 
 project ("miniSoftRender")
 
+# 启用 ctest,供各工具/测试目标注册 add_test
+enable_testing()
+
 add_compile_options(/W4 /std:c++17)
 
 
