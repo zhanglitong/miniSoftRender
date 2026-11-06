@@ -240,7 +240,33 @@ namespace   FE
         switch(pri->primitive())
         {
         case PRI_POINTS          :
-            {}
+            {
+                auto    dir     =   ray.dir();
+                real    denom   =   FE::dot(dir,dir);
+                if (denom <= 0)
+                    break;
+                for (uint i = nStart; i < nEnd; ++i)
+                {
+                    real3   dpos    =   readPosition(pData + stride * i,format);
+                    /// 射线方向未归一化,投影参数需除以方向长度平方
+                    real    t       =   FE::dot(dpos - ray.origin(),dir) / denom;
+                    /// 点位于射线起点后方
+                    if (t < 0)
+                        continue;
+                    /// 点到射线的垂距平方,阈值与线段拾取保持一致
+                    real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
+                    if (dist2 > constDistance2)
+                        continue;
+                    /// 取最靠近射线的点,垂距相同时取更近的点
+                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                        continue;
+                    minDist2        =   dist2;
+                    time            =   t;
+                    point           =   dpos;
+                    pickup          =   true;
+                    result.pickup   =   FEPickup::PR_Point;
+                }
+            }
             break;
         case PRI_LINES:
             {
@@ -408,6 +434,36 @@ namespace   FE
         switch(pri->primitive())
         {
         case PRI_POINTS          :
+            {
+                auto    dir     =   ray.dir();
+                real    denom   =   FE::dot(dir,dir);
+                if (denom <= 0)
+                    break;
+                real    minDist2 =  FLT_MAX;
+                for (size_t i = 0; i < nCount; ++i)
+                {
+                    uint    index   =   pIndex[i];
+                    real3   dpos    =   readPosition(pData + stride * index,format);
+                    /// 射线方向未归一化,投影参数需除以方向长度平方
+                    real    t       =   FE::dot(dpos - ray.origin(),dir) / denom;
+                    /// 点位于射线起点后方
+                    if (t < 0)
+                        continue;
+                    /// 点到射线的垂距平方,阈值与线段拾取保持一致
+                    real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
+                    if (dist2 > constDistance2)
+                        continue;
+                    /// 取最靠近射线的点,垂距相同时取更近的点
+                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                        continue;
+                    minDist2        =   dist2;
+                    time            =   t;
+                    point           =   dpos;
+                    pickup          =   true;
+                    dist            =   FE::distance(dpos,ray.origin());
+                    result.pickup   =   FEPickup::PR_Point;
+                }
+            }
             break;
         case PRI_LINES           :
             {
@@ -495,6 +551,36 @@ namespace   FE
         switch(pri->primitive())
         {
         case PRI_POINTS          :
+            {
+                auto    dir     =   ray.dir();
+                real    denom   =   FE::dot(dir,dir);
+                if (denom <= 0)
+                    break;
+                real    minDist2 =  FLT_MAX;
+                for (size_t i = 0; i < nCount; ++i)
+                {
+                    uint    index   =   pIndex[i];
+                    real3   dpos    =   readPosition(pData + stride * index,format);
+                    /// 射线方向未归一化,投影参数需除以方向长度平方
+                    real    t       =   FE::dot(dpos - ray.origin(),dir) / denom;
+                    /// 点位于射线起点后方
+                    if (t < 0)
+                        continue;
+                    /// 点到射线的垂距平方,阈值与线段拾取保持一致
+                    real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
+                    if (dist2 > constDistance2)
+                        continue;
+                    /// 取最靠近射线的点,垂距相同时取更近的点
+                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                        continue;
+                    minDist2        =   dist2;
+                    time            =   t;
+                    point           =   dpos;
+                    pickup          =   true;
+                    dist            =   FE::distance(dpos,ray.origin());
+                    result.pickup   =   FEPickup::PR_Point;
+                }
+            }
             break;
         case PRI_LINES           :
             {
@@ -582,6 +668,36 @@ namespace   FE
         switch(pri->primitive())
         {
         case PRI_POINTS          :
+            {
+                auto    dir     =   ray.dir();
+                real    denom   =   FE::dot(dir,dir);
+                if (denom <= 0)
+                    break;
+                real    minDist2 =  FLT_MAX;
+                for (size_t i = 0; i < nCount; ++i)
+                {
+                    uint    index   =   pIndex[i];
+                    real3   dpos    =   readPosition(pData + stride * index,format);
+                    /// 射线方向未归一化,投影参数需除以方向长度平方
+                    real    t       =   FE::dot(dpos - ray.origin(),dir) / denom;
+                    /// 点位于射线起点后方
+                    if (t < 0)
+                        continue;
+                    /// 点到射线的垂距平方,阈值与线段拾取保持一致
+                    real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
+                    if (dist2 > constDistance2)
+                        continue;
+                    /// 取最靠近射线的点,垂距相同时取更近的点
+                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                        continue;
+                    minDist2        =   dist2;
+                    time            =   t;
+                    point           =   dpos;
+                    pickup          =   true;
+                    dist            =   FE::distance(dpos,ray.origin());
+                    result.pickup   =   FEPickup::PR_Point;
+                }
+            }
             break;
         case PRI_LINES           :
             {

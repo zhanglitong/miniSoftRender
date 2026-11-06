@@ -145,9 +145,10 @@ namespace   FE
         /// <param name="attr">属性</param>
         /// <param name="buffer">数据</param>
         template<class T>
-        inline  void    setAttribute(FEAttribute attr,const std::vector<T>& buffer)
+        inline  auto&   setAttribute(FEAttribute attr,const std::vector<T>& buffer)
         {
             getOrCreate(attr).setAttr(attr).setBuffer(buffer.data(),buffer.size()*sizeof(T));
+            return  *this;
         }
         /// <summary>
         /// 获取或者插入

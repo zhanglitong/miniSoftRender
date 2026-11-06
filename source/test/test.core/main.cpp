@@ -3,6 +3,8 @@
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/node/FENodeTree.hpp"
 #include    "../../inc/animation/FEAnimationSys.hpp"
+#include    "../../inc/mesh/FEMesh.hpp"
+#include    "../../inc/math/FERay.hpp"
 
 using   namespace   FE;
 
@@ -10,13 +12,54 @@ namespace
 {
     int     gFailures   =   0;
 
-    void    check(bool ok,const char* msg,int line)
+    void    check(bool ok,const String& msg,int line)
     {
         if (!ok)
         {
-            std::printf("[FAIL] %s (main.cpp:%d)\n",msg,line);
+            std::printf("[FAIL] %s (main.cpp:%d)\n",msg.c_str(),line);
             ++gFailures;
         }
+    }
+
+    bool    nearPoint(const real3& value,const real3& expect)
+    {
+        return  FE::distance2(value,expect) < 1e-12;
+    }
+
+    /// <summary>
+    /// DrawArray(PRI_POINTS) 网格:顶点直接作为待拾取的点
+    /// </summary>
+    Mesh    makeArrayPointMesh(FEContext& ctx,const float3s& poss)
+    {
+        Mesh    mesh    =   new FEMesh(ctx);
+        mesh->setAttribute(FEAttribute(IS_VERTEX_POS,FMT_R32G32B32_FLOAT),poss);
+
+        auto*   pDraw   =   new FEDrawArray(ctx);
+        pDraw->setPrimitive(PRI_POINTS);
+        pDraw->setStart(0);
+        pDraw->setCount(uint32(poss.size()));
+
+        Primitive   pri =   pDraw;
+        mesh->setPrimitives({pri});
+        return  mesh;
+    }
+
+    /// <summary>
+    /// 索引图元(PRI_POINTS) 网格:通过索引挑出部分顶点参与拾取
+    /// </summary>
+    template<class TDRAW,class TINDEX>
+    Mesh    makeIndexedPointMesh(FEContext& ctx,const float3s& poss,const std::vector<TINDEX>& index)
+    {
+        Mesh    mesh    =   new FEMesh(ctx);
+        mesh->setAttribute(FEAttribute(IS_VERTEX_POS,FMT_R32G32B32_FLOAT),poss);
+
+        auto*   pDraw   =   new TDRAW(ctx);
+        pDraw->setPrimitive(PRI_POINTS);
+        pDraw->index()  =   index;
+
+        Primitive   pri =   pDraw;
+        mesh->setPrimitives({pri});
+        return  mesh;
     }
 }
 
@@ -111,12 +154,95 @@ static void testAnimationSys(FEContext& ctx)
     CHECK(sys.animationOf(Object(a.get())) == nullptr,"移除后不应再找到动画");
 }
 
+/// <summary>
+/// 索引图元点拾取:顶点集中索引 3 最靠近射线,索引 2 超出阈值,索引 4 位于射线后方
+/// </summary>
+template<class TDRAW,class TINDEX>
+void    testIndexedPointPickup(FEContext& ctx,const String& name)
+{
+    const   mat4r               mat     =   mat4r(real(1));
+    const   Ray                 ray     =   Ray(real3(0,0,0),real3(0,0,1));
+    const   float3s             poss    =   { float3(0,0,9),float3(0.5f,0,9),float3(3,0,9),float3(0,0,3),float3(0,0,-3) };
+    const   std::vector<TINDEX> all     =   { 0,1,2,3,4 };
+    const   std::vector<TINDEX> subset  =   { 0,1,2 };
+
+    /// 全部索引:最近的 (0,0,3) 命中,超阈值与射线后方的点被过滤
+    {
+        Mesh        mesh    =   makeIndexedPointMesh<TDRAW>(ctx,poss,all);
+        FEPickup    result;
+        CHECK(mesh->intersect(ray,mat,result),name + " 点拾取应命中");
+        CHECK(result.object.get() == mesh.get(),name + " 拾取对象应为当前 mesh");
+        CHECK(result.pickup == FEPickup::PR_Point,name + " 拾取类型应为 PR_Point");
+        CHECK(nearPoint(result.point,real3(0,0,3)),name + " 应拾取垂距最小的点 (0,0,3)");
+        CHECK(std::abs(result.time - 3.0) < 1e-9,name + " 射线参数 t 应为 3");
+        CHECK(std::abs(result.distance - 3.0) < 1e-9,name + " 到拾取点距离应为 3");
+    }
+
+    /// 子集索引:未被索引的最近点 (0,0,3) 不参与拾取,命中 (0,0,9)
+    {
+        Mesh        mesh    =   makeIndexedPointMesh<TDRAW>(ctx,poss,subset);
+        FEPickup    result;
+        CHECK(mesh->intersect(ray,mat,result),name + " 子集索引应命中");
+        CHECK(nearPoint(result.point,real3(0,0,9)),name + " 未索引的顶点不应参与拾取");
+        CHECK(std::abs(result.time - 9.0) < 1e-9,name + " 子集索引射线参数 t 应为 9");
+    }
+}
+
+/// <summary>
+/// 网格点拾取:FEMesh::intersect 的 PRI_POINTS 分支(DrawArray 与三种索引图元)
+/// </summary>
+static void testMeshPointPickup(FEContext& ctx)
+{
+    const   mat4r   mat     =   mat4r(real(1));
+    const   Ray     ray     =   Ray(real3(0,0,0),real3(0,0,1));
+
+    /// 用例 1:DrawArray — 命中垂距最小且在射线前方的点
+    {
+        float3s     poss    =   { float3(0,0,5),float3(1.5f,0,5),float3(2.5f,0,5),float3(0,0,-5) };
+        Mesh        mesh    =   makeArrayPointMesh(ctx,poss);
+        FEPickup    result;
+
+        CHECK(mesh->intersect(ray,mat,result),"DrawArray 点拾取应命中");
+        CHECK(result.object.get() == mesh.get(),"拾取对象应为当前 mesh");
+        CHECK(result.pickup == FEPickup::PR_Point,"拾取类型应为 PR_Point");
+        CHECK(nearPoint(result.point,real3(0,0,5)),"应拾取垂距最小的点 (0,0,5)");
+        CHECK(std::abs(result.time - 5.0) < 1e-9,"射线参数 t 应为 5");
+        CHECK(std::abs(result.distance - 5.0) < 1e-9,"到拾取点距离应为 5");
+
+        /// 非单位方向:射线参数 t 改变,拾取点不变
+        Ray         ray2    =   Ray(real3(0,0,0),real3(0,0,2));
+        FEPickup    result2;
+        CHECK(mesh->intersect(ray2,mat,result2),"非单位方向射线也应命中");
+        CHECK(nearPoint(result2.point,real3(0,0,5)),"非单位方向拾取点应为 (0,0,5)");
+        CHECK(std::abs(result2.time - 2.5) < 1e-9,"非单位方向射线参数 t 应为 2.5");
+    }
+
+    /// 用例 2:候选点全部超出拾取半径或位于射线后方,不应命中
+    {
+        float3s     far     =   { float3(3,0,5),float3(0,3,5) };
+        Mesh        mesh    =   makeArrayPointMesh(ctx,far);
+        FEPickup    result;
+        CHECK(!mesh->intersect(ray,mat,result),"垂距超出阈值的点不应命中");
+
+        float3s     behind  =   { float3(0,0,-5) };
+        Mesh        mesh2   =   makeArrayPointMesh(ctx,behind);
+        FEPickup    result2;
+        CHECK(!mesh2->intersect(ray,mat,result2),"射线后方的点不应命中");
+    }
+
+    /// 用例 3:三种索引格式
+    testIndexedPointPickup<FEDrawElementUint8, uint8 >(ctx,"uint8 索引");
+    testIndexedPointPickup<FEDrawElementUint16,uint16>(ctx,"uint16 索引");
+    testIndexedPointPickup<FEDrawElementUint32,uint32>(ctx,"uint32 索引");
+}
+
 int     main(int,char**)
 {
     FEContext&  ctx =   FEContext::instance();
 
     testNodeTree(ctx);
     testAnimationSys(ctx);
+    testMeshPointPickup(ctx);
 
     if (gFailures == 0)
         std::printf("[PASS] test.core\n");

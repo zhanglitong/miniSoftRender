@@ -21,5 +21,5 @@ target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICOD
 
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "test/font")
 
-# CPU 校验 + 窗口绘制:链接渲染后端插件
-target_link_libraries(${TARGET_NAME} core rs.vulkan rs.webgpu)
+# 纯算法测试:不创建窗口,无需渲染后端插件,仅依赖 core
+target_link_libraries(${TARGET_NAME} core)
