@@ -869,11 +869,6 @@ namespace
         if (system == nullptr)
             return;
         system->setClipTime(_curTime);
-        for (auto& anim : _tree.animations())
-        {
-            if (anim)
-                anim->applyTransform();
-        }
     }
 
     void    FETimeLine::refreshScene()
@@ -889,11 +884,6 @@ namespace
         {
             system->refreshRange();
             system->setClipTime(_curTime);
-        }
-        for (auto& anim : _tree.animations())
-        {
-            if (anim)
-                anim->applyTransform();
         }
     }
 

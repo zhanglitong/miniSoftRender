@@ -272,7 +272,11 @@ namespace   FE
 
         // New create info to define color, depth and stencil attachments at pipeline create time
         VkPipelineRenderingCreateInfoKHR    pRenderingCreateInfo    =   {};
-        VkFormat    colorAttrFormats[]                  =   {VK_FORMAT_R8G8B8A8_UNORM};
+        /// 动态渲染要求管线声明的颜色格式与实际附件一致;
+        /// 未覆盖时沿用引擎默认(R8G8B8A8_UNORM,与交换链/离屏目标一致)
+        VkFormat    colorAttrFormats[]                  =   {info._colorFormatOverride
+                                                            ? system2Native(info._colorFormat)
+                                                            : VK_FORMAT_R8G8B8A8_UNORM};
         pRenderingCreateInfo.sType                      =   VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
         pRenderingCreateInfo.colorAttachmentCount       =   info._colorAttachmentCount;
         pRenderingCreateInfo.pColorAttachmentFormats    =   (info._colorAttachmentCount > 0) ? colorAttrFormats : nullptr;

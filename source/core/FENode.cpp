@@ -288,19 +288,40 @@ namespace   FE
             flags().addFlag(FLAG_PROP_TRANS);
             return  true;
         case PROP_SCALE_X:
-            _local._scale.x    =   (float)std::get<real>(value);
+            if  (std::holds_alternative<real>(value))
+                _local._scale.x =   (float)std::get<real>(value);
+            else if (std::holds_alternative<float>(value))
+                _local._scale.x =   std::get<float>(value);
+            else
+                return  false;
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Y:
-            _local._scale.y    =   (float)std::get<real>(value);
+            if  (std::holds_alternative<real>(value))
+                _local._scale.y =   (float)std::get<real>(value);
+            else if (std::holds_alternative<float>(value))
+                _local._scale.y =   std::get<float>(value);
+            else
+                return  false;
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_Z:
-            _local._scale.z    =   (float)std::get<real>(value);
+            if  (std::holds_alternative<real>(value))
+                _local._scale.z =   (float)std::get<real>(value);
+            else if (std::holds_alternative<float>(value))
+                _local._scale.z =   std::get<float>(value);
+            else
+                return  false;
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         case PROP_SCALE_XYZ:
-            _local._scale      =   std::get<real3>(value);
+            /// 属性文档约定缩放是 float,编辑写入可能是 real3,两种都接受
+            if  (std::holds_alternative<real3>(value))
+                _local._scale  =   float3(std::get<real3>(value));
+            else if (std::holds_alternative<float3>(value))
+                _local._scale  =   std::get<float3>(value);
+            else
+                return  false;
             flags().addFlag(FLAG_PROP_SCALE);
             return  true;
         /// 欧拉角实现:写入累计欧拉角账本,不做 ±180° 归一化
@@ -339,7 +360,17 @@ namespace   FE
          
         case PROP_COLOR_RGB:
             {
-                auto    color   =   std::get<float3>(value);
+                /// 颜色轨道采样值是 uint8x4(0~255),编辑写入是 float3(0~1),两种都要兼容
+                float3  color   =   float3(0.0f);
+                if  (std::holds_alternative<float3>(value))
+                    color   =   std::get<float3>(value);
+                else if (std::holds_alternative<uint8x4>(value))
+                {
+                    const   auto&   rgba    =   std::get<uint8x4>(value);
+                    color   =   float3(rgba.r,rgba.g,rgba.b) / 255.0f;
+                }
+                else
+                    return  false;
                 _color._value.r =   (uint8)(color.r * 255.0f);
                 _color._value.g =   (uint8)(color.g * 255.0f);
                 _color._value.b =   (uint8)(color.b * 255.0f);
@@ -348,7 +379,14 @@ namespace   FE
             return  true;
         case PROP_COLOR_ALPHA:
             {
-                auto    alpha   =   std::get<float>(value);
+                /// alpha 轨道采样值是 uint8(0~255),编辑写入是 float(0~1)
+                float   alpha   =   0.0f;
+                if  (std::holds_alternative<float>(value))
+                    alpha   =   std::get<float>(value);
+                else if (std::holds_alternative<uint8>(value))
+                    alpha   =   std::get<uint8>(value) / 255.0f;
+                else
+                    return  false;
                 _color._value.a =   (uint8)(alpha * 255.0f);
                 flags().addFlag(FLAG_PROP_COLOR);
             }
@@ -399,6 +437,11 @@ namespace   FE
             return  {};
         }
     }
+    bool    FENode::hasRotationPivot() const
+    {
+        return  hasRotationCenter();
+    }
+
     void    FENode::endSetProp(const real& tm,bool bModify)
     {
         UNUSED(bModify);

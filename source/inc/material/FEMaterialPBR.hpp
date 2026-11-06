@@ -4,7 +4,6 @@
 #include    "../graphic/FEDevice.h"
 #include    "FEMaterial.hpp"
 
-
 namespace   FE
 {
     DEFINE_CLASS_UUID(FEMaterialPBR,"{C253DF90-EA68-44D6-9558-68D244EE0066}");
@@ -232,6 +231,7 @@ namespace   FE
             _emissiveMap   =   other._emissiveMap;
             _environmentMap =  other._environmentMap;
             _irradianceMap  =  other._irradianceMap;
+            _envUserSet     =  other._envUserSet;
             _brdfLUT        =  other._brdfLUT;
             _iriThicknessMap = other._iriThicknessMap;
             _sceneTexMap    =   other._sceneTexMap;
@@ -295,6 +295,29 @@ namespace   FE
         {
             _environmentMap = (tex != nullptr) ? tex : createDefaultCube(float4(0,0,0,1));
             _irradianceMap  = (irradiance != nullptr) ? irradiance : _environmentMap;
+            /// 用户显式挂接环境贴图后,不再被场景烘焙的天空环境覆盖
+            _envUserSet     = (tex != nullptr);
+            setTexFlag(PBR_TEX_ENVIRONMENT, tex != nullptr);
+            bind(0,BIND_ENVIRONMENT,{_environmentMap.get()});
+            bind(0,BIND_IRRADIANCE,{_irradianceMap.get()});
+            _pbr.update(); _texParams.update(); update();
+        }
+        /// <summary>
+        /// 场景烘焙的天空环境贴图(由 FEScene 在重烘后统一分发):
+        /// 仅在用户未显式 setEnvironmentMap 时生效。烘焙贴图是线性 HDR
+        /// (已乘曝光与天空开关),与解析天空 IBL 同量级,PBR 只需采样,不再逐像素求值
+        /// </summary>
+        inline  void    setSkyEnvironment(TexPtr tex,TexPtr irradiance = nullptr)
+        {
+            if (_envUserSet)
+                return;
+            TexPtr  irr =   (irradiance != nullptr) ? irradiance : tex;
+            /// 已生效时直接返回:重烘每帧都会调用,避免重复绑定描述符
+            if (_environmentMap == tex && _irradianceMap == irr
+                && (_texParams._value._flags & PBR_TEX_ENVIRONMENT) != 0u)
+                return;
+            _environmentMap = tex;
+            _irradianceMap  = irr;
             setTexFlag(PBR_TEX_ENVIRONMENT, tex != nullptr);
             bind(0,BIND_ENVIRONMENT,{_environmentMap.get()});
             bind(0,BIND_IRRADIANCE,{_irradianceMap.get()});
@@ -566,14 +589,63 @@ namespace   FE
         virtual void        deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
         virtual void        beginSetProp()
         {}
+        /// <summary>
+        /// 动画/编辑器通过属性接口驱动材质:当前只暴露基础色与不透明度
+        /// </summary>
         virtual bool        setProperty(int prop,const KFValue& value)
         {
-            UNUSED(prop);
-            UNUSED(value);
-            return  false;
+            switch  (prop)
+            {
+            case    PROP_COLOR_RGB:
+                {
+                    /// 颜色轨道采样值是 uint8x4(0~255),编辑写入是 float3(0~1)
+                    float3  color;
+                    if  (std::holds_alternative<float3>(value))
+                        color   =   std::get<float3>(value);
+                    else if (std::holds_alternative<uint8x4>(value))
+                    {
+                        const   auto&   rgba    =   std::get<uint8x4>(value);
+                        color   =   float3(rgba.r,rgba.g,rgba.b) / 255.0f;
+                    }
+                    else
+                        return  false;
+                    _pbr._value._diffuse.x  =   color.r;
+                    _pbr._value._diffuse.y  =   color.g;
+                    _pbr._value._diffuse.z  =   color.b;
+                }
+                break;
+            case    PROP_COLOR_ALPHA:
+                {
+                    /// alpha 轨道采样值是 uint8(0~255),编辑写入是 float(0~1)
+                    if  (std::holds_alternative<float>(value))
+                        _pbr._value._diffuse.w  =   std::get<float>(value);
+                    else if (std::holds_alternative<uint8>(value))
+                        _pbr._value._diffuse.w  =   std::get<uint8>(value) / 255.0f;
+                    else
+                        return  false;
+                }
+                break;
+            default:
+                return  false;
+            }
+            _pbr.update();
+            return  true;
         }
-        virtual void        endSetProp(bool bModify)
+        virtual KFValue     getProperty(int prop) const
         {
+            switch  (prop)
+            {
+            case    PROP_COLOR_RGB:
+                return  float3(_pbr._value._diffuse);
+            case    PROP_COLOR_ALPHA:
+                return  _pbr._value._diffuse.w;
+            default:
+                return  {};
+            }
+        }
+        virtual void        endSetProp(const real& tm,bool bModify) override
+        {
+            UNUSED(tm);
             UNUSED(bModify);
         }
     protected:
@@ -723,6 +795,11 @@ namespace   FE
         /// 漫反射辐照度 cubemap(球谐预卷积,IBL 漫反射用;缺省复用 _environmentMap)
         /// </summary>
         TexPtr              _irradianceMap;
+        /// <summary>
+        /// 环境贴图是否由用户显式指定(setEnvironmentMap):
+        /// 为 true 时场景烘焙的天空环境不再覆盖它
+        /// </summary>
+        bool                _envUserSet     =   false;
         /// <summary>
         /// IBL split-sum BRDF 积分 LUT(RG float;缺省 (1,0) 常量,行为同旧版)
         /// </summary>

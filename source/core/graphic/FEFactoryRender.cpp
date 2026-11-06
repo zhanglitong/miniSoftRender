@@ -589,13 +589,17 @@ namespace   FE
                 }
                 continue;
             }
+            /// 关闭 GPU 裁剪时(clamp 为 0 或渲染探针等旁路相机)必须用完整
+            /// 命令缓冲:_indirectClip 只剩主相机上一帧裁剪通过的命令,
+            /// 直接按 cmdCount 读会取到缺失/错位的命令
+            auto    indirect    =   gpuCull ? _indirectClip : _indirectFull;
             if (isArray)
             {
-                cmd->drawArrayIndirect(_indirectClip,   offset, nCmd,sizeof(FECmdIndex));
+                cmd->drawArrayIndirect(indirect,    offset, nCmd,sizeof(FECmdIndex));
             }
             else
             {
-                cmd->drawIndexedIndirect(_indirectClip, offset, nCmd,sizeof(FECmdIndex));
+                cmd->drawIndexedIndirect(indirect,  offset, nCmd,sizeof(FECmdIndex));
             }
         }
         };

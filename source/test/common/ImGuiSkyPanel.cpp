@@ -370,7 +370,7 @@ namespace   FE
             _elevation  =   65.0f;  _azimuth    =   0.0f;
             _darkWhenSunHidden  =   true;
             _cloudCoverage  =   0.4f;   _cloudDensity   =   0.4f;
-            _cloudElevation =   0.5f;   _cloudSpeed     =   0.00002f;
+            _cloudElevation =   0.5f;   _cloudSpeed     =   0.0002f;
             sky->setTurbidity(_turbidity);
             sky->setRayleigh(_rayleigh);
             sky->setMieCoefficient(_mie);

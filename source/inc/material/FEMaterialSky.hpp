@@ -17,10 +17,14 @@ namespace   FE
     public:
         IMPLEMENT_CLASS_REFLECT_MINI(FEMaterialSky)
     public:
-        FEMaterialSky(FEContext& ctx)
+        /// <summary>
+        /// 天空盒材质;pipeline 默认 "sky"(天空盒:色调映射 + sRGB 编码输出),
+        /// 环境烘焙时为 "skyenv"(输出线性 HDR,供 FESkyEnvironment 烘进 cubemap)
+        /// </summary>
+        FEMaterialSky(FEContext& ctx,const String& pipeline = "sky")
             :FEMaterial(ctx)
         {
-            setup("sky");
+            setup(pipeline);
             /// <summary>
             /// 自动关联内置 UBO(camera/全局 UBO 等)
             /// </summary>

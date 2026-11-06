@@ -128,10 +128,13 @@ namespace   FE
     }
     void    FEViewer::onRender(const MsgRender& msg)
     {
-        /// 渲染目标尺寸优先取 FBO,否则取场景渲染尺寸(无头模式没有窗口,
+        /// 渲染目标尺寸优先取显式覆盖(反射探针),其次 FBO,
+        /// 否则取场景渲染尺寸(无头模式没有窗口,
         /// windowsWidth/Height 会返回 MaxUint32)
-        uint    width   =   _fbo ? _fbo->cInfo()._width : _ctx.scene()->renderSize().x;
-        uint    height  =   _fbo ? _fbo->cInfo()._height: _ctx.scene()->renderSize().y;
+        uint    width   =   _viewW ? _viewW
+                            : (_fbo ? _fbo->cInfo()._width : _ctx.scene()->renderSize().x);
+        uint    height  =   _viewH ? _viewH
+                            : (_fbo ? _fbo->cInfo()._height: _ctx.scene()->renderSize().y);
         auto    cmd     =   msg._info._cmdBuffer;
         FECmdBuffer::Viewport   viewPort    =   
         {

@@ -46,6 +46,13 @@ namespace   FE
             bool                _premultipliedAlpha =   false;
             uint32_t            _colorAttachmentCount = 1;      // OIT geometry pass: 0
             int                 _cullModeOverride    =   -1;     // -1=默认BACK, 0=NULL, 1=FRONT, 2=BACK, 3=FRONT_AND_BACK
+            /// <summary>
+            /// 颜色附件格式覆盖:默认由后端决定(渲染到交换链格式)。
+            /// 需要渲染到不同格式的目标时(如天空环境烘焙的 RGBA16F cubemap)
+            /// 必须在管线创建时声明,否则动态渲染的格式校验会失败
+            /// </summary>
+            FEFormat            _colorFormat        =   FMT_R8G8B8A8_UNORM;
+            bool                _colorFormatOverride =   false;
         };
     public:
         FEPipeline(FEContext& ctx)

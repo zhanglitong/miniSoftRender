@@ -383,6 +383,15 @@ namespace   FE
             return  {};
         }
         /// <summary>
+        /// 对象是否支持绕轴心回放:位置与旋转同时被批量写入后,
+        /// 由驱动方按轴心重建位置(圆弧)而不是按位置插值(弦线)
+        /// 默认不支持,具备轴心语义的对象(如 FENode)实现
+        /// </summary>
+        virtual bool        hasRotationPivot() const
+        {
+            return  false;
+        }
+        /// <summary>
         /// 动画系统独有接口
         /// @ref setProperty 返回结果作为输入参数，用来决定是否需要更新操作
         /// </summary>

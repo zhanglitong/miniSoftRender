@@ -109,14 +109,6 @@ namespace   FE
         {
             return  0.0f;
         }
-        /// <summary>
-        /// 获取组件的变换数据,返回有效指针则参与节点变换混合计算
-        /// </summary>
-        /// <returns>组件变换指针,无效则不参与计算</returns>
-        virtual FETransform*    getTransform()
-        {
-            return  nullptr;
-        }
     protected:
         /// <summary>
         /// 组件的拥有者

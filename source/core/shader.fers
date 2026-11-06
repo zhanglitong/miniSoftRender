@@ -33,6 +33,7 @@
 			<folder path="sky">
 				<file name="shader/cache/sky/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/sky/shader.vert.spv" input="shader.vert.spv"/>
+				<file name="shader/cache/sky/shader_env.frag.spv" input="shader_env.frag.spv"/>
 			</folder>
 			<folder path="text">
 				<file name="shader/cache/text/shader.frag.spv" input="shader.frag.spv"/>
@@ -105,6 +106,7 @@
 				<file name="shader/source/sky/shader.vert" input="shader.vert"/>
 				<file name="shader/source/sky/shader.wgls" input="shader.wgls"/>
 				<file name="shader/source/sky/shader.wgls.softened.bak" input="shader.wgls.softened.bak"/>
+				<file name="shader/source/sky/shader_env.frag" input="shader_env.frag"/>
 			</folder>
 			<folder path="text">
 				<file name="shader/source/text/shader.frag" input="shader.frag"/>

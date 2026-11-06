@@ -23,6 +23,7 @@
 #include    "../inc/graphic/FEFactoryAxisScale.hpp"
 #include    "../inc/graphic/FESceneBrowse.h"
 #include    "../inc/component/FESkyComponent.hpp"
+#include    "../inc/material/FEMaterialPBR.hpp"
 #include    "FEOffscreenSwapchain.h"
 
 namespace   FE
@@ -85,6 +86,31 @@ namespace   FE
         return  (_sky != nullptr)
                 ?   const_cast<FESkyComponent*>(_sky->as<FESkyComponent>())
                 :   nullptr;
+    }
+
+    void    FEScene::applySkyEnvironment()
+    {
+        if (_skyEnv == nullptr || !_skyEnv->isValid())
+            return;
+
+        TexPtr  cube    =   _skyEnv->cube();
+        auto    factorys    =   _factorys.objects();
+        for (auto& factory : factorys)
+        {
+            if (factory == nullptr)
+                continue;
+            for (auto& group : factory->groups())
+            {
+                Material    mat =   (group != nullptr) ? group->material() : nullptr;
+                if (mat == nullptr)
+                    continue;
+                /// 只替换未显式指定环境贴图的 PBR 材质:
+                /// 显式设置过的(如玻璃球反射探针)保持自己的 cubemap
+                /// 必须用 cast(dynamic_cast) 做类型检查:as 是无校验的强制转换
+                if (FEMaterialPBR*  pbr =   mat->cast<FEMaterialPBR>())
+                    pbr->setSkyEnvironment(cube);
+            }
+        }
     }
 
     bool    FEScene::setup(App app,const FEUuid& rendererId)
@@ -222,6 +248,17 @@ namespace   FE
         }};
         /// 创建默认天空盒(默认启动:天空节点自动加入渲染工厂,太阳同步主方向光)
         createSky();
+        /// 天空环境烘焙:把天空渲进 cubemap 供 PBR 采样(必须在天空节点/UBO 就绪之后)。
+        /// 创建失败时 _skyEnv 为 nullptr,材质自动回退到解析天空
+        if (_sky != nullptr)
+        {
+            _skyEnv =   new FESkyEnvironment(_ctx);
+            if (!_skyEnv->setup(*this))
+            {
+                LOG_ERR("FEScene::initialize: create sky environment failed, fallback to analytic sky");
+                _skyEnv =   nullptr;
+            }
+        }
         /// 创建网格
         _gridNode   =   createGrid();
         /// 创建工具
@@ -235,6 +272,10 @@ namespace   FE
         {
             _device->waitIdle();
         }
+        /// 反射探针持有 cubemap/深度等 GPU 资源,必须在 device 销毁前释放
+        _probes.clear();
+        /// 天空环境烘焙同样持有 cubemap/深度/私有渲染工厂,先于 device 释放
+        _skyEnv =   nullptr;
         _swapchain  =   nullptr;
         _updateQueue.queue().clear();
 
@@ -396,6 +437,14 @@ namespace   FE
             var->updateObjectList();
         }
 
+        /// 默认天空节点只挂了 resident 渲染工厂,没有注册进组件系统(不参与剔除与 clear),
+        /// 所以组件系统的循环不会驱动它。云动画时间(_anim.x)与自动日升日落都依赖 update(),
+        /// 必须在这里单独推进一步,否则云速/自动太阳设了也没有效果。
+        if (_sky != nullptr)
+        {
+            _sky->update(_ctx.deltaTime());
+        }
+
         /// 渲染工厂
         auto    factorys    =   _factorys.objects();
         /// 按照优先级排序
@@ -448,6 +497,32 @@ namespace   FE
         rsInfo._rect.set(0,0,width,height);
 
         auto    cmd = _frame->_cmd;
+
+        /// 天空环境烘焙:把程序化天空渲进 cubemap,PBR 采样代替逐像素解析求值。
+        /// 天空外观参数变化时立即重烘,云动画按约 12Hz 限频重烘。
+        /// 烘焙会改写全局相机 UBO,结束后必须恢复主相机数据
+        if (_skyEnv != nullptr && _skyEnv->isValid())
+        {
+            FESkyComponent* skyComp =   sky();
+            const   bool    dirty   =   (skyComp != nullptr) && skyComp->consumeEnvDirty();
+            _skyEnvTimer    +=  _ctx.deltaTime();
+            if (dirty || _skyEnvTimer >= real(1.0) / real(12.0))
+            {
+                if (_skyEnv->bake(*this,cmd))
+                    applySkyEnvironment();
+                writeCameraData(cmd,_camera);
+                _skyEnvTimer    =   real(0);
+            }
+        }
+
+        /// 反射探针:主趟之前逐面捕获 cubemap。捕获会改写全局相机 UBO,
+        /// 结束后必须重写主相机数据,否则主画面会用最后一面探针相机渲染
+        if (!_probes.empty())
+        {
+            for (auto& probe : _probes)
+                probe->capture(*this,cmd);
+            writeCameraData(cmd,_camera);
+        }
 
         if (_oitManager)
         {
@@ -617,6 +692,58 @@ namespace   FE
     void    FEScene::resize(uint width,uint height)
     {
         resize(MsgResize(uint2(width,height)));
+    }
+
+    ReflectionProbe FEScene::createReflectionProbe(Node owner,uint size)
+    {
+        if (_device == nullptr)
+            return  nullptr;
+        ReflectionProbe probe   =   new FEReflectionProbe(_ctx);
+        if (!probe->setup(owner,swapchainColorFormat(),size))
+        {
+            LOG_ERR("FEScene::createReflectionProbe failed");
+            return  nullptr;
+        }
+        _probes.push_back(probe);
+        return  probe;
+    }
+
+    void    FEScene::writeCameraData(CMDPtr cmd,const Camera& camera)
+    {
+        if (_device == nullptr || cmd == nullptr || camera == nullptr)
+            return;
+        auto    cached  =   _device->queryCache(FEConstUuid::CameraUBOId);
+        GPUBuffer   gpu =   (cached != nullptr) ? cached->as<FEGPUBuffer>() : nullptr;
+        if (gpu == nullptr)
+            return;
+
+        CameraData  data;
+        mat4r       view        =   camera->getView();
+        mat4r       proj        =   camera->getProject();
+        mat4r       vp          =   proj * view;
+        real3       eye         =   camera->getEye();
+
+        data._v                 =   view;
+        data._p                 =   proj;
+        data._vp                =   vp;
+        data._offset.x          =   (int)eye.x;
+        data._offset.y          =   (int)eye.y;
+        data._offset.z          =   (int)eye.z;
+        data._offset.w          =   0;
+        data._decimal.x         =   float(eye.x - data._offset.x);
+        data._decimal.y         =   float(eye.y - data._offset.y);
+        data._decimal.z         =   float(eye.z - data._offset.z);
+        data._decimal.w         =   0;
+
+        mat4r   matOffset       =   glm::translate(mat4r(1),real3(data._offset.x, data._offset.y, data._offset.z));
+        data._offsetVp          =   vp * matOffset;
+        data._upDir             =   float4(float3(camera->getUp()),    0.0f);
+        data._rightDir          =   float4(float3(camera->getRight()), 0.0f);
+
+        /// 必须用 updateBuffer:它把数据内联进命令流(录制时固化)。
+        /// 若用 copyBuffer 从 host 缓冲拷贝,同一帧内多次写入(反射探针逐面切换相机)
+        /// 在提交时只会读到最后一帧内容,所有面都会用同一台相机渲染
+        cmd->updateBuffer(gpu,&data,sizeof(CameraData),0);
     }
 
     void    FEScene::onMessage(const FEMessage& msgIn)

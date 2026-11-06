@@ -636,6 +636,10 @@ namespace   FE
         /// </summary>
         /// <param name="bModify"></param>
         virtual void    endSetProp(const real& tm,bool bModify) override;
+        /// <summary>
+        /// 是否支持绕轴心回放(由 FLAG_ROTATION_CENTER 决定)
+        /// </summary>
+        virtual bool    hasRotationPivot() const override;
     protected:
         /// <summary>
         /// 允许 FENodeHelper 维护组件列表顺序,安全修改组件优先级

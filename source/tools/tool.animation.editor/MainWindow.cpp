@@ -751,8 +751,8 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
                     }
                     else if (status == FE::FEEditAxis::Editting)
                     {
-                        /// 拖动过程中的即时反馈:动画覆盖本地变换后,节点本地位置不再直接生效,
-                        /// 必须把拖出的位置同步到动画采样变换,并在当前时间写入/覆盖关键帧
+                        /// 拖动过程中的即时反馈:节点本地值即时更新,
+                        /// 并在当前时间写入/覆盖关键帧,下一帧采样即可反映新值
                         auto    ed  =   this->scene()->inputSystem()->query(UUIDOF(FENodeMoveEditor));
                         auto    me  =   ed ? ed->as<FENodeMoveEditor>() : nullptr;
                         if  (!me)
@@ -770,7 +770,6 @@ void    MainWindow::notifyEngineStart(FEScene& scene)
                                 FE::Animation   anim(animPtr);
                                 if  (!FE::PropertyKeyCmd::isDriven(anim, FE::PROP_TRANSFORM_XYZ))
                                     continue;
-                                FE::PropertyKeyCmd::syncFromNode(anim, node, FE::PROP_TRANSFORM_XYZ);
                                 if  (FE::PropertyKeyCmd::hasKeyAt(anim, FE::PROP_TRANSFORM_XYZ, tm))
                                     FEAnimationHelper::updateNodeKeyFrame(anim, tm, node
                                         , FE::NodeProperyBits(FE::NP_TRANSFORM_XYZ));

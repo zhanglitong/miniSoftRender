@@ -643,7 +643,8 @@ namespace FE
         /// </summary>
         String          _name;
     };
-
+    using   KFTrack             =   SharedPtr<FEKeyFrameTrack>;
+    using   KFTracks            =   std::vector<KFTrack>;
     using   KeyFrameTrack       =   SharedPtr<FEKeyFrameTrack>;
     using   KeyFrameTracks      =   std::vector<KeyFrameTrack>;
 }

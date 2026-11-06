@@ -188,12 +188,6 @@ namespace   FE
 
         virtual void    clear()
         {
-            /// 清除播放器前把被动画覆盖的节点本地变换恢复到原始值
-            for (auto& var : _playbacks)
-            {
-                for (auto& anim : var.second->objects())
-                    anim->restoreLocal();
-            }
             _playbacks.clear();
         }
         /// <summary>

@@ -92,4 +92,18 @@ namespace   FE
         else
             return  nullptr;
     }
+    GImgView    VKGImage::createView(uint baseMip,uint levelCount,uint baseLayer,uint layerCount)
+    {
+        GImgView                    view    =   new VKGImageView(_ctx);
+        VKGImageView::CreateInfo    info    =   {};
+        info._image         =   this;
+        info._baseMip       =   baseMip;
+        info._levelCount    =   levelCount;
+        info._baseLayer     =   baseLayer;
+        info._layerCount    =   layerCount;
+        if (view->create(info))
+            return  view;
+        else
+            return  nullptr;
+    }
 }

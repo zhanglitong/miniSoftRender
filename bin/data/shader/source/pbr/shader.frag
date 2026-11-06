@@ -471,7 +471,9 @@ void main()
         vec2 brdf;
         if (hasEnvTex)
         {
-            irradiance  = texture(u_IrradianceMap, n).rgb;
+            /// 漫反射:取较高的 mip 近似余弦卷积(烘焙天空 cubemap 带完整 mip 链);
+            /// 只有单级 mip 的环境贴图(反射探针)会被采样器钳制回 mip0,行为不变
+            irradiance  = textureLod(u_IrradianceMap, n, maxLod * 0.75).rgb;
             prefiltered = textureLod(u_EnvironmentMap, R, roughness * maxLod).rgb;
             brdf        = texture(u_BRDFLUT, vec2(NdotV, roughness)).rg;
         }

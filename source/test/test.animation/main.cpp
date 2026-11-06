@@ -3,7 +3,7 @@
 ///   1. 节点自身本地变换: 位置(3,1,0)、缩放(2,2,2)、绕 Z 轴 30 度
 ///   2. 动画仅含位置轨道: 0s -> (-0.4,0,0),2s -> (0.4,0,0)
 ///   3. 断言采样位置覆盖节点本地位置;未打帧的缩放/旋转保持节点本地值
-///   4. 断言动画停用后节点回落到自身本地变换
+///   4. 断言动画停用后节点保持最后一次采样姿态(不回退)
 /// 用法: test.animation.exe [--vulkan|--webgpu] [--pingpong]
 
 #include    <iostream>
@@ -142,14 +142,14 @@ int     main(int argc, char** argv)
     quatr   qz30    =   quatr(glm::radians(real3(0.0,0.0,30.0)));
     checkReal("保留:绕 Z 旋转",std::abs((real)glm::dot(grot,qz30)),1.0);
 
-    /// 6. 断言:动画停用后节点回落到自身本地变换
+    /// 6. 断言:动画停用后节点保持最后一次采样姿态(不回退)
     anim->setEnable(false);
     anim->update(1.0);
     node->update();
     FE::decompose<real>(node->globalTransform(),gpos,gscl,grot);
     std::cout << "disabled pos=[" << gpos.x << "," << gpos.y << "," << gpos.z << "]" << std::endl;
-    checkReal("回落:位置 X",gpos.x,3.0);
-    checkReal("回落:位置 Y",gpos.y,1.0);
+    checkReal("停用后:位置 X",gpos.x,0.0);
+    checkReal("停用后:位置 Y",gpos.y,0.0);
 
     /// 6.5 编辑轴回归:编辑只改节点、不写关键帧(打帧是独立动作);
     ///     暂停期间不再每帧采样,编辑结果被保留;打帧后采样回放编辑结果
@@ -265,18 +265,15 @@ int     main(int argc, char** argv)
         }
         checkReal("打帧读账本:末帧 Z",lastKeyZ,720.0);
         anim8->update(1.0);
-        FETransform*    tf8 =   anim8->getTransform();
-        if (tf8 == nullptr)
+        if (!anim8->isContributing())
         {
             std::cout << "[FAIL] 多圈:采样变换为空" << std::endl;
             passed  =   false;
         }
         else
         {
-            checkReal("多圈插值:中点 Z",(real)tf8->euler().z,360.0);
-            checkReal("多圈插值:账本有效",tf8->eulerValid() ? 1.0 : 0.0,1.0);
-            anim8->applyTransform();
-            checkReal("多圈回写:节点账本 Z",node8->localEuler().z,360.0);
+            checkReal("多圈插值:中点 Z",node8->localEuler().z,360.0);
+            checkReal("多圈插值:账本有效",node8->localEulerValid() ? 1.0 : 0.0,1.0);
         }
     }
 
@@ -321,14 +318,14 @@ int     main(int argc, char** argv)
         checkReal("属性:XYZ 往返 X",eXYZ.x,10.0);
         checkReal("属性:XYZ 往返 Y",eXYZ.y,20.0);
         checkReal("属性:XYZ 往返 Z",eXYZ.z,30.0);
-        /// FETransformPivot(动画内部副本)的账本语义必须与 FETransform 一致
-        FETransformPivot    pv;
-        pv.setEuler(float3(0.0f,0.0f,720.0f));
-        checkReal("枢轴:setEuler 账本 Z",(real)pv.euler().z,720.0);
-        pv.setRotation(pv.rotation());
-        checkReal("枢轴:同值四元数保持",(real)pv.euler().z,720.0);
-        pv.setRotation(quatf(glm::radians(float3(0.0f,0.0f,90.0f))));
-        checkReal("枢轴:异值失效",pv.eulerValid() ? 1.0 : 0.0,0.0);
+        /// 动画采样副本使用 FETransform,账本语义必须与节点一致
+        FETransform tfS;
+        tfS.setEuler(float3(0.0f,0.0f,720.0f));
+        checkReal("采样副本:setEuler 账本 Z",(real)tfS.euler().z,720.0);
+        tfS.setRotation(tfS.rotation());
+        checkReal("采样副本:同值四元数保持",(real)tfS.euler().z,720.0);
+        tfS.setRotation(quatf(glm::radians(float3(0.0f,0.0f,90.0f))));
+        checkReal("采样副本:异值失效",tfS.eulerValid() ? 1.0 : 0.0,0.0);
         /// setRotationUnwrapped 以参考角展开
         FETransform tfU;
         tfU.setEuler(float3(0.0f,0.0f,725.0f));
@@ -352,8 +349,8 @@ int     main(int argc, char** argv)
                 track->_type    =   FEKeyFrameTrack::IT_Bezier;
         }
         animB->update(1.0);
-        if (animB->getTransform() != nullptr)
-            checkReal("插值:贝塞尔中点 Z",(real)animB->getTransform()->euler().z,360.0);
+        if (animB->isContributing())
+            checkReal("插值:贝塞尔中点 Z",nodeB->localEuler().z,360.0);
         /// 常量插值:保持起始帧
         for (auto track : clipB->tracks())
         {
@@ -361,8 +358,8 @@ int     main(int argc, char** argv)
                 track->_type    =   FEKeyFrameTrack::IT_Constant;
         }
         animB->update(1.0);
-        if (animB->getTransform() != nullptr)
-            checkReal("插值:常量中点 Z",(real)animB->getTransform()->euler().z,0.0);
+        if (animB->isContributing())
+            checkReal("插值:常量中点 Z",nodeB->localEuler().z,0.0);
 
         /// 反向多圈 0→-720:中点 -360
         Node    nodeR   =   new FENode(ctx);
@@ -372,11 +369,9 @@ int     main(int argc, char** argv)
         nodeR->addComponent(Component(animR.get()));
         scene->dispatchNodesToSystem({nodeR});
         animR->update(1.0);
-        if (animR->getTransform() != nullptr)
+        if (animR->isContributing())
         {
-            checkReal("插值:反向中点 Z",(real)animR->getTransform()->euler().z,-360.0);
-            animR->applyTransform();
-            checkReal("插值:反向回写节点 Z",nodeR->localEuler().z,-360.0);
+            checkReal("插值:反向中点 Z",nodeR->localEuler().z,-360.0);
         }
 
         /// 标量轨道 PROP_ROTATE_Z 多圈:中点 360,末点 720
@@ -387,11 +382,11 @@ int     main(int argc, char** argv)
         nodeS->addComponent(Component(animS.get()));
         scene->dispatchNodesToSystem({nodeS});
         animS->update(1.0);
-        if (animS->getTransform() != nullptr)
-            checkReal("插值:标量轨道中点 Z",(real)animS->getTransform()->euler().z,360.0);
+        if (animS->isContributing())
+            checkReal("插值:标量轨道中点 Z",nodeS->localEuler().z,360.0);
         animS->update(2.0);
-        if (animS->getTransform() != nullptr)
-            checkReal("插值:标量轨道末点 Z",(real)animS->getTransform()->euler().z,720.0);
+        if (animS->isContributing())
+            checkReal("插值:标量轨道末点 Z",nodeS->localEuler().z,720.0);
 
         /// 四元数轨道(PROP_QUAT)只能表示朝向:slerp 走最短弧,账本必然失效,
         /// 这是固有上限,用断言固化该行为,避免以后误判为 bug
@@ -405,14 +400,14 @@ int     main(int argc, char** argv)
         nodeQ->addComponent(Component(animQ.get()));
         scene->dispatchNodesToSystem({nodeQ});
         animQ->update(1.0);
-        if (animQ->getTransform() != nullptr)
+        if (animQ->isContributing())
         {
-            checkReal("插值:四元数中点朝向",std::abs((real)glm::dot(quatr(animQ->getTransform()->rotation()),q90)),1.0);
-            checkReal("插值:四元数账本失效",animQ->getTransform()->eulerValid() ? 1.0 : 0.0,0.0);
+            checkReal("插值:四元数中点朝向",std::abs((real)glm::dot(quatr(nodeQ->localRotation()),q90)),1.0);
+            checkReal("插值:四元数账本失效",nodeQ->localEulerValid() ? 1.0 : 0.0,0.0);
         }
     }
 
-    /// 6.11 动画停用后恢复节点原始累计账本(而不是回落到 ±180)
+    /// 6.11 动画停用后节点保持最后一次采样账本(不做回退)
     {
         Node    nodeT   =   new FENode(ctx);
         nodeT->setLocalEuler(real3(0.0,0.0,720.0));
@@ -422,10 +417,10 @@ int     main(int argc, char** argv)
         nodeT->addComponent(Component(animT.get()));
         scene->dispatchNodesToSystem({nodeT});
         animT->update(1.0);
-        checkReal("恢复前:采样 Z",nodeT->localEuler().z,90.0);
+        checkReal("停用前:采样 Z",nodeT->localEuler().z,90.0);
         animT->setEnable(false);
         animT->update(1.0);
-        checkReal("停用后:恢复原始账本 Z",nodeT->localEuler().z,720.0);
+        checkReal("停用后:保持采样账本 Z",nodeT->localEuler().z,90.0);
         checkReal("停用后:账本有效",nodeT->localEulerValid() ? 1.0 : 0.0,1.0);
     }
 

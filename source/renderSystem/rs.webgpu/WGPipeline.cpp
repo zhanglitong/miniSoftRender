@@ -188,7 +188,10 @@ namespace   FE
         blendState.alpha.operation  =   WGPUBlendOperation_Add;
 
         WGPUColorTargetState colorTarget = {};
-        colorTarget.format          =   WGPUTextureFormat_BGRA8Unorm;
+        /// 与管线声明的颜色附件格式一致;未覆盖时沿用引擎默认(BGRA8Unorm)
+        colorTarget.format          =   info._colorFormatOverride
+                                        ? system2Native(info._colorFormat)
+                                        : WGPUTextureFormat_BGRA8Unorm;
         colorTarget.blend           =   &blendState;
         colorTarget.writeMask       =   WGPUColorWriteMask_All;
 

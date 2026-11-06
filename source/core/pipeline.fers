@@ -10,6 +10,7 @@
 		<file name="pipeline/pbrSScaled.xml" input="pbrSScaled.xml"/>
 		<file name="pipeline/point.xml" input="point.xml"/>
 		<file name="pipeline/sky.xml" input="sky.xml"/>
+		<file name="pipeline/skyenv.xml" input="skyenv.xml"/>
 		<file name="pipeline/text.xml" input="text.xml"/>
 		<file name="pipeline/texture.xml" input="texture.xml"/>
 		<file name="pipeline/v3.xml" input="v3.xml"/>

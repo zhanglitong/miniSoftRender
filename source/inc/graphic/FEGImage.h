@@ -81,6 +81,15 @@ namespace   FE
             UNUSED(baseMip,levelCount);
             return  createView();  
         }
+        /// <summary>
+        /// 创建覆盖指定 mip + 层范围的 imageView(baseLayer/layerCount 非 0 时建 2D 视图)
+        /// 默认忽略层范围,退回 mip 版本;支持逐面渲染的后端(如 Vulkan)需重写
+        /// </summary>
+        virtual GImgView    createView(uint baseMip,uint levelCount,uint baseLayer,uint layerCount)
+        {
+            UNUSED(baseLayer,layerCount);
+            return  createView(baseMip,levelCount);
+        }
         virtual bool        resize(const uint3& dims,uint layer,uint mips) 
         {
             if (   dims.x == _cInfo._width 

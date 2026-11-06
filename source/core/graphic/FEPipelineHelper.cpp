@@ -66,6 +66,13 @@ namespace   FE
         auto    aCullMode   =   root->first_attribute("cullMode");
         if (aCullMode != nullptr)
             cInfo._cullModeOverride =   atoi(aCullMode->value());
+        /// 颜色附件格式覆盖:动态渲染要求管线在创建时声明与目标一致的格式
+        auto    aColorFmt   =   root->first_attribute("colorFormat");
+        if (aColorFmt != nullptr)
+        {
+            cInfo._colorFormat          =   FEFormatHelper::formatFromName(aColorFmt->value());
+            cInfo._colorFormatOverride  =   true;
+        }
 
         if (xmlStates)
         {

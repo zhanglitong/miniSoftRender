@@ -164,9 +164,6 @@ void    WizQProperty::applyRealtime(double value)
         return;
 
     auto    anim    =   animation();
-    /// 动画覆盖本地变换后,编辑值先落到采样变换,再据此覆盖关键帧,否则写入的仍是旧采样值
-    if  (anim && FE::PropertyKeyCmd::isDriven(anim, _propIndex))
-        FE::PropertyKeyCmd::syncFromNode(anim, n, _propIndex);
 
     if  (anim && FE::PropertyKeyCmd::hasKeyAt(anim, _propIndex, _mainApp->curTime()))
     {

@@ -146,7 +146,6 @@ namespace FE
         RealsObject             timeLine    =   nullptr;
         FEKeyFrameTrack::KFOff  kfValue     =   {};
         Object                  owner       =   nullptr;
-        ObjectUSet              transOwners;    ///< 需要更新变换的所有者
         ObjectUSet              modOwners;      ///< 有任意属性修改的所有者
 
         for (auto& var : _cache)
@@ -184,21 +183,13 @@ namespace FE
             if (!result._valid)
                 continue;
             
-            if (var._anim->setProperty(result._prop,result._value))
-                transOwners.emplace(var._owner);
+            var._anim->setProperty(result._prop,result._value);
             modOwners.emplace(var._owner);
         }
         if (owner)
             owner->endSetProp(clipTime,false);
 
-        /// 标记变换变更标志,由 updateList 统一触发节点 updateTransform -> getTransform 混合
-        for (Object o : transOwners)
-        {
-            o->flags().addFlag(FENode::FLAG_PROP_TRANS  |
-                               FENode::FLAG_PROP_SCALE  |
-                               FENode::FLAG_PROP_ROT);
-        }
-        /// 所有修改过的对象加入更新列表,由动画系统统一执行 update + fireChanged
+        /// 属性写回由对象自己在 setProperty 中标记脏位,这里只统一刷新
         for (auto& o : modOwners)
         {
             addToUpdateList(_ctx,o);

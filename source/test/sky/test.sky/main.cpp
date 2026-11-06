@@ -395,7 +395,7 @@ int     main(int argc,char** argv)
     pSky->setCloudCoverage(0.4f);
     pSky->setCloudDensity(0.4f);
     pSky->setCloudElevation(0.5f);
-    pSky->setCloudSpeed(0.00002f);
+    pSky->setCloudSpeed(0.0002f);
     /// 太阳:高度角决定昼夜(>0 白天,<0 黄昏/夜;天顶为 +Z)。
     /// 静态演示默认取 three.js webgpu_sky 示例的 65° 高角、方位 0,与该示例构图一致;
     /// --elevation 可覆盖高度角(负值即夜晚,模型随主方向光一起变黑);

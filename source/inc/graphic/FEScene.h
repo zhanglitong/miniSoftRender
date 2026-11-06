@@ -22,6 +22,8 @@
 #include    "FEDSetLayout.h"
 #include    "FEFactoryMgr.hpp"
 #include    "FEViewerMgr.hpp"
+#include    "FEReflectionProbe.h"
+#include    "FESkyEnvironment.h"
 #include    "FEComponentSysMgr.hpp"
 #include    "FEFrame.h"
 #include    "FEOITManager.h"
@@ -288,6 +290,20 @@ namespace   FE
         Component           _sky;
         Node                _skyNode;
         /// <summary>
+        /// 天空环境烘焙(setup 时创建):把天空渲进 cubemap,
+        /// PBR 采样代替逐像素解析求值;nullptr 表示不可用,材质回退到解析天空
+        /// </summary>
+        SkyEnvironment      _skyEnv;
+        /// <summary>
+        /// 天空环境重烘节流计时(秒),云动画按约 12Hz 重烘
+        /// </summary>
+        real                _skyEnvTimer =   real(0);
+        /// <summary>
+        /// 把当前烘焙好的天空环境分发给场景内所有 PBR 材质
+        /// (显式设置过环境贴图的材质不会被覆盖)
+        /// </summary>
+        void    applySkyEnvironment();
+        /// <summary>
         /// 编辑网格节点(setup 时由 createGrid 创建,供 showGrid 使用)
         /// </summary>
         Node                _gridNode;
@@ -360,6 +376,10 @@ namespace   FE
         TexPtr              _sceneTex   =   nullptr;
         GImgView            _sceneTexView = nullptr;   ///< 完整 mip 链(shader 采样)
         GImgView            _sceneTexColorView = nullptr;   ///< 仅 mip0(pass1 color attachment)
+        /// <summary>
+        /// 反射探针列表(onFrameRender 主趟之前逐面捕获)
+        /// </summary>
+        ReflectionProbes    _probes;
         Frame               _frame;
         /// <summary>
         /// 自动化截图:下一帧是否需要在渲染前回读
@@ -393,6 +413,18 @@ namespace   FE
         /// transmission 场景折射纹理(resize 时创建;材质经 setSceneTexture 挂接)
         /// </summary>
         TexPtr          sceneTexture() const            { return _sceneTex; }
+        /// <summary>
+        /// 创建实时反射探针(cubemap 环境映射),并登记到场景;
+        /// 每帧在主趟之前自动捕获。owner 为探针所属节点(捕获时排除自身)
+        /// </summary>
+        /// <param name="owner">探针位置的参考节点(通常为玻璃球节点)</param>
+        /// <param name="size">cubemap 单面边长</param>
+        ReflectionProbe createReflectionProbe(Node owner,uint size = 256);
+        /// <summary>
+        /// 把指定相机的数据写入全局相机 UBO(录制到 cmd 中)。
+        /// 反射探针逐面渲染时切换相机,结束后由 FEScene 恢复主相机
+        /// </summary>
+        void            writeCameraData(CMDPtr cmd,const Camera& camera);
         /// <summary>
         /// 收集节点中指定类型的组件,并定位它们所属的组件系统
         /// </summary>

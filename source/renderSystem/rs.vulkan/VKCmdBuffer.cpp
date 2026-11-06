@@ -187,6 +187,9 @@ namespace   FE
                 if (colorImage && colorImage->cInfo()._layout != IL_COLOR_ATTACHMENT_OPTIMAL)
                 {
                     auto    cImage  =   (VkImage)(colorImage->native());
+                    /// 覆盖图像完整的 mip/层范围:反射探针把 cubemap 的某一面
+                    /// 作为 color attachment,若只切 layer 0 会导致其余面布局不一致
+                    const auto& ci  =   colorImage->cInfo();
                     insertImageMemoryBarrier(
                         _native,
                         cImage,
@@ -196,7 +199,9 @@ namespace   FE
                         system2Native(IL_COLOR_ATTACHMENT_OPTIMAL),
                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+                        VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0,
+                                                 ci._mips > 0 ? ci._mips : 1, 0,
+                                                 ci._layer > 0 ? ci._layer : 1 });
                     colorImage->setLayout(IL_COLOR_ATTACHMENT_OPTIMAL);
                 }
                 /// 多采样解析目标同样需要转入 COLOR_ATTACHMENT_OPTIMAL
@@ -325,6 +330,7 @@ namespace   FE
             if (colorImage && colorImage->cInfo()._layout != dstLayout)
             {
                 auto    cImage  =   (VkImage)(colorImage->native());
+                const auto& ci  =   colorImage->cInfo();
                 insertImageMemoryBarrier(
                     _native,
                     cImage,
@@ -335,7 +341,9 @@ namespace   FE
                     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                     sampled ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                             : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+                    VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0,
+                                             ci._mips > 0 ? ci._mips : 1, 0,
+                                             ci._layer > 0 ? ci._layer : 1 });
                 colorImage->setLayout(dstLayout);
             }
         }

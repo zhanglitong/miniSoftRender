@@ -91,6 +91,10 @@ namespace   FE
             {
                 _updates.reserve(MAX_LOCAL_UPDATE);
             }
+            /// <summary>
+            /// 组绑定的材质(渲染层据此给 PBR 材质分发烘焙好的天空环境贴图)
+            /// </summary>
+            Material    material() const    {   return  _mat;   }
         protected:
             Material    _mat;
             Nodes       _objects;

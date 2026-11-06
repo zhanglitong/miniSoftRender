@@ -789,86 +789,43 @@ namespace   FE
         return  false;
     }
 
-    bool    PropertyKeyCmd::readDriven(Animation anim, PropIndex prop, real& value)
+    /// <summary>
+    /// 从变体中取出标量(real/float 两种精度都接受)
+    /// </summary>
+    static  bool    readScalarValue(const KFValue& v, real& value)
     {
-        if  (!isDriven(anim, prop))
-            return  false;
-        auto    tf  =   anim->getTransform();
-        if  (tf == nullptr)
-            return  false;
-        switch  (prop)
+        if  (std::holds_alternative<real>(v))
         {
-        case    PROP_TRANSFORM_X:   value   =   (real)tf->position().x;   return  true;
-        case    PROP_TRANSFORM_Y:   value   =   (real)tf->position().y;   return  true;
-        case    PROP_TRANSFORM_Z:   value   =   (real)tf->position().z;   return  true;
-        case    PROP_SCALE_X:       value   =   (real)tf->scale().x;      return  true;
-        case    PROP_SCALE_Y:       value   =   (real)tf->scale().y;      return  true;
-        case    PROP_SCALE_Z:       value   =   (real)tf->scale().z;      return  true;
-        case    PROP_ROTATE_X:      value   =   (real)RAD2DEG(tf->euler().x);  return  true;
-        case    PROP_ROTATE_Y:      value   =   (real)RAD2DEG(tf->euler().y);  return  true;
-        case    PROP_ROTATE_Z:      value   =   (real)RAD2DEG(tf->euler().z);  return  true;
-        default:
-            return  false;
+            value   =   std::get<real>(v);
+            return  true;
         }
+        if  (std::holds_alternative<float>(v))
+        {
+            value   =   (real)std::get<float>(v);
+            return  true;
+        }
+        return  false;
     }
 
-    void    PropertyKeyCmd::syncFromNode(Animation anim, Node node, PropIndex prop)
+    bool    PropertyKeyCmd::readDriven(Animation anim, PropIndex prop, real& value)
     {
-        if  (!anim || !node)
-            return;
-        auto    tf  =   anim->getTransform();
-        if  (tf == nullptr)
-            return;
-        /// 单轴属性只覆盖该分量,其余分量保留动画采样值,避免同组轨道其他轴被节点回填值覆盖
+        if  (!isDriven(anim, prop) || !anim->isContributing())
+            return  false;
+        /// 采样结果已由动画写回 owner,直接从 owner 读取当前值
         switch  (prop)
         {
         case    PROP_TRANSFORM_X:
         case    PROP_TRANSFORM_Y:
         case    PROP_TRANSFORM_Z:
-            {
-                auto    pos =   tf->position();
-                auto    src =   node->localTranslation();
-                if  (prop == PROP_TRANSFORM_X)  pos.x   =   src.x;
-                else if (prop == PROP_TRANSFORM_Y)  pos.y   =   src.y;
-                else                                pos.z   =   src.z;
-                tf->setPosition(pos);
-            }
-            break;
-        case    PROP_TRANSFORM_XYZ:
-            tf->setPosition(node->localTranslation());
-            break;
         case    PROP_SCALE_X:
         case    PROP_SCALE_Y:
         case    PROP_SCALE_Z:
-            {
-                auto    scl =   tf->scale();
-                auto    src =   node->localScaling();
-                if  (prop == PROP_SCALE_X)  scl.x   =   (float)src.x;
-                else if (prop == PROP_SCALE_Y)  scl.y   =   (float)src.y;
-                else                            scl.z   =   (float)src.z;
-                tf->setScale(scl);
-            }
-            break;
-        case    PROP_SCALE_XYZ:
-            tf->setScale(float3(node->localScaling()));
-            break;
         case    PROP_ROTATE_X:
         case    PROP_ROTATE_Y:
         case    PROP_ROTATE_Z:
-            {
-                auto    euler   =   tf->euler();
-                auto    src     =   quatToEuler(node->localRotation());
-                if  (prop == PROP_ROTATE_X)  euler.x   =   src.x;
-                else if (prop == PROP_ROTATE_Y)  euler.y   =   src.y;
-                else                             euler.z   =   src.z;
-                tf->setEuler(euler);
-            }
-            break;
-        case    PROP_ROTATE_XYZ:
-            tf->setRotation(node->localRotation());
-            break;
+            return  readScalarValue(anim->getProperty(prop), value);
         default:
-            break;
+            return  false;
         }
     }
 

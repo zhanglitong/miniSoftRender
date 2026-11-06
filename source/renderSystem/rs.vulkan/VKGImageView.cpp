@@ -19,7 +19,10 @@ namespace   FE
         VkImageViewCreateInfo imageViewCI   =   {};
         {
             const auto& imgCInfo  =   info._image->cInfo();
-            const bool  isCube    =   (imgCInfo._layer == 6);
+            /// 指定了层范围时强制按 2D 视图创建(cubemap 单面作为渲染目标);
+            /// 未指定时沿用原语义:6 层视为 cubemap,否则单层 2D
+            const bool  isLayered =   info._layerCount != 0;
+            const bool  isCube    =   !isLayered && (imgCInfo._layer == 6);
             imageViewCI.sType               =    VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             imageViewCI.image               =    (VkImage)info._image->native();
             imageViewCI.viewType            =    isCube ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
@@ -31,8 +34,8 @@ namespace   FE
             imageViewCI.subresourceRange.levelCount         =   info._levelCount > 0
                                                                     ? info._levelCount
                                                                     : imgCInfo._mips;
-            imageViewCI.subresourceRange.baseArrayLayer     =   0;
-            imageViewCI.subresourceRange.layerCount         =   imgCInfo._layer;
+            imageViewCI.subresourceRange.baseArrayLayer     =   info._baseLayer;
+            imageViewCI.subresourceRange.layerCount         =   isLayered ? info._layerCount : imgCInfo._layer;
             /// 仅深度+模板格式(D16S8/D24S8/D32S8)的视图需要附加模板 aspect;
             /// 不能用数值区间比较——块压缩格式(BC=131~146,ETC2/EAC=147~156,
             /// ASTC=157~172)的 VkFormat 数值同样落在该区间之上,误加模板位

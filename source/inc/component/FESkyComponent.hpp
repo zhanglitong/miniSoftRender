@@ -63,6 +63,7 @@ namespace   FE
             _darkWhenSunHidden  =   other._darkWhenSunHidden;
             _panelVisible       =   other._panelVisible;
             _skyVisible         =   other._skyVisible;
+            _envDirty           =   other._envDirty;
         }
         virtual ~FESkyComponent()
         {}
@@ -94,27 +95,27 @@ namespace   FE
         void    setTurbidity(float v)
         {
             _value._params.x    =   v;
-            apply();
+            touch();
         }
         void    setRayleigh(float v)
         {
             _value._params.y    =   v;
-            apply();
+            touch();
         }
         void    setMieCoefficient(float v)
         {
             _value._params.z    =   v;
-            apply();
+            touch();
         }
         void    setMieDirectionalG(float v)
         {
             _value._params.w    =   v;
-            apply();
+            touch();
         }
         void    setLuminance(float v)
         {
             _value._sunDirection.w  =   v;
-            apply();
+            touch();
         }
         /// <summary>
         /// ===== 云参数(对齐 three.js SkyMesh 的 uniforms)=====
@@ -124,7 +125,7 @@ namespace   FE
         {
             _cloudCoverage  =   v;
             _value._cloud.x =   v;
-            apply();
+            touch();
         }
         /// <summary>
         /// 云密度:越大云越厚实、越不透明
@@ -133,7 +134,7 @@ namespace   FE
         {
             _cloudDensity   =   v;
             _value._cloud.y =   v;
-            apply();
+            touch();
         }
         /// <summary>
         /// 云层高度:越大云看起来越低、越靠近地平线
@@ -142,7 +143,7 @@ namespace   FE
         {
             _cloudElevation =   v;
             _value._cloud.z =   v;
-            apply();
+            touch();
         }
         /// <summary>
         /// 云速:驱动云流动与翻涌的速度(单位/秒)
@@ -151,17 +152,17 @@ namespace   FE
         {
             _cloudSpeed     =   v;
             _value._anim.z  =   v;
-            apply();
+            touch();
         }
         void    setUp(const float3& up)
         {
             _value._up  =   float4(up.x, up.y, up.z, 0.0f);
-            apply();
+            touch();
         }
         void    setSunDirection(const float3& dir)
         {
             _value._sunDirection    =   float4(dir.x, dir.y, dir.z, _value._sunDirection.w);
-            apply();
+            touch();
         }
         /// <summary>
         /// 由太阳高度角 / 方位角(角度制)设置太阳方向
@@ -223,7 +224,7 @@ namespace   FE
         void    setDarkWhenSunHidden(bool enable)
         {
             _darkWhenSunHidden  =   enable;
-            apply();
+            touch();
         }
         bool    darkWhenSunHidden() const   {   return  _darkWhenSunHidden;    }
         /// <summary>
@@ -242,11 +243,21 @@ namespace   FE
         void    setSkyVisible(bool visible)
         {
             _skyVisible =   visible;
-            apply();
+            touch();
         }
         bool    skyVisible() const      {   return  _skyVisible;     }
         const   UBOSky& sky() const     {   return  _value;    }
         UBOSky&         sky()           {   return  _value;    }
+        /// <summary>
+        /// 取出并清除"天空外观参数已变化"标记。FEScene 据此立即重烘天空 cubemap;
+        /// 云动画时间(update 每帧推进)不置位,由重烘限频负责
+        /// </summary>
+        bool    consumeEnvDirty()
+        {
+            const   bool    dirty   =   _envDirty;
+            _envDirty   =   false;
+            return  dirty;
+        }
         /// <summary>
         /// 组件每一帧更新:推进云动画时间并写回 UBO;自动模式下同时推进太阳
         /// </summary>
@@ -270,6 +281,15 @@ namespace   FE
             return  false;
         }
     protected:
+        /// <summary>
+        /// 天空参数变化:写入 UBO 并置重烘标记(外观参数改变,烘焙 cubemap 需要立即失效)。
+        /// update() 每帧推进云时间只调 apply(),不置位——云动画由重烘限频覆盖
+        /// </summary>
+        void    touch()
+        {
+            _envDirty   =   true;
+            apply();
+        }
         /// <summary>
         /// 同步天空参数到 GPU
         /// </summary>
@@ -413,5 +433,9 @@ namespace   FE
         /// 天空盒开关(默认开启),false 时天空不绘制且解析天空 IBL 不计入
         /// </summary>
         bool            _skyVisible     =   true;
+        /// <summary>
+        /// 天空外观参数已变化,需要重烘环境 cubemap(由 FEScene 消费)
+        /// </summary>
+        bool            _envDirty       =   true;
     };
 }

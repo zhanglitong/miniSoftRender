@@ -64,6 +64,15 @@ namespace   FE
         {
             _rect   =   rect;
         }
+        /// <summary>
+        /// 覆盖渲染视口尺寸(默认取 FBO 尺寸或场景渲染尺寸):
+        /// 反射探针把 cubemap 单面作为渲染目标时,渲染尺寸与场景主视口不同
+        /// </summary>
+        inline  void    setViewSize(uint width,uint height)
+        {
+            _viewW  =   width;
+            _viewH  =   height;
+        }
         const   auto&   usages() const
         {
             return  _usages;
@@ -126,6 +135,11 @@ namespace   FE
 
     private:
         RectU32         _rect;
+        /// <summary>
+        /// 视口尺寸覆盖(0=沿用 FBO/场景渲染尺寸)
+        /// </summary>
+        uint            _viewW  =   0;
+        uint            _viewH  =   0;
         ViewerUsages    _usages =   0;
         Camera          _camera =   nullptr;
         FrameBuffer     _fbo    =   nullptr;

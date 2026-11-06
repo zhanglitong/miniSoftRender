@@ -2,7 +2,7 @@
 #include    <functional>
 #include    <format>
 #include    <vector>
-#include    "../FETransformPivot.hpp"
+#include    "../FETransform.hpp"
 #include    "../FEComponent.hpp"
 #include    "FEAnimClip.hpp"
 
@@ -32,10 +32,6 @@ namespace FE
             /// 决定在transform 是否应该被应用到owner上
             /// </summary>
             OutOfRangeBit       =   (AnimationChanged<<1),
-            /// <summary>
-            /// 标记上一帧采样变换已覆盖到节点,动画停止贡献时据此让节点回落到本地变换
-            /// </summary>
-            AppliedBit          =   (AnimationChanged<<2),
         };
     public:
         IMPLEMENT_CLASS_REFLECT(FEAnimation)
@@ -53,36 +49,20 @@ namespace FE
             _name   =   name;
         }
         /// <summary>
-        /// 返回节点自身的transform;不含组件信息
-        /// </summary>
-        /// <returns></returns>
-        inline  auto&   transform()
-        {
-            return  _transform;
-        }
-        const   auto&   transform() const
-        {
-            return  _transform;
-        }
-        /// <summary>
         /// 关联所有者
         /// </summary>
         /// <param name="owner"></param>
         virtual void    attach(Object owner) override
         {
             _owner      =   owner;
-            _hasOriginal=   false;
-            _bSampled   =   false;
             flags().addFlag(AnimationChanged);
         }
         /// <summary>
-        /// 取消关联,先把节点本地变换恢复到动画覆盖前的值
+        /// 取消关联
         /// </summary>
         virtual void    detach() override
         {
-            markApplied(false);
             _owner      =   nullptr;
-            _bSampled   =   false;
             flags().addFlag(AnimationChanged);
         }
         /// <summary>
@@ -135,6 +115,14 @@ namespace FE
             return  _clip != nullptr &&  owner() != nullptr;
         }
         /// <summary>
+        /// 当前是否仍向对象贡献属性:组件启用、clip 与 owner 有效且时间未越界
+        /// </summary>
+        /// <returns></returns>
+        inline  bool    isContributing() const
+        {
+            return  isEnable() && isValid() && !outOfRange();
+        }
+        /// <summary>
         /// update 函数计算完成后，会设置标记
         /// </summary>
         /// <returns></returns>
@@ -171,17 +159,13 @@ namespace FE
         /// <returns>true/false</returns>
         virtual bool    update(const real& clipTime) override;
         /// <summary>
-        /// 获取动画采样得到的本地变换,有效时覆盖节点自身本地变换
-        /// </summary>
-        virtual FETransform*    getTransform() override;
-        /// <summary>
         /// 动画系统独有接口
         /// 通用设置对象属性接口，子类实现
         /// </summary>
         virtual void    beginSetProp() override;
         /// <summary>
         /// 动画系统独有接口
-        /// 设置属性:先写 owner(节点),变换属性同时写入 _transform 本地副本
+        /// 设置属性:直接写 owner(任意 FEObject),动画自身不保存副本
         /// </summary>
         /// <param name="prop">属性索引(别名)</param>
         /// <param name="value">属性值</param>
@@ -190,7 +174,7 @@ namespace FE
 
         /// <summary>
         /// 获取属性值
-        /// 一律从 _owner 读取;动画本地 _transform 仅用于采样与回放
+        /// 一律从 _owner 读取
         /// </summary>
         /// <param name="prop">属性索引</param>
         /// <returns>属性值</returns>
@@ -202,25 +186,7 @@ namespace FE
         /// </summary>
         /// <param name="bModify"></param>
         virtual void    endSetProp(const real&,bool bModify) override;
-        /// <summary>
-        /// 把采样变换直接写入 owner 节点的本地变换(与约束求解一致,节点不再反向依赖组件)
-        /// 采样无效时恢复节点原始本地变换
-        /// </summary>
-        void    applyTransform();
-        /// <summary>
-        /// 动画仍有效时保持当前采样结果,不再贡献时恢复节点原始本地变换
-        /// 用于编辑器启停/删除动画后主动刷新节点
-        /// </summary>
-        void    restoreIfInactive();
-        /// <summary>
-        /// 强制把节点本地变换恢复到动画覆盖前的值
-        /// </summary>
-        void    restoreLocal();
     protected:
-        /// <summary>
-        /// 恢复节点原始本地变换(仅生效一次,恢复后清除记录)
-        /// </summary>
-        void    restoreOriginal();
         /// <summary>
         /// 判断属性是否属于变换相关属性(位置/旋转/缩放)
         /// </summary>
@@ -228,32 +194,17 @@ namespace FE
         /// <returns></returns>
         static  bool    isTransformProperty(int prop);
         /// <summary>
-        /// 将变换相关属性写入 _transform;非变换属性不处理
+        /// 把本次采样结果通过属性接口写回 owner(与约束求解一致,对象不再反向依赖组件)
+        /// 轴心由 owner 自己持有,这里只传位置/缩放/旋转
         /// </summary>
-        /// <param name="prop"></param>
-        /// <param name="value"></param>
-        /// <returns>true 该属性属于变换并已写入;false 非变换属性,未做处理</returns>
-        bool    setTransformProperty(int prop,const KFValue& value);
+        /// <param name="tf">本次采样得到的本地变换</param>
+        void    applyTransform(const FETransform& tf);
         /// <summary>
-        /// 记录采样变换是否已覆盖到节点;由覆盖转为不覆盖时标记节点重新计算变换
+        /// 一次遍历分析 clip 的变换轨道:
+        /// bRotation/bPosition 表示是否存在带关键帧的旋转/位置轨道,
+        /// segTrack 返回作为轴心圆弧段边界的关键帧轨道(优先整体位置轨道)
         /// </summary>
-        /// <param name="applied"></param>
-        void    markApplied(bool applied);
-        /// <summary>
-        /// 动画是否真正驱动了旋转通道(存在带关键帧的旋转轨道)
-        /// 只有驱动旋转时才允许用绕轴心记录重建位置
-        /// </summary>
-        bool    drivesRotation() const;
-        /// <summary>
-        /// 动画是否驱动了位置通道(存在带关键帧的位置轨道)
-        /// 轴心圆弧重建要求位置与旋转都来自轨道
-        /// </summary>
-        bool    drivesPosition() const;
-        /// <summary>
-        /// 求绕轴心旋转的起始关键帧时间:返回不晚于 time 的最后一个位置关键帧时间
-        /// 不存在位置轨道时退化为旋转关键帧时间;没有任何关键帧时返回 false
-        /// </summary>
-        bool    segmentStartTime(real localTime,real& startTime) const;
+        void    analyzeTracks(bool& bRotation,bool& bPosition,const FEKeyFrameTrack*& segTrack) const;
         /// <summary>
         /// 在指定剪辑时间采样一组变换通道,结果写入 out(未驱动的通道保持 out 原值)
         /// </summary>
@@ -294,23 +245,6 @@ namespace FE
         /// 记录动画播放到哪里了
         /// </summary>
         real                _clipTime   =   0;
-        /// <summary>
-        /// 动画采样缓存:每帧以节点当前本地变换为底,轨道采样值覆盖对应通道
-        /// 使用带旋转中心点的变换,支持绕本地中心点旋转
-        /// </summary>
-        FETransformPivot    _transform;
-        /// <summary>
-        /// 动画首次覆盖前节点的原始本地变换,停止贡献时用于回退
-        /// </summary>
-        FETransform         _original;
-        /// <summary>
-        /// _original 是否已记录
-        /// </summary>
-        bool                _hasOriginal    =   false;
-        /// <summary>
-        /// 是否已产生过采样数据,避免未采样时把默认变换写入节点
-        /// </summary>
-        bool                _bSampled       =   false;
         TrackResults        _results; 
         String              _name;
     };
