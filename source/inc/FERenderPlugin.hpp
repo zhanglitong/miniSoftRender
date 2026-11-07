@@ -10,13 +10,13 @@ namespace   FE
     /// <summary>
     /// 该实现逻辑简单，开发者可以自由发挥更新与渲染函数
     /// </summary>
-    class   FERenderCom :public FEFactoryRender
+    class   FERenderPlugin :public FEFactoryRender
     {
     public:
-        FERenderCom(FEContext& ctx)
+        FERenderPlugin(FEContext& ctx)
             :FEFactoryRender(ctx)
         {}
-        FERenderCom(const FERenderCom& other)
+        FERenderPlugin(const FERenderPlugin& other)
             :FEFactoryRender(other)
         {}
         /// <summary>
@@ -45,6 +45,6 @@ namespace   FE
         virtual void    onDestroy() override
         {}
     };
-    using   FactorySimple   =   SharedPtr<FERenderCom>;
+    using   FactorySimple   =   SharedPtr<FERenderPlugin>;
 }
 

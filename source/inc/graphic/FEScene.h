@@ -353,7 +353,7 @@ namespace   FE
         /// 场景自带的输入工具(浏览/移动/旋转/缩放):clear() 会清空输入系统,
         /// 需要靠这份引用把它们重新登记回去
         /// </summary>
-        Components              _inputTools;
+        Components          _inputTools;
         FEUpdateQueue       _updateQueue;
         Camera              _camera;
         FrustumCull         _frustCull;
