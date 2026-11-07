@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 进度条叠加层管线:
+     无顶点输入(顶点着色器用 gl_VertexIndex 展开矩形),无描述符集,
+     矩形/颜色/进度经 push constant 下发;
+     alpha 混合 + 关闭深度测试/写入 + 双面,保证作为屏幕叠加层始终绘制在最前 -->
+<root using_defult="1" type="graphic" enableColorBlend="1" enableDepthTest="0" enableDepthWrite="0" cullMode="0">
+    <shaders>
+        <shader url=":/data/shader/cache/progress/shader.frag.spv"/>
+        <shader url=":/data/shader/cache/progress/shader.vert.spv"/>
+    </shaders>
+    <dynamicStates>
+        <VIEWPORT/>
+        <SCISSOR/>
+    </dynamicStates>
+    <bindings>
+    </bindings>
+    <features></features>
+    <extensions></extensions>
+    <states>
+        <!-- Blend: SrcAlpha / OneMinusSrcAlpha -->
+        <COLOR_BLEND_ENABLE value="true"/>
+    </states>
+</root>

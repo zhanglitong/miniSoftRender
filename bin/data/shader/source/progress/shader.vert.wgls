@@ -1,0 +1,36 @@
+/// 进度条顶点着色器 WGSL 版本,与 shader.vert 对齐
+///   无顶点输入,用 vertex_index 展开 6 个顶点(两个三角形)
+///   矩形/进度/颜色全部来自 immediates(push constant)
+
+struct  ProgressPush
+{
+    _rect           : vec4f,
+    _background     : vec4f,
+    _fill           : vec4f,
+    _border         : vec4f,
+    _progress       : f32,
+    _borderWidth    : f32,
+    _size           : vec2f,
+}
+
+var<immediate> pc : ProgressPush;
+
+struct  VsOut
+{
+    @location(0) px     : vec2f,
+    @builtin(position) pos : vec4f,
+}
+
+@vertex
+fn  main(@builtin(vertex_index) vi : u32) -> VsOut
+{
+    var corners : array<vec2f, 6> = array<vec2f, 6>(
+        vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
+        vec2f(1.0, 0.0), vec2f(1.0, 1.0), vec2f(0.0, 1.0));
+
+    let c   = corners[vi];
+    var o   : VsOut;
+    o.pos   = vec4f(mix(pc._rect.xy, pc._rect.zw, c), 0.0, 1.0);
+    o.px    = c * pc._size;
+    return o;
+}

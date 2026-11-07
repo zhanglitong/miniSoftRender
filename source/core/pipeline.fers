@@ -10,6 +10,7 @@
 		<file name="pipeline/pbrSScaled.xml" input="pbrSScaled.xml"/>
 		<file name="pipeline/pbrSkin.xml" input="pbrSkin.xml"/>
 		<file name="pipeline/point.xml" input="point.xml"/>
+		<file name="pipeline/progress.xml" input="progress.xml"/>
 		<file name="pipeline/skinCompute.xml" input="skinCompute.xml"/>
 		<file name="pipeline/sky.xml" input="sky.xml"/>
 		<file name="pipeline/skyenv.xml" input="skyenv.xml"/>

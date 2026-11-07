@@ -1,0 +1,67 @@
+/// 进度条片段着色器 WGSL 版本,与 shader.frag 对齐
+///   两端圆角:半径取高度一半 => 胶囊形,含 1px 抗锯齿
+
+struct  ProgressPush
+{
+    _rect           : vec4f,
+    _background     : vec4f,
+    _fill           : vec4f,
+    _border         : vec4f,
+    _progress       : f32,
+    _borderWidth    : f32,
+    _size           : vec2f,
+}
+
+var<immediate> pc : ProgressPush;
+
+struct  FsIn
+{
+    @location(0) px : vec2f,
+}
+
+/// 圆角矩形有符号距离: p 为相对中心的坐标, r 为圆角半径
+fn  roundedBox(p : vec2f, halfSize : vec2f, r : f32) -> f32
+{
+    let q = abs(p) - halfSize + vec2f(r);
+    return length(max(q, vec2f(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+@fragment
+fn  main(in : FsIn) -> @location(0) vec4f
+{
+    /// 边框透明时不占位,填充直接铺满外轮廓
+    let b       = select(0.0, max(pc._borderWidth, 0.0), pc._border.a > 0.0);
+    let halfSz  = pc._size * 0.5;
+    /// 两端圆角:半径 = 高度一半
+    let r       = halfSz.y;
+
+    /// 外轮廓 / 内轮廓覆盖率(1px 抗锯齿)
+    let d       = roundedBox(in.px - halfSz, halfSz, r);
+    let outerA  = clamp(0.5 - d, 0.0, 1.0);
+    let innerA  = clamp(0.5 - d - b, 0.0, 1.0);
+    let borderA = clamp(outerA - innerA, 0.0, 1.0);
+
+    /// 内区填充(胶囊形,左右两端均圆)
+    var bodyRgb = pc._background.rgb;
+    var bodyA   = pc._background.a * innerA;
+    let innerW  = max(pc._size.x - 2.0 * b, 1.0);
+    let innerH  = max(pc._size.y - 2.0 * b, 1.0);
+    let fillW   = innerW * clamp(pc._progress, 0.0, 1.0);
+    if (fillW > 0.0)
+    {
+        let fc      = vec2f(b + fillW * 0.5, pc._size.y * 0.5);
+        let fh      = vec2f(fillW * 0.5, innerH * 0.5);
+        let fr      = min(fh.x, fh.y);
+        let fd      = roundedBox(in.px - fc, fh, fr);
+        let fillA   = clamp(0.5 - fd, 0.0, 1.0);
+
+        bodyRgb = mix(bodyRgb, pc._fill.rgb, fillA);
+        bodyA   = mix(bodyA, pc._fill.a * innerA, fillA);
+    }
+
+    /// 边框叠加到填充之上
+    let outA    = borderA + bodyA * (1.0 - borderA);
+    let outRgb  = (bodyRgb * bodyA * (1.0 - borderA) + pc._border.rgb * borderA)
+                / max(outA, 1e-5);
+    return vec4f(outRgb, outA);
+}

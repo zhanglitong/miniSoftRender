@@ -68,6 +68,7 @@ namespace   FE
             _texture       =   other._texture;
             _strokeWidth   =   other._strokeWidth;
             _strokeColor   =   other._strokeColor;
+            _screenOverride=   other._screenOverride;
             _data          =   other._data;
             if (_texture != nullptr)
             {
@@ -120,6 +121,20 @@ namespace   FE
         inline  bool    isBillboard() const
         {
             return  _data._sdf.z > 0.5f;
+        }
+        /// <summary>
+        /// 覆盖屏幕像素尺寸(0 表示恢复为取窗口尺寸)。
+        /// 离屏/无头渲染时窗口尺寸不可用(ctx.windowsWidth 返回极大值),
+        /// 屏幕叠加模式必须显式传入渲染目标尺寸,否则像素->NDC 变换会按
+        /// 1280x720 的兜底值计算,文本位置与字号全部错位。
+        /// </summary>
+        inline  void    setScreenSize(uint32 w,uint32 h)
+        {
+            _screenOverride =   uint2(w,h);
+        }
+        inline  void    clearScreenSize()
+        {
+            _screenOverride =   uint2(0);
         }
         /// <summary>
         /// 设置描边宽度(屏幕像素)。
@@ -177,9 +192,9 @@ namespace   FE
         }
         virtual void    appDynamicState(CMDPtr cmd,EPrimitive pri) override
         {
-            /// 屏幕像素尺寸用于顶点着色器的像素->NDC 变换
-            uint32  w   =   _ctx.windowsWidth();
-            uint32  h   =   _ctx.windowsHeight();
+            /// 屏幕像素尺寸用于顶点着色器的像素->NDC 变换(优先使用显式覆盖值)
+            uint32  w   =   _screenOverride.x != 0 ? _screenOverride.x : _ctx.windowsWidth();
+            uint32  h   =   _screenOverride.y != 0 ? _screenOverride.y : _ctx.windowsHeight();
             if (w == 0 || h == 0 || w > 100000 || h > 100000)
             {
                 w   =   1280;
@@ -209,6 +224,10 @@ namespace   FE
         /// 描边颜色;与 _data._stroke.yzw 同步
         /// </summary>
         Rgba8       _strokeColor  =   Rgba8(0,0,0,255);
+        /// <summary>
+        /// 屏幕尺寸覆盖(0,0=使用窗口尺寸),离屏渲染由使用方设置
+        /// </summary>
+        uint2       _screenOverride =   uint2(0);
         mutable TextData    _data;
     };
 }
