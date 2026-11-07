@@ -482,6 +482,8 @@ namespace   FE
         /// </summary>
         constexpr   uint32  kTexSlotMagicV2 =   0x32524250u;   /// "PBR2"
         constexpr   uint32  kTexSlotMagicV3 =   0x33524250u;   /// "PBR3"
+        /// v4 在 v3 之后追加管线变体前缀(如蒙皮网格的 "pbrSkin")
+        constexpr   uint32  kTexSlotMagicV4 =   0x34524250u;   /// "PBR4"
         /// <summary>
         /// 写一个贴图槽位:1 表示后面跟随来源对象 id(FEFileBuffer 压缩字节 / FEImage)
         /// 与采样参数;0 表示该槽位使用默认纹理,无需写入任何数据。
@@ -637,10 +639,16 @@ namespace   FE
         /// 贴图参数(normalScale/AO 强度/自发光强度/KHR 扩展/UV 变换)与管线变体,
         /// 前面写魔数标记"来源对象引用"格式(来源对象由 queryDepends 提供,已先写入文件)
         /// </summary>
-        writer.write(kTexSlotMagicV3);
+        writer.write(kTexSlotMagicV4);
         writer.write(_texParams._value);
         writer.write(uint8(_doubleSided ? 1 : 0));
         writer.write(uint8(_alphaBlend ? 1 : 0));
+        /// <summary>
+        /// 管线变体前缀(基础部分,不含 2s/Blend 后缀)。
+        /// 蒙皮网格由 glTF 加载器分配 "pbrSkin",该状态必须随材质往返,
+        /// 否则重新打开工程后蒙皮网格会退回普通管线,顶点不再被 GPU 蒙皮
+        /// </summary>
+        writer.write(_pipelinePrefix);
 
         /// <summary>
         /// 六个可编辑贴图槽位:baseColor / metallicRoughness / normal / AO / emissive / 虹彩厚度
@@ -680,8 +688,10 @@ namespace   FE
         /// </summary>
         uint32  magic   =   0;
         reader.read(magic);
-        /// v3=来源引用+采样参数;v2=来源引用(默认采样);否则为 v1 内嵌像素
-        const   bool    v3      =   (magic == kTexSlotMagicV3);
+        /// v4=来源引用+采样参数+管线变体;v3=来源引用+采样参数;
+        /// v2=来源引用(默认采样);否则为 v1 内嵌像素
+        const   bool    v4      =   (magic == kTexSlotMagicV4);
+        const   bool    v3      =   (magic == kTexSlotMagicV3) || v4;
         const   bool    v2      =   (magic == kTexSlotMagicV2);
         const   bool    refFmt  =   (v3 || v2);
         if (refFmt)
@@ -699,6 +709,13 @@ namespace   FE
         uint8   blend   =   0;
         reader.read(sided);
         reader.read(blend);
+
+        /// <summary>
+        /// v4 起保存管线变体前缀(蒙皮网格为 "pbrSkin"),旧文件保持默认 pbr
+        /// </summary>
+        String  pipelinePrefix;
+        if (v4)
+            reader.read(pipelinePrefix);
 
         if (refFmt)
         {
@@ -720,6 +737,9 @@ namespace   FE
         }
 
         _texParams.update();
+        /// 先恢复管线变体(会按新前缀重建管线),再叠加双面/混合后缀
+        if (v4 && !pipelinePrefix.empty())
+            setPipelinePrefix(pipelinePrefix);
         if (blend != 0)
             setAlphaBlend(true);
         if (sided != 0)

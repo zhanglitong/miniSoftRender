@@ -851,6 +851,12 @@ namespace   FE
             node->update();
             nodes.push_back(node);
         }
+        /// <summary>
+        /// 骨骼关节也是节点,读在蒙皮数据之后:FESkinData 反序列化时只能记录关节 id,
+        /// 这里等节点树读完后统一回填引用
+        /// </summary>
+        const   size_t  resolvedJoints  =   FESkinData::resolvePending(nodes);
+        UNUSED(resolvedJoints);
         if (nodes.empty())
         {
             LOG_ERR("FEScene.open/nodes.empty().",fepj);

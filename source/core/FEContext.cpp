@@ -131,6 +131,9 @@ namespace   FE
 
         DEFINE_CLASS_CREATOR(FEPlayback);
         DEFINE_CLASS_CREATOR(FEAnimation);
+        /// 骨骼蒙皮组件与其共享骨骼数据(fepj 反序列化需要)
+        DEFINE_CLASS_CREATOR(FESkin);
+        DEFINE_CLASS_CREATOR(FESkinData);
         DEFINE_CLASS_CREATOR(FEAnimClip);
         DEFINE_CLASS_CREATOR(FEKeyFrameTrack);
 

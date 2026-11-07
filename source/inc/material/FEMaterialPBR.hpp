@@ -521,6 +521,13 @@ namespace   FE
             applyPipeline();
         }
         /// <summary>
+        /// 当前管线变体前缀(不含 2s/Blend 后缀),fepj 序列化会保存该状态
+        /// </summary>
+        inline  const   String& pipelinePrefix() const
+        {
+            return  _pipelinePrefix;
+        }
+        /// <summary>
         /// 按当前双面/混合状态重新选择管线并重绑资源:
         ///   pbr      单面 + 不混合(默认)
         ///   pbr2s    双面(cullMode=NONE)
