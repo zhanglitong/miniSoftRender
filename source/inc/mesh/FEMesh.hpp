@@ -129,7 +129,7 @@ namespace   FE
         /// </summary>
         /// <param name="attrId"></param>
         /// <returns></returns>
-        inline  auto    get(FEAttribute attr)
+        FEAttribyteBuffer*   get(FEAttribute attr)
         {
             for (auto& var : _buffers)
             {

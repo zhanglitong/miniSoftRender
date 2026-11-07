@@ -1,0 +1,31 @@
+/// skinCompute 的 WGSL 版本,与 shader.comp 逻辑对齐
+/// 参考: bin/data/shader/source/skinCompute/shader.comp
+
+const SKIN_GROUP_X  : u32 = 64u;
+
+struct SkinParam
+{
+    _invMeshWorld   : mat4x4f,
+    _count          : u32,
+}
+
+/// 关节世界矩阵(CPU 每帧上传)
+@group(0) @binding(0) var<storage,read>         _jointWorld  : array<mat4x4f>;
+/// 逆绑定矩阵
+@group(0) @binding(1) var<storage,read>         _inverseBind : array<mat4x4f>;
+/// 输出:蒙皮矩阵(与 pbrSkin 顶点着色器的 SB_Skin 共用同一个缓冲)
+@group(0) @binding(2) var<storage,read_write>   _skinMatrix  : array<mat4x4f>;
+@group(0) @binding(3) var<uniform>              _param       : SkinParam;
+
+@compute @workgroup_size(64,1,1)
+fn  main(@builtin(global_invocation_id) globalID : vec3u)
+{
+    let index   =   globalID.x;
+    if (index >= _param._count)
+    {
+        return;
+    }
+    /// 与 CPU 路径一致: skin = inverse(meshGlobal) * worldRotation
+    ///                        * jointGlobal * inverseBind
+    _skinMatrix[index]  =   _param._invMeshWorld * _jointWorld[index] * _inverseBind[index];
+}

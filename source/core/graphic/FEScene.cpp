@@ -12,6 +12,7 @@
 #include    "../inc/graphic/FEPipelineHelper.h"
 #include    "../inc/graphic/FELightMgr.h"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/animation/FESkinSys.hpp"
 #include    "../inc/constraint/FEConstraintSys.hpp"
 #include    "../inc/constraint/FEConstraintTrans.hpp"
 #include    "../inc/constraint/FEConstraintLookAt.hpp"
@@ -69,6 +70,14 @@ namespace   FE
         auto    sys =   _comSysMgr.query(UUIDOF(FEAnimationSys));
         if (sys)
             return  sys->as<FEAnimationSys>();
+        else
+            return  nullptr;
+    }
+    FESkinSys*  FEScene::skinSystem() const
+    {
+        auto    sys =   _comSysMgr.query(UUIDOF(FESkinSys));
+        if (sys)
+            return  sys->as<FESkinSys>();
         else
             return  nullptr;
     }
@@ -210,6 +219,9 @@ namespace   FE
             /// 注册约束系统(更新顺序位于动画之后,求解基于动画结果)
             ComponentSys    constSys  =   new FEConstraintSys(_ctx);
             _comSysMgr.addObject(constSys.get());
+            /// 注册骨骼动画系统(在动画/约束之后统一更新 skin,渲染工厂不再处理 skin)
+            ComponentSys    skinSys   =   new FESkinSys(_ctx);
+            _comSysMgr.addObject(skinSys.get());
             /// 注册输入事件系统
             InputSys inputSys = new FEInputSystem(_ctx);
             _comSysMgr.addObject(inputSys.get());
@@ -343,6 +355,7 @@ namespace   FE
         addNodesToFactory(nodeList,result);
         dispatchToSystem<FEAnimation>(_comSysMgr,nodeList);
         dispatchToSystem<FEConstraint>(_comSysMgr,nodeList);
+        dispatchToSystem<FESkin>(_comSysMgr,nodeList);
         dispatchToSystem<FEInput>(_comSysMgr,nodeList);
         /// transmission 场景折射纹理由 PBR 材质渲染时自取自用(见 FEMaterialPBR::refreshSceneTexture)
     }
@@ -352,6 +365,7 @@ namespace   FE
         FEFactoryRender::removeNodesFromFactory(*this,nodeList);
         removeFromSystem<FEAnimation>(_comSysMgr,nodeList);
         removeFromSystem<FEConstraint>(_comSysMgr,nodeList);
+        removeFromSystem<FESkin>(_comSysMgr,nodeList);
         removeFromSystem<FEInput>(_comSysMgr,nodeList);
     }
 

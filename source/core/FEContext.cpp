@@ -43,6 +43,8 @@
 #include    "../inc/FEConst.h"
 #include    "../inc/animation/FEAnimation.hpp"
 #include    "../inc/animation/FEAnimationSys.hpp"
+#include    "../inc/animation/FESkinSys.hpp"
+#include    "../inc/node/FESkin.hpp"
 #include    "../inc/animation/FEValueArrayObjects.hpp"
 #include    "../inc/constraint/FEConstraintTrans.hpp"
 #include    "../inc/constraint/FEConstraintLookAt.hpp"
@@ -62,6 +64,8 @@ namespace   FE
     {
         /// 关联动画组件系统id,当有动画加入系统时候，会自动关联动画组件系统
         CLS_PROPERTY(FEAnimation).add(ComSysId,UUIDOF(FEAnimationSys));
+        /// 骨骼蒙皮组件关联骨骼动画系统
+        CLS_PROPERTY(FESkin).add(ComSysId,UUIDOF(FESkinSys));
         CLS_PROPERTY(FEInputCom).add(ComSysId,UUIDOF(FEInputSystem));
         /// 平移约束关联约束系统
         CLS_PROPERTY(FEConstraintTrans).add(ComSysId,UUIDOF(FEConstraintSys));

@@ -374,6 +374,9 @@ namespace   FE
         {
             return  _mesh;
         }
+        /// <summary>
+        /// 节点上的组件列表(按优先级排序)
+        /// </summary>
         inline  auto&   components() const
         {
             return  _coms;

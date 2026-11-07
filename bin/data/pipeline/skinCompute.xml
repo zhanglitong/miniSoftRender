@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<root using_defult="0" type ="compute">
+  <!--shader-->
+  <shaders>
+    <shader url =":/data/shader/cache/skinCompute/shader.comp.spv"/>
+  </shaders>
+  <pipeline name="skinCompute/default" >
+  </pipeline>
+</root>

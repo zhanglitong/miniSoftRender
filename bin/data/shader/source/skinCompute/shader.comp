@@ -1,0 +1,42 @@
+#version    450
+
+#include "FEShaderDefine.h"
+
+#define GROUP_SIZE_X    SKIN_GROUP_X
+
+layout(local_size_x = GROUP_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+/// 关节世界矩阵(CPU 每帧上传,与 JOINTS_0 索引一一对应)
+layout(std430, binding = 0) readonly buffer JointWorldBuffer
+{
+    mat4    _jointWorld[];
+};
+
+/// 逆绑定矩阵(glTF inverseBindMatrices,与关节一一对应)
+layout(std430, binding = 1) readonly buffer InverseBindBuffer
+{
+    mat4    _inverseBind[];
+};
+
+/// 输出:蒙皮矩阵,与 pbrSkin 顶点着色器的 SB_Skin(binding 18)共用同一个缓冲
+layout(std430, binding = 2) writeonly buffer SkinMatrixBuffer
+{
+    mat4    _skinMatrix[];
+};
+
+layout(binding = 3) uniform SkinParamBuffer
+{
+    /// inverse(meshGlobal) * worldRotation
+    mat4    _invMeshWorld;
+    uint    _count;
+};
+
+void main()
+{
+    uint    index   =   gl_GlobalInvocationID.x;
+    if (index >= _count)
+        return;
+    /// 与 CPU 路径一致: skin = inverse(meshGlobal) * worldRotation
+    ///                        * jointGlobal * inverseBind
+    _skinMatrix[index]  =   _invMeshWorld * _jointWorld[index] * _inverseBind[index];
+}

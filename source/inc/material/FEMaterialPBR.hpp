@@ -509,6 +509,18 @@ namespace   FE
 
         /// ===== 管线变体切换(glTF doubleSided / alphaMode BLEND / transmission)=====
         /// <summary>
+        /// 切换管线前缀。glTF 加载器会给带骨骼数据的网格分配 "pbrSkin"
+        /// (顶点着色器做 GPU 蒙皮);走纯 CPU 蒙皮的场景需要在加载后切回 "pbr",
+        /// 否则已蒙皮好的顶点会被 GPU 再蒙皮一次。
+        /// </summary>
+        void    setPipelinePrefix(const String& prefix)
+        {
+            if (_pipelinePrefix == prefix)
+                return;
+            _pipelinePrefix =   prefix;
+            applyPipeline();
+        }
+        /// <summary>
         /// 按当前双面/混合状态重新选择管线并重绑资源:
         ///   pbr      单面 + 不混合(默认)
         ///   pbr2s    双面(cullMode=NONE)

@@ -62,6 +62,8 @@
         /// 引擎全局 UBO:EngineState + 天空环境(所有非 UI 材质共用)
         SB_Global       =   3,
         SB_Material     =   4,
+        /// 骨骼蒙皮矩阵数组(仅 pbrSkin 管线使用,set 0)
+        SB_Skin         =   18,
     };
 #else
     #define  SB_Camera      0
@@ -69,6 +71,7 @@
     #define  SB_Clip        2
     #define  SB_Global      3
     #define  SB_Material    4
+    #define  SB_Skin        18
 #endif
 
 
@@ -87,6 +90,8 @@ const   int     LightTypePoint  =   1;
 const   int     LightTypeSpot   =   2;
 
 #define CULL_GROUP_X    256
+/// 蒙皮矩阵 compute shader 的 workgroup 大小(与 skinCompute/shader.comp 的 local_size_x 一致)
+#define SKIN_GROUP_X    64
 
 /// <summary>
 /// RenderFlag 必须保证 C++ enum 和 GLSL const 的 bit 完全一致,

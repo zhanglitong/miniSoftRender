@@ -32,6 +32,7 @@ namespace   FE
 {
     class   FEAnimationSys;
     class   FEConstraintSys;
+    class   FESkinSys;
     class   FESkyComponent;
     struct  DispatchResult
     {
@@ -119,6 +120,12 @@ namespace   FE
         /// <returns></returns>
         FEInputSystem*  inputSystem() const;
         FEAnimationSys* animationSystem() const;
+        /// <summary>
+        /// 骨骼动画系统:每帧在动画/约束之后统一更新 skin(CPU 蒙皮写回顶点,
+        /// GPU 蒙皮上传矩阵),渲染工厂不再处理 skin
+        /// </summary>
+        /// <returns>骨骼动画系统;场景未初始化时返回 nullptr</returns>
+        FESkinSys*      skinSystem() const;
         /// <summary>
         /// 约束组件系统(编辑器右键菜单增删约束时需要直接登记/摘除组件)
         /// </summary>

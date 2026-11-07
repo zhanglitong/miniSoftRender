@@ -8,6 +8,7 @@
 #include    "../../FEFileSystem.hpp"
 #include    "../../material/FEMaterialLibrary.hpp"
 #include    "../../animation/FEAnimation.hpp"
+#include    "../../node/FESkin.hpp"
 #include    "../../graphic/FETexture.h"
 #include    "../../graphic/FEScene.h"
 #include    "../../FEFileBuffer.hpp"
@@ -213,7 +214,22 @@ namespace   FE
                 String              warning;
                 String              dir =   FEFileSystem::filePath(fileName.c_str());
                 _currentDir         =   dir;
-                if(!gltfContext.LoadASCIIFromString(&gltfModel,&error,&warning,var->dataAs<char>(),(uint)var->length(),dir))
+                /// .glb 由 12 字节头 + JSON/BIN 两个 chunk 组成,不能按 ASCII(.gltf)解析
+                const   char*       rawData =   var->dataAs<char>();
+                bool                loaded  =   false;
+                if (var->length() >= 4 && rawData != nullptr
+                    && rawData[0] == 'g' && rawData[1] == 'l' && rawData[2] == 'T' && rawData[3] == 'F')
+                {
+                    loaded  =   gltfContext.LoadBinaryFromMemory(&gltfModel,&error,&warning,
+                                                                 (const unsigned char*)rawData,
+                                                                 (uint)var->length(),dir);
+                }
+                else
+                {
+                    loaded  =   gltfContext.LoadASCIIFromString(&gltfModel,&error,&warning,
+                                                                rawData,(uint)var->length(),dir);
+                }
+                if(!loaded)
                     continue;
                 MeshsIndex          meshMap;
                 MaterialIndex       matMap;
@@ -229,6 +245,8 @@ namespace   FE
                 /// animation;
                 results.reserve(results.size() + nodes.size());
                 createNodeAnimation(gltfModel,animations,nodeMap);
+                /// 骨骼蒙皮(skins)必须在节点表建立之后解析
+                parseSkins(gltfModel,nodeMap);
 
                 for (auto& node : nodes)
                 {
@@ -345,6 +363,31 @@ namespace   FE
                             auto&           buffer1     =   mesh->getOrCreate({IS_VERTEX_COLOR0,FMT_R8G8B8A8_UNORM});
                             buffer1.setBuffer(colorData.data(),colorData.size()* sizeof(colorData[0]));
                         }
+                    }
+                    /// 骨骼蒙皮属性:JOINTS_0 / WEIGHTS_0
+                    /// 不同 glTF 导出器的组件类型可能是 u8/u16/float,这里统一
+                    /// 转换为管线固定的 R16G16B16A16_UINT + R32G32B32A32_FLOAT,
+                    /// 否则与 pbrSkin.xml 声明的 stride 不一致会导致顶点错位
+                    auto    jointsItr   =   primitive.attributes.find("JOINTS_0");
+                    auto    weightsItr  =   primitive.attributes.find("WEIGHTS_0");
+                    if (jointsItr != primitive.attributes.end() && weightsItr != primitive.attributes.end())
+                    {
+                        const auto&     jointAccessor   =   model.accessors[jointsItr->second];
+                        const auto&     jointView       =   model.bufferViews[jointAccessor.bufferView];
+                        const auto&     jointBuffer     =   model.buffers[jointView.buffer];
+                        floats          jointValues     =   procData<4>(jointAccessor,jointView,jointBuffer);
+                        std::vector<uint16> jointData(jointValues.size());
+                        for (size_t k = 0;k < jointValues.size();++k)
+                            jointData[k]    =   uint16(jointValues[k]);
+                        auto&           jointBuf        =   mesh->getOrCreate({IS_VERTEX_BONE_INDEX,FMT_R16G16B16A16_UINT});
+                        jointBuf.setBuffer(jointData.data(),jointData.size()* sizeof(uint16));
+
+                        const auto&     weightAccessor  =   model.accessors[weightsItr->second];
+                        const auto&     weightView      =   model.bufferViews[weightAccessor.bufferView];
+                        const auto&     weightBuffer    =   model.buffers[weightView.buffer];
+                        floats          weightData      =   procData<4>(weightAccessor,weightView,weightBuffer);
+                        auto&           weightBuf       =   mesh->getOrCreate({IS_VERTEX_BONE_WEIGHT,FMT_R32G32B32A32_FLOAT});
+                        weightBuf.setBuffer(weightData.data(),weightData.size()* sizeof(float));
                     }
                     /// 解析面的点索引数据，图元信息
                     Primitive   pri     =   parsePrimitive(primitive, model);
@@ -731,31 +774,36 @@ namespace   FE
 
             MapTime     timeMap;
             auto&       gltfAnim    =   model.animations;
-            for (auto& var : gltfAnim)
+            for (size_t animationIndex = 0;animationIndex < gltfAnim.size();++animationIndex)
             {   
-                Animation   anim        =   nullptr;
-                /// clip 对应 多个chanel
-                AnimClip    clip        =   nullptr; 
-                Node        node        =   nullptr;
+                auto&       var         =   gltfAnim[animationIndex];
+                /// 动画名用于在 FEAnimationSys 中按 clip 分组播放
+                const       String  animationName   =   var.name.empty()
+                                                    ?   ("animation_" + std::to_string(animationIndex))
+                                                    :   var.name;
                 for (auto& channel: var.channels)
                 {
                     auto    itr    =   nodeMap.find(channel.target_node);
-                    if (itr != nodeMap.end())
-                        node    =   itr->second;
-                    else 
+                    if (itr == nodeMap.end())
                         continue;
-                   
-                    anim    =   animas[channel.target_node];
+                    Node    node    =   itr->second;
+
+                    /// 同一节点在不同 glTF 动画中必须是独立的 FEAnimation/clip,
+                    /// 否则多个动画的 track 会合并进同一个 clip 相互覆盖
+                    const   int         animKey =   int(animationIndex) * 100000 + channel.target_node;
+                    Animation   anim            =   animas[animKey];
                     if (anim == nullptr)
                     {
                         anim    =   new FEAnimation(_ctx);
-                        clip    =   new FEAnimClip(_ctx); 
+                        anim->setName(animationName);
+                        AnimClip    clip    =   new FEAnimClip(_ctx); 
                         anim->setClip(clip);
                         bool    result  =   node->addComponent(anim.get());
                         UNUSED(result);
                         assert(result);
-                        animas[channel.target_node] =   anim;
+                        animas[animKey] =   anim;
                     }
+                    AnimClip        clip        =   anim->clip();
                     const auto  samplerId       =   channel.sampler;
                     const auto& sampler         =   var.samplers[samplerId];
 
@@ -986,23 +1034,24 @@ namespace   FE
                 {
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
+                        /// 引擎的缩放属性类型是 real(PROP_SCALE_X 取 real),轨道必须存 real
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        FloatsObject    values  =   new FEFloatsObject(_ctx);
+                        RealsObject     values  =   new FERealsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_X);
-                        readValues<float,float>(accessor,view,buffer,values->values());
+                        readValues<real,float>(accessor,view,buffer,values->values());
                         clip->addTrack(track);
                     }
                     break;
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        FloatsObject    values  =   new FEFloatsObject(_ctx);
+                        RealsObject     values  =   new FERealsObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_X);
-                        readValues<float,real>(accessor,view,buffer,values->values());
+                        readValues<real,real>(accessor,view,buffer,values->values());
                         clip->addTrack(track);
                     }
                     break;
@@ -1047,23 +1096,24 @@ namespace   FE
                 {
                 case TINYGLTF_COMPONENT_TYPE_FLOAT:
                     {
+                        /// PROP_SCALE_XYZ 取 real3,轨道必须存 real3
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float3sObject   values  =   new FEFloat3sObject(_ctx);
+                        Real3sObject    values  =   new FEReal3sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_XYZ);
-                        readValues<float3,float3>(accessor,view,buffer,values->values());
+                        readValues<real3,float3>(accessor,view,buffer,values->values());
                         clip->addTrack(track);
                     }
                     break;
                 case TINYGLTF_COMPONENT_TYPE_DOUBLE:
                     {
                         KeyFrameTrack   track   =   new FEKeyFrameTrack(_ctx);
-                        Float3sObject   values  =   new FEFloat3sObject(_ctx);
+                        Real3sObject    values  =   new FEReal3sObject(_ctx);
                         track->setTimeObject(times);
                         track->setValueObject(values);
                         track->setPropertyIndex(PROP_SCALE_XYZ);
-                        readValues<float3,real3>(accessor,view,buffer,values->values());
+                        readValues<real3,real3>(accessor,view,buffer,values->values());
                         clip->addTrack(track);
                     }
                     break;
@@ -1146,8 +1196,16 @@ namespace   FE
                 values[i]   =   (TValue)pSource[i];
             }
         }
-        Material    getOrCreate(MaterialIndex& matMap,const tinygltf::Model& model, int matIndex,Mesh mesh)
+        Material    getOrCreate(MaterialIndex& matMap,const tinygltf::Model& model, int matIndex,Mesh mesh,bool skinned = false)
         { 
+            /// 蒙皮网格使用独立的 pbrSkin 材质实例:
+            /// 蒙皮矩阵 SBO 绑定在材质 set0 上,共享材质会让多个实例互相覆盖
+            if (skinned)
+            {
+                if (matIndex < 0 || matIndex >= (int)model.materials.size())
+                    return  nullptr;
+                return  parseMaterialPBR(model,matIndex,"pbrSkin");
+            }
             auto    itr =   matMap.find(matIndex);
             if (itr != matMap.end())
                 return  itr->second;
@@ -1196,7 +1254,7 @@ namespace   FE
             return      sysMat;
         }
 
-        Material    parseMaterialPBR(const tinygltf::Model& model, int matIndex)
+        Material    parseMaterialPBR(const tinygltf::Model& model, int matIndex,const String& pipelinePrefix = "pbr")
         {
             auto        texTransform        =   [](const tinygltf::ExtensionMap& extensions,float2& vScale,float2& vTrans,float& radian)
             {
@@ -1266,7 +1324,7 @@ namespace   FE
             UNUSED(alphaRef);
             const auto& pbr         =   material.pbrMetallicRoughness;
             UNUSED(pbr);
-            auto        pbrMat      =   new FEMaterialPBR(_ctx);
+            auto        pbrMat      =   new FEMaterialPBR(_ctx,pipelinePrefix);
             
             pbrMat->data()._value._emissive     =   float4(1,1,1,1);
             pbrMat->data()._value._diffuse      =   float4(1,1,1,1);
@@ -1428,6 +1486,82 @@ namespace   FE
             printf("progress:%lf\n", val * 100.0);
         }
     protected:
+        /// <summary>
+        /// 解析 glTF skins: joints + inverseBindMatrices,并把 FESkin 挂到 mesh 节点上。
+        /// JOINTS_0 中的索引是 skin.joints 数组下标,所以关节顺序必须与
+        /// inverseBindMatrices 一致;蒙皮矩阵由 FESkin::update 每帧计算。
+        /// </summary>
+        void        parseSkins(tinygltf::Model& model,NodeIndex& nodeMap)
+        {
+            for (size_t si = 0; si < model.skins.size(); ++si)
+            {
+                const tinygltf::Skin&   gltfSkin    =   model.skins[si];
+                const size_t            jointCount  =   gltfSkin.joints.size();
+                if (jointCount == 0)
+                    continue;
+
+                /// 逆绑定矩阵(缺省为单位矩阵)
+                InverseBinds    inverseBinds(jointCount,mat4r(1.0));
+                if (gltfSkin.inverseBindMatrices >= 0 && gltfSkin.inverseBindMatrices < (int)model.accessors.size())
+                {
+                    const tinygltf::Accessor&   accessor    =   model.accessors[gltfSkin.inverseBindMatrices];
+                    if (accessor.bufferView >= 0)
+                    {
+                        const tinygltf::BufferView& view        =   model.bufferViews[accessor.bufferView];
+                        const tinygltf::Buffer&     buffer      =   model.buffers[view.buffer];
+                        const size_t                stride      =   view.byteStride > 0 ? view.byteStride : sizeof(float) * 16;
+                        const uint8*                base        =   buffer.data.data() + view.byteOffset + accessor.byteOffset;
+                        const size_t                count       =   std::min(jointCount,size_t(accessor.count));
+                        for (size_t j = 0;j < count;++j)
+                        {
+                            const float*    values  =   (const float*)(base + j * stride);
+                            /// glTF 矩阵为列主序,与引擎 mat4r 一致
+                            for (int e = 0;e < 16;++e)
+                                inverseBinds[j][e / 4][e % 4]   =   real(values[e]);
+                        }
+                    }
+                }
+
+                /// 关节节点(索引即 JOINTS_0 的取值)
+                Joints  joints(jointCount,nullptr);
+                for (size_t j = 0;j < jointCount;++j)
+                {
+                    auto    itr =   nodeMap.find(gltfSkin.joints[j]);
+                    if (itr != nodeMap.end() && itr->second != nullptr)
+                        joints[j]   =   itr->second.get();
+                }
+
+                /// 一个 glTF skin 对应一份共享骨骼数据,所有引用它的 mesh 节点共用
+                SharedPtr<FESkinData>   skinData    =   new FESkinData(_ctx);
+                skinData->setJoints(joints,inverseBinds);
+
+                /// 找到引用该 skin 的 mesh 节点,挂上蒙皮组件
+                for (size_t ni = 0;ni < model.nodes.size();++ni)
+                {
+                    const tinygltf::Node&   gltfNode    =   model.nodes[ni];
+                    if (gltfNode.skin != (int)si || gltfNode.mesh < 0)
+                        continue;
+                    auto    itr =   nodeMap.find((int)ni);
+                    if (itr == nodeMap.end() || itr->second == nullptr)
+                        continue;
+                    Node                meshNode    =   itr->second;
+                    SharedPtr<FESkin>   skin        =   new FESkin(_ctx);
+                    skin->setData(skinData);
+                    meshNode->addComponent(skin.get());
+                    /// 多 primitive 时实际网格在子节点上,子节点各挂一个蒙皮组件共享骨骼数据
+                    /// (蒙皮矩阵含各自的 inverse(meshGlobal),不能共享同一个 FESkin 实例)
+                    for (auto& child : meshNode->children())
+                    {
+                        if (child != nullptr && child->mesh() != nullptr)
+                        {
+                            SharedPtr<FESkin>   childSkin   =   new FESkin(_ctx);
+                            childSkin->setData(skinData);
+                            child->addComponent(childSkin.get());
+                        }
+                    }
+                }
+            }
+        }
         Nodes       parseNodes(tinygltf::Model& model,MeshsIndex& meshMap,MaterialIndex& matMap,NodeIndex& nodeMap)
         {
             Nodes   results;
@@ -1513,7 +1647,7 @@ namespace   FE
                 if (meshs.size() == 1)
                 {
                     auto    mesh    =   meshs.front();
-                    auto    mat     =   getOrCreate(matMap,model,gltfMesh.primitives[0].material,mesh);
+                    auto    mat     =   getOrCreate(matMap,model,gltfMesh.primitives[0].material,mesh,node.skin >= 0);
                     /// 无材质时仍要保留网格与子节点,不能提前返回
                     pNode->setMesh(meshs.front());
                     if (mat != nullptr)
@@ -1528,7 +1662,7 @@ namespace   FE
                 {
                     for (size_t i = 0; i < gltfMesh.primitives.size(); ++i)
                     {
-                        auto    mat =   getOrCreate(matMap,model,gltfMesh.primitives[i].material,meshs[i]);
+                        auto    mat =   getOrCreate(matMap,model,gltfMesh.primitives[i].material,meshs[i],node.skin >= 0);
                         Node        child   =   new FENode(_ctx);
                         child->setMesh(meshs[i]);
                         if (mat != nullptr)
