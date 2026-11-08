@@ -17,6 +17,7 @@
 #include    <Windows.h>
 
 #include    "../../../inc/FEContext.hpp"
+#include    "../../../inc/animation/FEAnimationSys.hpp"
 #include    "../../../inc/graphic/FEOffscreenRenderer.h"
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/FEFileFormatHelper.hpp"
@@ -205,10 +206,25 @@ int     main(int argc,char** argv)
     check(!sourceSkins.empty(),"gltf: model has skin");
     if (sourceSkins.empty())
         return  1;
+    printf("       gltf skin components = %zu\n",sourceSkins.size());
+    check(sourceSkins.size() == 2,"gltf: exactly 2 skin components");
     const   size_t  sourceJoints    =   sourceSkins.front()->data()->jointCount();
 
     scene->dispatchNodesToSystem(nodes);
     scene->addNodesToTree(nodes);
+
+    /// 每个 glTF 动画(Idle/Run/Walk/TPose)应各自对应一个 FEPlayback
+    auto&   playbacks   =   scene->animationSystem()->playbacks();
+    printf("       playbacks = %zu\n",playbacks.size());
+    for (auto& var : playbacks)
+        printf("         playback '%s' -> %zu animations\n",var.first.c_str(),var.second->objects().size());
+    check(playbacks.size() == 4,"anim: four playbacks for four clips");
+    check(playbacks.find("Soldier_Idle")  != playbacks.end(),"anim: playback Soldier_Idle exists");
+    check(playbacks.find("Soldier_Run")   != playbacks.end(),"anim: playback Soldier_Run exists");
+    check(playbacks.find("Soldier_Walk")  != playbacks.end(),"anim: playback Soldier_Walk exists");
+    check(playbacks.find("Soldier_TPose") != playbacks.end(),"anim: playback Soldier_TPose exists");
+    for (auto& var : playbacks)
+        check(var.second->objects().size() == 52,"anim: playback holds 52 node clips");
     scene->camera()->setEye(real3(0.0,2.9,1.05));
     scene->camera()->setTarget(real3(0.0,0.0,0.95));
     scene->camera()->setUp(real3(0,0,1));
@@ -248,6 +264,17 @@ int     main(int argc,char** argv)
     check(!loadedSkins.empty(),"fepj: skins loaded");
     if (loadedSkins.empty())
         return  1;
+    printf("       fepj skin components = %zu\n",loadedSkins.size());
+    check(loadedSkins.size() == 2,"fepj: exactly 2 skin components");
+
+    /// 播放器分组随工程往返:仍是 4 个,每个 52 个节点 clip
+    auto&   loadedPlaybacks =   scene->animationSystem()->playbacks();
+    printf("       fepj playbacks = %zu\n",loadedPlaybacks.size());
+    for (auto& var : loadedPlaybacks)
+        printf("         playback '%s' -> %zu animations\n",var.first.c_str(),var.second->objects().size());
+    check(loadedPlaybacks.size() == 4,"fepj: four playbacks restored");
+    for (auto& var : loadedPlaybacks)
+        check(var.second->objects().size() == 52,"fepj: playback holds 52 node clips");
 
     size_t  pendingTotal    =   0;
     bool    worldRotOk      =   true;

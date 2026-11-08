@@ -201,6 +201,13 @@ namespace   FE
             {
                 fileName    =   std::get<std::string>(fileNameParam);
             }
+            /// 模型名(文件名去扩展名),用作 playback 名前缀,避免不同模型的同名 clip 冲突
+            String  modelName   =   FEFileSystem::fileName(fileName.c_str());
+            const   String  modelExt    =   FEFileSystem::fileExtension(modelName.c_str());
+            if (!modelExt.empty() && modelName.size() > modelExt.size())
+            {
+                modelName.resize(modelName.size() - modelExt.size());
+            }
             /// 存储入口对象列表
             Objects         entryList;
             Objects         results;
@@ -244,7 +251,7 @@ namespace   FE
                 auto    nodes   =   parseNodes(gltfModel,meshMap,matMap,nodeMap);
                 /// animation;
                 results.reserve(results.size() + nodes.size());
-                createNodeAnimation(gltfModel,animations,nodeMap);
+                createNodeAnimation(gltfModel,animations,nodeMap,modelName);
                 /// 骨骼蒙皮(skins)必须在节点表建立之后解析
                 parseSkins(gltfModel,nodeMap);
 
@@ -768,7 +775,8 @@ namespace   FE
             _texCache[texIndex] =   tex;
             return  tex;
         }
-        void        createNodeAnimation(tinygltf::Model& model,AnimatonIndex& animas,NodeIndex& nodeMap)
+        void        createNodeAnimation(tinygltf::Model& model,AnimatonIndex& animas,NodeIndex& nodeMap
+                                        ,const String& modelName)
         {   
             using       MapTime     =   std::map<int,RealsObject>;
 
@@ -781,12 +789,24 @@ namespace   FE
                 const       String  animationName   =   var.name.empty()
                                                     ?   ("animation_" + std::to_string(animationIndex))
                                                     :   var.name;
+                /// playback 名 = 模型名 + clip 名,避免不同模型的 Idle/Run 混进同一个播放器
+                const       String  clipName    =   modelName.empty()
+                                                ?   animationName
+                                                :   (modelName + "_" + animationName);
                 for (auto& channel: var.channels)
                 {
                     auto    itr    =   nodeMap.find(channel.target_node);
                     if (itr == nodeMap.end())
                         continue;
                     Node    node    =   itr->second;
+
+                    /// 只处理 TRS 通道:其它路径(如 morph weights)暂不支持,
+                    /// 提前跳过,避免创建出没有 track 的空 clip
+                    const   bool    isTRS   =   channel.target_path == "translation"
+                                            ||  channel.target_path == "rotation"
+                                            ||  channel.target_path == "scale";
+                    if (!isTRS)
+                        continue;
 
                     /// 同一节点在不同 glTF 动画中必须是独立的 FEAnimation/clip,
                     /// 否则多个动画的 track 会合并进同一个 clip 相互覆盖
@@ -795,7 +815,7 @@ namespace   FE
                     if (anim == nullptr)
                     {
                         anim    =   new FEAnimation(_ctx);
-                        anim->setName(animationName);
+                        anim->setName(clipName);
                         AnimClip    clip    =   new FEAnimClip(_ctx); 
                         anim->setClip(clip);
                         bool    result  =   node->addComponent(anim.get());
@@ -821,7 +841,12 @@ namespace   FE
                     {
                         timeLine    =   createTimeLine(inputAccessor,inputView,inputBuffer);
                         if (timeLine == nullptr)
+                        {
                             node->removeComponent(anim.get());
+                            /// 组件已摘除,缓存必须同步清理,否则后续通道会复用一个
+                            /// 已经脱钩的动画,导致该节点的动画永久失效
+                            animas.erase(animKey);
+                        }
                         else
                             timeMap[sampler.input]  =   timeLine;
                     }
@@ -1545,19 +1570,26 @@ namespace   FE
                     if (itr == nodeMap.end() || itr->second == nullptr)
                         continue;
                     Node                meshNode    =   itr->second;
-                    SharedPtr<FESkin>   skin        =   new FESkin(_ctx);
-                    skin->setData(skinData);
-                    meshNode->addComponent(skin.get());
+                    /// 多 primitive 时实际网格挂在子节点上,父节点自身没有 mesh,
+                    /// 不能挂蒙皮组件(否则会生成永远不会被 FESkinSys 使用的死组件)
+                    if (meshNode->mesh() != nullptr && meshNode->objects<FESkin>().empty())
+                    {
+                        SharedPtr<FESkin>   skin        =   new FESkin(_ctx);
+                        skin->setData(skinData);
+                        meshNode->addComponent(skin.get());
+                    }
                     /// 多 primitive 时实际网格在子节点上,子节点各挂一个蒙皮组件共享骨骼数据
                     /// (蒙皮矩阵含各自的 inverse(meshGlobal),不能共享同一个 FESkin 实例)
                     for (auto& child : meshNode->children())
                     {
-                        if (child != nullptr && child->mesh() != nullptr)
-                        {
-                            SharedPtr<FESkin>   childSkin   =   new FESkin(_ctx);
-                            childSkin->setData(skinData);
-                            child->addComponent(childSkin.get());
-                        }
+                        if (child == nullptr || child->mesh() == nullptr)
+                            continue;
+                        /// 子节点可能已被自身 skin 或父级蒙皮挂接过,避免重复挂载
+                        if (!child->objects<FESkin>().empty())
+                            continue;
+                        SharedPtr<FESkin>   childSkin   =   new FESkin(_ctx);
+                        childSkin->setData(skinData);
+                        child->addComponent(childSkin.get());
                     }
                 }
             }

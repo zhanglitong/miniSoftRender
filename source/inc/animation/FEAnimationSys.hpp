@@ -91,43 +91,34 @@ namespace   FE
         }
     public:
         /// <summary>
-        /// 添加组件(场景分发路径):
+        /// 添加动画组件:playbackName 为播放器名,默认 "default";
         /// 已归属某个播放器的动画保持原归属(打开工程后由播放器恢复的分组不被冲掉),
-        /// 未登记的动画登记到默认播放器
-        /// </summary>
-        /// <param name="com"></param>
-        /// <returns></returns>
-        virtual size_t  addObject(Component com) override
-        {
-            if (com == nullptr)
-                return  0;
-            FEAnimation*    anim    =   (FEAnimation*)(com->as<FEAnimation>());
-            if (anim == nullptr)
-                return  0;
-            if (playbackOf(anim) != nullptr)
-                return  0;
-            return  getOrCreate("default")->addObject(anim);
-        }
-        /// <summary>
-        /// 把动画登记到指定播放器:动画是被管理对象,只归属一个播放器,
-        /// 已登记到其它播放器时先从原播放器摘除
+        /// 显式指定其它名字时才从原播放器移动到目标播放器
         /// </summary>
         /// <param name="com">动画组件</param>
         /// <param name="playbackName">播放器名,空串表示 default</param>
         /// <returns>返回登记成功的动画数</returns>
-        size_t  addObject(Component com,const String& playbackName)
+        virtual size_t  addObject(Component com,const String& playbackName = "default")
         {
             if (com == nullptr)
                 return  0;
             FEAnimation*    anim    =   (FEAnimation*)(com->as<FEAnimation>());
             if (anim == nullptr)
                 return  0;
-            const   String  name    =   playbackName.empty() ? String("default") : playbackName;
-            Playback        target  =   getOrCreate(name);
-            Playback        owner   =   playbackOf(anim);
-            if (owner != nullptr && owner != target)
+            const   String  targetName  =   playbackName.empty() ? String("default") : playbackName;
+            Playback        owner       =   playbackOf(anim);
+            if (owner != nullptr)
+            {
+                /// 默认名(场景分发路径):保持既有分组,不移动
+                if (targetName == "default")
+                    return  0;
+                Playback    target  =   getOrCreate(targetName);
+                if (owner == target)
+                    return  0;
                 owner->removeObject(anim);
-            return  target->addObject(anim);
+                return  target->addObject(anim);
+            }
+            return  getOrCreate(targetName)->addObject(anim);
         }
         /// <summary>
         /// 登记一个已存在的播放器(从工程文件加载时使用):
@@ -159,7 +150,17 @@ namespace   FE
             size_t  count   =   0;
             for (size_t i = 0; i < coms.size(); ++i)
             {
-                count   +=  addObject(coms[i]);
+                Component   com     =   coms[i];
+                FEAnimation* anim   =   (com == nullptr) ? nullptr : (FEAnimation*)(com->as<FEAnimation>());
+                if (anim == nullptr)
+                    continue;
+                /// 已归属某个播放器(例如打开工程后恢复的分组)保持原归属
+                if (playbackOf(anim) != nullptr)
+                    continue;
+                /// 按动画自带的 clip 名分组(导入时形如 "模型名_Idle"),
+                /// 一个播放器只驱动一套动作,同时避免不同模型的同名 clip 混在一起
+                const   String& clipName    =   anim->name();
+                count   +=  addObject(com,clipName.empty() ? String("default") : clipName);
             }
             return  count;
         }

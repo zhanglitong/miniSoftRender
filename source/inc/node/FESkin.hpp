@@ -146,7 +146,8 @@ namespace   FE
     public:
         FESkin(FEContext& ctx)
             :FEComponent(ctx)
-        {}
+        {
+        }
         FESkin(const FESkin& other)
             :FEComponent(other)
             ,_data(other._data)

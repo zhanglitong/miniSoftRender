@@ -222,27 +222,17 @@ int main(int argc, char** argv)
     scene->camera()->setNearFar(real2(0.05,100.0));
     scene->camera()->updatePerspective();
 
-    /// ---- 动画:加载器按 glTF 动画名拆分成独立 clip,这里按名字登记到播放器 ----
-    /// 加载时所有动画默认进了 "default" 播放器,先按动画名重新分组
+    /// ---- 动画:加载器已按 "模型名_动画名" 拆分成独立 playback,这里直接收集 ----
     std::vector<String> animNames;
     FEAnimationSys*     animSys     =   scene->animationSystem();
     if (animSys != nullptr)
     {
-        Playback    defaultPb   =   animSys->getOrCreate("default");
-        if (defaultPb != nullptr)
+        for (auto& var : animSys->playbacks())
         {
-            /// objects() 返回内部列表的引用,登记到新播放器会修改它 => 先拷贝
-            auto        anims   =   defaultPb->objects();
-            for (auto& anim : anims)
-            {
-                if (anim == nullptr)
-                    continue;
-                const String&   name    =   anim->name();
-                if (std::find(animNames.begin(),animNames.end(),name) == animNames.end())
-                    animNames.push_back(name);
-                animSys->addObject(anim->as<FEComponent>(),name);
-            }
-            defaultPb->stop();
+            if (var.second == nullptr || var.second->objects().empty())
+                continue;
+            animNames.push_back(var.first);
+            var.second->stop();
         }
     }
     std::cout << "animations:";
