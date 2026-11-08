@@ -1,4 +1,5 @@
 ﻿#pragma     once
+#include    <cstring>
 #include    <unordered_map>
 #include    <vector>
 #include    "../FEContext.hpp"
@@ -20,8 +21,6 @@ namespace   FE
         mat4r   inverseBind =   mat4r(1.0);
     };
 
-    using   Joints          =   std::vector<FENode*>;
-    using   InverseBinds    =   std::vector<mat4r>;
     using   Bones           =   std::vector<FEBone>;
 
     DEFINE_CLASS_UUID(FESkinData,"{A4D9E2C7-6F31-4B85-9E27-C8A1D3F5B604}");
@@ -46,18 +45,10 @@ namespace   FE
             ,_worldRot(other._worldRot)
             ,_pendingJoints(other._pendingJoints)
         {}
-        inline  void    setJoints(const Joints& joints,const InverseBinds& inverseBinds)
+        inline  void    setBones(const Bones& bones)
         {
-            _bones.clear();
+            _bones  =   bones;
             _pendingJoints.clear();
-            _bones.reserve(joints.size());
-            for (size_t i = 0;i < joints.size();++i)
-            {
-                FEBone  bone;
-                bone.node           =   Node(joints[i]);
-                bone.inverseBind    =   (i < inverseBinds.size()) ? inverseBinds[i] : mat4r(1.0);
-                _bones.emplace_back(bone);
-            }
         }
         inline  size_t  jointCount() const
         {
@@ -123,7 +114,8 @@ namespace   FE
         /// </summary>
         Uuids                   _pendingJoints;
     };
-
+    using   SkinData  =   SharedPtr<FESkinData>;
+    
     DEFINE_CLASS_UUID(FESkin,"{3C7E1A92-5B4D-4F0E-8A61-9D2B4C6E7F10}");
     /// <summary>
     /// glTF 骨骼蒙皮组件(per mesh node):
@@ -146,7 +138,8 @@ namespace   FE
     public:
         FESkin(FEContext& ctx)
             :FEComponent(ctx)
-        {}
+        {
+        }
         FESkin(const FESkin& other)
             :FEComponent(other)
             ,_data(other._data)
@@ -155,11 +148,15 @@ namespace   FE
         /// <summary>
         /// 共享骨骼数据:同一个 glTF skin 的多个 mesh 节点共享一份
         /// </summary>
-        inline  void    setData(const SharedPtr<FESkinData>& data)
+        inline  void    setData(const SkinData& data)
         {
             _data   =   data;
+            /// 骨骼数据换了,compute 侧的缓存全部失效
+            _inverseBindReady   =   false;
+            _uploadedJoints.clear();
+            _computeSkipped     =   false;
         }
-        inline  SharedPtr<FESkinData>   data() const
+        inline  SkinData    data() const
         {
             return  _data;
         }
@@ -180,14 +177,18 @@ namespace   FE
                 return  owner()->as<FENode>();
         }
         /// <summary>
-        /// joints 与 inverseBindMatrices 一一对应,顺序与 JOINTS_0 中的索引一致
+        /// 骨骼顺序与 JOINTS_0 中的索引一致
         /// </summary>
-        inline  void    setJoints(const Joints& joints,const InverseBinds& inverseBinds)
+        inline  void    setBones(const Bones& bones)
         {
             if (_data == nullptr)
                 return;
-            _data->setJoints(joints,inverseBinds);
+            _data->setBones(bones);
             _matrices.resize(_data->jointCount(),mat4(1.0));
+            /// 关节集合变了,compute 侧缓存失效
+            _inverseBindReady   =   false;
+            _uploadedJoints.clear();
+            _computeSkipped     =   false;
         }
         inline  size_t  jointCount() const
         {
@@ -292,6 +293,7 @@ namespace   FE
         /// </summary>
         bool    prepareCompute()
         {
+            _computeSkipped =   false;
             if (_computeInvalid)
                 return  false;
             const   size_t  count   =   jointCount();
@@ -335,20 +337,47 @@ namespace   FE
 
             auto&   bones   =   _data->bones();
             _jointWorlds.resize(count);
-            _inverseBinds.resize(count);
             for (size_t i = 0;i < count;++i)
             {
                 FENode*     joint   =   bones[i].node.get();
                 _jointWorlds[i]     =   (joint == nullptr) ? mat4(1.0) : mat4(joint->globalTransform());
-                _inverseBinds[i]    =   mat4(bones[i].inverseBind);
             }
-            _jointWorld->update(_jointWorlds.data(),length,0);
-            _inverseBind->update(_inverseBinds.data(),length,0);
 
             ComputeParam    param;
             param._invMeshWorld =   mat4(FE::inverse(node->globalTransform()) * _data->worldRotation());
             param._count        =   uint(count);
+
+            /// 输入与上一帧完全一致(暂停播放、静止骨骼、约束未改变姿态)时
+            /// 跳过上传与 dispatch:输出缓冲仍是上一帧的结果,内容等价
+            const   bool    sameJoints  =   _uploadedJoints.size() == count
+                                        &&  std::memcmp(_uploadedJoints.data(),_jointWorlds.data(),
+                                                        size_t(count * sizeof(mat4))) == 0;
+            const   bool    sameParam   =   _uploadedParam._count == param._count
+                                        &&  std::memcmp(&_uploadedParam._invMeshWorld,&param._invMeshWorld,
+                                                        sizeof(mat4)) == 0;
+            if (sameJoints && sameParam && _inverseBindReady)
+            {
+                _computeSkipped =   true;
+                return  false;
+            }
+            _computeSkipped =   false;
+
+            _jointWorld->update(_jointWorlds.data(),length,0);
+            /// inverseBind 是加载时的常量,只在首次(或骨骼数据变更后)上传一次
+            if (!_inverseBindReady)
+            {
+                _inverseBinds.resize(count);
+                for (size_t i = 0;i < count;++i)
+                {
+                    _inverseBinds[i]    =   mat4(bones[i].inverseBind);
+                }
+                _inverseBind->update(_inverseBinds.data(),length,0);
+                _inverseBindReady   =   true;
+            }
+
             _computeParam->update(&param,sizeof(param),0);
+            _uploadedJoints =   _jointWorlds;
+            _uploadedParam  =   param;
 
             _computeSet->setBinding(0,{_jointWorld.get()});
             _computeSet->setBinding(1,{_inverseBind.get()});
@@ -356,6 +385,13 @@ namespace   FE
             _computeSet->setBinding(3,{_computeParam.get()});
             _computeSet->update();
             return  true;
+        }
+        /// <summary>
+        /// 上一帧 prepareCompute 是否因"输入未变化"而跳过(此时调用方不应 dispatch)
+        /// </summary>
+        inline  bool    computeSkipped() const
+        {
+            return  _computeSkipped;
         }
         /// <summary>
         /// 在外部已 bindPipeline 的 compute 命令缓冲上绑定本 skin 的数据并派发;
@@ -560,6 +596,15 @@ namespace   FE
         std::vector<mat4>       _jointWorlds;
         std::vector<mat4>       _inverseBinds;
         bool                    _computeInvalid =   false;
+        /// <summary>
+        /// compute 侧的状态缓存:
+        ///   _inverseBindReady 逆绑定矩阵是加载期常量,只上传一次;
+        ///   _uploadedJoints/_uploadedParam 记录上一次真正提交的内容,用于跳过重复 dispatch
+        /// </summary>
+        bool                    _inverseBindReady   =   false;
+        bool                    _computeSkipped     =   false;
+        std::vector<mat4>       _uploadedJoints;
+        ComputeParam            _uploadedParam  =   {};
         /// <summary>
         /// CPU 蒙皮的绑定姿态缓存
         /// </summary>

@@ -33,6 +33,7 @@
 #include    "../inc/mesh/FEAttribyteBuffer.hpp"
 
 #include    "../inc/node/FENode.hpp"
+#include    "../inc/node/FENodeTree.hpp"
 #include    "../inc/FEEntryList.hpp"
 
 #include    "../inc/FEFileFormatLibrary.hpp"
@@ -212,6 +213,7 @@ namespace   FE
         _anchor =   nullptr;
         _scene  =   nullptr;
         _log    =   nullptr;
+        _nodeTree   =   nullptr;
     }
     FEContext&  FEContext::instance()
     {
@@ -234,6 +236,8 @@ namespace   FE
     {
         _log        =   new FELog(*this,"log.txt");
         _anchor     =   new FEAnchor(*this);
+        /// 节点树与场景平级:数据侧独立存在,不依赖 FEScene 是否创建
+        _nodeTree   =   new FENodeTree(*this);
         systemInitialize(*this);
     }
     FEContext::~FEContext()
@@ -249,6 +253,10 @@ namespace   FE
     FEScene*    FEContext::scene()
     {
         return  _scene->as<FEScene>();
+    }
+    FENodeTree& FEContext::nodeTree()
+    {
+        return  *_nodeTree->as<FENodeTree>();
     }
     void        FEContext::requireNextFrame()
     {

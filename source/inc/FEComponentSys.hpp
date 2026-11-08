@@ -20,7 +20,8 @@ namespace   FE
             ,_updateList(ObjectLessFunc)
         {
             priority(FEFactory::PT_Update).setPriority(EPriority::EP_Last);
-            priority(FEFactory::PT_Update).setOrder(MaxInt16);
+            /// 未声明依赖的系统统一排在骨骼动画管线之前,避免与蒙皮争用同一顺序
+            priority(FEFactory::PT_Update).setOrder(FEFactory::UO_Default);
         }         
         FEComponentSys(const FEComponentSys& other)            
             :FEFactory(other)         

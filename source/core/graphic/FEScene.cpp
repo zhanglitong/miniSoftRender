@@ -31,19 +31,23 @@ namespace   FE
 {
     FEScene::FEScene(FEContext& ctx)
         :FEObject(ctx)
-        ,_nodeTree(ctx)
         ,_factorys(ctx)
         ,_viewerMgr(ctx)
         ,_comSysMgr(ctx)
     {
-        _nodeTree.eventsChangedNode()   +=  {this,[this](const FENode* node)
+        /// 节点树归 FEContext 持有;FEScene 只订阅事件,把数据侧的变化同步到显示侧。
+        /// 移除事件先挂起:reparent 同样会触发,帧首再确认节点是否真的不在树里
+        _ctx.nodeTree().eventsChangedNode() +=  {this,[this](const FENode* node)
         {
             onNodePropChanged(node);
+        }};
+        _ctx.nodeTree().eventsRemoveNode()  +=  {this,[this](const FENode* node)
+        {
+            onNodeRemoved(node);
         }};
     }
     FEScene::FEScene(const FEScene& other)
         :FEObject(other)
-        ,_nodeTree(other._nodeTree)
         ,_factorys(other._factorys)
         ,_viewerMgr(other._viewerMgr)
         ,_comSysMgr(other._comSysMgr)
@@ -316,7 +320,10 @@ namespace   FE
         }
         _factorys.clearObjects();
 
-        _nodeTree.clear();
+        /// 节点树与 FEScene 平级且归 FEContext 持有:只有活动场景销毁时才清空,
+        /// 避免场景副本析构误清数据侧
+        if (_ctx._scene.get() == this)
+            _ctx.nodeTree().clear();
 
         if (_device)
         {
@@ -334,20 +341,49 @@ namespace   FE
             if (node->parent() != nullptr)
                 continue;
             else
-                _nodeTree.addToplevelNode(node);
+                _ctx.nodeTree().addToplevelNode(node);
         }
     }
    
-    void    FEScene::removeNodesFromTree(const Nodes& nodeList)
+    void    FEScene::removeNodes(const Nodes& nodeList)
     {
-        for (auto node : nodeList)
+        /// 仅显示侧:节点树增删归 FENodeTree,这里只摘渲染工厂与组件系统登记
+        removeNodesFromSystem(nodeList);
+    }
+    void    FEScene::onNodeRemoved(const FENode* node)
+    {
+        if (node == nullptr)
+            return;
+        /// 强引用挂起:结算前节点不能被释放
+        _pendingRemovals.emplace(Object(const_cast<FENode*>(node)));
+    }
+    bool    FEScene::isNodeInTree(const Node& node) const
+    {
+        if (node == nullptr)
+            return  false;
+        if (node->parent() != nullptr)
+            return  true;
+        const   auto&   tops    =   _ctx.nodeTree().topLevelNodes();
+        return  std::find(tops.begin(),tops.end(),node) != tops.end();
+    }
+    void    FEScene::flushPendingRemovals()
+    {
+        if (_pendingRemovals.empty())
+            return;
+        /// 先取走快照:摘除过程中节点析构可能再次触发移除事件
+        ObjectUSet  pending =   std::move(_pendingRemovals);
+        _pendingRemovals.clear();
+        Nodes       removed;
+        for (auto& obj : pending)
         {
-            /// 只摘顶层节点:带父节点的节点由父级一起移除,与 addNodesToTree 的规则对应
-            if (node == nullptr || node->parent() != nullptr)
+            Node    node    =   const_cast<FENode*>(static_cast<const FENode*>(obj.get()));
+            /// reparent 往返:节点仍在树里,不能摘显示侧登记
+            if (node == nullptr || isNodeInTree(node))
                 continue;
-            else
-                _nodeTree.removeNode(node);
+            removed.emplace_back(node);
         }
+        if (!removed.empty())
+            removeNodesFromSystem(removed);
     }
    
     void    FEScene::dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result)
@@ -371,6 +407,8 @@ namespace   FE
 
     void    FEScene::onFrameStart()
     {
+        /// 先把数据侧挂起的移除结算掉,再开帧:保证被删节点不会多渲染一帧
+        flushPendingRemovals();
         if (_swapchain == nullptr)
             return;
         _frame  =   _swapchain->acquireNextFrame(UINT64_MAX);
@@ -428,6 +466,7 @@ namespace   FE
     }
     void    FEScene::onFrameUpdate()
     {
+        flushPendingRemovals();
         if (_frame == nullptr || _frame->_cmd == nullptr)
             return;
         /// all componentSys for update
@@ -952,8 +991,10 @@ namespace   FE
     void    FEScene::clear()
     {
         LOG_INF("FEScene.clear()");
-        LOG_INF("_nodeTree.clear()");
-        _nodeTree.clear();
+        LOG_INF("nodeTree().clear()");
+        _ctx.nodeTree().clear();
+        /// 节点树清空过程中的移除事件只是挂起,系统和工厂随后统一清空,直接丢弃
+        _pendingRemovals.clear();
         for (auto var : _comSysMgr.objects())
         {
             var->clear();

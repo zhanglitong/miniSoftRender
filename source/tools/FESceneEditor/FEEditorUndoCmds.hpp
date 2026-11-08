@@ -43,8 +43,8 @@ namespace   FE
         }
         virtual void    undo()  override
         {
-            _scene.removeNodesFromTree(_nodes);
-            _scene.removeNodesFromSystem(_nodes);
+            /// 节点树增删归 FENodeTree,显示侧由 FEScene 订阅事件的移除登记同步
+            _scene.nodeTree().removeNodes(_nodes);
         }
     protected:
         FEScene&    _scene;

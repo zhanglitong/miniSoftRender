@@ -25,6 +25,34 @@ namespace   FE
             PT_Max,
         };
         using   Prioritys     =   std::array<FEPriority,PT_Max>;
+        /// <summary>
+        /// 组件系统在 PT_Update 阶段内的执行顺序约定(数值小者先执行):
+        /// 动画采样 -> 约束求解 -> 蒙皮,后一阶段依赖前一阶段写好的节点/关节世界矩阵。
+        /// 依赖骨骼姿态的系统统一引用这里的取值,不要再各自写魔法数
+        /// </summary>
+        enum    UpdateOrder : int16_t
+        {
+            /// <summary>
+            /// 未声明依赖的普通系统:默认排在骨骼管线之前,
+            /// 需要读取骨骼姿态的系统必须显式声明为 UO_Skin 之后的值
+            /// </summary>
+            UO_Default      =   MaxInt16 - 3,
+            /// <summary>
+            /// 采样动画关键帧,写节点本地变换
+            /// </summary>
+            UO_Animation    =   MaxInt16 - 2,
+            /// <summary>
+            /// 约束求解,读取动画采样后的世界变换
+            /// </summary>
+            UO_Constraint   =   MaxInt16 - 1,
+            /// <summary>
+            /// 蒙皮,读取最终的关节世界矩阵
+            /// </summary>
+            UO_Skin         =   MaxInt16,
+        };
+        static_assert(UO_Default < UO_Animation,"默认系统必须排在动画之前");
+        static_assert(UO_Animation < UO_Constraint,"动画必须在约束之前执行");
+        static_assert(UO_Constraint < UO_Skin,"约束必须在蒙皮之前执行");
     public:
         enum  FactoryFlag
         {

@@ -88,11 +88,11 @@ namespace   FE
         }
         inline  auto&   nodeTree()
         {
-            return  _nodeTree;
+            return  _ctx.nodeTree();
         }
         inline  auto&   nodeTree() const
         {
-            return  _nodeTree;
+            return  _ctx.nodeTree();
         }
         inline  auto&   factoryMgr()
         {
@@ -169,12 +169,12 @@ namespace   FE
         /// </summary>
         virtual void    addNodesToTree(const Nodes& nodeList);
         /// <summary>
-        /// addNodesToTree 的逆操作:把顶层节点从节点树摘除(带父节点的节点随父级一起移除,
-        /// 与添加时只处理顶层节点的规则对应)。渲染工厂与组件系统的清理见 removeNodesFromSystem
+        /// 仅从显示侧移除:摘掉渲染工厂与组件系统登记,不动 FENodeTree。
+        /// 用于"只加到 FEScene、不进节点树"的节点;同时存在于两者的节点,
+        /// 走 FENodeTree::removeNodes,由 FEScene 订阅移除事件后自动同步
         /// </summary>
         /// <param name="nodeList"></param>
-        virtual void    removeNodesFromTree(const Nodes& nodeList);
-        
+        virtual void    removeNodes(const Nodes& nodeList);
         /// <summary>
         /// 函数会把节点数据以及组件数据分发到对应的系统中
         /// </summary>
@@ -231,6 +231,22 @@ namespace   FE
         /// </summary>
         /// <param name="node"></param>
         virtual void    onNodePropChanged(const FENode* node);
+        /// <summary>
+        /// 节点树移除事件:只挂起。reparent 也会触发同一事件,必须等确认
+        /// 节点确实不在树里之后再摘显示侧登记,否则层级拖拽会误伤动画/蒙皮
+        /// </summary>
+        /// <param name="node">被摘除的节点</param>
+        void            onNodeRemoved(const FENode* node);
+        /// <summary>
+        /// 结算挂起的移除节点:仍在节点树里的(被 reparent 回来)跳过
+        /// </summary>
+        void            flushPendingRemovals();
+        /// <summary>
+        /// 节点是否仍在节点树中(有父节点,或在顶层列表里)
+        /// </summary>
+        /// <param name="node">待检查节点</param>
+        /// <returns></returns>
+        bool            isNodeInTree(const Node& node) const;
         /// <summary>
         /// 打开工程
         /// </summary>
@@ -336,7 +352,7 @@ namespace   FE
         /// <summary>
         /// 节点树，通过节点树，可以获取系统的数据
         /// </summary>
-        FENodeTree          _nodeTree;
+        /// 节点树归 FEContext 持有,与 FEScene 平级,这里仅保留便捷访问器
         /// <summary>
         /// 管理所有渲染工厂
         /// </summary>
@@ -355,6 +371,11 @@ namespace   FE
         /// </summary>
         Components          _inputTools;
         FEUpdateQueue       _updateQueue;
+        /// <summary>
+        /// 待结算的移除节点(事件里只挂起,帧首统一摘除显示侧登记;
+        /// 持有强引用,保证结算前节点不被释放)
+        /// </summary>
+        ObjectUSet          _pendingRemovals;
         Camera              _camera;
         FrustumCull         _frustCull;
         RenderSys           _renderSys;

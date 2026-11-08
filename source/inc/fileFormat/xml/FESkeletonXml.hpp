@@ -303,19 +303,19 @@ namespace   FE
             for (auto& root : out.roots)
                 root->update();
 
-            Joints      joints;
-            InverseBinds    inverseBinds;
-            joints.reserve(out.joints.size());
-            inverseBinds.reserve(out.joints.size());
+            Bones       bones;
+            bones.reserve(out.joints.size());
             for (auto& joint : out.joints)
             {
-                joints.push_back(joint);
-                inverseBinds.push_back(FE::inverse(joint->globalTransform()));
+                FEBone  bone;
+                bone.node           =   joint;
+                bone.inverseBind    =   FE::inverse(joint->globalTransform());
+                bones.emplace_back(bone);
             }
 
             auto    skin    =   new FESkinData(ctx);
             skin->setWorldRotation(skel.worldRotation);
-            skin->setJoints(joints,inverseBinds);
+            skin->setBones(bones);
             out.skin    =   skin;
             return  true;
         }

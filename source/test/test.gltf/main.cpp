@@ -2,7 +2,10 @@
 #include    <cstring>
 #include    <cmath>
 #include    <filesystem>
+#include    <functional>
+#include    <map>
 #include    <string>
+#include    <vector>
 
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/FEFileFormatHelper.hpp"
@@ -12,6 +15,8 @@
 #include    "../../inc/mesh/FEMesh.hpp"
 #include    "../../inc/mesh/FEDrawElementUint16.hpp"
 #include    "../../inc/node/FENode.hpp"
+#include    "../../inc/node/FESkin.hpp"
+#include    "../../inc/animation/FEAnimation.hpp"
 #include    "../../inc/material/FEMaterialPBR.hpp"
 /// tiny_gltf 的实现由 Reader 头文件开启,必须放在 Writer 之前
 #include    "../../inc/fileFormat/gltf/FEFormatGLTFReader.hpp"
@@ -379,6 +384,90 @@ static  void    testEngineRoundTrip(FEContext& ctx)
     fs::remove(path);
 }
 
+/// ==================== Soldier.glb 蒙皮组件挂载数量 ====================
+static  void    collectNodes(const Node& node,Nodes& out)
+{
+    if (node == nullptr)
+        return;
+    out.push_back(node);
+    for (auto& child : node->children())
+        collectNodes(child,out);
+}
+static  void    testSkinCount(FEContext& ctx)
+{
+    const   String  glbFile =   ctx.resourcePath() + "/data/model/Soldier.glb";
+    FEFileFormat    fmt(".glb","1.0.0.0","GLTF binary Format!");
+    auto    reader  =   FEFileFormatHelper::queryReader(ctx,fmt);
+    check(reader != nullptr,"skin: query gltf reader");
+    if (reader == nullptr)
+        return;
+
+    Objects objects =   reader->readFiles({glbFile});
+    check(!objects.empty(),"skin: load Soldier.glb");
+    if (objects.empty())
+        return;
+
+    Nodes   nodes;
+    for (auto& var : objects)
+    {
+        Node    node    =   var->cast<FENode>();
+        if (node != nullptr)
+            collectNodes(node,nodes);
+    }
+    check(!nodes.empty(),"skin: nodes loaded");
+    if (nodes.empty())
+        return;
+
+    size_t  total   =   0;
+    size_t  dup     =   0;
+    size_t  skinned =   0;
+    size_t  animTotal   =   0;
+    size_t  animNodes   =   0;
+    size_t  animMax     =   0;
+    size_t  emptyClip   =   0;
+    std::map<String,size_t> animNames;
+    for (auto& node : nodes)
+    {
+        auto    skins   =   node->objects<FESkin>();
+        auto    anims   =   node->objects<FEAnimation>();
+        animTotal   +=  anims.size();
+        if (!anims.empty())
+            ++  animNodes;
+        if (anims.size() > animMax)
+            animMax =   anims.size();
+        for (auto& anim : anims)
+        {
+            ++  animNames[anim->name()];
+            /// 非 TRS 通道应在创建组件前被跳过,不应留下没有轨道的空 clip
+            if (anim->clip() == nullptr || anim->clip()->tracks().empty())
+                ++  emptyClip;
+        }
+        total   +=  skins.size();
+        const   char*   name    =   node->name() == nullptr ? "" : node->name();
+        if (skins.size() > 1)
+        {
+            ++  dup;
+            printf("       duplicate skin on node '%s' (%zu)\n",name,skins.size());
+        }
+        if (!skins.empty() && node->mesh() != nullptr)
+            ++  skinned;
+        else if (!skins.empty())
+            printf("       skin on mesh-less node '%s'\n",name);
+    }
+    printf("       nodes = %zu, FESkin = %zu, skinned mesh nodes = %zu, duplicated nodes = %zu\n",
+           nodes.size(),total,skinned,dup);
+    printf("       FEAnimation = %zu, animated nodes = %zu, max per node = %zu, distinct clip names = %zu\n",
+           animTotal,animNodes,animMax,animNames.size());
+    for (auto& var : animNames)
+        printf("         clip '%s' -> %zu components\n",var.first.c_str(),var.second);
+    check(total == 2,"skin: exactly 2 components for Soldier.glb");
+    check(dup == 0,"skin: no node holds multiple components");
+    check(skinned == 2,"skin: two skinned mesh nodes");
+    check(!animNames.empty() && animNames.size() == 4,"anim: four distinct clip names");
+    check(animTotal == animNodes * animNames.size(),"anim: one component per node per clip");
+    check(emptyClip == 0,"anim: no empty clip component");
+}
+
 int     main(int argc,char** argv)
 {
     UNUSED(argc,argv);
@@ -416,6 +505,7 @@ int     main(int argc,char** argv)
         {
             printf("--- engine assets initialized ---\n");
             testEngineRoundTrip(ctx);
+            testSkinCount(ctx);
         }
         /// 退出前显式卸载场景:静态析构阶段再销毁场景会访问已释放的全局对象
         scene->destroy();

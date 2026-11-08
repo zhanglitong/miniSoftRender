@@ -33,6 +33,7 @@ namespace FE
     class   FEDevice;
     class   FECamera;
     class   FEWindow;
+    class   FENodeTree;
     class   FEViewer;
     class   FE_API  FEContext
     {
@@ -118,6 +119,12 @@ namespace FE
         FEDevice&   device();
         
         FEScene*    scene();
+        /// <summary>
+        /// 节点树:与 FEScene 平级,负责数据(节点层级/增删),
+        /// FEScene 只负责显示;两者可以独立使用,需要显示的数据再由外部加入场景
+        /// </summary>
+        /// <returns></returns>
+        FENodeTree& nodeTree();
         /// <summary>
         /// 获取当前活动的摄像机
         /// </summary>
@@ -213,6 +220,10 @@ namespace FE
         Object      _anchor;
         Object      _window;   
         Object      _scene;
+        /// <summary>
+        /// 节点树(数据侧),与 _scene 平级
+        /// </summary>
+        Object      _nodeTree;
         String      _workPath;
         String      _resourcePath;
     };

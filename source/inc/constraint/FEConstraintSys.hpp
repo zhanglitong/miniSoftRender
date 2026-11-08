@@ -35,14 +35,14 @@ namespace FE
             :FEComponentSys(ctx)
             ,_objects(ConstComLessFunc)
         {
-            /// 约束在动画之后求解(动画 MaxInt16-2,约束 MaxInt16-1)
-            priority(FEFactory::PT_Update).setOrder(MaxInt16 - 1);
+            /// 约束在动画之后求解,早于蒙皮
+            priority(FEFactory::PT_Update).setOrder(FEFactory::UO_Constraint);
         }
         FEConstraintSys(const FEConstraintSys& other)
             :FEComponentSys(other)
             ,_objects(ConstComLessFunc)
         {
-            priority(FEFactory::PT_Update).setOrder(MaxInt16 - 1);
+            priority(FEFactory::PT_Update).setOrder(FEFactory::UO_Constraint);
         }
         /// <summary>
         /// 根据Id查找
