@@ -113,6 +113,10 @@ namespace   FE
                         else
                             skin->update();
                     }
+                    else if (skin->computeSkipped())
+                    {
+                        /// 关节世界矩阵与上一帧一致(暂停/静止骨骼),蒙皮结果无需重算
+                    }
                     else
                     {
                         /// compute 管线不可用(如后端不支持): 回退 CPU 合成 + 上传

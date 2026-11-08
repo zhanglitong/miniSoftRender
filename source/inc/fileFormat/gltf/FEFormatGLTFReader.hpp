@@ -1525,8 +1525,8 @@ namespace   FE
                 if (jointCount == 0)
                     continue;
 
-                /// 逆绑定矩阵(缺省为单位矩阵)
-                InverseBinds    inverseBinds(jointCount,mat4r(1.0));
+                /// 骨骼:关节节点(索引即 JOINTS_0 的取值) + 逆绑定矩阵(缺省为单位矩阵)
+                Bones   bones(jointCount);
                 if (gltfSkin.inverseBindMatrices >= 0 && gltfSkin.inverseBindMatrices < (int)model.accessors.size())
                 {
                     const tinygltf::Accessor&   accessor    =   model.accessors[gltfSkin.inverseBindMatrices];
@@ -1542,23 +1542,20 @@ namespace   FE
                             const float*    values  =   (const float*)(base + j * stride);
                             /// glTF 矩阵为列主序,与引擎 mat4r 一致
                             for (int e = 0;e < 16;++e)
-                                inverseBinds[j][e / 4][e % 4]   =   real(values[e]);
+                                bones[j].inverseBind[e / 4][e % 4]  =   real(values[e]);
                         }
                     }
                 }
-
-                /// 关节节点(索引即 JOINTS_0 的取值)
-                Joints  joints(jointCount,nullptr);
                 for (size_t j = 0;j < jointCount;++j)
                 {
                     auto    itr =   nodeMap.find(gltfSkin.joints[j]);
                     if (itr != nodeMap.end() && itr->second != nullptr)
-                        joints[j]   =   itr->second.get();
+                        bones[j].node   =   itr->second;
                 }
 
                 /// 一个 glTF skin 对应一份共享骨骼数据,所有引用它的 mesh 节点共用
                 SharedPtr<FESkinData>   skinData    =   new FESkinData(_ctx);
-                skinData->setJoints(joints,inverseBinds);
+                skinData->setBones(bones);
 
                 /// 找到引用该 skin 的 mesh 节点,挂上蒙皮组件
                 for (size_t ni = 0;ni < model.nodes.size();++ni)
