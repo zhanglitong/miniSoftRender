@@ -20,6 +20,7 @@
 #include    "../inc/geometry/FEGeometryPRPY.hpp"
 #include    "../inc/geometry/FEGeometryPRDH.hpp"
 #include    "../inc/geometry/FEGeometryTube.hpp"
+#include    "../inc/geometry/FEGeometrySVG.hpp"
 #include    "../inc/FEStreamReader.hpp"
 
 #include    "../inc/mesh/FEAttribute.hpp"
@@ -104,6 +105,7 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEGeometryPRPY);
         DEFINE_CLASS_CREATOR(FEGeometryPRDH);
         DEFINE_CLASS_CREATOR(FEGeometryTube);
+        DEFINE_CLASS_CREATOR(FEGeometrySVG);
 
         DEFINE_CLASS_CREATOR(FEImage);
         DEFINE_CLASS_CREATOR(FEBuffer);
