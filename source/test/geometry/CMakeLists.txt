@@ -1,6 +1,7 @@
 add_subdirectory ("test.box")
 add_subdirectory ("test.box.r16g16b16sscaled")
 add_subdirectory ("test.sphere")
+add_subdirectory ("test.lod")
 add_subdirectory ("test.circle")
 add_subdirectory ("test.ring")
 add_subdirectory ("test.torus")

@@ -7,6 +7,7 @@
 #include    "../FECamera.hpp"
 #include    "FEDevice.h"
 #include    "FEGraphicEnums.h"
+#include    "FEShaderDefine.h"
 
 namespace   FE
 {
@@ -427,6 +428,14 @@ namespace   FE
         /// <returns></returns>
         virtual ITO     buildIndirect(ITO&  gpuFull,ITO& gpuDraw);
         /// <summary>
+        /// 上传每图元固定 4 项的 LOD 大缓冲(无 LOD 的图元写 0)
+        /// </summary>
+        VBO     buildLodVBO();
+        /// <summary>
+        /// 上传每实例的 LOD 偏移数组,供 GPU 裁剪按实例查 LOD 大缓冲
+        /// </summary>
+        VBO     buildInstanceLodVBO();
+        /// <summary>
         /// 根据材质获取节点所在的组
         /// </summary>
         /// <param name="mat"></param>
@@ -568,6 +577,18 @@ namespace   FE
         /// 包围球，用来计算裁剪
         /// </summary>
         VBO             _vboSphere;
+        /// <summary>
+        /// 每图元固定 4 项的 LOD 数据(与 _ibo 一起构建)
+        /// </summary>
+        VBO             _vboLod;
+        /// <summary>
+        /// 每实例的 LOD 偏移数组(GPU 裁剪使用)
+        /// </summary>
+        VBO             _vboInstLod;
+        /// <summary>
+        /// LOD 大缓冲的 CPU 数据,构建 _vboLod 时上传
+        /// </summary>
+        std::vector<LodInf> _lodInfos;
         Counts          _counts;
         /// <summary>
         /// 工厂默认归属的场景层。

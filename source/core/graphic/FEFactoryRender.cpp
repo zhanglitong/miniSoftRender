@@ -23,6 +23,23 @@ namespace   FE
     constexpr   uint    instColorSlots  =   IS_INSTANCE_COLOR;
     constexpr   uint    instLodSlots    =   IS_INSTANCE_LOD_INDEX;
 
+    /// <summary>
+    /// 节点的 LOD 偏移:取该节点 mesh 中带 LOD 的图元的 _lodOffset,
+    /// 没有 LOD 时返回 -1(GPU 裁剪据此跳过选级)
+    /// </summary>
+    inline  int     lodOffsetOf(const Node& node)
+    {
+        auto    mesh    =   node->mesh();
+        if (mesh == nullptr)
+            return  -1;
+        for (auto& pri : mesh->primitives())
+        {
+            if (pri->lod())
+                return  pri->lodOffset();
+        }
+        return  -1;
+    }
+
     uint32  GroupNode::cullCount()        
     {   
         if (_cullMat == nullptr)
@@ -212,6 +229,7 @@ namespace   FE
             inst.setTransform(node->globalFETransform());
             inst.setAabb(node->globalAabb());
             inst.setInstance(instIdx);
+            inst.setLod(lodOffsetOf(node));
             /// 保存要拷贝的目标位置
             BufferCopy  copy;
             copy.srcOffset  =   pDst - pStart;
@@ -239,6 +257,7 @@ namespace   FE
             inst.setTransform(node->globalFETransform());
             inst.setAabb(node->globalAabb());
             inst.setInstance(startInst ++ );
+            inst.setLod(lodOffsetOf(node));
             for (auto index: indexs)
             {
                 auto    nByte   =   FEInstanceHelper::instanceInputs[index].bytes;
@@ -638,6 +657,9 @@ namespace   FE
         _indirectClip   =   nullptr;
         _indirectFull   =   nullptr;
         _vboSphere      =   nullptr;
+        _vboLod         =   nullptr;
+        _vboInstLod     =   nullptr;
+        _lodInfos.clear();
         /// 派生类释放自有资源
         onDestroy();
     }
@@ -704,6 +726,7 @@ namespace   FE
             _ibo            =   buildVertexIBO(meshSet);
             _vboInstances   =   buildInstanceVBOs();
             _vboSphere      =   buildSphereVBO();
+            _vboInstLod     =   buildInstanceLodVBO();
             /// 间接命令与 WGSL 绘制项都依赖本帧最新的实例布局
             buildIndirect(_indirectFull,_indirectClip);
         }
@@ -779,12 +802,51 @@ namespace   FE
 
     IBO     FEFactoryRender::buildVertexIBO(MeshUSet& meshSet)
     {
+        _lodInfos.clear();
         IndexCounts count   =   indexCount(meshSet,_key._primitive);
         if (count._indices == 0)
+        {
+            /// DRAW_ARRAY 没有索引表,不参与 LOD;仍提供一个 4 项的空缓冲,
+            /// 保证裁剪材质 binding 6 始终有合法资源(实例 lod 全为 -1 不会读取)
+            _lodInfos.assign(4,LodInf{});
+            _vboLod =   buildLodVBO();
             return  nullptr;
+        }
+        /// <summary>
+        /// 按 IBO 写入顺序分配每个图元的 LOD 偏移(第 i 个图元 = i*4),
+        /// 并收集固定 4 项 LOD 数据;无 LOD 的图元 4 项全为 0(无效)
+        /// </summary>
+        {
+            uint    lodIdx  =   0;
+            for (auto var : meshSet)
+            {
+                for (auto srcPri: var->primitives())
+                {
+                    if (srcPri->primitive() != _key._primitive)
+                        continue;
+                    srcPri->setLodOffset(int(lodIdx * 4));
+                    auto    lod =   srcPri->lod();
+                    for (uint i = 0; i < 4; ++ i)
+                    {
+                        LodInf  inf =   {};
+                        if (lod)
+                        {
+                            inf.start   =   lod->_lod[i].start;
+                            inf.count   =   lod->_lod[i].count;
+                            inf.dist    =   lod->_lod[i].dist;
+                        }
+                        _lodInfos.emplace_back(inf);
+                    }
+                    ++ lodIdx;
+                }
+            }
+        }
         IBO     cpu     =   _device.createIBO();
         if(!cpu->create({count._bytes,HOST_VISIBLE_BIT}))
+        {
+            _vboLod =   nullptr;
             return  nullptr;
+        }
         uint8*  pDst    =   (uint8*)cpu->lock(count._bytes,0);
         uint    offset  =   0;
         switch (_key._drawType)
@@ -853,6 +915,8 @@ namespace   FE
 
         gpu->create({cpu->cInfo()._length, DEVICE_DEFAULT_BIT}); 
 
+        _vboLod     =   buildLodVBO();
+
         auto    cmdPool =   _device.transferCmdPool();
         assert (cmdPool != nullptr);
         if (cmdPool != nullptr)
@@ -864,6 +928,68 @@ namespace   FE
             cmd->submit(_device.queueTransfer());
         }
         return  gpu;
+    }
+
+    VBO     FEFactoryRender::buildLodVBO()
+    {
+        uint64  length  =   uint64(_lodInfos.size()) * sizeof(LodInf);
+        if (length == 0)
+            return  nullptr;
+        VBO     vboCPU  =   _device.createVBO();
+        VBO     vboGPU  =   _device.createVBO();
+        vboCPU->create({length,HOST_VISIBLE_BIT});
+        vboGPU->create({length,DEVICE_DEFAULT_BIT});
+        uint8*  pDst    =   (uint8*)vboCPU->lock(length,0);
+        memcpy(pDst,_lodInfos.data(),size_t(length));
+        vboCPU->unlock();
+
+        auto    cmdPool =   _device.transferCmdPool();
+        assert (cmdPool != nullptr);
+        if (cmdPool != nullptr)
+        {
+            CMDPtr      cmd     =   cmdPool->createCmd();
+            cmd->begin(true);
+            cmd->copyBuffer(vboCPU,vboGPU,length,0,0);
+            cmd->end();
+            cmd->submit(_device.queueTransfer());
+        }
+        return  vboGPU;
+    }
+
+    VBO     FEFactoryRender::buildInstanceLodVBO()
+    {
+        uint32      count   =   0;
+        for (auto& var : _groupNode)
+            count   +=  (uint32)var->_objects.size();
+        if (count == 0)
+            return  nullptr;
+        std::vector<int>    lodOffsets(count,-1);
+        uint32      instId  =   0;
+        for (auto& var : _groupNode)
+        {
+            for (auto& node : var->_objects)
+                lodOffsets[instId ++]   =   lodOffsetOf(node);
+        }
+        uint64      length  =   uint64(count) * sizeof(int);
+        VBO     vboCPU  =   _device.createVBO();
+        VBO     vboGPU  =   _device.createVBO();
+        vboCPU->create({length,HOST_VISIBLE_BIT});
+        vboGPU->create({length,DEVICE_DEFAULT_BIT});
+        uint8*  pDst    =   (uint8*)vboCPU->lock(length,0);
+        memcpy(pDst,lodOffsets.data(),size_t(length));
+        vboCPU->unlock();
+
+        auto    cmdPool =   _device.transferCmdPool();
+        assert (cmdPool != nullptr);
+        if (cmdPool != nullptr)
+        {
+            CMDPtr      cmd     =   cmdPool->createCmd();
+            cmd->begin(true);
+            cmd->copyBuffer(vboCPU,vboGPU,length,0,0);
+            cmd->end();
+            cmd->submit(_device.queueTransfer());
+        }
+        return  vboGPU;
     }
 
     inline  auto    offfetIndex(const InputDescs& inputs)
@@ -1259,6 +1385,13 @@ namespace   FE
                     if (pris[i]->primitive() != _key._primitive)
                         continue;
                     mesh->drawCmd(pCmdIdx[cmdIdx],i,uint(instId));
+                    /// 命令的 firstIndex 必须是本工厂 IBO 中的偏移:LOD 的 start
+                    /// 相对图元自身索引数组,GPU 选级用 firstIndex + start 定位
+                    {
+                        auto    itOff   =   _priOffsets.find(pris[i].get());
+                        if (itOff != _priOffsets.end())
+                            pCmdIdx[cmdIdx].firstIndex  =   itOff->second;
+                    }
                     /// primitive 上的 _indexOffset/_vertexOffset 会被其它工厂的
                     /// IBO/VBO 构建覆盖,WGSL 绘制项必须用本工厂构建时记录的偏移
                     /// (与绑定的 _ibo 及 _vboVertexs 布局一致)
@@ -1356,6 +1489,8 @@ namespace   FE
         cullParam._viewSizeW        =   camera->viewportWidth<float>();
         cullParam._viewSizeH        =   camera->viewportHeight<float>();
         cullParam._mvp              =   camera->getProject() * camera->getView();
+        auto            eye         =   camera->getEye();
+        cullParam._cameraPos        =   float4(float(eye.x),float(eye.y),float(eye.z),0.0f);
         FrustumR    frustum         =   camera->extract();
         for (size_t i = 0; i < 6; i++)
         {
@@ -1375,6 +1510,11 @@ namespace   FE
 
         pCull->bind(0,4,{pCull->_cullResult._gpu.get()});
         pCull->bind(0,5,{pCull->_cullParam._gpu.get()});
+        /// LOD:binding 6 为每图元固定 4 项的 LOD 数据,binding 7 为每实例 LOD 偏移
+        if (_vboLod)
+            pCull->bind(0,6,{_vboLod.get()});
+        if (_vboInstLod)
+            pCull->bind(0,7,{_vboInstLod.get()});
         pCull->update();
     }
     VBO     FEFactoryRender::buildBuffer(MeshUSet& meshSet,FEInputSlot slot)

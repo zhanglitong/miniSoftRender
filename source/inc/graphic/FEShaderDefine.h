@@ -213,6 +213,22 @@ struct  CullParam
     /// </summary>
     uint        _count;
     mat4        _mvp;
+    /// <summary>
+    /// 相机世界坐标(xyz),用于 LOD 按距离选级
+    /// </summary>
+    float4      _cameraPos;
+};
+
+/// <summary>
+/// LOD 数据项:每图元固定 4 项,count==0 表示该级无效(有效项连续在前)
+/// start 相对该图元自身的索引数组起点,dist 为启用该级的最小表面距离
+/// </summary>
+struct  LodInf
+{
+    uint        start;
+    uint        count;
+    float       dist;
+    uint        pad;
 };
 
 struct  CullResult

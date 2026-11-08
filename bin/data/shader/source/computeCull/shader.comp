@@ -44,6 +44,43 @@ layout(binding = 5)         uniform CullParamBuffer
 {
     CullParam       _cullParam;
 };
+/// 每图元固定 4 项的 LOD 数据(count==0 表示该级无效)
+layout(std430, binding = 6) buffer  LodBuffer
+{
+    LodInf          _lods[];
+};
+/// 每实例的 LOD 在大缓冲中的起始下标,-1 表示没有 LOD
+layout(std430, binding = 7) buffer  InstanceLodBuffer
+{
+    int             _instLod[];
+};
+
+/// <summary>
+/// 按实例到相机的世界表面距离(中心距离减半径)选级:
+/// 取最后一个 dist <= 距离且 count > 0 的级,替换命令的 firstIndex/count。
+/// LOD 的 start 相对图元自身索引数组,命令 firstIndex 已是本工厂 IBO 内偏移
+/// </summary>
+void    applyLod(inout DrawElement cmd, uint instId, vec3 center, float radius)
+{
+    int     off =   _instLod[instId];
+    if (off < 0)
+        return;
+    float   dist    =   max(distance(center, _cullParam._cameraPos.xyz) - radius, 0.0);
+    int     sel     =   0;
+    for (int i = 0; i < 4; ++i)
+    {
+        LodInf  inf =   _lods[off + i];
+        if (inf.count == 0)
+            break;
+        if (dist >= inf.dist)
+            sel =   i;
+        else
+            break;
+    }
+    LodInf  inf     =   _lods[off + sel];
+    cmd.firstIndex  +=  inf.start;
+    cmd.count       =   inf.count;
+}
 
 bool    checkFrustumIn(vec3 sphereCenter, float sphereRadius)
 {
@@ -117,6 +154,7 @@ bool    checkVisible(uint flagBits)
         
             if (checkVisible(_flags[instId]) && checkFrustumIn(center, radius) && checkMinPixels(center, radius))
             {
+                applyLod(cmd, instId, center, radius);
                 resultBits[localID_X] =   1;
                 localCmds[localID_X]  =   cmd;
             }

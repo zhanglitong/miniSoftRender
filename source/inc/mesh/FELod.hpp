@@ -9,9 +9,9 @@ namespace   FE
    
     struct  FELodInf
     {
-        uint    firstIndex  =   {};
-        uint    indexCount  =   {};
-        float   distance    =   {};
+        uint    start       =   {};
+        uint    count       =   {};
+        float   dist        =   {};
     };
     /// <summary>
     /// 一个mesh 对应一个FELod,也可以没有
