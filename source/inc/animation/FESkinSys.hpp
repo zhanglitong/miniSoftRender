@@ -26,13 +26,13 @@ namespace   FE
         FESkinSys(FEContext& ctx)
             :FEComponentSys(ctx)
         {
-            /// 在动画(MaxInt16-2)、约束(MaxInt16-1)之后执行
-            priority(FEFactory::PT_Update).setOrder(MaxInt16);
+            /// 在动画、约束之后执行:蒙皮需要最终的关节世界矩阵
+            priority(FEFactory::PT_Update).setOrder(FEFactory::UO_Skin);
         }
         FESkinSys(const FESkinSys& other)
             :FEComponentSys(other)
         {
-            priority(FEFactory::PT_Update).setOrder(MaxInt16);
+            priority(FEFactory::PT_Update).setOrder(FEFactory::UO_Skin);
         }
         virtual size_t  addObject(Component com) override
         {

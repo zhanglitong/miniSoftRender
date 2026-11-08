@@ -18,7 +18,7 @@ namespace   FE
             :FEComponentSys(ctx)   
         {
             /// 动画先于约束求解:约束系统读取动画采样后的世界变换
-            priority(FEFactory::PT_Update).setOrder(MaxInt16 - 2);
+            priority(FEFactory::PT_Update).setOrder(FEFactory::UO_Animation);
         }         
         FEAnimationSys(const FEAnimationSys& other)            
             :FEComponentSys(other)         
