@@ -1,4 +1,5 @@
 #pragma     once  
+#include    <unordered_map>
 #include    "../FEComponentSys.hpp"
 #include    "FEPlayback.hpp"
 namespace   FE 
@@ -106,19 +107,25 @@ namespace   FE
             if (anim == nullptr)
                 return  0;
             const   String  targetName  =   playbackName.empty() ? String("default") : playbackName;
-            Playback        owner       =   playbackOf(anim);
-            if (owner != nullptr)
+            auto            itr         =   _owners.find(anim);
+            if (itr != _owners.end())
             {
                 /// 默认名(场景分发路径):保持既有分组,不移动
                 if (targetName == "default")
                     return  0;
+                Playback    owner   =   itr->second;
                 Playback    target  =   getOrCreate(targetName);
                 if (owner == target)
                     return  0;
-                owner->removeObject(anim);
+                if (owner != nullptr)
+                    owner->removeObject(anim);
+                itr->second =   target;
                 return  target->addObject(anim);
             }
-            return  getOrCreate(targetName)->addObject(anim);
+            Playback    target  =   getOrCreate(targetName);
+            const   size_t  added   =   target->addObject(anim);
+            _owners[anim]   =   target;
+            return  added;
         }
         /// <summary>
         /// 登记一个已存在的播放器(从工程文件加载时使用):
@@ -143,11 +150,19 @@ namespace   FE
             }
             playback->setName(unique);
             _playbacks[unique]  =   playback;
+            /// 建立动画到播放器的反查索引,避免逐个线性扫描
+            for (const Animation& anim : playback->objects())
+            {
+                if (anim != nullptr)
+                    _owners[anim.get()] =   playback;
+            }
             return  1;
         }
         virtual size_t  addObjects(const Components&  coms) override
         {
-            size_t  count   =   0;
+            /// 按 clip 名分组后批量登记:逐个 addObject 在大规模实例下是 O(n^2),
+            /// 批量路径由播放器内部"追加 + 排序 + 去重"完成
+            std::map<String,Animations> groups;
             for (size_t i = 0; i < coms.size(); ++i)
             {
                 Component   com     =   coms[i];
@@ -155,12 +170,18 @@ namespace   FE
                 if (anim == nullptr)
                     continue;
                 /// 已归属某个播放器(例如打开工程后恢复的分组)保持原归属
-                if (playbackOf(anim) != nullptr)
+                if (_owners.find(anim) != _owners.end())
                     continue;
-                /// 按动画自带的 clip 名分组(导入时形如 "模型名_Idle"),
-                /// 一个播放器只驱动一套动作,同时避免不同模型的同名 clip 混在一起
                 const   String& clipName    =   anim->name();
-                count   +=  addObject(com,clipName.empty() ? String("default") : clipName);
+                groups[clipName.empty() ? String("default") : clipName].push_back(anim);
+            }
+            size_t  count   =   0;
+            for (auto& var : groups)
+            {
+                Playback    playback    =   getOrCreate(var.first);
+                count   +=  playback->addObjects(var.second);
+                for (const Animation& anim : var.second)
+                    _owners[anim.get()] =   playback;
             }
             return  count;
         }
@@ -190,6 +211,7 @@ namespace   FE
         virtual void    clear()
         {
             _playbacks.clear();
+            _owners.clear();
         }
         /// <summary>
         /// 组件每一帧更新:只有播放中的播放器才推进并采样,
@@ -236,17 +258,8 @@ namespace   FE
         {
             if (anim == nullptr)
                 return  nullptr;
-            for (const auto& var : _playbacks)
-            {
-                if (var.second == nullptr)
-                    continue;
-                for (const Animation& item : var.second->objects())
-                {
-                    if (item == anim)
-                        return  var.second;
-                }
-            }
-            return  nullptr;
+            auto    itr =   _owners.find(anim.get());
+            return  (itr == _owners.end()) ? nullptr : itr->second;
         }
         /// <summary>
         /// 从所有播放器中摘除这些组件对应的动画:
@@ -266,9 +279,18 @@ namespace   FE
             {
                 count   +=  var.second->removeObjects(anims);
             }
+            for (const Animation& anim : anims)
+            {
+                if (anim != nullptr)
+                    _owners.erase(anim.get());
+            }
             return  count;
         }
         PlaybackMap     _playbacks;
+        /// <summary>
+        /// 动画 -> 所属播放器 的反查索引:大规模实例下避免逐播放器线性扫描
+        /// </summary>
+        std::unordered_map<const FEAnimation*,Playback>    _owners;
     };
 
     using   AnimSys   =   SharedPtr<FEAnimationSys>;

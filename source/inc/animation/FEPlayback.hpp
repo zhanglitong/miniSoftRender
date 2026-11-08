@@ -203,8 +203,18 @@ namespace FE
         /// </summary>
         virtual void    onAddObject(Animation anim) override
         {
-            UNUSED(anim);
-            _range  =   calcRange();
+            if (anim == nullptr)
+                return;
+            /// 增量合并范围:批量登记成千上万个动画时,
+            /// 每次全量 calcRange 会退化成 O(n^2)
+            if (_objects.size() <= 1)
+                _range  =   anim->range();
+            else
+            {
+                const   real2   rng =   anim->range();
+                _range.x    =   (std::min)(_range.x,rng.x);
+                _range.y    =   (std::max)(_range.y,rng.y);
+            }
         }
         /// <summary>
         /// 移除对象通知
