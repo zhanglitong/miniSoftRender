@@ -222,6 +222,22 @@ namespace   FE
         initializeQueue();
         /// 
         loadPipelines();
+        /// 默认开启 OIT:所有透明/透射材质统一走 PPLL 逐像素排序。
+        /// 必须在 resize(确定最终尺寸)与 loadPipelines(设备管线注册表就绪)之后;
+        /// 初始化失败时 _oitManager 为空,渲染回退到普通 alpha 混合。
+        {
+            auto    oit =   OITManager(new FEOITManager(_ctx));
+            if (oit->init(_size.x,_size.y,32,_sampleCount))
+            {
+                FEOITManager::setActive(oit.get());
+                _oitManager =   oit;
+            }
+            else
+            {
+                FEOITManager::setActive(nullptr);
+                LOG_ERR("FEScene.initialize: OIT init failed, fallback to alpha blending");
+            }
+        }
         /// 注册动画系统
         {
             AnimSys animSys =   new FEAnimationSys(_ctx);
@@ -296,6 +312,10 @@ namespace   FE
         }
         /// 反射探针持有 cubemap/深度等 GPU 资源,必须在 device 销毁前释放
         _probes.clear();
+        /// OIT 管理器持有 PPLL SSBO 与专用管线,先于 device 释放;
+        /// 同时清除全局活动指针,避免材质继续向已销毁的 SSBO 写入
+        FEOITManager::setActive(nullptr);
+        _oitManager =   nullptr;
         /// 天空环境烘焙同样持有 cubemap/深度/私有渲染工厂,先于 device 释放
         _skyEnv =   nullptr;
         _swapchain  =   nullptr;
@@ -330,6 +350,13 @@ namespace   FE
         /// 避免场景副本析构误清数据侧
         if (_ctx._scene.get() == this)
             _ctx.nodeTree().clear();
+
+        /// 组件系统(动画/蒙皮/约束)持有蒙皮矩阵等 GPU 缓冲,观察者也可能持有网格;
+        /// 这些成员的析构发生在 destroy() 之后(即 device 销毁之后),必须先显式释放,
+        /// 否则会出现 "VkBuffer has not been destroyed" 并在随后释放时访问已销毁设备
+        _comSysMgr.clearObjects();
+        _viewerMgr.clearObjects();
+        _pendingRemovals.clear();
 
         if (_device)
         {
@@ -1381,6 +1408,16 @@ namespace   FE
         for (auto viewer : _viewerMgr.objects())
         {
             viewer->onMessage(evt);
+        }
+        /// OIT 的每像素头索引 SSBO 尺寸锁定创建时的分辨率,尺寸变化后旧缓冲区
+        /// 无法安全复用(材质已缓存的 OIT 变体 dsets 也无法重绑),此处关闭 OIT,
+        /// 透明物体回退普通 alpha 混合,避免越界写入
+        if (_oitManager && (_oitManager->screenWidth() != width || _oitManager->screenHeight() != height))
+        {
+            LOG_ERR("FEScene.resize: resolution changed %ux%u -> %ux%u, OIT disabled (fallback to alpha blending)",
+                    _oitManager->screenWidth(),_oitManager->screenHeight(),width,height);
+            FEOITManager::setActive(nullptr);
+            _oitManager =   nullptr;
         }
         _device->waitIdle();
     }

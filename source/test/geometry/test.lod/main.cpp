@@ -300,6 +300,14 @@ int     main(int argc, char** argv)
     }
     std::printf("LOD 数据校验通过,进入渲染循环(近处高模,远处低模)...\n");
 
+    /// 关闭窗口时抢在场景销毁 device 之前归还本文件持有的 GPU 资源:
+    /// 设备销毁后再释放网格/图元会访问已销毁的设备
+    app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
+    {
+        nodes.clear();
+        lod     =   nullptr;
+        mesh    =   nullptr;
+    });
     app->run();
 
     scene   =   nullptr;

@@ -17,13 +17,14 @@ namespace   FE
 {
     /// ===== OIT SSBO binding 常量 =====
     /// oit/shader(geometry/color pass 专用)固定用 10/11/12;
-    /// pbr/shader.frag 的 10~17 已被 PBR 贴图/参数占用,其 OIT 变体用 18/19/20
+    /// pbr/shader.frag 的 10~17 已被 PBR 贴图/参数占用,18 被 pbrSkin 顶点
+    /// 着色器的 SkinBlock(SB_Skin)占用,其 OIT 变体用 21/22/23
     constexpr   uint    OIT_BIND_COUNTER        =   10;
     constexpr   uint    OIT_BIND_HEAD           =   11;
     constexpr   uint    OIT_BIND_LIST           =   12;
-    constexpr   uint    PBR_OIT_BIND_COUNTER    =   18;
-    constexpr   uint    PBR_OIT_BIND_HEAD       =   19;
-    constexpr   uint    PBR_OIT_BIND_LIST       =   20;
+    constexpr   uint    PBR_OIT_BIND_COUNTER    =   21;
+    constexpr   uint    PBR_OIT_BIND_HEAD       =   22;
+    constexpr   uint    PBR_OIT_BIND_LIST       =   23;
 
     /// <summary>
     /// PPLL (Per-Pixel Linked List) OIT 管理器
@@ -78,7 +79,7 @@ namespace   FE
         /// <summary>
         /// 把 3 个 OIT SSBO 绑定到指定 DSet 的 binding 10/11/12
         /// (geometry pass 材质与 color pass 材质共用);
-        /// pbr OIT 变体管线传入 18/19/20(PBR_OIT_BIND_*)
+        /// pbr OIT 变体管线传入 21/22/23(PBR_OIT_BIND_*)
         /// </summary>
         void    bindToDSet(DSet dset,
                            uint bindCounter = OIT_BIND_COUNTER,

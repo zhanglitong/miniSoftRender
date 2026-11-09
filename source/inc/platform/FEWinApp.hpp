@@ -95,6 +95,10 @@ namespace   FE
         virtual void    destroy()  override
         {
             LOG_INF("%s","_app:destroy!");
+            /// 场景与设备必须在这里(模块仍然加载、进程尚未退出时)释放:
+            /// 若拖到 FEContext 静态析构(即 DLL_PROCESS_DETACH 阶段)才销毁,
+            /// 验证层会因设备已不可用直接 abort 进程
+            _ctx.destroy();
         }
         virtual void    renderOneFrame() override
         {}

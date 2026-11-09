@@ -208,10 +208,12 @@ namespace   FE
     }
     void    FEContext::destroy()
     {
+        /// 场景必须最先释放:它持有全部 GPU 资源(设备/交换链/缓冲/管线);
+        /// 若留到静态析构(DLL 卸载阶段)才释放,验证层会因为设备已不可用而中止进程
+        _scene  =   nullptr;
         _device =   nullptr;
         _window =   nullptr;
         _anchor =   nullptr;
-        _scene  =   nullptr;
         _log    =   nullptr;
         _nodeTree   =   nullptr;
     }

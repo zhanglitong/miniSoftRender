@@ -624,8 +624,14 @@ namespace   FE
                     /// 克隆主管线创建 OIT 变体:几何趟无 color attachment 输出、
                     /// 不写深度(透明物体互不遮挡,全部进链表)、无颜色混合
                     FEPipeline::CreateInfo  cInfo   =   _pipelines[i]->cInfo();
-                    if (cInfo._shaders.size() >= 2)
-                        cInfo._shaders[1]   =   _oitFS;
+                    /// 按 stage 类型替换片元着色器:pbr*.xml 的 <shaders> 是
+                    /// 片元在前、顶点在后,不能按固定下标覆盖(否则顶点着色器被换成
+                    /// 片元着色器,创建出两个 FRAGMENT stage 的非法管线)
+                    for (auto& shader : cInfo._shaders)
+                    {
+                        if (shader != nullptr && shader->cInfo()._shaderType == ST_FRAGMENT_BIT)
+                            shader  =   _oitFS;
+                    }
                     cInfo._colorAttachmentCount =   0;
                     cInfo._enableDepthWrite     =   false;
                     cInfo._enableColorBlend     =   false;
@@ -652,7 +658,7 @@ namespace   FE
                 return;
             }
             /// 与主管线绑定同样的资源(camera/全局 UBO/lights 自动关联,
-            /// 材质 UBO/贴图手动绑定),再挂 OIT SSBO(binding 18/19/20)
+            /// 材质 UBO/贴图手动绑定),再挂 OIT SSBO(binding 21/22/23)
             autoAttachTo(_oitDsets);
             bindResourcesTo(_oitDsets);
             for (auto& dset : _oitDsets)

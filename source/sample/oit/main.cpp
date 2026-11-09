@@ -109,23 +109,18 @@ int     main(int argc, char** argv)
         scene = nullptr; app->destroy(); return 1;
     }
 
-    // ===== 初始化 OITManager（必须在创建 OIT 材质之前:
-    //        FEMaterialOIT 依赖 oitGeometry 管线注册与 SSBO 绑定）=====
-    uint32_t w = app->cInfo()._width;
-    uint32_t h = app->cInfo()._height;
-
-    auto oit = OITManager(new FEOITManager(ctx));
-    if (!oit->init(w, h, 32, scene->sampleCount()))
+    // ===== OITManager 已由引擎在 FEScene::initialize 中默认创建并 setActive,
+    //       这里直接复用;仅当引擎初始化失败(如显存不足)时本示例不再自建,
+    //       材质构造会回退普通 alpha 混合 =====
+    auto oit = scene->oitManager();
+    if (oit)
     {
-        std::cerr << "OITManager init failed (falling back to normal alpha)" << std::endl;
-        oit = nullptr;
+        std::cout << "OITManager from engine: " << oit->screenWidth() << "x" << oit->screenHeight()
+                  << ", maxNodes=" << oit->maxNodes() << std::endl;
     }
     else
     {
-        std::cout << "OITManager initialized: " << w << "x" << h
-                  << ", maxNodes=" << oit->maxNodes() << std::endl;
-        FEOITManager::setActive(oit.get());
-        scene->setOITManager(oit);
+        std::cerr << "OIT unavailable (engine init failed), falling back to alpha blending" << std::endl;
     }
 
     // ===== 创建半透明球阵列 =====

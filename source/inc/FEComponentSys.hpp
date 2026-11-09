@@ -76,7 +76,12 @@ namespace   FE
         /// </summary>
         virtual void    updateObjectList()
         {
-            for (auto var : _updateList.objects())
+            /// 刷新过程中 node->fireChanged() 会经场景的 updateToSystem 把宿主节点重新
+            /// 登记回本列表(见 FEScene::updateNodesToSystem),直接遍历活列表会因插入/排序
+            /// 导致迭代器失效。这里先取快照并在刷新前清空列表,过程中新登记的节点留到下一帧
+            Objects objects =   _updateList.objects();
+            _updateList.clearObjects();
+            for (auto var : objects)
             {
                 auto    node    =   var->cast<FENode>();
                 if (node)
@@ -85,7 +90,6 @@ namespace   FE
                     node->fireChanged();
                 }
             }
-            _updateList.clearObjects();
         }
         virtual void    clear()
         {}
