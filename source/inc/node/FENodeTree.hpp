@@ -7,9 +7,9 @@ namespace   FE
 {
     DEFINE_CLASS_UUID(FENodeTree,"{D623E1BB-9386-45F0-9AD0-4274585D1F40}");
 
-    using   NAddNodes       =   FETMultiDelegate<void(const FENode*)>;
-    using   NRemoveNodes    =   FETMultiDelegate<void(const FENode*)>;
-    using   NChangedNodes   =   FETMultiDelegate<void(const FENode*)>;
+    using   NAddNodes       =   FETMultiDelegate<void(FENode*)>;
+    using   NRemoveNodes    =   FETMultiDelegate<void(FENode*)>;
+    using   NChangedNodes   =   FETMultiDelegate<void(FENode*)>;
     using   NotifyClears    =   FETMultiDelegate<void()>;
 
     /// <summary>
@@ -109,7 +109,7 @@ namespace   FE
         /// 追加一个顶层节点,并触发 eventsAddNode;空指针或已在列表中则直接忽略
         /// </summary>
         /// <param name="node">要添加的节点</param>
-        inline  void    addToplevelNode(const Node& node)
+        inline  void    addToplevelNode(Node node)
         {
             if (node == nullptr)
                 return;
@@ -125,7 +125,7 @@ namespace   FE
         /// <param name="nodes">要添加的节点列表</param>
         inline  void    addToplevelNodes(const Nodes& nodes)
         {
-            for (const auto& node : nodes)
+            for (auto node : nodes)
             {
                 addToplevelNode(node);
             }
@@ -134,7 +134,7 @@ namespace   FE
         /// 从顶层列表中移除节点(不在列表中则跳过),移除成功触发 eventsRemoveNode
         /// </summary>
         /// <param name="node">要移除的节点</param>
-        inline  void    removeToplevelNode(const Node& node)
+        inline  void    removeToplevelNode(Node node)
         {
             auto    itr =   std::find(_topLevelNodes.begin(), _topLevelNodes.end(), node);
             if (itr != _topLevelNodes.end())
@@ -150,7 +150,7 @@ namespace   FE
         /// <param name="nodes">要移除的节点列表</param>
         inline  void    removeToplevelNodes(const Nodes& nodes)
         {
-            for (const auto& node : nodes)
+            for (auto node : nodes)
             {
                 removeToplevelNode(node);
             }
@@ -181,7 +181,7 @@ namespace   FE
         /// eventsRemoveNode,这里不再重复通知),否则从顶层列表移除
         /// </summary>
         /// <param name="node">要移除的节点,空指针直接返回</param>
-        inline  void    removeNode(const Node& node)
+        inline  void    removeNode(Node  node)
         {
             if (node == nullptr)
                 return;

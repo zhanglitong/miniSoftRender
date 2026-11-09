@@ -41,8 +41,9 @@ namespace   FE
         extractDrawData();
     }
 
-    void    FEImGuiFactory::render(CMDPtr cmd)
+    void    FEImGuiFactory::render(CMDPtr cmd,TransPass pass)
     {
+        UNUSED(pass);
         if (_backend == nullptr || cmd == nullptr)
             return;
         _backend->render(_drawData,cmd.get());

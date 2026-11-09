@@ -115,7 +115,7 @@ int     main(int argc, char** argv)
     uint32_t h = app->cInfo()._height;
 
     auto oit = OITManager(new FEOITManager(ctx));
-    if (!oit->init(w, h, 20, scene->sampleCount()))
+    if (!oit->init(w, h, 32, scene->sampleCount()))
     {
         std::cerr << "OITManager init failed (falling back to normal alpha)" << std::endl;
         oit = nullptr;
@@ -123,7 +123,7 @@ int     main(int argc, char** argv)
     else
     {
         std::cout << "OITManager initialized: " << w << "x" << h
-                  << ", maxNodes=" << oit->screenWidth() * oit->screenHeight() * 20 << std::endl;
+                  << ", maxNodes=" << oit->maxNodes() << std::endl;
         FEOITManager::setActive(oit.get());
         scene->setOITManager(oit);
     }

@@ -336,7 +336,7 @@ namespace   FE
         auto    scene   =   node->ctx().scene();
         if (scene == nullptr)
             return  luaL_error(L,"reparent: no active scene");
-        if (!scene->nodeTree().setParent(node,target,index))
+        if (!scene->ctx().nodeTree().setParent(node,target,index))
             return  luaL_error(L,"reparent: cannot attach to self or descendant");
         return  0;
     }
@@ -453,7 +453,7 @@ namespace   FE
         if (env == nullptr || env->scene == nullptr)
             return  luaL_error(L,"fe.findNode: scene not set");
         Node    found;
-        if (findNodeDFS(env->scene->nodeTree().topLevelNodes(),name,found))
+        if (findNodeDFS(env->ctx->nodeTree().topLevelNodes(),name,found))
             pushObj<FENode>(L,found);
         else
             lua_pushnil(L);
@@ -471,7 +471,7 @@ namespace   FE
         Node    node    =   new FENode(*env->ctx);
         if (lua_isstring(L,1))
             node->setName(lua_tostring(L,1));
-        env->scene->nodeTree().addToplevelNode(node);
+        env->ctx->nodeTree().addToplevelNode(node);
         pushObj<FENode>(L,node);
         return  1;
     }

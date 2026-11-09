@@ -569,7 +569,7 @@ namespace   FE
                     for (auto& factory : factories)
                         removed +=  factory->removeNode(node);
                     node->setMaterial(newMat.get());
-                    auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*scene,{node});
+                    auto    results =   FEFactoryRender::addNodesToFactory(*scene,{node});
                     for (auto& ret : results)
                         scene->factoryMgr().addObject(ret);
                 }

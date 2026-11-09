@@ -103,7 +103,7 @@ int     main(int argc, char** argv)
 
     /// 4. 为脚本创建的带 mesh 节点兜底挂共享 PBR 材质,统一分发到渲染工厂
     Nodes   scriptNodes;
-    collectNodes(pScene->nodeTree().topLevelNodes(),scriptNodes);
+    collectNodes(pScene->ctx().nodeTree().topLevelNodes(),scriptNodes);
 
     FEMaterialPBR*  pMat        =   new FEMaterialPBR(ctx);
     Material        sharedMat   =   pMat;

@@ -41,8 +41,12 @@ namespace   FE
             /// 该状态会在节点所在工厂中消费后移除
             /// </summary>
             FLAG_PROP_MESH      =   (FLAG_REMOVE_CHILD  <<1),
+            /// <summary>
+            /// 修改材质
+            /// </summary>
+            FLAG_PROP_MATERIAL  =   (FLAG_PROP_MESH     <<1),
 
-            FLAG_PROP_TRANS     =   (FLAG_PROP_MESH     <<1),
+            FLAG_PROP_TRANS     =   (FLAG_PROP_MATERIAL <<1),
             FLAG_PROP_SCALE     =   (FLAG_PROP_TRANS    <<1),
             /// <summary>
             /// 数据是四元数
@@ -86,6 +90,7 @@ namespace   FE
             ModifyValue     =   FLAG_ADD_CHILD 
                                 | FLAG_REMOVE_CHILD
                                 | FLAG_PROP_MESH
+                                | FLAG_PROP_MATERIAL
                                 | FLAG_PROP_TRANS
                                 | FLAG_PROP_SCALE
                                 | FLAG_PROP_ROT
@@ -397,16 +402,31 @@ namespace   FE
             }
             return  objs;
         }
-        virtual void    setMaterial(FEMaterial* pMat)
+        /// <summary>
+        /// 设置材质
+        /// </summary>
+        /// <param name="pMat"></param>
+        /// <returns></returns>
+        virtual bool    setMaterial(FEMaterial* pMat)
         {
+            if (_material.get() == pMat)
+                return  false;
             _material   =   pMat;
+            flags().addFlag(FLAG_PROP_MATERIAL);
+            return  true;
         }
-        virtual void    setMesh(FEMesh* mesh)
+        /// <summary>
+        /// 设置网格几何体
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
+        virtual bool    setMesh(FEMesh* mesh)
         {
             if (_mesh.get() == mesh)
-                return;
+                return  false;
             _mesh   =   mesh;
             flags().addFlag(FLAG_PROP_MESH);
+            return  true;
         } 
         /// <summary>
         /// 添加组件

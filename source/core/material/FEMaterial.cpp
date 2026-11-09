@@ -71,13 +71,23 @@ namespace   FE
 
     bool    FEMaterial::bind(uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges,const uint64s& offsets)
     {
-        if (_dsets.empty())
+        bool    ok      =   bindTo(_dsets,set,bind,objects,ranges,offsets);
+        /// OIT 变体 dsets 同步绑定:LIST 趟 OIT 管线与主管线共享同一份资源
+        if (!_oitDsets.empty())
+            bindTo(_oitDsets,set,bind,objects,ranges,offsets);
+        return  ok;
+    }
+    bool    FEMaterial::bindTo(DSets& dsets,uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges,const uint64s& offsets)
+    {
+        if (dsets.empty())
             return  false;
-        DSet    dset    =   query(set);
-        if (dset == nullptr)
-            return  false;
-        else
+        for (auto& dset : dsets)
+        {
+            if (dset == nullptr || dset->cInfo()._set != set)
+                continue;
             return  dset->setBinding(bind,objects,ranges,offsets);
+        }
+        return  false;
     }
     void    FEMaterial::update()
     {
@@ -87,15 +97,24 @@ namespace   FE
         {
             var->update();
         }
+        for (auto& var : _oitDsets)
+        {
+            var->update();
+        }
     }
 
     void    FEMaterial::autoAttach()
+    {
+        autoAttachTo(_dsets);
+        autoAttachTo(_oitDsets);
+    }
+    void    FEMaterial::autoAttachTo(DSets& dsets)
     {
         /// push constant 数据由 cmd->pushConstants 在 draw 前直接下发:
         ///   - Vulkan: vkCmdPushConstants
         ///   - WebGPU: wgpuRenderPassEncoderSetImmediates(var<immediate>)
         /// 因此 _point 不再作为描述符 binding,此处只处理 ubo/texture 的自动关联。
-        for (auto& dset: _dsets)
+        for (auto& dset: dsets)
         {
             auto&   binds   =   dset->cInfo()._binds;
             for (auto& bind: binds)

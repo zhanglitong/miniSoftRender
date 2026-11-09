@@ -52,6 +52,21 @@ if(GLSLC AND SHADER_SOURCES)
             VERBATIM
         )
         list(APPEND SPV_OUTPUTS ${OUTPUT_SPV})
+
+        # pbr fragment 额外产出 OIT_MODE 变体(输出写 PPLL 链表):
+        # 所有透明材质(alpha/transmission)的 OIT 变体管线复用该 FS,
+        # 输出名 pbr/shader.oit.frag.spv,由 FEMaterialPBR::setupOITVariants 加载
+        if(RELATIVE_PATH STREQUAL "pbr/shader.frag")
+            set(PBR_OIT_SPV "${SHADER_CACHE_DIR}/pbr/shader.oit.frag.spv")
+            add_custom_command(
+                OUTPUT ${PBR_OIT_SPV}
+                COMMAND ${GLSLC} -I ${SHADER_SRC_DIR}/common -DOIT_MODE ${SHADER} -o ${PBR_OIT_SPV}
+                DEPENDS ${SHADER}
+                COMMENT "编译着色器 pbr/shader.frag (OIT_MODE)"
+                VERBATIM
+            )
+            list(APPEND SPV_OUTPUTS ${PBR_OIT_SPV})
+        endif()
     endforeach()
 
     add_custom_target(CompileShaders ALL DEPENDS ${SPV_OUTPUTS})

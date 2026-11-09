@@ -44,9 +44,10 @@ namespace   FE
 
     bool    FEOITManager::init(uint32_t screenW, uint32_t screenH, uint32_t maxNodesPerPixel, uint sampleCount)
     {
-        _screenW  = screenW;
-        _screenH  = screenH;
-        _maxNodes = maxNodesPerPixel * screenW * screenH;
+        _screenW     = screenW;
+        _screenH     = screenH;
+        _maxNodes    = maxNodesPerPixel * screenW * screenH;
+        _sampleCount = sampleCount;
 
         FEDevice& device = _ctx.device();
 
@@ -310,7 +311,7 @@ namespace   FE
         return true;
     }
 
-    void    FEOITManager::bindToDSet(DSet dset)
+    void    FEOITManager::bindToDSet(DSet dset, uint bindCounter, uint bindHead, uint bindList)
     {
         if (!dset) return;
         // SBO 继承链: FEGPUBuffer→RSObject→FENotify→FEObject
@@ -318,11 +319,11 @@ namespace   FE
         auto ctrObj = Object(static_cast<FEObject*>(_counterSBO));
         auto hdiObj = Object(static_cast<FEObject*>(_headIndexSBO));
         auto llObj  = Object(static_cast<FEObject*>(_linkedListSBO));
-        dset->setBinding(10, Objects{ ctrObj },
+        dset->setBinding(bindCounter, Objects{ ctrObj },
                         uint64s{ _counterSBO->cInfo()._length }, uint64s{ 0 });
-        dset->setBinding(11, Objects{ hdiObj },
+        dset->setBinding(bindHead, Objects{ hdiObj },
                         uint64s{ _headIndexSBO->cInfo()._length }, uint64s{ 0 });
-        dset->setBinding(12, Objects{ llObj },
+        dset->setBinding(bindList, Objects{ llObj },
                         uint64s{ _linkedListSBO->cInfo()._length }, uint64s{ 0 });
         dset->update();
     }

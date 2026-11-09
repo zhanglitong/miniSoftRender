@@ -77,15 +77,15 @@ namespace   FE
             updateScroll();
         if (_scene)
         {
-            _scene->nodeTree().eventsAddNode()      +=  {this,[this](const FENode* )
+            _scene->ctx().nodeTree().eventsAddNode()      +=  {this,[this](const FENode* )
             {
                 update();
             }};
-            _scene->nodeTree().eventsRemoveNode()   +=  {this,[this](const FENode* )
+            _scene->ctx().nodeTree().eventsRemoveNode()   +=  {this,[this](const FENode* )
             {
                 update();
             }};
-            _scene->nodeTree().eventsClear() += {this,[this]()
+            _scene->ctx().nodeTree().eventsClear() += {this,[this]()
             {
                 update();
             }};
@@ -96,9 +96,9 @@ namespace   FE
     {
         if (_scene)
         {
-            _scene->nodeTree().eventsAddNode()      -=  this;
-            _scene->nodeTree().eventsRemoveNode()   -=  this;
-            _scene->nodeTree().eventsClear()        -=  this;
+            _scene->ctx().nodeTree().eventsAddNode()      -=  this;
+            _scene->ctx().nodeTree().eventsRemoveNode()   -=  this;
+            _scene->ctx().nodeTree().eventsClear()        -=  this;
         }
         _scene              =   nullptr;
         _curItem            =   nullptr;

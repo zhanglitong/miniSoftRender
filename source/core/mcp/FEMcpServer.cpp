@@ -95,7 +95,7 @@ namespace   FE
             if (!args.contains(key) ||  !args[key].is_string())
                 throw   std::runtime_error(std::string("expect string '")   +   key + "' (node name) for "  +   what);
             String  name    =   args[key].get<String>();
-            FENode* node    =   findByName(scene.nodeTree().topLevelNodes(),name);
+            FENode* node    =   findByName(scene.ctx().nodeTree().topLevelNodes(),name);
             if (node    ==  nullptr)
                 throw   std::runtime_error("node not found: "   +   name);
             return  node;
@@ -401,7 +401,7 @@ namespace   FE
                         walk(tmp->children());
                     }
                 };
-                walk(_scene->nodeTree().topLevelNodes());
+                walk(_ctx->nodeTree().topLevelNodes());
                 return  json{{"nodes",nodes},{"count",(double)nodes.size()}};
             }
         });
@@ -415,7 +415,7 @@ namespace   FE
                 String  name    =   args.value("name",String("node"));
                 Node    node    =   new FENode(*_ctx);
                 node->setName(name);
-                _scene->nodeTree().addToplevelNode(node);
+                _ctx->nodeTree().addToplevelNode(node);
                 return  nodeInfo(node.get());
             }
         });
@@ -724,11 +724,11 @@ namespace   FE
                     FENode* parent  =   requireNode(*_scene,args,"parent","node_set_parent");
                     if (parent  ==  child)
                         throw   std::runtime_error("cannot reparent to self");
-                    _scene->nodeTree().setParent(Node(child),parent);
+                    _ctx->nodeTree().setParent(Node(child),parent);
                 }
                 else
                 {
-                    _scene->nodeTree().setParent(Node(child),nullptr);
+                    _ctx->nodeTree().setParent(Node(child),nullptr);
                 }
                 return  nodeInfo(child);
             }

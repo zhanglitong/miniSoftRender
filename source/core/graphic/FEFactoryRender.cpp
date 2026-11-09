@@ -173,14 +173,21 @@ namespace   FE
                 addUpdateNode(node,std::distance(_objects.begin(),itr));
             }
             /// 需要整体更新，清除局部更新数据
-            if (node->flags().hasFlag(FENode::FLAG_PROP_MESH))
+            if (node->flags().hasFlag(FENode::FLAG_PROP_MESH) || node->flags().hasFlag(FENode::FLAG_PROP_MATERIAL))
             {
-                flags().addFlag(FENode::FLAG_PROP_MESH);
+                flags().addFlag(FENode::FLAG_PROP_MESH | FENode::FLAG_PROP_MATERIAL);
                 clearUpdates();
             }
             return  1;
         }
         return  0;
+    }
+    bool    GroupNode::containsNode(Node node) const
+    {
+        if (node == nullptr)
+            return  false;
+        auto    itr =   std::lower_bound(_objects.begin(),_objects.end(),node);
+        return  itr != _objects.end() && (*itr) == node;
     }
     void    GroupNode::resetFlags()
     {
@@ -268,17 +275,6 @@ namespace   FE
                 node->flags().removeFlags(removeFlagBits);
         }
         return  pDst;
-    }
-
-    FEFactoryRender::TransPass    FEFactoryRender::s_transPass  =   FEFactoryRender::TransPass::TP_ALL;
-
-    void                FEFactoryRender::setTransPass(TransPass p)
-    {
-        s_transPass =   p;
-    }
-    FEFactoryRender::TransPass    FEFactoryRender::transPass()
-    {
-        return  s_transPass;
     }
 
     FEFactoryRender::FEFactoryRender(FEContext& ctx)
@@ -438,6 +434,8 @@ namespace   FE
         size_t  result  =   0;
         GroupNode*      pGroup  =   nullptr;
         Material    mat     =   nullptr;
+        /// 本批移除涉及的 mesh(自动去重),整批结束后再统一判断归属
+        MeshUSet    meshes;
         for (auto node: nodes)
         {   
             if (node->material() == nullptr)
@@ -448,7 +446,19 @@ namespace   FE
                 pGroup  =   queryGroup(mat);
             }
             if (pGroup != nullptr)
-                result  +=  pGroup->removeNode(node);
+            {
+                const   size_t  removed =   pGroup->removeNode(node);
+                result  +=  removed;
+                if (removed > 0 && node->mesh() != nullptr)
+                    meshes.insert(node->mesh());
+            }
+        }
+        /// mesh 已不再被本工厂任何节点使用时,交还图元归属,
+        /// 否则后续以独立工厂模式分派会误判为"仍被占用"
+        for (auto& mesh : meshes)
+        {
+            if (!holdsMesh(mesh))
+                releaseMesh(mesh);
         }
         if (result)
             flags().addFlag(FENode::FLAG_REMOVE_CHILD);
@@ -458,13 +468,52 @@ namespace   FE
     size_t  FEFactoryRender::nodePropChanged(Node node)
     {
         auto    grp =   queryGroup(node->material());
-        if (grp == nullptr)
+        if (grp == nullptr || !grp->containsNode(node))
             return  0;
         auto    result  =   grp->nodePropChanged(node);
         if (result)
             flags().addFlag(FLAG_UPDATE);
         return  result;
             
+    }
+
+    bool    FEFactoryRender::holdsMesh(Mesh mesh) const
+    {
+        if (mesh == nullptr)
+            return  false;
+        for (auto& grp : _groupNode)
+        {
+            for (auto& obj : grp->_objects)
+            {
+                if (obj->mesh() == mesh)
+                    return  true;
+            }
+        }
+        return  false;
+    }
+
+    void    FEFactoryRender::releaseMesh(Mesh mesh)
+    {
+        if (mesh == nullptr)
+            return;
+        for (auto pri : mesh->primitives())
+        {
+            /// 只交还仍归本工厂的,避免误清其它工厂的占用标记
+            if (pri->factory().get() == this)
+                pri->setFactory(nullptr);
+        }
+    }
+
+    bool    FEFactoryRender::holdsNode(Node node) const
+    {
+        if (node == nullptr)
+            return  false;
+        for (auto& grp : _groupNode)
+        {
+            if (grp->containsNode(node))
+                return  true;
+        }
+        return  false;
     }
 
     void    FEFactoryRender::update(CMDPtr cmd)
@@ -494,7 +543,7 @@ namespace   FE
         return  false;
     }
 
-    void    FEFactoryRender::render(CMDPtr cmd)
+    void    FEFactoryRender::render(CMDPtr cmd,TransPass pass)
     {
         /// 不可见工厂不参与绘制(update 已经跳过,render 也必须跳过,
         /// 否则会使用未构建的 VBO/实例缓冲与陈旧绘制计数绘制,导致崩溃)
@@ -518,10 +567,9 @@ namespace   FE
                 return;
         }
         Material    mat     =   _groupNode.front()->_mat;
-        /// OIT 双趟过滤:LIST(几何)趟只画 OIT 材质,MAIN(主)趟只画普通材质
+        /// OIT 双趟过滤下沉到组级:混合工厂(部分组透明部分不透明)可同时
+        /// 参与 MAIN/LIST 两趟,不再按工厂首组材质整体过滤
         auto        oitPass =   FEOITManager::pass();
-        if (oitPass == FEOITManager::OITPass::LIST && !mat->isOIT())    return;
-        if (oitPass == FEOITManager::OITPass::MAIN &&  mat->isOIT())    return;
         auto        pl      =   mat->pipeline(_key._primitive)->as<FEGPipeline>();
 
         cmd->bindPipeline(pl);
@@ -560,20 +608,52 @@ namespace   FE
         bool    dbgGrpSampled   =   g_dbgFrameSampled;
         for (auto& grp : _groupNode)
         {
-            const bool  grpTransparent  =   grp->_mat && grp->_mat->isTransparent();
-            if (grpTransparent != transparentPass)
+            auto    mat         =   grp->_mat;
+            if (mat == nullptr)
                 continue;
+            const   bool    grpTrans    =   mat->isTransparent() || mat->isTransmission();
+            const   bool    grpOIT      =   mat->isOIT();
+            if (oitPass == FEOITManager::OITPass::LIST)
+            {
+                /// LIST(几何)趟:透明/transmission/OIT 组写 PPLL 链表,其余跳过
+                if (!(grpTrans || grpOIT))
+                    continue;
+            }
+            else if (oitPass == FEOITManager::OITPass::MAIN)
+            {
+                /// MAIN(主)趟:只画非透明组,透明组留给 LIST 趟
+                if (grpTrans || grpOIT)
+                    continue;
+            }
+            else
+            {
+                /// 非 OIT:维持原两遍逻辑(不透明组→透明组);
+                /// OIT 材质(oitGeometry 管线无 color 输出)只在 LIST 趟绘制
+                if (grpOIT || (grpTrans != transparentPass))
+                    continue;
+            }
+            /// LIST 趟用 OIT 变体管线(OIT 材质本身就是 oitGeometry 管线);
             /// 同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
             /// 切换到该组材质自身的管线与动态状态(混合状态/剔除模式随管线变化)
-            auto    grpPl   =   grp->_mat->pipeline(_key._primitive)->as<FEGPipeline>();
-            if (grpPl != pl)
+            auto    grpPl   =   (oitPass == FEOITManager::OITPass::LIST)
+                                ?   mat->oitPipeline(_key._primitive)
+                                :   mat->pipeline(_key._primitive);
+            auto    gpl     =   (grpPl != nullptr) ? grpPl->as<FEGPipeline>() : nullptr;
+            if (gpl == nullptr)
+                continue;
+            if (gpl != pl)
             {
-                pl  =   grpPl;
+                pl  =   gpl;
                 cmd->bindPipeline(pl);
-                grp->_mat->appDynamicState(cmd,_key._primitive);
+                mat->appDynamicState(cmd,_key._primitive);
             }
             FECmdBuffer::DSetBind   binds   =   {};
-            binds.dSets         =   grp->_mat->dsets();
+            /// LIST 趟必须绑 OIT 变体 dsets(布局含 OIT SSBO,与主管线 dsets 不同)
+            binds.dSets         =   (oitPass == FEOITManager::OITPass::LIST)
+                                    ?   mat->listDsets()
+                                    :   grp->_mat->dsets();
+            if (binds.dSets.empty())
+                continue;
             binds.firstSet      =   0;
             binds.offsetCount   =   0;
             binds.offsets       =   nullptr;
@@ -624,8 +704,10 @@ namespace   FE
         };
         drawGroups(false);
         /// transmission 场景折射预渲染趟(TP_OPAQUE):只画不透明组,
-        /// 透明组从场景纹理中剔除(否则玻璃会出现在自身折射背景里并自折射)
-        if (s_transPass == TransPass::TP_ALL)
+        /// 透明组从场景纹理中剔除(否则玻璃会出现在自身折射背景里并自折射)。
+        /// OIT 模式下透明组统一在 LIST 趟绘制(MAIN 过滤已跳过透明组,
+        /// LIST 会重复写链表),第二遍仅非 OIT 渲染需要
+        if (pass == TransPass::TP_ALL && oitPass == FEOITManager::OITPass::NONE)
             drawGroups(true);
     }
 
@@ -648,18 +730,21 @@ namespace   FE
 
     void    FEFactoryRender::destroy()
     {
+        /// 交还图元归属,避免工厂销毁后图元仍指向已释放的对象
+        for (auto& grp : _groupNode)
+        {
+            for (auto& obj : grp->_objects)
+                releaseMesh(obj->mesh());
+        }
         _groupNode.clear();
         _vboVertexs.clear();
         _vboInstances.clear();
         _ibo            =   nullptr;
-        _priOffsets.clear();
-        _priVertexOffsets.clear();
         _indirectClip   =   nullptr;
         _indirectFull   =   nullptr;
         _vboSphere      =   nullptr;
         _vboLod         =   nullptr;
         _vboInstLod     =   nullptr;
-        _lodInfos.clear();
         /// 派生类释放自有资源
         onDestroy();
     }
@@ -789,7 +874,6 @@ namespace   FE
                 {
                     pri->setFactory(this);
                     pri->setVertexOffset(nCount);
-                    _priVertexOffsets[pri.get()]    =   nCount;
                 }
             }
             /// 设置mesh 所属工厂
@@ -802,14 +886,14 @@ namespace   FE
 
     IBO     FEFactoryRender::buildVertexIBO(MeshUSet& meshSet)
     {
-        _lodInfos.clear();
+        LodInfs lodInfos;
         IndexCounts count   =   indexCount(meshSet,_key._primitive);
         if (count._indices == 0)
         {
             /// DRAW_ARRAY 没有索引表,不参与 LOD;仍提供一个 4 项的空缓冲,
             /// 保证裁剪材质 binding 6 始终有合法资源(实例 lod 全为 -1 不会读取)
-            _lodInfos.assign(4,LodInf{});
-            _vboLod =   buildLodVBO();
+            lodInfos.assign(4,LodInf{});
+            _vboLod =   buildLodVBO(lodInfos);
             return  nullptr;
         }
         /// <summary>
@@ -835,7 +919,7 @@ namespace   FE
                             inf.count   =   lod->_lod[i].count;
                             inf.dist    =   lod->_lod[i].dist;
                         }
-                        _lodInfos.emplace_back(inf);
+                        lodInfos.emplace_back(inf);
                     }
                     ++ lodIdx;
                 }
@@ -867,7 +951,6 @@ namespace   FE
                     uint    adv =   FE::alignUp<uint>(cnt * sizeof(uint16),4);
                     pDst        +=  adv;
                     pri->setIndexOffset(offset);
-                    _priOffsets[srcPri.get()]   =   offset;
                     offset      +=  adv / sizeof(uint16);
                 }
             }
@@ -885,7 +968,6 @@ namespace   FE
                     uint    adv =   FE::alignUp<uint>(cnt * sizeof(uint16),4);
                     pDst        +=  adv;
                     pri->setIndexOffset(offset);
-                    _priOffsets[srcPri.get()]   =   offset;
                     offset      +=  adv / sizeof(uint16);
                 }
             }
@@ -901,7 +983,6 @@ namespace   FE
                     uint32  cnt =   pri->copyIndexTo<uint32>((uint32*)pDst,count._indices);
                     pDst        +=  cnt * 4;
                     pri->setIndexOffset(offset);
-                    _priOffsets[srcPri.get()]   =   offset;
                     offset      +=  cnt;
                 }
             }
@@ -915,7 +996,7 @@ namespace   FE
 
         gpu->create({cpu->cInfo()._length, DEVICE_DEFAULT_BIT}); 
 
-        _vboLod     =   buildLodVBO();
+        _vboLod     =   buildLodVBO(lodInfos);
 
         auto    cmdPool =   _device.transferCmdPool();
         assert (cmdPool != nullptr);
@@ -930,9 +1011,9 @@ namespace   FE
         return  gpu;
     }
 
-    VBO     FEFactoryRender::buildLodVBO()
+    VBO     FEFactoryRender::buildLodVBO(const LodInfs& lodInfos)
     {
-        uint64  length  =   uint64(_lodInfos.size()) * sizeof(LodInf);
+        uint64  length  =   uint64(lodInfos.size()) * sizeof(LodInf);
         if (length == 0)
             return  nullptr;
         VBO     vboCPU  =   _device.createVBO();
@@ -940,7 +1021,7 @@ namespace   FE
         vboCPU->create({length,HOST_VISIBLE_BIT});
         vboGPU->create({length,DEVICE_DEFAULT_BIT});
         uint8*  pDst    =   (uint8*)vboCPU->lock(length,0);
-        memcpy(pDst,_lodInfos.data(),size_t(length));
+        memcpy(pDst,lodInfos.data(),size_t(length));
         vboCPU->unlock();
 
         auto    cmdPool =   _device.transferCmdPool();
@@ -1385,16 +1466,7 @@ namespace   FE
                     if (pris[i]->primitive() != _key._primitive)
                         continue;
                     mesh->drawCmd(pCmdIdx[cmdIdx],i,uint(instId));
-                    /// 命令的 firstIndex 必须是本工厂 IBO 中的偏移:LOD 的 start
-                    /// 相对图元自身索引数组,GPU 选级用 firstIndex + start 定位
-                    {
-                        auto    itOff   =   _priOffsets.find(pris[i].get());
-                        if (itOff != _priOffsets.end())
-                            pCmdIdx[cmdIdx].firstIndex  =   itOff->second;
-                    }
-                    /// primitive 上的 _indexOffset/_vertexOffset 会被其它工厂的
-                    /// IBO/VBO 构建覆盖,WGSL 绘制项必须用本工厂构建时记录的偏移
-                    /// (与绑定的 _ibo 及 _vboVertexs 布局一致)
+                    /// 图元只属于本工厂,drawCmd 读到的偏移即本工厂 IBO/VBO 中的偏移
                     auto&   item    =   pCmdIdx[cmdIdx];
                     GroupNode::DrawItem drawItem;
                     drawItem._firstIndex    =   item.firstIndex;
@@ -1402,12 +1474,6 @@ namespace   FE
                     drawItem._baseVertex    =   item.baseVertex;
                     drawItem._primCount     =   item.primCount;
                     drawItem._instance      =   item.baseInstance;
-                    auto    itOff   =   _priOffsets.find(pris[i].get());
-                    if (itOff != _priOffsets.end())
-                        drawItem._firstIndex    =   itOff->second;
-                    auto    itVtx   =   _priVertexOffsets.find(pris[i].get());
-                    if (itVtx != _priVertexOffsets.end())
-                        drawItem._baseVertex    =   itVtx->second;
                     var->_drawItems.emplace_back(drawItem);
                     ++cmdIdx;
                 }
@@ -1841,8 +1907,7 @@ namespace   FE
         factory->setKey(key);
         return  factory;
     }
-    RFactorys   FEFactoryRender::addNodesToFactory(FEContext& ctx,FEScene& scene,const Nodes& nodeList,
-                                                   bool reuseExisting)
+    RFactorys   FEFactoryRender::addNodesToFactory(FEScene& scene,const Nodes& nodeList,bool reuseExisting,DispatchErrors* errors)
     {
         /// 1. 排序，按照 pri, drawtype, Attr
         uint    nCount  =   0;
@@ -1865,7 +1930,7 @@ namespace   FE
         /// (同一节点在同一个 key 下的多个图元只占一个节点槽位)
         MeshKeyCount    priCnts;
         MeshKeyCount    nodeCnts;
-        std::vector<uint64> keys;
+        uint64s         keys;
         /// 按照key 统计节点
         /// 为了避免动态分配内存
         for (auto& node: nodes)
@@ -1898,28 +1963,64 @@ namespace   FE
             auto    mesh    =   node->mesh();
             auto&   pris    =   mesh->primitives();
 
+            keys.clear();
             for (size_t i = 0;i < pris.size(); ++ i)
             {   
                 auto    pri     =   pris[i];  
                 auto    key     =   mesh->key(pri).value();
-                priGroup[key]._nodes.push_back(node);
                 priGroup[key]._pris.push_back(pri);
+                /// 同一节点在同一个 key 下可能有多个图元,_nodes 只保留一个槽位,
+                /// 否则会被 GroupNode::addNodes 重复插入并重复绘制
+                if (std::find(keys.begin(),keys.end(),key) == keys.end())
+                {
+                    keys.emplace_back(key);
+                    priGroup[key]._nodes.push_back(node);
+                }
             }
         }
 
         for (auto& var : priGroup)
         {
-            auto    factory =   queryOrCreateFactory(ctx,scene,var.first,reuseExisting);
-            if (factory != nullptr)
+            auto    factory =   queryOrCreateFactory(scene.ctx(),scene,var.first,reuseExisting);
+            if (factory == nullptr)
+                continue;
+            /// 一个 FEPrimitive 只能属于一个工厂:确认目标图元没有被其它工厂占用
+            Factory     owner   =   nullptr;
+            for (auto& pri : var.second._pris)
             {
-                for (auto& pri : var.second._pris)
+                auto    cur =   pri->factory();
+                if (cur != nullptr && cur.get() != factory.get())
                 {
-                    pri->setFactory(factory.get());
+                    owner   =   cur;
+                    break;
                 }
-                /// _nodes 已由 collectNode 递归收集完成,这里直接平铺加入,
-                factory->addNodesFlat(var.second._nodes.begin(),var.second._nodes.end());
-                result.emplace_back(factory);
             }
+            if (owner != nullptr)
+            {
+                Node    node    =   var.second._nodes.empty() ? nullptr : var.second._nodes.front();
+                /// 复用模式:重定向到占用者,保证节点仍能渲染
+                auto    exist   =   scene.factoryMgr().findObject(var.first);
+                if (reuseExisting && exist != nullptr && exist.get() == owner.get())
+                {
+                    for (auto& pri : var.second._pris)
+                        pri->setFactory(owner);
+                    exist->addNodesFlat(var.second._nodes.begin(),var.second._nodes.end());
+                    result.emplace_back(exist);
+                    continue;
+                }
+                /// 独立工厂模式无法满足唯一性,记录原因并跳过
+                if (errors != nullptr)
+                    errors->push_back({node,owner,var.first});
+                scene.ctx().log().error("FEFactoryRender::addNodesToFactory key %llu already owned by another factory,node dropped",(uint64)var.first);
+                continue;
+            }
+            for (auto& pri : var.second._pris)
+            {
+                pri->setFactory(factory.get());
+            }
+            /// _nodes 已由 collectNode 递归收集完成,这里直接平铺加入,
+            factory->addNodesFlat(var.second._nodes.begin(),var.second._nodes.end());
+            result.emplace_back(factory);
         }
         return  result;
     }
@@ -1949,6 +2050,67 @@ namespace   FE
                 removed  += factory->removeNodesSorted(nodes);
         }
         return  removed;
+    }
+
+    size_t  FEFactoryRender::updateNodesToSystem(FEScene& scene,const Nodes& nodeList)
+    {
+        size_t  updated =   0;
+        for (auto node : nodeList)
+        {
+            if (node == nullptr)
+                continue;
+            Nodes   nodes;
+            /// node 可能是带有层级的节点，需要递归收集所有子节点
+            /// 以确保所有图元都被更新
+            collectNode(node,nodes);
+            for (auto child : nodes)
+            {
+                Mesh    mesh    =   child->mesh();
+                if (mesh == nullptr)
+                    continue;
+                auto&   pris    =   mesh->primitives();
+                if (pris.empty())
+                    continue;
+                /// 一个 mesh 的多个图元可能分属不同 key 的工厂,需逐个确认
+                for (auto& pri : pris)
+                {
+                    auto    factory =   pri->factory();
+                    if (factory == nullptr)
+                        continue;
+                    auto    render  =   factory->as<FEFactoryRender>();
+                    /// 非渲染工厂不由本函数管理,重新分派也改不了归属
+                    if (render == nullptr)
+                        continue;
+                    bool    redispatch  =   false;
+                    /// 节点已不在本工厂任何组中,归属已失效
+                    if (!render->holdsNode(child))
+                    {
+                        redispatch  =   true;
+                    }
+                    /// 材质被替换:组按材质划分,必须重新分派
+                    else if (child->flags().hasFlag(FENode::FLAG_PROP_MATERIAL))
+                    {
+                        redispatch  =   true;
+                    }
+                    /// 网格被替换:key 变化时当前工厂的顶点布局已不适用
+                    else if (child->flags().hasFlag(FENode::FLAG_PROP_MESH))
+                    {
+                        redispatch  =   mesh->key(pri).value() != render->key().value();
+                    }
+                    if (redispatch)
+                    {
+                        /// 先摘除,避免多图元节点残留在其它工厂
+                        removeNodesFromFactory(scene,{child});
+                        auto    factorys    =   addNodesToFactory(scene,{child},true);
+                        for (auto& var : factorys)
+                            updated +=  scene.factoryMgr().addObject(var);
+                        break;
+                    }
+                    updated +=  render->nodePropChanged(child);
+                }
+            }
+        }
+        return  updated;
     }
 }
 

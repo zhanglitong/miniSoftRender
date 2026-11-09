@@ -985,7 +985,7 @@ namespace   FE
         {
             if (_oldTopLevel)
             {
-                auto&   tops    =   scene->nodeTree().topLevelNodes();
+                auto&   tops    =   scene->ctx().nodeTree().topLevelNodes();
                 auto    it      =   std::find(tops.begin(), tops.end(), _node);
                 _oldIndex       =   (it != tops.end()) ? (size_t)std::distance(tops.begin(), it) : 0;
             }
@@ -1010,7 +1010,7 @@ namespace   FE
         auto    scene   =   _node->ctx().scene();
         if (scene == nullptr)
             return;
-        auto&   tree    =   scene->nodeTree();
+        auto&   tree    =   scene->ctx().nodeTree();
         /// 层级变更统一走节点树:它会同步顶层集合(reparent 只改父子关系)
         if (_newParent != nullptr)
         {
@@ -1034,7 +1034,7 @@ namespace   FE
         auto    scene   =   _node->ctx().scene();
         if (scene == nullptr)
             return;
-        auto&   tree    =   scene->nodeTree();
+        auto&   tree    =   scene->ctx().nodeTree();
         /// 层级变更统一走节点树:它会同步顶层集合(reparent 只改父子关系)
         if (_oldTopLevel)
         {
@@ -1093,7 +1093,7 @@ namespace   FE
         if (scene == nullptr)
             return;
         /// 同父排序同样走节点树(顶层集合不因此改变)
-        scene->nodeTree().setParent(_node,_parent.get(),_newIndex);
+        scene->ctx().nodeTree().setParent(_node,_parent.get(),_newIndex);
         if (_refreshCb)
             _refreshCb();
     }
@@ -1105,7 +1105,7 @@ namespace   FE
         auto    scene   =   _node->ctx().scene();
         if (scene == nullptr)
             return;
-        scene->nodeTree().setParent(_node,_parent.get(),_oldIndex);
+        scene->ctx().nodeTree().setParent(_node,_parent.get(),_oldIndex);
         if (_refreshCb)
             _refreshCb();
     }
@@ -1177,7 +1177,7 @@ namespace   FE
             if (_parent)
                 _parent->addChild(_node);
             else
-                scene->nodeTree().addToplevelNode(_node);
+                scene->ctx().nodeTree().addToplevelNode(_node);
             /// 注册渲染(节点+组件分发到各系统/工厂)
             scene->dispatchNodesToSystem({_node});
         }
@@ -1202,7 +1202,7 @@ namespace   FE
         if (scene)
         {
             /// 摘除(触发 eventsRemoveNode / _NRemoveNodes,树监听刷新)
-            scene->nodeTree().removeNode(_node);
+            scene->ctx().nodeTree().removeNode(_node);
             /// FEScene 未订阅 eventsRemoveNode,需手动遍历各工厂清渲染引用,避免悬挂
             for (auto factory : scene->factoryMgr().objects())
                 factory->removeNode(_node);

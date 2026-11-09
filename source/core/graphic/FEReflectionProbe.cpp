@@ -147,8 +147,7 @@ namespace   FE
 
         /// 6. 探针专用 viewer:渲染场景全部工厂(天空同属 USAGE_Scene),
         /// 渲染尺寸用 setViewSize 覆盖成单面边长
-        _viewer =   new FEViewer(_ctx,nullptr,nullptr,
-                                 FEViewer::ViewerUsages(uint32_t(USAGE_Scene)));
+        _viewer =   new FEViewer(_ctx,nullptr,nullptr, FEViewer::ViewerUsages(uint32_t(USAGE_Scene)));
         _viewer->setViewSize(size,size);
         return  true;
     }

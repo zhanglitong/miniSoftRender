@@ -15,6 +15,16 @@
 
 namespace   FE
 {
+    /// ===== OIT SSBO binding 常量 =====
+    /// oit/shader(geometry/color pass 专用)固定用 10/11/12;
+    /// pbr/shader.frag 的 10~17 已被 PBR 贴图/参数占用,其 OIT 变体用 18/19/20
+    constexpr   uint    OIT_BIND_COUNTER        =   10;
+    constexpr   uint    OIT_BIND_HEAD           =   11;
+    constexpr   uint    OIT_BIND_LIST           =   12;
+    constexpr   uint    PBR_OIT_BIND_COUNTER    =   18;
+    constexpr   uint    PBR_OIT_BIND_HEAD       =   19;
+    constexpr   uint    PBR_OIT_BIND_LIST       =   20;
+
     /// <summary>
     /// PPLL (Per-Pixel Linked List) OIT 管理器
     ///
@@ -44,10 +54,10 @@ namespace   FE
         /// <summary>
         /// 初始化：创建 SSBO、load shader、build pipeline、alloc DSets
         /// @param screenW/screenH 屏幕分辨率，每像素一个 head index
-        /// <param name="maxNodesPerPixel">每像素最大透明层数（默认 20）</param>
+        /// <param name="maxNodesPerPixel">每像素最大透明层数（默认 32）</param>
         /// <param name="sampleCount">渲染目标采样数（MSAA，需与 FEScene 一致）</param>
         /// </summary>
-        bool    init(uint32_t screenW, uint32_t screenH, uint32_t maxNodesPerPixel = 20, uint sampleCount = 1);
+        bool    init(uint32_t screenW, uint32_t screenH, uint32_t maxNodesPerPixel = 32, uint sampleCount = 1);
 
         /// <summary>
         /// 每帧开头调用：清空 counter + headIndex
@@ -67,9 +77,13 @@ namespace   FE
 
         /// <summary>
         /// 把 3 个 OIT SSBO 绑定到指定 DSet 的 binding 10/11/12
-        /// (geometry pass 材质与 color pass 材质共用)
+        /// (geometry pass 材质与 color pass 材质共用);
+        /// pbr OIT 变体管线传入 18/19/20(PBR_OIT_BIND_*)
         /// </summary>
-        void    bindToDSet(DSet dset);
+        void    bindToDSet(DSet dset,
+                           uint bindCounter = OIT_BIND_COUNTER,
+                           uint bindHead    = OIT_BIND_HEAD,
+                           uint bindList    = OIT_BIND_LIST);
 
         // ===== 全局活动实例/渲染趟状态 =====
         /// <summary>
@@ -93,12 +107,17 @@ namespace   FE
 
         uint32_t    screenWidth()           const { return _screenW; }
         uint32_t    screenHeight()          const { return _screenH; }
+        /// 渲染目标采样数:OIT 变体管线克隆时需与之匹配(由 FEMaterialPBR 使用)
+        uint        sampleCount()           const { return _sampleCount; }
+        /// 节点池总容量:溢出告警与日志用
+        uint32_t    maxNodes()              const { return _maxNodes; }
 
     protected:
         FEContext&  _ctx;
         uint32_t    _screenW        =   0;
         uint32_t    _screenH        =   0;
         uint32_t    _maxNodes       =   0;
+        uint        _sampleCount    =   1;
 
         // SSBO
         SBO         _counterSBO;    // 4 × uint32: {count, maxCount, screenW, screenH}

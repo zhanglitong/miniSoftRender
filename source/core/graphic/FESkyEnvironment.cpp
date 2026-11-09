@@ -143,7 +143,7 @@ namespace   FE
             _node->makeDirty();
             _node->update();
 
-            RFactorys   factorys    =   FEFactoryRender::addNodesToFactory(_ctx,scene,{_node},false);
+            RFactorys   factorys    =   FEFactoryRender::addNodesToFactory(scene,{_node},false);
             if (factorys.empty())
             {
                 LOG_ERR("FESkyEnvironment.setup: create bake factory failed");
@@ -194,6 +194,7 @@ namespace   FE
                 const   uint    dim =   _size >> mip;
                 if (dim == 0)
                     break;
+
 
                 FECmdBuffer::RenderInfo rs  =   {};
                 rs._depth       =   _depthView;

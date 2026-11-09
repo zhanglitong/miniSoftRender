@@ -259,7 +259,7 @@ namespace   FE
             if (_scene == nullptr)
                 return  s_empty;
             else
-                return  _scene->nodeTree().topLevelNodes();
+                return  _scene->ctx().nodeTree().topLevelNodes();
         }
         /// <summary>
         /// 设置app

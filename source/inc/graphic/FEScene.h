@@ -188,6 +188,14 @@ namespace   FE
         /// </summary>
         /// <param name="nodeList"></param>
         void            removeNodesFromSystem(const Nodes& nodeList);
+        /// <summary>
+        /// 把已分发的节点(含子节点)按最新状态重新同步到系统:
+        /// 归属仍正确的节点只做实例数据增量刷新;
+        /// 归属失效(mesh/材质/子节点层级变更)的整棵子树先摘除再重新分派。
+        /// 尚未登记的节点会被补登记(upsert 语义)
+        /// </summary>
+        /// <param name="nodeList">要更新的顶层节点,其子树一并同步</param>
+        void            updateNodesToSystem(const Nodes& nodeList);
     public:
         virtual void    onFrameStart();
         virtual void    onFrameUpdate();
@@ -230,13 +238,13 @@ namespace   FE
         /// 节点基本属性数据发生变化,位置，旋转，平移，颜色等
         /// </summary>
         /// <param name="node"></param>
-        virtual void    onNodePropChanged(const FENode* node);
+        virtual void    onNodePropChanged(FENode* node);
         /// <summary>
         /// 节点树移除事件:只挂起。reparent 也会触发同一事件,必须等确认
         /// 节点确实不在树里之后再摘显示侧登记,否则层级拖拽会误伤动画/蒙皮
         /// </summary>
         /// <param name="node">被摘除的节点</param>
-        void            onNodeRemoved(const FENode* node);
+        void            onNodeRemoved(FENode* node);
         /// <summary>
         /// 结算挂起的移除节点:仍在节点树里的(被 reparent 回来)跳过
         /// </summary>
@@ -462,8 +470,7 @@ namespace   FE
         /// <param name="coms">输出:收集到的组件</param>
         /// <returns>组件系统;没有该类型组件或系统未注册时返回 nullptr</returns>
         template<typename TObject>
-        static  ComponentSys   queryComSys(FEComponentSysMgr& sysMgr,const Nodes&  nodes,
-                                           Components& coms)
+        static  ComponentSys    queryComSys(FEComponentSysMgr& sysMgr,const Nodes&  nodes,Components& coms)
         {
             const   size_t  nCount  =   FEComponentSys::countObjects<TObject>(nodes);
             if (nCount == 0)
@@ -497,7 +504,7 @@ namespace   FE
         /// <param name="nodes">节点对象集合</param>
         /// <returns>返回加到系统中的组件数</returns>
         template<typename TObject>
-        static  size_t  dispatchToSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
+        static  size_t          dispatchToSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
         {
             Components  coms;
             ComponentSys    comSys  =   queryComSys<TObject>(sysMgr,nodes,coms);
@@ -513,13 +520,41 @@ namespace   FE
         /// <param name="nodes">节点对象集合</param>
         /// <returns>返回从系统中移除的组件数</returns>
         template<typename TObject>
-        static  size_t  removeFromSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
+        static  size_t          removeFromSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
         {
-            Components  coms;
+            Components      coms;
             ComponentSys    comSys  =   queryComSys<TObject>(sysMgr,nodes,coms);
             if (comSys == nullptr)
                 return  0;
             return  comSys->removeObjects(coms);
+        }
+        /// <summary>
+        /// 把指定类型组件的宿主节点登记到组件系统的更新列表,
+        /// 由系统在 updateObjectList 中统一执行 update + fireChanged
+        /// </summary>
+        /// <typeparam name="TObject">类型，例如FEAnimation </typeparam>
+        /// <param name="sysMgr">组件系统管理</param>
+        /// <param name="nodes">节点对象集合</param>
+        /// <returns>返回新加入更新列表的节点数</returns>
+        template<typename TObject>
+        static  size_t          updateToSystem(FEComponentSysMgr& sysMgr,const Nodes&  nodes)
+        {
+            Components      coms;
+            ComponentSys    comSys  =   queryComSys<TObject>(sysMgr,nodes,coms);
+            if (comSys == nullptr)
+                return  0;
+            /// updateObjectList 里按 cast<FENode> 刷新,所以更新列表存的是
+            /// 组件的宿主节点;同一节点的多个组件由 addObjects 去重,
+            /// 空宿主必须剔除,否则后续 cast 会解空指针
+            Objects         objects;
+            objects.reserve(coms.size());
+            for (auto& com : coms)
+            {
+                Object  owner   =   com->owner();
+                if (owner != nullptr)
+                    objects.push_back(owner);
+            }
+            return  comSys->updateList().addObjects(objects);
         }
     };
 

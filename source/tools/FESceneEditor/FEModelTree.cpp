@@ -1199,7 +1199,7 @@ namespace   FE
         }
         else
         {
-            _scene->nodeTree().removeNode(node);
+            _scene->ctx().nodeTree().removeNode(node);
             _scene->removeNodesFromSystem(nodes);
         }
         /// <summary>

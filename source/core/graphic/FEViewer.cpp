@@ -182,7 +182,7 @@ namespace   FE
             {
                 if (!var->usages().hasFlag(usage))
                     continue;
-                var->render(cmd);
+                var->render(cmd,msg._info._pass);
             }
         }
     }
@@ -206,7 +206,7 @@ namespace   FE
         /// 这里需要获取到相对于当前viewer的坐标
         auto    viewPt  =   clientToViewer(msg._info._mouse);
         auto    ray     =   camera->createRayFromScreen(viewPt.x,viewPt.y);
-        auto&   nodeTree=   _ctx.scene()->nodeTree();
+        auto&   nodeTree=   _ctx.nodeTree();
 
         Pickups results;
         for (auto& node: nodeTree.topLevelNodes())

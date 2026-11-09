@@ -248,7 +248,7 @@ namespace   FE
         /// <summary>
         /// 与 Qt 版一致:节点树为空时不做任何处理
         /// </summary>
-        if (_scene->nodeTree().topLevelNodes().empty())
+        if (_scene->ctx().nodeTree().topLevelNodes().empty())
         {
             _statusText =   "场景为空,没有可保存的内容";
             return;
@@ -318,7 +318,7 @@ namespace   FE
             for (int index = 2; ; ++index)
             {
                 bool    used    =   false;
-                for (auto&  n   :   scene.nodeTree().topLevelNodes())
+                for (auto&  n   :   scene.ctx().nodeTree().topLevelNodes())
                 {
                     if (n != nullptr && name == n->name())
                     {
@@ -553,7 +553,7 @@ namespace   FE
             /// <summary>
             /// 模型树的数据来源是场景的 FENodeTree
             /// </summary>
-            _modelTree.draw(_scene ? &_scene->nodeTree() : nullptr,_iconFont);
+            _modelTree.draw(_scene ? &_scene->ctx().nodeTree() : nullptr,_iconFont);
         }
         ImGui::End();
     }

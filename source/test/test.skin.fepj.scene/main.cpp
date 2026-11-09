@@ -250,10 +250,10 @@ int     main(int argc,char** argv)
 
     /// ---- 4. 清空场景后从 fepj 重新加载 ----
     scene->clear();
-    check(scene->nodeTree().topLevelNodes().empty(),"scene: cleared");
+    check(scene->ctx().nodeTree().topLevelNodes().empty(),"scene: cleared");
     check(scene->open(fepjPath.string().c_str()),"fepj: scene open");
 
-    const   Nodes&  loadedRoots =   scene->nodeTree().topLevelNodes();
+    const   Nodes&  loadedRoots =   scene->ctx().nodeTree().topLevelNodes();
     check(!loadedRoots.empty(),"fepj: nodes loaded");
     if (loadedRoots.empty())
         return  1;

@@ -222,8 +222,9 @@ namespace   FE
         /// <summary>
         /// 每一帧调用,绘制旋转编辑轴
         /// </summary>
-        virtual void    render(CMDPtr cmd) override
+        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL) override
         {
+            UNUSED(pass);
             if (_rotate == nullptr 
                 || !_rotate->flags().hasFlag(FE::FLAG_VISIBLE) 
                 || !flags().hasFlag(FE::FLAG_VISIBLE))

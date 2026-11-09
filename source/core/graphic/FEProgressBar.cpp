@@ -187,12 +187,12 @@ namespace   FE
         _textSize       =   size;
         rebuildText(cmd,size,rect);
     }
-    void    FEProgressBar::render(CMDPtr cmd)
+    void    FEProgressBar::render(CMDPtr cmd,TransPass pass)
     {
         if (!_visible || cmd == nullptr)
             return;
         /// 折射预渲染与 OIT 的 LIST 趟跳过,避免进度条被烘进折射/OIT 缓冲
-        if (FEFactoryRender::transPass() == FEFactoryRender::TransPass::TP_OPAQUE)
+        if (pass == TransPass::TP_OPAQUE)
             return;
         if (FEOITManager::pass() == FEOITManager::OITPass::LIST)
             return;

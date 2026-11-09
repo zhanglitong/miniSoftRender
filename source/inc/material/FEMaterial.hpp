@@ -112,6 +112,11 @@ namespace   FE
     protected:
         DSets       _dsets      =   {};
         /// <summary>
+        /// OIT 变体管线的描述符集(setupOITVariants 惰性构建):
+        /// 与 _dsets 绑定同样的资源,额外含 OIT SSBO;为空表示无 OIT 变体
+        /// </summary>
+        DSets       _oitDsets   =   {};
+        /// <summary>
         /// vulkan 每一种图元类型是一种pipeline
         /// 有些显卡支持动态设置图元类型，有些不支持
         /// 如果支持的显卡,则所有的内容是一样的
@@ -133,9 +138,27 @@ namespace   FE
         {
             return  _pipelines[pri];
         }
-        inline  Pipeline    pipeline(EPrimitive pri) 
+        inline  Pipeline    pipeline(EPrimitive pri)
         {
             return  _pipelines[pri];
+        }
+        /// <summary>
+        /// OIT 变体管线(LIST 几何趟绘制透明材质用):
+        /// 默认无变体(返回 null);PBR 材质按需克隆主管线生成,
+        /// OIT 材质本身就是 oitGeometry 管线,直接返回 pipeline()
+        /// </summary>
+        virtual Pipeline    oitPipeline(EPrimitive pri)
+        {
+            return  nullptr;
+        }
+        /// <summary>
+        /// LIST(几何)趟使用的描述符集:必须与 oitPipeline 的布局匹配。
+        /// 默认返回 OIT 变体 dsets(无变体时为空,渲染层跳过);
+        /// OIT 材质的主管线即几何趟管线,重写为返回 _dsets
+        /// </summary>
+        virtual DSets&      listDsets()
+        {
+            return  _oitDsets;
         }
         const   DSets&      dsets() const
         {
@@ -196,13 +219,19 @@ namespace   FE
         /// <returns></returns>
         DSet    query(uint16 set);
         /// <summary>
-        /// 绑定数据到描述符，调用完成后，需要调用更新函数，把数据传给显卡
+        /// 绑定数据到描述符，调用完成后，需要调用更新函数，把数据传给显卡。
+        /// 若 OIT 变体 dsets 已构建(_oitDsets 非空),同样的绑定会同步写入,
+        /// 保证 LIST 趟 OIT 管线采样到与主管线一致的资源
         /// </summary>
         /// <param name="set"></param>
         /// <param name="bind"></param>
         /// <param name="objects"></param>
         /// <returns></returns>
         bool    bind(uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges = {},const uint64s& offsets = {});
+        /// <summary>
+        /// 绑定到指定的描述符集数组(bind 的底层实现,OIT 变体初始化用)
+        /// </summary>
+        bool    bindTo(DSets& dsets,uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges = {},const uint64s& offsets = {});
         /// <summary>
         /// 绑定引擎全局 UBO(GlobalUBOId)到 SB_Global。
         /// 昼夜衰减、解析天空 IBL、选中高亮等所有材质共用的引擎级状态都从这里读取;
@@ -221,9 +250,10 @@ namespace   FE
         void    update();
     protected:
         /// <summary>
-        /// 实现 ubo,texture 自动关联
+        /// 实现 ubo,texture 自动关联(到指定描述符集;autoAttach 同时处理两套)
         /// </summary>
         void    autoAttach();
+        void    autoAttachTo(DSets& dsets);
     };
     using   Material        =   SharedPtr<FEMaterial>;
     using   Materials       =   std::vector<Material>;

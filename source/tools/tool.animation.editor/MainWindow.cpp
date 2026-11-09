@@ -575,7 +575,7 @@ void    MainWindow::slotOpenProject()
 }
 void    MainWindow::slotSaveProject()
 {
-    if (scene()->nodeTree().topLevelNodes().empty())
+    if (scene()->ctx().nodeTree().topLevelNodes().empty())
         return;
     if (_projectName.isEmpty())
     {

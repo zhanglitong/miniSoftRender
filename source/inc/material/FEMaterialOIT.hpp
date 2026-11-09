@@ -39,6 +39,28 @@ namespace   FE
         {
             return  true;
         }
+        /// <summary>
+        /// OIT 材质的主管线本身就是 oitGeometry 几何趟管线,
+        /// LIST 趟直接使用,无需 pbr OIT 变体(基类惰性构建被本重载短路)
+        /// </summary>
+        virtual Pipeline    oitPipeline(EPrimitive pri) override
+        {
+            return  pipeline(pri);
+        }
+        /// <summary>
+        /// LIST 趟描述符集:即主管线 dsets(已绑定 OIT SSBO 10/11/12)
+        /// </summary>
+        virtual DSets&      listDsets() override
+        {
+            return  dsets();
+        }
+        /// <summary>
+        /// OIT 几何趟管线没有 PBR 贴图槽位(binding 10~12 是 OIT SSBO,
+        /// 贴图对象写入会覆写 SSBO 描述符,update 时按 SSBO 解引用贴图导致崩溃),
+        /// 且 geometry pass shader 不做环境采样,天空环境下发忽略
+        /// </summary>
+        virtual void        setSkyEnvironment(TexPtr tex,TexPtr irradiance = nullptr) override
+        {}
     protected:
         /// <summary>
         /// 用 OIT geometry 管线替换基类 pbr 管线,并重绑 DSets:

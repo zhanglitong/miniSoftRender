@@ -44,7 +44,7 @@ namespace   FE
         virtual void    undo()  override
         {
             /// 节点树增删归 FENodeTree,显示侧由 FEScene 订阅事件的移除登记同步
-            _scene.nodeTree().removeNodes(_nodes);
+            _scene.ctx().nodeTree().removeNodes(_nodes);
         }
     protected:
         FEScene&    _scene;
@@ -194,7 +194,7 @@ namespace   FE
                 return;
             if (_parent != nullptr)
             {
-                _scene.nodeTree().setParent(_node,_parent.get());
+                _scene.ctx().nodeTree().setParent(_node,_parent.get());
                 /// reparent 会保持世界变换,新建节点应落在父节点原点(本地变换归零)
                 _node->setLocalTranslation(real3(0));
             }
@@ -206,7 +206,7 @@ namespace   FE
         {
             if (_node == nullptr)
                 return;
-            _scene.nodeTree().removeNode(_node);
+            _scene.ctx().nodeTree().removeNode(_node);
             _scene.removeNodesFromSystem({_node});
         }
     protected:
@@ -255,7 +255,7 @@ namespace   FE
             for (const Node& node : _nodes)
             {
                 if (node != nullptr)
-                    _scene.nodeTree().removeNode(node);
+                    _scene.ctx().nodeTree().removeNode(node);
             }
             _scene.removeNodesFromSystem(_nodes);
         }
@@ -286,7 +286,7 @@ namespace   FE
                 }
                 return  SIZE_MAX;
             }
-            const   auto&   list    =   _scene.nodeTree().topLevelNodes();
+            const   auto&   list    =   _scene.ctx().nodeTree().topLevelNodes();
             for (size_t i = 0; i < list.size(); ++i)
             {
                 if (list[i].get() == node.get())
@@ -303,7 +303,7 @@ namespace   FE
         {
             if (node == nullptr)
                 return;
-            FENodeTree& tree    =   _scene.nodeTree();
+            FENodeTree& tree    =   _scene.ctx().nodeTree();
             if (place._parent != nullptr)
             {
                 tree.setParent(node,place._parent.get(),place._index);

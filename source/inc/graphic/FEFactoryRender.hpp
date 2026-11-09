@@ -54,15 +54,7 @@ namespace   FE
         using   BufferCopys         =   FECmdBuffer::BufferCopys;
         using   BufferCopyss        =   FECmdBuffer::BufferCopyss;
     public:
-        struct  Counts
-        {
-            uint32  _vboBytes   =   0;
-            uint32  _iboBytes   =   0;
-            uint32  _instBytes  =   0;
-            uint32  _itoBytes   =   0;
-        };
-    public:
-        struct  GroupNode :public FEObject
+        struct  FE_API  GroupNode :public FEObject
         {
         public:
             friend  class   FEFactoryRender;
@@ -75,7 +67,7 @@ namespace   FE
             using   NodeUpdates     =   std::vector<NodeUpdate>;
             /// <summary>
             /// 预构建的绘制项:构建缓冲时一次性生成,
-            /// WGSL 路径每帧直接线性绘制,避免遍历节点×图元并查偏移表
+            /// WGSL 路径每帧直接线性绘制,避免遍历节点×图元并调用 drawCmd
             /// </summary>
             struct  DrawItem
             {
@@ -96,6 +88,16 @@ namespace   FE
             /// 组绑定的材质(渲染层据此给 PBR 材质分发烘焙好的天空环境贴图)
             /// </summary>
             Material    material() const    {   return  _mat;   }
+            /// <summary>
+            /// 裁剪后的绘制命令数(GPU 裁剪结果,供测试/调试读取)
+            /// </summary>
+            /// <returns></returns>
+            uint32      gpuCullCount()      {   return  cullCount();    }
+            /// <summary>
+            /// 组内绘制命令总数(未裁剪,供测试/调试读取)
+            /// </summary>
+            /// <returns></returns>
+            uint32      commandCount() const{   return  _cmdCount;      }
         protected:
             Material    _mat;
             Nodes       _objects;
@@ -149,6 +151,12 @@ namespace   FE
             /// <param name="node"></param>
             /// <returns></returns>
             size_t  nodePropChanged(Node node);
+            /// <summary>
+            /// 节点是否已登记在本组(按节点指针二分查找)
+            /// </summary>
+            /// <param name="node">目标节点</param>
+            /// <returns></returns>
+            bool    containsNode(Node node) const;
             /// <summary>
             /// 清除更新标记
             /// </summary>
@@ -221,6 +229,7 @@ namespace   FE
             BufferCopyss    _regions;
         };
         using   VBinds    =   std::vector<VBind>;
+        using   LodInfs   =   std::vector<LodInf>;
     public:
         FEFactoryRender(FEContext& ctx);
 
@@ -338,17 +347,7 @@ namespace   FE
         virtual size_t  nodePropChanged(Node node);
     public:
         virtual void    update(CMDPtr cmd);
-        virtual void    render(CMDPtr cmd);
-        /// <summary>
-        /// ===== transmission 场景折射双趟过滤(全局趟状态,FEScene 每趟渲染前切换)=====
-        ///   TP_ALL:    正常渲染(不透明组 + 透明组都画)
-        ///   TP_OPAQUE: 仅不透明组(场景折射纹理预渲染趟,透明组跳过,
-        ///              否则玻璃会出现在自身折射背景里并自折射)
-        /// (枚举值带 TP_ 前缀:OPAQUE 与 wingdi.h 宏冲突)
-        /// </summary>
-        enum class  TransPass : uint { TP_ALL = 0, TP_OPAQUE };
-        static  void        setTransPass(TransPass p);
-        static  TransPass   transPass();
+        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL);
         /// <summary>
         /// 工厂内含任意透明材质组(alpha 混合/transmission)时返回 true,
         /// 渲染层据此把工厂排到不透明工厂之后绘制
@@ -368,46 +367,48 @@ namespace   FE
         /// <summary>
         /// 派生类自有资源的释放扩展点,由 destroy() 内部调用(派生类无需再调基类)
         /// </summary>
-        virtual void    onDestroy() {}
+        virtual void    onDestroy() 
+        {}
+    protected:
         /// <summary>
         /// 绑定材质描述符集(SB_Global 等)。自定义 render() 的派生工厂,
         /// 每次 bindPipeline 之后都要调用:未绑定全局 UBO 时着色器读到全 0,
         /// 天空昼夜门控(与颜色相乘)会把图元刷成黑色
         /// </summary>
-        void            bindMaterial(CMDPtr cmd,FEMaterial* mat,EPrimitive pri);
+        void    bindMaterial(CMDPtr cmd,FEMaterial* mat,EPrimitive pri);
 
-        virtual size_t  addNodesImpl(Nodes&  nodes);
+        size_t  addNodesImpl(Nodes&  nodes);
         /// <summary>
         /// 不做子节点递归,直接把给定列表并入工厂(调用方须已完成收集)
         /// </summary>
-        size_t          addNodesFlat(Nodes::iterator nBegin,Nodes::iterator nEnd);
+        size_t  addNodesFlat(Nodes::iterator nBegin,Nodes::iterator nEnd);
         /// <summary>
         /// 批量移除已按材质排序的节点列表(供跨工厂移除时只排序一次)
         /// </summary>
-        size_t          removeNodesSorted(const Nodes& nodes);
+        size_t  removeNodesSorted(const Nodes& nodes);
         /// <summary>
         /// 更新函数
         /// </summary>
         /// <param name="cmd"></param>
-        virtual void    updateImpl(CMDPtr cmd);
+        void    updateImpl(CMDPtr cmd);
         /// <summary>
         /// 节点关联的几何体mesh数据生成vbo /  vertex 非instance数据
         /// </summary>
         /// <returns></returns>
-        virtual VBinds  buildVertexVBOs(MeshUSet& meshSet);
-        virtual IBO     buildVertexIBO(MeshUSet& meshSet);
+        VBinds  buildVertexVBOs(MeshUSet& meshSet);
+        IBO     buildVertexIBO(MeshUSet& meshSet);
         /// <summary>
         /// 生成instance 数据
         /// </summary>
         /// <returns></returns>
-        virtual VBinds  buildInstanceVBOs();
-        virtual VBO     buildSphereVBO();
+        VBinds  buildInstanceVBOs();
+        VBO     buildSphereVBO();
         /// <summary>
         /// 按需部分更新
         /// </summary>
         /// <param name="slots"></param>
-        virtual void    updateInstanceLocal(uint slots);
-        virtual void    updateInstanceBSphere();
+        void    updateInstanceLocal(uint slots);
+        void    updateInstanceBSphere();
         /// <summary>
         /// 统计待更新实例:局部更新数量 / 整组更新组数 / 整组实例数量
         /// </summary>
@@ -430,7 +431,8 @@ namespace   FE
         /// <summary>
         /// 上传每图元固定 4 项的 LOD 大缓冲(无 LOD 的图元写 0)
         /// </summary>
-        VBO     buildLodVBO();
+        /// <param name="lodInfos">LOD 大缓冲的 CPU 数据</param>
+        VBO     buildLodVBO(const LodInfs& lodInfos);
         /// <summary>
         /// 上传每实例的 LOD 偏移数组,供 GPU 裁剪按实例查 LOD 大缓冲
         /// </summary>
@@ -512,17 +514,36 @@ namespace   FE
         /// <returns>返回有多少给node带有mesh信息</returns>
         static  uint    collectMesh(MeshUSet& meshSet,const Groups& grps);
         /// <summary>
-        /// 把节点(含其带 mesh 的子节点)按 mesh key 分派到渲染工厂。
-        /// reuseExisting 为 true 时优先复用场景中同 key 的非常驻工厂,
-        /// 避免同一 mesh key 重复建厂;天空盒/网格等常驻工厂的创建方须传 false
+        /// 图元归属冲突记录:同一个 FEPrimitive 只能属于一个工厂
         /// </summary>
-        /// <param name="ctx">上下文</param>
+        struct  DispatchError
+        {
+            /// <summary>
+            /// 触发冲突的节点
+            /// </summary>
+            Node        _node   =   nullptr;
+            /// <summary>
+            /// 已占用该图元的工厂
+            /// </summary>
+            Factory     _owner  =   nullptr;
+            /// <summary>
+            /// 冲突的工厂 key
+            /// </summary>
+            uint64      _key    =   0;
+        };
+        using   DispatchErrors  =   std::vector<DispatchError>;
+        /// <summary>
+        /// 按 mesh key 分组把节点分派到渲染工厂。
+        /// reuseExisting 为 true 时优先复用场景中同 key 的非常驻工厂;
+        /// 图元已被其它工厂占用时:复用模式重定向到占用者,
+        /// 独立工厂模式则跳过并记录失败原因
+        /// </summary>
         /// <param name="scene">节点所属场景</param>
         /// <param name="nodes">要添加的顶层节点</param>
         /// <param name="reuseExisting">是否复用已有的非常驻工厂</param>
+        /// <param name="errors">失败原因输出,可为空</param>
         /// <returns>本次涉及到的工厂列表(含被复用的工厂)</returns>
-        static  RFactorys   addNodesToFactory(FEContext& ctx,FEScene& scene,const Nodes& nodes,
-                                              bool reuseExisting = false);
+        static  RFactorys   addNodesToFactory(FEScene& scene,const Nodes& nodes,bool reuseExisting = false,DispatchErrors* errors = nullptr);
         /// <summary>
         /// 把节点(含其带 mesh 的子节点)从场景所有渲染工厂中移除,
         /// 与 addNodesToFactory 相对应。工厂对象本身保留(可能仍驻留其它节点),
@@ -533,12 +554,36 @@ namespace   FE
         /// <returns>实际移除的节点-工厂引用次数</returns>
         static  size_t      removeNodesFromFactory(FEScene& scene,const Nodes& nodes);
         /// <summary>
+        /// 更新节点,如果节点不在工厂中，不做任何操作。
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <param name="nodeList"></param>
+        /// <returns>更新节点的数量</returns>
+        static  size_t      updateNodesToSystem(FEScene& scene,const Nodes& nodeList);
+        /// <summary>
         /// 该工厂是否包含某材质的渲染组(供场景侧按材质定位工厂,如编辑网格的显示/隐藏)
         /// </summary>
         bool    hasMaterialGroup(Material mat)
         {
             return  queryGroup(mat) != nullptr;
         }
+        /// <summary>
+        /// 节点是否登记在本工厂的任意材质组中
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <returns>存在返回 true</returns>
+        bool    holdsNode(Node node) const;
+        /// <summary>
+        /// 是否还有节点使用该 mesh(摘除后据此判断能否交还图元归属)
+        /// </summary>
+        /// <param name="mesh">目标 mesh</param>
+        /// <returns>仍在使用返回 true</returns>
+        bool    holdsMesh(Mesh mesh) const;
+        /// <summary>
+        /// 交还本工厂对 mesh 各图元的所有权(仅清除仍指向本工厂的)
+        /// </summary>
+        /// <param name="mesh">目标 mesh</param>
+        void    releaseMesh(Mesh mesh);
     protected:
         FEDevice&       _device;
         MeshKey         _key;
@@ -552,19 +597,6 @@ namespace   FE
         /// 所有mesh
         /// </summary>
         IBO             _ibo;
-        /// <summary>
-        /// 本工厂 IBO 内各 primitive 的索引偏移表(key = primitive 裸指针)。
-        /// 共享 mesh 的同一 primitive 会被多个工厂各自拷入 IBO,
-        /// primitive 对象上的 _indexOffset 会被最后一次构建覆盖,
-        /// 每帧直接取对象值渲染的路径(WGSL)必须查本表
-        /// </summary>
-        std::map<const void*,uint>  _priOffsets;
-        /// <summary>
-        /// 本工厂 VBO 大数组内各 primitive 的顶点基址表(key = primitive 裸指针)。
-        /// 与 _priOffsets 同理:primitive 对象上的 _vertexOffset 会被最后一次
-        /// 构建该 mesh 的工厂覆盖,每帧直接取对象值渲染的路径(WGSL)必须查本表
-        /// </summary>
-        std::map<const void*,int>   _priVertexOffsets;
         /// <summary>
         /// 绘制命令
         /// </summary>
@@ -586,11 +618,6 @@ namespace   FE
         /// </summary>
         VBO             _vboInstLod;
         /// <summary>
-        /// LOD 大缓冲的 CPU 数据,构建 _vboLod 时上传
-        /// </summary>
-        std::vector<LodInf> _lodInfos;
-        Counts          _counts;
-        /// <summary>
         /// 工厂默认归属的场景层。
         /// 注意:不能默认为 USAGE_Classic —— 它是 Background|Scene|GUI|Overlay 的并集,
         /// 是给 viewer 声明“启用哪些层”用的;工厂若继承它,会被每个启用层各绘制一遍
@@ -600,10 +627,6 @@ namespace   FE
         ViewerUsages    _usages     =   ViewerUsage::USAGE_Scene;
         bool            _gpuCull    =   true;
         bool            _resident   =   false;
-        /// <summary>
-        /// transmission 场景折射双趟过滤全局状态(定义于 FEFactoryRender.cpp)
-        /// </summary>
-        static  TransPass   s_transPass;
     };
     using   RFactory            =   SharedPtr<FEFactoryRender>;
     using   RFactorys           =   std::vector<RFactory>;

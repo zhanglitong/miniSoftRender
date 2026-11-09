@@ -105,7 +105,7 @@ namespace   FE
         const   Font&   font() const;
     public:
         virtual void    update(CMDPtr cmd) override;
-        virtual void    render(CMDPtr cmd) override;
+        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL) override;
     protected:
         /// <summary>
         /// 与 progress/shader.vert/.frag 中的 ProgressPush 布局一致

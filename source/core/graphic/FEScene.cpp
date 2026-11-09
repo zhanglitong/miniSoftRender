@@ -37,11 +37,11 @@ namespace   FE
     {
         /// 节点树归 FEContext 持有;FEScene 只订阅事件,把数据侧的变化同步到显示侧。
         /// 移除事件先挂起:reparent 同样会触发,帧首再确认节点是否真的不在树里
-        _ctx.nodeTree().eventsChangedNode() +=  {this,[this](const FENode* node)
+        _ctx.nodeTree().eventsChangedNode() +=  {this,[this](FENode* node)
         {
             onNodePropChanged(node);
         }};
-        _ctx.nodeTree().eventsRemoveNode()  +=  {this,[this](const FENode* node)
+        _ctx.nodeTree().eventsRemoveNode()  +=  {this,[this](FENode* node)
         {
             onNodeRemoved(node);
         }};
@@ -121,7 +121,13 @@ namespace   FE
                 /// 显式设置过的(如玻璃球反射探针)保持自己的 cubemap
                 /// 必须用 cast(dynamic_cast) 做类型检查:as 是无校验的强制转换
                 if (FEMaterialPBR*  pbr =   mat->cast<FEMaterialPBR>())
-                    pbr->setSkyEnvironment(cube);
+                {
+                    /// OIT 材质(oitGeometry 管线)的 binding 10~12 是 OIT SSBO,
+                    /// 不是 PBR 贴图槽位:绑定环境贴图会覆写 SSBO 描述符导致崩溃,
+                    /// 且几何趟 shader 不做环境采样,跳过
+                    if (!pbr->isOIT())
+                        pbr->setSkyEnvironment(cube);
+                }
             }
         }
     }
@@ -350,7 +356,7 @@ namespace   FE
         /// 仅显示侧:节点树增删归 FENodeTree,这里只摘渲染工厂与组件系统登记
         removeNodesFromSystem(nodeList);
     }
-    void    FEScene::onNodeRemoved(const FENode* node)
+    void    FEScene::onNodeRemoved(FENode* node)
     {
         if (node == nullptr)
             return;
@@ -403,6 +409,17 @@ namespace   FE
         removeFromSystem<FEConstraint>(_comSysMgr,nodeList);
         removeFromSystem<FESkin>(_comSysMgr,nodeList);
         removeFromSystem<FEInput>(_comSysMgr,nodeList);
+    }
+
+    void    FEScene::updateNodesToSystem(const Nodes& nodeList)
+    {
+        /// 渲染侧:归属失效的子树重挂到正确的工厂/组,其余节点增量刷新实例数据
+        FEFactoryRender::updateNodesToSystem(*this,nodeList);
+        /// 组件侧:补登记新挂入子树的组件(addObjects 幂等,已登记的不重复)
+        updateToSystem<FEAnimation>(_comSysMgr,nodeList);
+        updateToSystem<FEConstraint>(_comSysMgr,nodeList);
+        updateToSystem<FESkin>(_comSysMgr,nodeList);
+        updateToSystem<FEInput>(_comSysMgr,nodeList);
     }
 
     void    FEScene::onFrameStart()
@@ -573,19 +590,50 @@ namespace   FE
         if (!_probes.empty())
         {
             for (auto& probe : _probes)
+            {
                 probe->capture(*this,cmd);
+            }
             writeCameraData(cmd,_camera);
         }
 
         if (_oitManager)
         {
-            // ===== OIT: 三趟渲染 =====
+            // ===== OIT: 透明物体统一逐像素排序(PPLL),三趟渲染 =====
+
 
             // 1. 每帧清零 OIT SSBO
             _oitManager->resetFrame(cmd);
             _oitManager->barrierToGeometry(cmd);
 
-            // 2. 主趟：不透明物体（清 color + depth，写入不透明深度供几何趟遮挡测试）
+
+            // 2. transmission 场景折射预趟:OIT 模式下玻璃同样在 shader 中
+            //    采样 sceneTex 折射,先把不透明场景渲进 sceneTex(TP_OPAQUE 趟
+            //    过滤掉透明组),否则 LIST 趟的玻璃折射采样到的是黑/占位纹理
+            FEOITManager::setPass(FEOITManager::OITPass::NONE);
+            if (_sceneTexView && anyTransmissionMaterial())
+            {
+                FECmdBuffer::RenderInfo p1Info  =   rsInfo;
+                /// 多采样:深度也是多采样,预趟必须同样渲染到 MSAA 目标后解析到 sceneTex
+                if (_msaaColorView)
+                    p1Info._resolveColors   =   {_sceneTexColorView ? _sceneTexColorView : _sceneTexView};
+                else
+                    p1Info._colors          =   {_sceneTexColorView ? _sceneTexColorView : _sceneTexView};
+                cmd->beginRender(p1Info);
+                for (auto viewer : _viewerMgr.objects())
+                {
+                    FEFramInfo  info(0,cmd,TransPass::TP_OPAQUE);
+                    viewer->onMessage(MsgRender(info));
+                }
+                /// endRender 把 sceneTex 从 COLOR_ATTACHMENT 转入 SHADER_READ_ONLY
+                /// (VK 端按 usage 自动选择,见 VKCmdBuffer::endRender)
+                cmd->endRender(p1Info);
+                /// 生成 sceneTex mip 链(mip0 之外的级别,供粗糙透射按 lod 采样)
+                if (_sceneTex && _sceneTex->mips() > 1)
+                    cmd->generateMips(_sceneTexView);
+            }
+
+
+            // 3. 主趟：不透明物体（清 color + depth，写入不透明深度供几何趟遮挡测试）
             FEOITManager::setPass(FEOITManager::OITPass::MAIN);
             cmd->beginRender(rsInfo);
             for (auto viewer : _viewerMgr.objects())
@@ -595,7 +643,9 @@ namespace   FE
             }
             cmd->endRender(rsInfo);
 
-            // 3. 几何趟：透明物体收集进链表（无 color 输出，depth LOAD 保留不透明深度）
+
+            // 4. 几何趟：所有透明物体(alpha 混合/transmission/OIT)收集进链表
+            //    （无 color 输出，depth LOAD 保留不透明深度）
             FEOITManager::setPass(FEOITManager::OITPass::LIST);
             FECmdBuffer::RenderInfo geoInfo = rsInfo;
             geoInfo._skipColor  =   true;
@@ -609,10 +659,12 @@ namespace   FE
             cmd->endRender(geoInfo);
             FEOITManager::setPass(FEOITManager::OITPass::NONE);
 
-            // 4. Barrier：Geometry Pass 写完 SSBO → Color Pass 读取
+
+            // 5. Barrier：Geometry Pass 写完 SSBO → Color Pass 读取
             _oitManager->barrierToColor(cmd);
 
-            // 5. 合成趟：color LOAD（保留主趟画面），画全屏三角形从链表合成透明层
+
+            // 6. 合成趟：color LOAD（保留主趟画面），画全屏三角形从链表合成透明层
             FECmdBuffer::RenderInfo compInfo    =   rsInfo;
             compInfo._loadColor =   true;
             compInfo._skipDepth =   true;   // 合成不做深度测试
@@ -633,12 +685,12 @@ namespace   FE
             }
 
             cmd->endRender(compInfo);
+
         }
         else if (_sceneTexView && anyTransmissionMaterial())
         {
             // ===== transmission 场景折射:双趟渲染 =====
             // pass1: 仅不透明场景 → sceneTex(工厂 TP_OPAQUE 趟过滤掉透明组)
-            FEFactoryRender::setTransPass(FEFactoryRender::TransPass::TP_OPAQUE);
             FECmdBuffer::RenderInfo p1Info  =   rsInfo;
             /// 多采样:深度也是多采样,pass1 必须同样渲染到 MSAA 目标后再解析到 sceneTex
             if (_msaaColorView)
@@ -648,7 +700,7 @@ namespace   FE
             cmd->beginRender(p1Info);
             for (auto viewer : _viewerMgr.objects())
             {
-                FEFramInfo  info = {0, cmd};
+                FEFramInfo  info(0,cmd,TransPass::TP_OPAQUE);
                 viewer->onMessage(MsgRender(info));
             }
             /// endRender 把 sceneTex 从 COLOR_ATTACHMENT 转入 SHADER_READ_ONLY
@@ -659,11 +711,10 @@ namespace   FE
                 cmd->generateMips(_sceneTexView);
 
             // pass2: 全量渲染 → swapchain(透明材质在 shader 中采样 sceneTex 折射)
-            FEFactoryRender::setTransPass(FEFactoryRender::TransPass::TP_ALL);
             cmd->beginRender(rsInfo);
             for (auto viewer : _viewerMgr.objects())
             {
-                FEFramInfo  info    =  {0, cmd};
+                FEFramInfo  info(0,cmd,TransPass::TP_ALL);
                 viewer->onMessage(MsgRender(info));
             }
             cmd->endRender(rsInfo);
@@ -831,23 +882,10 @@ namespace   FE
         }
     }
 
-    void    FEScene::onNodePropChanged(const FENode* node)
+    void    FEScene::onNodePropChanged(FENode* pNode)
     {
-        auto    mesh    =   node->mesh();
-        if (mesh)
-        {
-            auto&   pris    =   mesh->primitives();
-            for (auto& pri: pris)
-            {
-                auto    factory =   pri->factory();
-                assert(factory != nullptr);
-                if (factory == nullptr)
-                    continue;
-                Node    ptr         =   (FENode*)node;
-                auto    rFactory    =   factory->as<FEFactoryRender>();
-                rFactory->nodePropChanged(ptr);
-            }
-        }
+        Node    node    =   (FENode*)pNode;
+        updateNodesToSystem({node});
     }
     bool    FEScene::open(const char* fepj)
     {
@@ -940,7 +978,7 @@ namespace   FE
             LOG_ERR("No suitable file parser could be located to write the file.");
             return  false;
         }
-        auto    nodes   =   nodeTree().topLevelNodes();
+        auto    nodes   =   _ctx.nodeTree().topLevelNodes();
         if (nodes.empty())
         {
             LOG_INF("FEScene.save/nodes.empty().",fepj);
@@ -1012,7 +1050,7 @@ namespace   FE
     void    FEScene::addNodesToFactory(const Nodes& nodeList,DispatchResult* result)
     {
         /// 通用分发路径复用同 key 的非常驻工厂,避免同一 mesh 重复建厂
-        auto    results =   FEFactoryRender::addNodesToFactory(_ctx,*this,nodeList,true);
+        auto    results =   FEFactoryRender::addNodesToFactory(*this,nodeList,true);
         for (auto& var : results)
         {
             _factorys.addObject(var);
@@ -1355,7 +1393,7 @@ namespace   FE
         _skyNode->addComponent(_sky);
         /// 与编辑网格一致:天空盒恒以相机为中心,不能参与剔除;
         /// resident 保证 clear() 时天空仍保留在工厂中(默认启动)
-        auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{_skyNode});
+        auto    factorys    =   FEFactoryRender::addNodesToFactory(*this,{_skyNode});
         for (auto& var : factorys)
         {
             var->setResident(true);
@@ -1384,7 +1422,7 @@ namespace   FE
 
         node->makeDirty();
         node->update();
-        auto    factorys    =   FEFactoryRender::addNodesToFactory(_ctx,*this,{node});
+        auto    factorys    =   FEFactoryRender::addNodesToFactory(*this,{node});
         for (auto& var : factorys)
         {
             var->setResident(true);

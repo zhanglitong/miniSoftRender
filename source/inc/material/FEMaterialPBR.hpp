@@ -2,6 +2,8 @@
 
 #include    "../graphic/FEConstUuid.h"
 #include    "../graphic/FEDevice.h"
+#include    "../graphic/FEOITManager.h"
+#include    "../FELog.hpp"
 #include    "FEMaterial.hpp"
 
 namespace   FE
@@ -305,9 +307,12 @@ namespace   FE
         /// <summary>
         /// 场景烘焙的天空环境贴图(由 FEScene 在重烘后统一分发):
         /// 仅在用户未显式 setEnvironmentMap 时生效。烘焙贴图是线性 HDR
-        /// (已乘曝光与天空开关),与解析天空 IBL 同量级,PBR 只需采样,不再逐像素求值
+        /// (已乘曝光与天空开关),与解析天空 IBL 同量级,PBR 只需采样,不再逐像素求值。
+        /// OIT 材质(oitGeometry 管线)重写为空实现——其 binding 10~12 是
+        /// OIT SSBO,绑定贴图会覆写 SSBO 描述符
         /// </summary>
-        inline  void    setSkyEnvironment(TexPtr tex,TexPtr irradiance = nullptr)
+        /// </summary>
+        virtual inline  void    setSkyEnvironment(TexPtr tex,TexPtr irradiance = nullptr)
         {
             if (_envUserSet)
                 return;
@@ -549,6 +554,10 @@ namespace   FE
             }
             autoAttach();
             bindResources();
+            /// 管线前缀变化后旧 OIT 变体失效,清空待 LIST 趟惰性重建
+            for (auto& pl : _oitPipelines)
+                pl      =   nullptr;
+            _oitDsets.clear();
         }
         inline  void    setDoubleSided(bool sided)
         {
@@ -565,6 +574,109 @@ namespace   FE
                 return;
             _alphaBlend =   blend;
             applyPipeline();
+        }
+
+        /// ===== OIT 变体管线(所有透明材质参与逐像素排序)=====
+        /// <summary>
+        /// LIST(几何)趟绘制本材质用的管线:惰性构建 OIT 变体,
+        /// 无 OIT 管理器或构建失败时返回 null(渲染层跳过该组,走普通混合)
+        /// </summary>
+        virtual Pipeline    oitPipeline(EPrimitive pri) override
+        {
+            if (_oitPipelines[uint(pri)] == nullptr && !_oitVariantFailed)
+                setupOITVariants();
+            return  _oitPipelines[uint(pri)];
+        }
+        /// <summary>
+        /// 构建本材质的 OIT 变体管线与描述符集:
+        /// 克隆主管线改 4 项状态(无 color 输出/不写深度/无混合/采样数与场景一致),
+        /// FS 换成 OIT_MODE 编译的 shader.frag(pbr/shader.oit.frag.spv,写 PPLL 链表),
+        /// 注册名 "<prefix>.oit/<图元>";dsets 绑定与主管线相同的资源 + OIT SSBO。
+        /// 仅在 FEOITManager::active() 时构建,LIST 趟首次绘制前调用
+        /// </summary>
+        void    setupOITVariants()
+        {
+            for (auto& pl : _oitPipelines)
+                pl      =   nullptr;
+            _oitDsets.clear();
+            auto    mgr     =   FEOITManager::active();
+            if (mgr == nullptr)
+                return;
+            if (_oitFS == nullptr)
+            {
+                _oitFS  =   loadOITFragmentShader();
+                if (_oitFS == nullptr)
+                {
+                    _oitVariantFailed   =   true;
+                    LOG_ERR("PBR OIT: load pbr/shader.oit.frag.spv failed, transparent materials fall back to alpha blend");
+                    return;
+                }
+            }
+            auto&   plMgr   =   _ctx.device().pipelines();
+            for (uint8 i = 0; i < PRI_MAX; ++i)
+            {
+                if (_pipelines[i] == nullptr)
+                    continue;
+                String  plName  =   _pipelinePrefix + ".oit/" + String(nameOfEnum(EPrimitive(i)));
+                Pipeline    pl;
+                if (!plMgr.query(plName,pl))
+                {
+                    /// 克隆主管线创建 OIT 变体:几何趟无 color attachment 输出、
+                    /// 不写深度(透明物体互不遮挡,全部进链表)、无颜色混合
+                    FEPipeline::CreateInfo  cInfo   =   _pipelines[i]->cInfo();
+                    if (cInfo._shaders.size() >= 2)
+                        cInfo._shaders[1]   =   _oitFS;
+                    cInfo._colorAttachmentCount =   0;
+                    cInfo._enableDepthWrite     =   false;
+                    cInfo._enableColorBlend     =   false;
+                    cInfo._sampleCount          =   mgr->sampleCount();
+                    pl      =   _ctx.device().createGPipeline();
+                    if (pl == nullptr || !pl->create(cInfo))
+                    {
+                        _oitVariantFailed   =   true;
+                        LOG_ERR("PBR OIT: create pipeline %s failed", plName.c_str());
+                        return;
+                    }
+                    pl->setName(plName);
+                    plMgr.add(plName,pl);
+                }
+                _oitPipelines[i]    =   pl;
+            }
+            if (_oitPipelines[0] == nullptr)
+                return;
+            _oitDsets   =   _oitPipelines[0]->createDSets();
+            if (_oitDsets.empty())
+            {
+                _oitVariantFailed   =   true;
+                LOG_ERR("PBR OIT: createDSets for %s.oit failed", _pipelinePrefix.c_str());
+                return;
+            }
+            /// 与主管线绑定同样的资源(camera/全局 UBO/lights 自动关联,
+            /// 材质 UBO/贴图手动绑定),再挂 OIT SSBO(binding 18/19/20)
+            autoAttachTo(_oitDsets);
+            bindResourcesTo(_oitDsets);
+            for (auto& dset : _oitDsets)
+                mgr->bindToDSet(dset,PBR_OIT_BIND_COUNTER,PBR_OIT_BIND_HEAD,PBR_OIT_BIND_LIST);
+            update();
+        }
+        /// <summary>
+        /// 加载 OIT_MODE 编译的 pbr fragment shader(输出写 PPLL 链表)
+        /// </summary>
+        Shader  loadOITFragmentShader()
+        {
+            constexpr   const char* OIT_FRAG_PATH   =   ":/data/shader/cache/pbr/shader.oit.frag.spv";
+            String      absPath =   _ctx.resourcePath();
+            absPath     +=  (OIT_FRAG_PATH + 1);    /// 跳过 ':',与 FEOITManager 同规则
+            auto    buf     =   FEBuffer::loadFile(_ctx,absPath.c_str());
+            if (buf == nullptr)
+                return  nullptr;
+            auto    shader  =   _ctx.device().createShader();
+            FEShader::CreateInfo    sci;
+            sci._shaderType =   ST_FRAGMENT_BIT;
+            sci._buffer     =   buf;
+            if (!shader->create(sci))
+                return  nullptr;
+            return  shader;
         }
 
         /// <summary>
@@ -673,21 +785,28 @@ namespace   FE
         /// </summary>
         void    bindResources()
         {
+            bindResourcesTo(_dsets);
+        }
+        /// <summary>
+        /// 绑定到指定描述符集(OIT 变体初始化时传 _oitDsets)
+        /// </summary>
+        void    bindResourcesTo(DSets& dsets)
+        {
             auto    cameraUBO   =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
             auto    lightSBO    =   _ctx.device().queryCache(FEConstUuid::LightsId);
             auto&   lights      =   _ctx.device().lights();
-            bind(0,SB_Camera,   {cameraUBO});
-            bind(0,SB_Light,    {lightSBO},{lights.count() * sizeof(LightData)});
-            bind(0,SB_Material, {_pbr._gpu.get()});
-            /// <summary>
+            bindTo(dsets,0,SB_Camera,   {cameraUBO});
+            bindTo(dsets,0,SB_Light,    {lightSBO},{lights.count() * sizeof(LightData)});
+            bindTo(dsets,0,SB_Material, {_pbr._gpu.get()});
             /// 天空参数 UBO(binding 3):未挂接环境纹理时,shader 用它对反射/法线
             /// 方向解析求值作为 IBL 输入,并读取全局环境光门控(昼夜衰减)。
             /// 统一走材质基类绑定,与其余材质保持同一份数据来源;
-            /// WebGPU 侧 WGSL 暂未声明该绑定,bind 会返回 false,不影响其余资源
-            /// </summary>
-            bindSkyEnvironment();
-            bind(0,BIND_TEX_PARAMS,{_texParams._gpu.get()});
-            bindAllTextures();
+            /// WebGPU 侧 WGSL 暂未声明该绑定,bind 会返回 false,不影响其余资源。
+            /// (OIT 变体 dsets 的 SB_Global 已由 autoAttachTo 绑定,无需重复)
+            if (&dsets == &_dsets)
+                bindSkyEnvironment();
+            bindTo(dsets,0,BIND_TEX_PARAMS,{_texParams._gpu.get()});
+            bindAllTexturesTo(dsets);
             update();
         }
         /// <summary>
@@ -703,18 +822,22 @@ namespace   FE
         /// </summary>
         inline  void    bindAllTextures()
         {
-            bind(0,BIND_BASECOLOR,     {_baseColorMap.get()});
-            bind(0,BIND_METALLICROUGH, {_mrMap.get()});
-            bind(0,BIND_NORMAL,        {_normalMap.get()});
-            bind(0,BIND_OCCLUSION,     {_occlusionMap.get()});
-            bind(0,BIND_EMISSIVE,      {_emissiveMap.get()});
-            bind(0,BIND_ENVIRONMENT,   {_environmentMap.get()});
-            bind(0,BIND_IRRADIANCE,    {_irradianceMap.get()});
-            bind(0,BIND_BRDF_LUT,      {_brdfLUT.get()});
-            bind(0,BIND_IRI_THICKNESS, {_iriThicknessMap.get()});
-            bind(0,BIND_SCENE_TEX,     {_sceneTexWhite.get()});
-        /// 占位绑定随后由 bindSceneTex 按 transmission 因子修正
-            bindSceneTex();
+            bindAllTexturesTo(_dsets);
+        }
+        inline  void    bindAllTexturesTo(DSets& dsets)
+        {
+            bindTo(dsets,0,BIND_BASECOLOR,     {_baseColorMap.get()});
+            bindTo(dsets,0,BIND_METALLICROUGH, {_mrMap.get()});
+            bindTo(dsets,0,BIND_NORMAL,        {_normalMap.get()});
+            bindTo(dsets,0,BIND_OCCLUSION,     {_occlusionMap.get()});
+            bindTo(dsets,0,BIND_EMISSIVE,      {_emissiveMap.get()});
+            bindTo(dsets,0,BIND_ENVIRONMENT,   {_environmentMap.get()});
+            bindTo(dsets,0,BIND_IRRADIANCE,    {_irradianceMap.get()});
+            bindTo(dsets,0,BIND_BRDF_LUT,      {_brdfLUT.get()});
+            bindTo(dsets,0,BIND_IRI_THICKNESS, {_iriThicknessMap.get()});
+            bindTo(dsets,0,BIND_SCENE_TEX,     {_sceneTexWhite.get()});
+        /// 占位绑定随后由 bindSceneTexTo 按 transmission 因子修正
+            bindSceneTexTo(dsets);
         }
         /// <summary>
         /// 创建 1x1 RGBA8 默认纹理
@@ -801,6 +924,19 @@ namespace   FE
         /// alpha 混合(glTF BLEND/transmission)→ 使用 pbrBlend 管线
         /// </summary>
         bool                _alphaBlend     =   false;
+        /// <summary>
+        /// OIT 变体管线(LIST 几何趟用,与 _pipelines 平行;惰性构建见 oitPipeline)
+        /// </summary>
+        Pipeline            _oitPipelines[PRI_MAX]  =   {};
+        /// <summary>
+        /// OIT_MODE 编译的 pbr fragment shader(输出写 PPLL 链表,变体管线共用)
+        /// </summary>
+        Shader              _oitFS;
+        /// <summary>
+        /// OIT 变体构建失败标记(spv 缺失/管线创建失败):置位后不再重试,
+        /// 透明材质回退普通 alpha 混合管线
+        /// </summary>
+        bool                _oitVariantFailed       =   false;
         TexPtr              _baseColorMap;
         TexPtr              _mrMap;
         TexPtr              _normalMap;
@@ -857,10 +993,14 @@ namespace   FE
         /// </summary>
         inline  void        bindSceneTex()
         {
+            bindSceneTexTo(_dsets);
+        }
+        inline  void        bindSceneTexTo(DSets& dsets)
+        {
             if (_hasRealSceneTex && _texParams._value._transmissionFactor > 0.0f)
-                bind(0,BIND_SCENE_TEX,{_sceneTexMap.get()});
+                bindTo(dsets,0,BIND_SCENE_TEX,{_sceneTexMap.get()});
             else
-                bind(0,BIND_SCENE_TEX,{_sceneTexWhite.get()});
+                bindTo(dsets,0,BIND_SCENE_TEX,{_sceneTexWhite.get()});
         }
         /// <summary>
         /// 自动模式下从 device cache 自取场景折射纹理:按帧号节流,同帧内

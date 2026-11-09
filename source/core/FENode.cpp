@@ -49,10 +49,9 @@ namespace   FE
     }
     void    FENode::fireChanged()
     {
-        /// 无窗口/无活动场景时(_ctx.scene() 为空)跳过事件通知,与 reparent 的守卫一致
-        if ( flags().hasFlags(ModifyValue) && _ctx.scene() != nullptr )
+        if ( flags().hasFlags(ModifyValue))
         {
-            _ctx.scene()->nodeTree().eventsChangedNode().fireNotify(this);
+            _ctx.nodeTree().eventsChangedNode().fireNotify(this);
             for (auto& var : _childs)
             {
                 var->fireChanged();
@@ -62,14 +61,12 @@ namespace   FE
     void    FENode::onAddChild(Node node)
     {
         flags().addFlag(FENode::FLAG_ADD_CHILD);
-        if (_ctx.scene() != nullptr)
-            _ctx.scene()->nodeTree().eventsAddNode().fireNotify(node);
+        _ctx.nodeTree().eventsAddNode().fireNotify(node);
     }
     void    FENode::onRemoveChild(Node node)
     {
         flags().addFlag(FLAG_REMOVE_CHILD);
-        if (_ctx.scene() != nullptr)
-            _ctx.scene()->nodeTree().eventsRemoveNode().fireNotify(node);
+        _ctx.nodeTree().eventsRemoveNode().fireNotify(node);
     }
 
     void    FENode::reparent(FENode* node, size_t index)

@@ -60,26 +60,26 @@ namespace   FE
         _priority.setOrder(0);
 
         /// 增加节点通知
-        ctx.scene()->nodeTree().eventsAddNode() += {this,[this](const FENode* )
+        ctx.nodeTree().eventsAddNode() += {this,[this](const FENode* )
         {
             sync();
         }};
         /// 移除节点通知
-        ctx.scene()->nodeTree().eventsRemoveNode() += {this,[this](const FENode* obj)
+        ctx.nodeTree().eventsRemoveNode() += {this,[this](const FENode* obj)
         {
             auto    itr =   std::remove_if(_objects.begin(),_objects.end(),[obj](const Object& e) { return e.get() == obj; });
             _objects.erase(itr,_objects.end());
             sync();
         }};
         /// 清除节点通知
-        ctx.scene()->nodeTree().eventsClear() += {this,[this]()
+        ctx.nodeTree().eventsClear() += {this,[this]()
         {
             _objects    =   {};
             sync();
         }};
         /// 节点属性更改通知
         /// 拖拽期间跳过 sync, 避免 editor 位置变动导致 calcMove 参考偏移 → 抖动
-        ctx.scene()->nodeTree().eventsChangedNode() += {this,[this](const FENode*)
+        ctx.nodeTree().eventsChangedNode() += {this,[this](const FENode*)
         {
             if  (isAxisSelected())
                 return;
@@ -97,13 +97,13 @@ namespace   FE
     FENodeMoveEditor::~FENodeMoveEditor()
     {
         /// 移除节点通知
-        _ctx.scene()->nodeTree().eventsAddNode()        -= {this};
+        _ctx.nodeTree().eventsAddNode()        -= {this};
         /// 移除节点通知
-        _ctx.scene()->nodeTree().eventsRemoveNode()     -= {this};
+        _ctx.nodeTree().eventsRemoveNode()     -= {this};
         /// 移除节点通知
-        _ctx.scene()->nodeTree().eventsClear()          -= {this};
+        _ctx.nodeTree().eventsClear()          -= {this};
         /// 移除节点属性更改通知
-        _ctx.scene()->nodeTree().eventsChangedNode()    -= {this};
+        _ctx.nodeTree().eventsChangedNode()    -= {this};
         mDelegate()                                     -=  this;
     }
 

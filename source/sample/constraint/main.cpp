@@ -144,7 +144,7 @@ int     main(int argc, char** argv)
     /// 6. 两个节点分发到渲染工厂与各组件系统,然后启动默认 Playback 播放
     scene->dispatchNodesToSystem({targetNode, followNode});
     scene->animationSystem()->getOrCreate()->play();
-    scene->nodeTree().addToplevelNodes({targetNode, followNode});
+    ctx.nodeTree().addToplevelNodes({targetNode, followNode});
 
     std::cout << "constraint running: blue box follows red box with offset (0,2,0)..." << std::endl;
 

@@ -63,7 +63,7 @@ namespace   FE
             viewPt  =   msg.viewer()->clientToViewer(msg._info._mouse);
         }
         auto    ray     =   camera->createRayFromScreen(viewPt.x,viewPt.y);
-        auto&   nodeTree=   _ctx.scene()->nodeTree();
+        auto&   nodeTree=   _ctx.nodeTree();
 
         Pickups results;
         for (auto& node: nodeTree.topLevelNodes())

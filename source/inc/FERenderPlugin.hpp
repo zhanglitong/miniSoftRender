@@ -37,7 +37,7 @@ namespace   FE
         /// 每一帧调用
         /// </summary>
         /// <param name="cmd"></param>
-        virtual void    render(CMDPtr cmd) override
+        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL) override
         {}
         /// <summary>
         /// 工厂销毁时由基类 destroy() 调用,派生出可在此释放自有资源

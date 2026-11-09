@@ -153,15 +153,24 @@ namespace   FE
     };
 
     class   FECmdBuffer;
+    /// <summary>
+    /// 渲染阶段:transmission 场景需要双趟,
+    /// TP_OPAQUE 为预渲染趟(仅画不透明组到 sceneTex),
+    /// TP_ALL 为主渲染趟(全量绘制)。
+    /// 枚举值带 TP_ 前缀,OPAQUE 与 wingdi.h 宏冲突
+    /// </summary>
+    enum class  TransPass : uint { TP_ALL = 0, TP_OPAQUE };
     class   FEFramInfo
     {
     public:
-        FEFramInfo(ViewerUsages usages = 0,FECmdBuffer* cmdBuffer = nullptr)
+        FEFramInfo(ViewerUsages usages = 0,FECmdBuffer* cmdBuffer = nullptr,TransPass pass = TransPass::TP_ALL)
             :_usages(usages)
             ,_cmdBuffer(cmdBuffer)
+            ,_pass(pass)
         {}
         ViewerUsages    _usages;
-        FECmdBuffer*    _cmdBuffer = nullptr;  
+        FECmdBuffer*    _cmdBuffer = nullptr;
+        TransPass       _pass      =   TransPass::TP_ALL;
     };
 
     class   FEKeyInfo

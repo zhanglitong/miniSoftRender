@@ -450,7 +450,7 @@ namespace   FE
         auto    scene   =   node->ctx().scene();
         if (scene == nullptr)
             return  JS_ThrowTypeError(ctx,"reparent: no active scene");
-        if (!scene->nodeTree().setParent(node,target,index))
+        if (!scene->ctx().nodeTree().setParent(node,target,index))
             return  JS_ThrowTypeError(ctx,"reparent: cannot attach to self or descendant");
         return  JS_UNDEFINED;
     }
@@ -598,7 +598,7 @@ namespace   FE
             return  JS_ThrowTypeError(ctx,"fe.findNode: scene not set");
         }
         Node    found;
-        bool    ok  =   findNodeDFS(env->scene->nodeTree().topLevelNodes(),name,found);
+        bool    ok  =   findNodeDFS(env->ctx->nodeTree().topLevelNodes(),name,found);
         JS_FreeCString(ctx,name);
         if (ok)
             return  pushObj<FENode>(ctx,env,found);
@@ -624,7 +624,7 @@ namespace   FE
                 JS_FreeCString(ctx,name);
             }
         }
-        env->scene->nodeTree().addToplevelNode(node);
+        env->ctx->nodeTree().addToplevelNode(node);
         return  pushObj<FENode>(ctx,env,node);
     }
 
