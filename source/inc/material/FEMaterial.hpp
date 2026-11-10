@@ -147,7 +147,7 @@ namespace   FE
         /// 默认无变体(返回 null);PBR 材质按需克隆主管线生成,
         /// OIT 材质本身就是 oitGeometry 管线,直接返回 pipeline()
         /// </summary>
-        virtual Pipeline    oitPipeline(EPrimitive pri)
+        virtual Pipeline    oitPipeline(EPrimitive )
         {
             return  nullptr;
         }

@@ -45,6 +45,9 @@ namespace FE
     public:
         struct  KFOff
         {
+            /// <summary>
+            /// 关键帧索引,用于计算插值,如果没有找到对应的关键帧,则为 ~0ULL
+            /// </summary>
             size_t  index       =   ~0ULL;
             /// <summary>
             /// 时间线时间

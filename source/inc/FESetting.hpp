@@ -1,11 +1,19 @@
 #pragma     once
-#include    <cstdio>
+#include    <cassert>
+#include    <cstdint>
 #include    <cstring>
 #include    <fstream>
 #include    <functional>
 #include    <iterator>
+#include    <limits>
+#include    <locale>
+#include    <memory>
 #include    <sstream>
+#include    <string>
+#include    <type_traits>
+#include    <utility>
 #include    <variant>
+#include    <vector>
 #include    "FEDefine.h"
 #include    "FEDelegate.hpp"
 #include    "FEMath.hpp"
@@ -130,16 +138,16 @@ namespace   FE
                 }
                 return  (Item*)nullptr;
             }
-            inline  auto    find(const char* name) const
+            inline  const   Item*   find(const char* name) const
             {
                 if (name == nullptr)
-                    return  (Item*)nullptr;
+                    return  nullptr;
                 for (auto& var : _childs)
                 {
                     if (var->_name == name)
                         return  var.get();
                 }
-                return  (Item*)nullptr;
+                return  nullptr;
             }
             /// <summary>
             /// 是否存在指定子节点
@@ -322,11 +330,11 @@ namespace   FE
         {
             return  _root.get();
         }
-        inline  auto    root() const
+        const   Item*   root() const
         {
             return  _root.get();
         }
-        inline  auto    find(const char* name) const
+        const   Item*   find(const char* name) const
         {
             return  _root->find(name);
         }
@@ -376,8 +384,7 @@ namespace   FE
             if (!file.is_open())
                 return  false;
 
-            std::vector<char>   buffer((std::istreambuf_iterator<char>(file))
-                                      ,std::istreambuf_iterator<char>());
+            std::vector<char>   buffer((std::istreambuf_iterator<char>(file)),std::istreambuf_iterator<char>());
             if (buffer.empty())
                 return  false;
             buffer.push_back('\0');
@@ -403,33 +410,25 @@ namespace   FE
     protected:
         /// <summary>
         /// 写 XML 属性,值拷贝进文档内存池
+        /// (属性值的 & < > " ' 由 rapidxml_print 在输出时统一转义,这里不能重复转义)
         /// </summary>
         inline  static  void    setAttr(XMLDoc& doc,XMLNode* node,const char* name,const char* value)
         {
             node->append_attribute(doc.allocate_attribute(name,doc.allocate_string(value)));
         }
         /// <summary>
-        /// 标量转字符串
+        /// 标量转字符串:强制经典 locale,浮点用 max_digits10 保证可精确往返,
+        /// 结果与宿主 setlocale 无关
         /// </summary>
         template<class T>
         inline  static  String  scalarToString(T val)
         {
-            if constexpr (std::is_same_v<T,float>)
-            {
-                char    buf[32] =   {};
-                snprintf(buf,sizeof(buf),"%.9g",(double)val);
-                return  buf;
-            }
-            else if constexpr (std::is_same_v<T,double>)
-            {
-                char    buf[32] =   {};
-                snprintf(buf,sizeof(buf),"%.17g",val);
-                return  buf;
-            }
-            else
-            {
-                return  std::to_string(val);
-            }
+            std::ostringstream  stream;
+            stream.imbue(std::locale::classic());
+            if constexpr (std::is_floating_point_v<T>)
+                stream.precision(std::numeric_limits<T>::max_digits10);
+            stream << val;
+            return  stream.str();
         }
         /// <summary>
         /// 向量转空格分隔字符串
@@ -524,12 +523,13 @@ namespace   FE
             },value);
         }
         /// <summary>
-        /// 文本转标量
+        /// 文本转标量:强制经典 locale,避免宿主 locale 的小数点差异
         /// </summary>
         template<class T>
         inline  static  bool    scalarFromString(const char* text,T& out)
         {
             std::istringstream  stream(text != nullptr ? text : "");
+            stream.imbue(std::locale::classic());
             return  static_cast<bool>(stream >> out);
         }
         /// <summary>
@@ -539,6 +539,7 @@ namespace   FE
         inline  static  bool    vecFromString(const char* text,T& out)
         {
             std::istringstream  stream(text != nullptr ? text : "");
+            stream.imbue(std::locale::classic());
             for (typename T::length_type i = 0; i < T::length(); ++i)
             {
                 if (!(stream >> out[i]))
