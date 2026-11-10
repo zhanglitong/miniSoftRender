@@ -229,7 +229,12 @@ namespace   FE
             // OIT Color Pass 状态
             cInfo._enableDepthTest      = false;  // 合成不做深度测试
             cInfo._enableDepthWrite     = false;
-            cInfo._enableColorBlend     = true;   // SrcAlpha / OneMinusSrcAlpha
+            cInfo._enableColorBlend     = true;   // 预乘 alpha: ONE / OneMinusSrcAlpha
+            /// color.frag 输出的 accumRGB 已经是预乘颜色(c.rgb * c.a 累加),
+            /// 若按普通 alpha 混合(SRC_ALPHA)会再乘一次 alpha:
+            /// 玻璃覆盖度高的地方(轮廓/边缘)被压暗、透明层整体偏弱,
+            /// 边缘出现 1px 亮/暗细线
+            cInfo._premultipliedAlpha   = true;
             cInfo._colorAttachmentCount = 1;
             cInfo._cullModeOverride     = 0;       // NONE（画整个屏幕）
 

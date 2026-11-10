@@ -1000,6 +1000,12 @@ namespace   FE
         inline  void        bindSceneTex()
         {
             bindSceneTexTo(_dsets);
+            /// OIT 变体 dsets 必须同步:LIST 趟玻璃折射采样的是 _oitDsets 的
+            /// BIND_SCENE_TEX。setupOITVariants 惰性构建时 _hasRealSceneTex
+            /// 尚未置位(透明组不在 MAIN/预趟绘制,refreshSceneTexture 晚于变体
+            /// 构建),漏掉这里会让 OIT 趟永远采 1x1 占位白图→玻璃奶白漏光
+            if (!_oitDsets.empty())
+                bindSceneTexTo(_oitDsets);
         }
         inline  void        bindSceneTexTo(DSets& dsets)
         {

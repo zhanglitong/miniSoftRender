@@ -35,12 +35,15 @@ namespace   FE
             ,_faceViews(other._faceViews)
             ,_depthImage(other._depthImage)
             ,_depthView(other._depthView)
+            ,_msaaImages(other._msaaImages)
+            ,_msaaViews(other._msaaViews)
             ,_cameras(other._cameras)
             ,_node(other._node)
             ,_material(other._material)
             ,_factory(other._factory)
             ,_size(other._size)
             ,_mips(other._mips)
+            ,_sampleCount(other._sampleCount)
         {}
         virtual ~FESkyEnvironment();
 
@@ -80,12 +83,17 @@ namespace   FE
         std::vector<GImgViews>  _faceViews;
         GImage                  _depthImage =   nullptr;
         GImgView                _depthView  =   nullptr;
+        /// 多采样颜色目标(场景开启 MSAA 时创建,每级 mip 一张):
+        /// 烘焙管线按场景采样数创建,目标必须同为多采样,渲染结束解析到 _faceViews
+        std::vector<GImage>     _msaaImages;
+        std::vector<GImgView>   _msaaViews;
         std::vector<Camera>     _cameras;
         Node                    _node       =   nullptr;
         Material                _material   =   nullptr;
         RFactory                _factory    =   nullptr;
         uint                    _size       =   0;
         uint                    _mips       =   0;
+        uint                    _sampleCount=   1;
     };
 
     using   SkyEnvironment  =   SharedPtr<FESkyEnvironment>;

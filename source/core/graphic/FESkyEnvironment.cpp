@@ -40,6 +40,8 @@ namespace   FE
         destroy();
 
         _size   =   size;
+        /// 烘焙与主场景共用同一批管线(按场景采样数创建),目标必须与之匹配
+        _sampleCount    =   scene.sampleCount();
         /// 完整 mip 链:128 → 1 共 8 级;PBR 用 roughness 选级做镜面预滤波,
         /// 漫反射取最高几级近似余弦卷积
         _mips   =   1;
@@ -100,7 +102,7 @@ namespace   FE
             info._format    =   FMT_D32_S8_UNORM;
             info._aspect    =   ASPECT_DEPTH_BIT;
             info._layout    =   IL_UNDEFINED;
-            info._samples   =   1;
+            info._samples   =   _sampleCount;
             if (!_depthImage->create(info))
             {
                 LOG_ERR("FESkyEnvironment.setup: create depth target failed");
@@ -108,6 +110,47 @@ namespace   FE
                 return  false;
             }
             _depthView  =   _depthImage->createView();
+        }
+
+        /// 3b. 多采样颜色目标(场景开启 MSAA 时需要):每级 mip 各一张,
+        ///     尺寸与该级 mip 的单面尺寸一致(后端解析要求解析目标与附件同尺寸)。
+        ///     逐面烘焙渲染到本目标,结束后解析到 _faceViews[mip][face]
+        _msaaImages.clear();
+        _msaaViews.clear();
+        if (_sampleCount > 1)
+        {
+            _msaaImages.resize(_mips);
+            _msaaViews.resize(_mips);
+            for (uint mip = 0; mip < _mips; ++mip)
+            {
+                const   uint    dim =   size >> mip;
+                if (dim == 0)
+                    break;
+                _msaaImages[mip]    =   device.createGImage();
+                FEGImage::CreateInfo    info    =   {};
+                info._width     =   dim;
+                info._height    =   dim;
+                info._depth     =   1;
+                info._usage     =   USAGE_COLOR_ATTACHMENT;
+                info._type      =   IT_2D;
+                info._format    =   FMT_R16G16B16A16_FLOAT;
+                info._aspect    =   ASPECT_COLOR_BIT;
+                info._layout    =   IL_UNDEFINED;
+                info._samples   =   _sampleCount;
+                if (_msaaImages[mip] == nullptr || !_msaaImages[mip]->create(info))
+                {
+                    LOG_ERR("FESkyEnvironment.setup: create msaa color target(mip %u) failed",mip);
+                    destroy();
+                    return  false;
+                }
+                _msaaViews[mip] =   _msaaImages[mip]->createView();
+                if (_msaaViews[mip] == nullptr)
+                {
+                    LOG_ERR("FESkyEnvironment.setup: create msaa color view(mip %u) failed",mip);
+                    destroy();
+                    return  false;
+                }
+            }
         }
 
         /// 4. 6 个 90° 面相机:天空盒以相机为中心,相机固定放在原点,
@@ -168,11 +211,14 @@ namespace   FE
         _node       =   nullptr;
         _cameras.clear();
         _faceViews.clear();
+        _msaaViews.clear();
+        _msaaImages.clear();
         _depthView  =   nullptr;
         _depthImage =   nullptr;
         _cube       =   nullptr;
         _mips       =   0;
         _size       =   0;
+        _sampleCount=   1;
     }
 
     bool    FESkyEnvironment::bake(FEScene& scene,CMDPtr cmd)
@@ -198,7 +244,11 @@ namespace   FE
 
                 FECmdBuffer::RenderInfo rs  =   {};
                 rs._depth       =   _depthView;
-                rs._colors      =   {_faceViews[mip][face]};
+                /// 开启 MSAA 时先渲染到该级 mip 的多采样目标,结束解析到该面
+                GImgView    msaaView    =   (mip < _msaaViews.size()) ? _msaaViews[mip] : nullptr;
+                rs._colors      =   {(msaaView != nullptr) ? msaaView : _faceViews[mip][face]};
+                if (msaaView != nullptr)
+                    rs._resolveColors   =   {_faceViews[mip][face]};
                 rs._clearColor  =   float4(0,0,0,1);
                 rs._rect.set(0,0,dim,dim);
 

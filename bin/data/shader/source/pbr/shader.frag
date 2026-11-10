@@ -8,6 +8,17 @@
 
 const float M_PI = 3.141592653589793;
 
+/// 透射材质(玻璃)掠射角菲涅尔上限(见第 7 段 IBL 与 7b 段透射):
+/// glTF 的玻璃是零厚度单层薄片,轮廓处 NdotV→0 时菲涅尔趋近 1,
+/// 反射项吃掉全部能量而透射项被 (1-F) 压到 0,边缘只剩一条天空反射的
+/// 亮白细线。薄片并不存在真实的"边缘全反射",故对透射材质给掠射反射率封顶,
+/// 使轮廓处反射与透射保持混合。非透射材质完全不受影响。
+const float TRANS_GRAZING_FRESNEL_CAP = 0.25;
+
+/// 透射玻璃 IBL 反射辐亮度上限:薄片玻璃窄条反射环境灯管时的过曝保护,
+/// 详见第 7 段 transmission 分支说明。
+const float TRANS_SPEC_RADIANCE_MAX = 1.0;
+
 float clampedDot(vec3 x, vec3 y)
 {
     return clamp(dot(x, y), 0.0, 1.0);
@@ -392,25 +403,73 @@ void main()
         vec2 uvN = applyUvTr(2, inUV);
         mat3 TBN = buildTBN(inPos, n, uvN);
         vec3 normalSample = texture(u_NormalTex, uvN).rgb * 2.0 - 1.0;
-        normalSample.xy *= normalScale;
+        /// 3b. 法线贴图屏幕足迹淡出(高光走样对策):
+        /// 车漆的法线贴图按 KHR_texture_transform 做了 30x 平铺(128px 闪片图案),
+        /// 车身在屏幕上只有几百像素宽 —— 一个像素覆盖的纹理面积就接近 1 个 texel,
+        /// 正好落在采样极限:相邻像素拿到互不相关的法线,镜面反射方向随之乱跳。
+        /// 表现是漆面一层"砂纸"噪点,以及板件折边/缝隙处的高光被切成一段段白色虚线。
+        /// 这属于法线贴图的高光走样,等价于 mip 链在更低分辨率下本就该得到的
+        /// "平均法线 ≈ 平面":用 uv 的屏幕足迹把切线空间扰动平滑淡出到 0。
+        vec2    nrmTs   =   vec2(textureSize(u_NormalTex, 0));
+        vec2    nrmFoot =   max(abs(dFdx(uvN)) * nrmTs, abs(dFdy(uvN)) * nrmTs);
+        float   nrmFade =   smoothstep(0.2, 1.0, max(nrmFoot.x, nrmFoot.y));
+        normalSample.xy *= normalScale * (1.0 - nrmFade);
         n = normalize(TBN * normalSample);
     }
+
+    /// 双面材质(glTF doubleSided,pbr2s 管线)必须按面朝向翻转法线:
+    /// 背面片元的几何法线背向相机,NdotV 会被 clamp 到 0,导致菲涅尔
+    /// (含 clearcoat 掠射权重)直接冲到最大值,整片背面变成反射天空的亮白。
+    /// 车身板件是双面材质,透过板件缝隙看到的就是另一侧板件的背面,
+    /// 于是缝隙处出现一条纯白细线。翻转后背面按正常朝向着色,缝隙不再爆白
+    if (!gl_FrontFacing)
+        n = -n;
 
     /// 4. 视线方向(从世界位置指向相机)
     vec3 camPos = -transpose(mat3(_camera._v)) * vec3(_camera._v[3]);
     vec3 v = normalize(camPos - inPos);
     float NdotV = max(dot(n, v), 1e-4);
 
+
+    /// 4b. 几何镜面抗锯齿(Filament specularAntiAliasing):
+    /// 轮廓/折边处法线在一两个像素内剧烈变化,镜面反射向量随之剧变——
+    /// 清漆层近乎镜面(ccRoughness≈0.04),掠射菲涅尔又冲到 1,
+    /// 于是板件边缘出现 1px 纯白/亮粉硬线,漆面还伴随闪烁噪点。
+    /// 用屏幕空间法线导数估计当前像素能表达的细节下限,把低于它的
+    /// 高光能量并入粗糙度(kernel roughness),让边缘高光平滑过渡。
+    /// 这是像素级(与分辨率/帧率无关)的镜面走样对策,等价于对高光做 AA
+    vec3    dndx    =   dFdx(n);
+    vec3    dndy    =   dFdy(n);
+    float   nVar    =   0.25 * (dot(dndx,dndx) + dot(dndy,dndy));
+    float   kernelRoughness = min(2.0 * nVar, 0.18);
+    roughness = sqrt(max(roughness * roughness, kernelRoughness));
+
     /// 5. 反射率 F0:介电 0.04,金属用 baseColor
     vec3 F0 = mix(vec3(0.04), baseColor.rgb, metallic);
 
     /// 5b. KHR 材质扩展参数(与 FEMaterialPBR::PBRTexParams 尾部字段对齐)
     float transmission      = clamp(_pbrTransmissionFactor,   0.0, 1.0);
+    /// 透射玻璃轮廓淡出系数(7 段 IBL 与 7b 段透射共用):
+    /// 玻璃是零厚度单层薄片,轮廓最外圈像素的覆盖率应随 NdotV→0 趋近 0。
+    /// 单采样下轮廓是硬切,这些像素仍按满反射+满透射写出,于是玻璃轮廓在
+    /// 车身/背景上被画成一条 1px 亮线;此处把掠射菲涅尔平滑压到 0,
+    /// 让最外圈退化为纯透射背景色,与背景自然衔接(等效轮廓解析抗锯齿)。
+    /// 非透射材质恒为 1,不受影响
+    float transSilh         = 1.0;
     float ccStrength        = clamp(_pbrClearcoatStrength,    0.0, 1.0);
-    float ccRoughness       = clamp(_pbrClearcoatRoughness,   0.04, 1.0);
+    /// 清漆层粗糙度下限:glTF 未给 clearcoatRoughnessFactor 时默认 0(纯镜面),
+    /// 环境贴图(棚拍灯条)会被完整镜射到车身上,形成边缘锐利的白色形状/1px 细线,
+    /// 与真实车漆(清漆层仍有细微起伏)不符。给一个下限让反射自然柔和
+    float ccRoughness       = clamp(_pbrClearcoatRoughness,   0.10, 1.0);
+    /// 清漆层同样应用镜面 AA(否则边缘仍是镜面 → 硬白线)
+    ccRoughness = sqrt(max(ccRoughness * ccRoughness, kernelRoughness));
     /// clearcoat 分层权重 w = ccStrength * F_cc(NdotV):清漆界面介电菲涅尔取
-    /// NdotV 版,IBL 与 punctual 共用(与 glTF-Sample-Viewer pbr.frag:173 一致)
-    float ccWeight          = ccStrength * (0.04 + 0.96 * pow(clamp(1.0 - NdotV, 0.0, 1.0), 5.0));
+    /// NdotV 版,IBL 与 punctual 共用(与 glTF-Sample-Viewer pbr.frag:173 一致)。
+    /// 掠射上限按"滤波后的粗糙度"压到 1-ccRoughness:像素内法线方差大
+    /// (轮廓/折边)的地方不再全反射,避免整像素被天空反射替换成白线
+    float ccF0              = 0.04;
+    float ccCeil            = max(1.0 - ccRoughness, ccF0);
+    float ccWeight          = ccStrength * (ccF0 + (ccCeil - ccF0) * pow(clamp(1.0 - NdotV, 0.0, 1.0), 5.0));
     float iriFactor         = clamp(_pbrIriFactor,            0.0, 1.0);
     /// 薄膜厚度(nm):有厚度贴图时取 G 通道在 [tmin,tmax] 插值,否则取中值
     float iriThickness      = mix(_pbrIriTmin, _pbrIriTmax, 0.5);
@@ -544,6 +603,21 @@ void main()
             envSpecW = mix(envSpecW, iriFresnel, iriFactor);
             envF     = mix(envF,     iriFresnel, iriFactor);
         }
+        /// 透射玻璃(零厚度薄片)掠射反射封顶 + 轮廓淡出:否则轮廓处反射率
+        /// 趋近 1,会在玻璃边缘画出一条天空反射的亮白细线(见文件头常量说明);
+        /// 最外圈再乘 transSilh 退化为纯透射,彻底消除轮廓硬边
+        if (transmission > 0.0)
+        {
+            transSilh = smoothstep(0.0, 0.10, NdotV);
+            envSpecW = min(envSpecW, vec3(TRANS_GRAZING_FRESNEL_CAP)) * transSilh;
+            envF     = min(envF,     vec3(TRANS_GRAZING_FRESNEL_CAP)) * transSilh;
+            /// 透射玻璃的 IBL 反射辐亮度上限:环境贴图里的灯管/柔光箱动态范围
+            /// 极高(可达几十),一条只有 1~2px 宽的玻璃窄条镜面反射到它就会
+            /// 过曝成纯白,在车身上表现为一条断续的亮白虚线(细看是错落的
+            /// 白点)。薄片玻璃不存在"被灯照亮的实体高光",故把反射辐亮度钳到
+            /// 合理上限,窄条最亮也只到浅灰,不再出现刺眼白线。
+            prefiltered = min(prefiltered, vec3(TRANS_SPEC_RADIANCE_MAX));
+        }
         vec3 kDenv = (vec3(1.0) - envF) * (1.0 - metallic);
         /// transmission:IBL 漫反射同样按透射因子衰减
         kDenv *= (vec3(1.0) - transmission);
@@ -572,7 +646,6 @@ void main()
     if (transmission > 0.0)
     {
         /// KHR_materials_ior 未接入,固定玻璃典型值 1.5
-        /// (参考实现 applyIorToRoughness(1.5)=identity,故 lod 仍按 roughness 取)
         const float VOL_IOR = 1.5;
         float volThickness  = _pbrVolume[0].x;
         vec3  volAttColor   = _pbrVolume[0].yzw;
@@ -588,6 +661,17 @@ void main()
         /// NDC-Y-up 视口变换,均使 NDC+Y 落到帧缓冲顶行(y_f=0),即
         /// y_nd = 1-2*y_f/h,故 ndc.y*0.5+0.5 = 1-y_f/h,取反后才是本像素行
         vec2 ruv      = ndc.xy / ndc.w * vec2(0.5, -0.5) + 0.5;
+        /// 折射位移的屏幕空间钳制:
+        /// 玻璃是薄壁几何,出口点的屏幕位移只应值几个像素;而 glTF 里的
+        /// thickness 是常量,玻璃面板被压成 1~2px 宽的窄条(车身折线/缝隙
+        /// 旁的极窄玻璃)时,这个位移会把采样点甩到相邻的车身折线高光或
+        /// 背景上,于是窄条被画成一条断续的亮白细线(单独看像虚线)。
+        /// 距片元自身的采样位置不超过 2px 既保留轻微折射,又保证采样不
+        /// 离开片元邻域。位移更小时完全不受影响,故正常玻璃观感不变。
+        vec4  ndc0    = _camera._vp * vec4(inPos, 1.0);
+        vec2  ruv0    = ndc0.xy / ndc0.w * vec2(0.5, -0.5) + 0.5;
+        vec2  maxStep = 2.0 / vec2(textureSize(u_SceneTex, 0));
+        ruv           = clamp(ruv, ruv0 - maxStep, ruv0 + maxStep);
         /// 磨砂玻璃模糊折射:按 roughness 选 mip lod 采样(对标 glTF-Sample-Viewer
         /// framebufferLod = roughness * log2(screenW);满链时 log2(screenW)≈maxLod,
         /// sceneTex 仅 Vulkan 端建满 mip 链,占位 1x1 白图 maxLod=0 退化为原行为)
@@ -604,6 +688,9 @@ void main()
         /// 透射项最终权重 = transmission*(1-F)(掠射角透射减弱、反射增强)。
         /// sceneTex 存的是已 ACES+gamma 的 LDR,近似还原线性后随本体再次色调映射。
         vec3 Ft       = fresnelSchlickRoughness(NdotV, vec3(0.04), roughness);
+        /// 与第 7 段同一封顶:保证轮廓处反射 + 透射能量闭合,
+        /// 不会因反射被压低而让边缘反向变暗
+        Ft            = min(Ft, vec3(TRANS_GRAZING_FRESNEL_CAP)) * transSilh;
         color += pow(sceneRGB, vec3(2.2)) * volAtt * baseColor.rgb * transmission * (vec3(1.0) - Ft);
     }
 

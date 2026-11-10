@@ -702,6 +702,11 @@ namespace   FE
             if (colorPipeline && !colorDSets.empty())
             {
                 cmd->bindPipeline(colorPipeline);
+                /// 合成管线的 cull/depth 是动态状态(VKGPipeline 自动补全),
+                /// 必须显式设置,否则沿用前面工厂绘制残留的状态(剔除/深度测试
+                /// 状态不定,验证层报 VK_DYNAMIC_STATE_* never called)
+                cmd->setCullMode(CullMode::CM_NULL);
+                cmd->setDepthTest(false);
                 FECmdBuffer::DSetBind dBind;
                 dBind.plBindPoint   = PL_GRAPIC;
                 dBind.plLayout      = colorPipeline->nativeLayout();

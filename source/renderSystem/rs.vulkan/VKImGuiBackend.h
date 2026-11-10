@@ -25,7 +25,7 @@ namespace   FE
         VKImGuiBackend(FEContext& ctx,VKDevice& device);
         virtual ~VKImGuiBackend();
 
-        virtual bool    init(FEFormat colorFormat)  override;
+        virtual bool    init(FEFormat colorFormat,uint samples = 1)  override;
         virtual bool    uploadFont(const FEImGuiFontData& font) override;
         virtual void    render(const FEImGuiDrawData& drawData,FECmdBuffer* cmd) override;
         virtual void    destroy()   override;
@@ -41,6 +41,8 @@ namespace   FE
         FEContext&              _ctx;
         VKDevice&               _device;
         VkFormat                _colorFormat    =   VK_FORMAT_UNDEFINED;
+        /// 渲染目标采样数:必须与 UI 所在趟的附件一致(多采样场景下为 4)
+        uint                    _samples        =   1;
 
         VkShaderModule          _vertModule     =   VK_NULL_HANDLE;
         VkShaderModule          _fragModule     =   VK_NULL_HANDLE;

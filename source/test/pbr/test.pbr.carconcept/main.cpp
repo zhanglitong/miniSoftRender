@@ -219,6 +219,9 @@ int main(int argc, char** argv)
     Scene scene = new FEScene(ctx);
     pScene = scene.get();
     g_scene = scene.get();
+    /// 4x MSAA:必须在 setup 之前设定,管线/目标按该采样数创建。
+    /// 4x 主要用于消除零厚度玻璃薄片轮廓的硬边锯齿
+    scene->setSampleCount(4);
     if (!scene->setup(app, rendererId))
     {
         std::cerr << "scene setup failed\n";
@@ -249,7 +252,7 @@ int main(int argc, char** argv)
     }
 
     /// 加载 CarConcept.gltf(网格/材质/贴图/扩展全部由解析器完成)
-    const String gltfFile = R"(D:\study\glTF-Sample-Assets\Models\CarConcept\glTF\CarConcept.gltf)";
+    const String gltfFile =  ctx.resourcePath() + R"(/data/model/CarConcept/CarConcept.gltf)";
     FEFileFormat fmt(".gltf", "1.0.0.0", "GLTF text Format!");
     auto reader = FEFileFormatHelper::queryReader(ctx, fmt);
     if (!reader)
@@ -289,11 +292,11 @@ int main(int argc, char** argv)
         auto    cam     =   scene->camera();
         if (cam)
         {
-            cam->setEye (real3(3.6f, 1.55f, 4.3f));
-            cam->setTarget(real3(0.0f, 0.55f, 0.1f));
-            cam->setUp  (real3(0,1,0));
+            cam->setEye (real3(1.56238f, 0.389996f, 2.57368f));
+            cam->setTarget(real3(0.742564f, 0.833179f, 1.59808f));
+            cam->setUp  (real3(0.234849f, 0.94406f, 0.231508f));
             cam->setNear(0.1f);
-            cam->setFar (100.0f);
+            cam->setFar (102.837f);
             cam->updatePerspective();
         }
     }

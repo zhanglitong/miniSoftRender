@@ -156,7 +156,7 @@ namespace   FE
 
         VkPipelineMultisampleStateCreateInfo    msInfo  =   {};
         msInfo.sType                    =   VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        msInfo.rasterizationSamples     =   VK_SAMPLE_COUNT_1_BIT;
+        msInfo.rasterizationSamples     =   sampleCount2Native(_samples);
 
         /// 关闭深度/模板(GUI 不参与深度测试)
         VkPipelineDepthStencilStateCreateInfo    dsInfo  =   {};
@@ -368,9 +368,10 @@ namespace   FE
         vkFreeMemory(device,stageMem,nullptr);
     }
 
-    bool    VKImGuiBackend::init(FEFormat colorFormat)
+    bool    VKImGuiBackend::init(FEFormat colorFormat,uint samples)
     {
         _colorFormat    =   system2Native(colorFormat);
+        _samples        =   (samples > 0) ? samples : 1;
 
         /// 采样器:线性过滤 + clamp
         VkSamplerCreateInfo samplerInfo =   {};

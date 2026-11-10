@@ -611,25 +611,37 @@ namespace   FE
             auto    mat         =   grp->_mat;
             if (mat == nullptr)
                 continue;
-            const   bool    grpTrans    =   mat->isTransparent() || mat->isTransmission();
+            /// transmission 玻璃不进 OIT:该材质的着色已按"不透明写出"(alpha=1),
+            /// 进链表只会得到"整像素覆盖"。而 LIST 趟深度测试是逐采样的(4x MSAA),
+            /// 只要 1 个采样通过,合成趟就把玻璃色写满 4 个采样 —— 零厚度玻璃薄片
+            /// 在掠射/与车身相交处因此变成一条硬边亮线(玻璃边缘看起来没被车身遮挡)。
+            /// 改为在 MAIN 趟用 pbrBlend 绘制,借 MSAA 逐采样颜色覆盖得到正确的
+            /// 边缘遮挡与抗锯齿。
+            const   bool    grpTransm   =   mat->isTransmission();
+            const   bool    grpBlend    =   mat->isTransparent() && !grpTransm;
             const   bool    grpOIT      =   mat->isOIT();
+            /// 需排在同工厂不透明组之后绘制的组:alpha 混合 + transmission 玻璃
+            const   bool    grpLate     =   grpBlend || grpTransm;
             if (oitPass == FEOITManager::OITPass::LIST)
             {
-                /// LIST(几何)趟:透明/transmission/OIT 组写 PPLL 链表,其余跳过
-                if (!(grpTrans || grpOIT))
+                /// LIST(几何)趟:只收集 alpha 混合/OIT 组写 PPLL 链表,其余跳过
+                if (!(grpBlend || grpOIT))
                     continue;
             }
             else if (oitPass == FEOITManager::OITPass::MAIN)
             {
-                /// MAIN(主)趟:只画非透明组,透明组留给 LIST 趟
-                if (grpTrans || grpOIT)
+                /// MAIN(主)趟:alpha 混合/OIT 组留给 LIST 趟;
+                /// transmission 玻璃在本趟第二遍(不透明组之后)按 pbrBlend 绘制
+                if (grpBlend || grpOIT)
+                    continue;
+                if (grpTransm != transparentPass)
                     continue;
             }
             else
             {
                 /// 非 OIT:维持原两遍逻辑(不透明组→透明组);
                 /// OIT 材质(oitGeometry 管线无 color 输出)只在 LIST 趟绘制
-                if (grpOIT || (grpTrans != transparentPass))
+                if (grpOIT || (grpLate != transparentPass))
                     continue;
             }
             /// LIST 趟用 OIT 变体管线(OIT 材质本身就是 oitGeometry 管线);
@@ -705,9 +717,10 @@ namespace   FE
         drawGroups(false);
         /// transmission 场景折射预渲染趟(TP_OPAQUE):只画不透明组,
         /// 透明组从场景纹理中剔除(否则玻璃会出现在自身折射背景里并自折射)。
-        /// OIT 模式下透明组统一在 LIST 趟绘制(MAIN 过滤已跳过透明组,
-        /// LIST 会重复写链表),第二遍仅非 OIT 渲染需要
-        if (pass == TransPass::TP_ALL && oitPass == FEOITManager::OITPass::NONE)
+        /// 第二遍(透明组):非 OIT 渲染需要;OIT 渲染下 alpha 混合组已改由
+        /// LIST 趟收集,但 transmission 玻璃仍在 MAIN 趟按 pbrBlend 绘制,
+        /// 所以 MAIN 趟同样需要这一遍
+        if (pass == TransPass::TP_ALL && oitPass != FEOITManager::OITPass::LIST)
             drawGroups(true);
     }
 

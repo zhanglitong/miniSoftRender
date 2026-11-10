@@ -65,8 +65,10 @@ namespace   FE
         /// <summary>
         /// 初始化渲染资源(管线/描述符/采样器)。
         /// colorFormat 必须与渲染目标(交换链)颜色格式一致,否则动态渲染校验失败。
+        /// samples 必须与渲染目标采样数一致(场景开启 MSAA 时传入场景采样数),
+        /// 否则管线与多采样附件不匹配,验证层报错并可能触发设备丢失。
         /// </summary>
-        virtual bool    init(FEFormat colorFormat)  =   0;
+        virtual bool    init(FEFormat colorFormat,uint samples = 1)  =   0;
         /// <summary>
         /// 上传字体图集纹理(RGBA8)。
         /// </summary>

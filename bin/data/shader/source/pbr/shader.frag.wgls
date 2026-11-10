@@ -5,6 +5,11 @@
 
 const M_PI : f32 = 3.141592653589793;
 
+/// 透射材质(玻璃)掠射角菲涅尔上限(与 GLSL 侧同名常量一致):
+/// 零厚度单层薄片在轮廓处 NdotV→0 会让菲涅尔趋近 1,反射项吃掉全部能量,
+/// 边缘只剩一条天空反射的亮白细线;此处对透射材质给掠射反射率封顶。
+const TRANS_GRAZING_FRESNEL_CAP : f32 = 0.25;
+
 /// 贴图存在标志位(见 _texParams._flags)
 const PBR_TEX_BASECOLOR      : u32 = 0x00000001u;
 const PBR_TEX_METALLICROUGH  : u32 = 0x00000002u;
@@ -304,6 +309,8 @@ struct FsIn
     @location(4) @interpolate(flat) inFlagBits : u32,
     /// 第二套 UV(glTF TEXCOORD_1,AO 专用 UV 集;网格未提供时由零缓冲兜底)
     @location(5) inUV1       : vec2f,
+    /// 面朝向:双面材质背面需翻转法线(同 Vulkan 侧 gl_FrontFacing)
+    @builtin(front_facing) frontFacing : bool,
 }
 
 @fragment
@@ -341,9 +348,23 @@ fn main(in : FsIn) -> @location(0) vec4f
         let uvN = applyUvTr(2u, in.inUV);
         let TBN = buildTBN(in.inPos, n, uvN);
         var ns = textureSample(u_NormalTex, uSampler, uvN).rgb * 2.0 - 1.0;
+        /// 法线贴图屏幕足迹淡出(高光走样对策,同 Vulkan 侧 shader.frag):
+        /// 车漆法线贴图按 KHR_texture_transform 平铺,像素足迹接近 1 texel 时
+        /// 相邻像素法线互不相关,镜面反射方向乱跳 → 漆面砂纸噪点 + 板件折边
+        /// 处的高光被切成白色虚线。这里按 uv 足迹把切空间扰动平滑淡出到 0
+        let nrmTs   = vec2f(textureDimensions(u_NormalTex));
+        let nrmFoot = max(abs(dpdx(uvN)) * nrmTs, abs(dpdy(uvN)) * nrmTs);
+        let nrmFade = smoothstep(0.2, 1.0, max(nrmFoot.x, nrmFoot.y));
+        let nsScale = normalScale * (1.0 - nrmFade);
         /// WGSL 不支持对 swizzle 赋值(不能写 ns.xy = ...),改为逐分量缩放后重组
-        ns = vec3f(ns.x * normalScale, ns.y * normalScale, ns.z);
+        ns = vec3f(ns.x * nsScale, ns.y * nsScale, ns.z);
         n = normalize(TBN * ns);
+    }
+
+    /// 双面材质:背面片元法线背向相机,NdotV 会 clamp 到 0,菲涅尔/清漆
+    /// 权重冲到最大 → 板件缝隙处看到另一侧板件背面时爆出纯白细线;此处翻转
+    if (!in.frontFacing) {
+        n = -n;
     }
 
     /// 4. view
@@ -354,16 +375,35 @@ fn main(in : FsIn) -> @location(0) vec4f
     let v = normalize(camPos - in.inPos);
     let NdotV = max(dot(n, v), 1e-4);
 
+    /// 4b. 几何镜面抗锯齿(Filament specularAntiAliasing):
+    /// 轮廓/折边处法线剧烈变化 + 清漆近乎镜面,掠射菲涅尔冲到 1,
+    /// 板件边缘会出现 1px 白/亮粉硬线。用屏幕空间法线导数估计像素能
+    /// 表达的细节下限,把更细的高光能量并入粗糙度,使边缘高光平滑过渡
+    let dndx    = dpdx(n);
+    let dndy    = dpdy(n);
+    let nVar    = 0.25 * (dot(dndx, dndx) + dot(dndy, dndy));
+    let kernelRoughness = min(2.0 * nVar, 0.18);
+    roughness = sqrt(max(roughness * roughness, kernelRoughness));
+
     /// 5. F0
     var F0 = mix(vec3f(0.04), baseColor.rgb, metallic);
 
     /// 5b. KHR 材质扩展参数(与 FEMaterialPBR::PBRTexParams 尾部字段对齐)
     let transmission = clamp(_texParams._transmissionFactor, 0.0, 1.0);
+    /// 透射玻璃轮廓淡出系数(与 GLSL 侧 transSilh 一致):零厚度薄片轮廓
+    /// 最外圈覆盖率应趋近 0,否则硬切轮廓会在背景上画出一条 1px 亮线
+    var transSilh = 1.0;
     let ccStrength   = clamp(_texParams._clearcoatStrength,  0.0, 1.0);
-    let ccRoughness  = clamp(_texParams._clearcoatRoughness, 0.04, 1.0);
-    /// clearcoat 分层权重 w = ccStrength * F_cc(NdotV)(NdotV 版菲涅尔,IBL 与
-    /// punctual 共用,与 glTF-Sample-Viewer pbr.frag:173 一致)
-    let ccWeight     = ccStrength * (0.04 + 0.96 * pow(clamp(1.0 - NdotV, 0.0, 1.0), 5.0));
+    /// 清漆层粗糙度下限:glTF 缺省 clearcoatRoughnessFactor=0(纯镜面),
+    /// 环境贴图会被完整镜射成锐利白色形状/1px 细线,给下限让反射自然柔和
+    var ccRoughness  = clamp(_texParams._clearcoatRoughness, 0.10, 1.0);
+    /// 清漆层同样应用镜面 AA(否则边缘仍是镜面 → 硬白线)
+    ccRoughness = sqrt(max(ccRoughness * ccRoughness, kernelRoughness));
+    /// clearcoat 分层权重 w = ccStrength * F_cc(NdotV);掠射上限按滤波后
+    /// 粗糙度压到 1-ccRoughness,避免轮廓整像素被天空反射替换成白线
+    let ccF0         = 0.04;
+    let ccCeil       = max(1.0 - ccRoughness, ccF0);
+    let ccWeight     = ccStrength * (ccF0 + (ccCeil - ccF0) * pow(clamp(1.0 - NdotV, 0.0, 1.0), 5.0));
     let iriFactor    = clamp(_texParams._iriFactor,          0.0, 1.0);
     /// 薄膜厚度(nm):有厚度贴图时取 G 通道在 [tmin,tmax] 插值,否则取中值
     var iriThickness = mix(_texParams._iriTmin, _texParams._iriTmax, 0.5);
@@ -459,6 +499,14 @@ fn main(in : FsIn) -> @location(0) vec4f
             envSpecW = mix(envSpecW, iriFresnel, iriFactor);
             envF     = mix(envF,     iriFresnel, iriFactor);
         }
+        /// 透射玻璃(零厚度薄片)掠射反射封顶:否则轮廓处反射率趋近 1,
+        /// 会在玻璃边缘画出一条天空反射的亮白细线(详见 GLSL 侧同名常量说明)
+        if (transmission > 0.0) {
+            /// 掠射反射封顶 + 轮廓淡出:最外圈退化为纯透射背景色
+            transSilh = smoothstep(0.0, 0.10, NdotV);
+            envSpecW = min(envSpecW, vec3f(TRANS_GRAZING_FRESNEL_CAP)) * transSilh;
+            envF     = min(envF,     vec3f(TRANS_GRAZING_FRESNEL_CAP)) * transSilh;
+        }
         var kDenv = (vec3f(1.0) - envF) * (1.0 - metallic);
         /// transmission:IBL 漫反射同样按透射因子衰减
         kDenv = kDenv * (vec3f(1.0) - transmission);
@@ -505,7 +553,8 @@ fn main(in : FsIn) -> @location(0) vec4f
         }
         /// 官方:f_specular_transmission 取代 f_diffuse 后再经 (1-F_ibl) 混合,
         /// 透射项最终权重 = transmission*(1-F);sceneTex 为 LDR,近似线性化。
-        let Ft       = fresnelSchlickRoughness(NdotV, vec3f(0.04), roughness);
+        let Ft       = min(fresnelSchlickRoughness(NdotV, vec3f(0.04), roughness),
+                           vec3f(TRANS_GRAZING_FRESNEL_CAP)) * transSilh;
         color = color + pow(sceneRGB, vec3f(2.2)) * volAtt * baseColor.rgb * transmission * (vec3f(1.0) - Ft);
     }
 

@@ -43,8 +43,16 @@ namespace   FE
 
     void    FEImGuiFactory::render(CMDPtr cmd,TransPass pass)
     {
-        UNUSED(pass);
         if (_backend == nullptr || cmd == nullptr)
+            return;
+        /// 趟过滤:OIT LIST(几何)趟无 color attachment,画了必触发
+        /// colorAttachmentCount 不匹配的验证错误;transmission 预趟(TP_OPAQUE)
+        /// 的渲染目标是 sceneTex,UI 画进去会被玻璃折射采到。
+        /// 只在 OIT MAIN 趟或非 OIT 的 TP_ALL 趟绘制 UI。
+        const auto  oitPass =   FEOITManager::pass();
+        if (oitPass == FEOITManager::OITPass::LIST)
+            return;
+        if (oitPass == FEOITManager::OITPass::NONE && pass == TransPass::TP_OPAQUE)
             return;
         _backend->render(_drawData,cmd.get());
     }
@@ -131,7 +139,7 @@ namespace   FE
         io.IniFilename  =   nullptr;
 
         _backend    =   scene->device()->createImGuiBackend();
-        if (_backend == nullptr || !_backend->init(scene->swapchainColorFormat()))
+        if (_backend == nullptr || !_backend->init(scene->swapchainColorFormat(),scene->sampleCount()))
         {
             std::cerr << "create ImGui backend failed (sky panel disabled)" << std::endl;
             detach();
