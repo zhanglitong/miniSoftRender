@@ -34,8 +34,7 @@ namespace   FE
         /// 第二参数为成员函数指针时，通过 (obj->*method)(args...) 调用，Args 可隐式转换到方法参数类型
         /// 第二参数为非成员可调用对象时，直接包装为 std::function
         /// </summary>
-        template<class T, class F, class = std::enable_if_t<
-            !std::is_same_v<std::decay_t<F>, FEDelegateArg>>>
+        template<class T, class F, class = std::enable_if_t<!std::is_same_v<std::decay_t<F>, FEDelegateArg>>>
         FEDelegateArg(T* o, F&& f)
             : obj(static_cast<void*>(o))
         {

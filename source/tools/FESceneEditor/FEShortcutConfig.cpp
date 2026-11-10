@@ -81,10 +81,10 @@ namespace
 
     const   BuiltinDefault  kBuiltinDefaults[]  =
     {
-        { "action_openPrj",     "Ctrl+O"        },
-        { "action_savePrj",     "Ctrl+S"        },
-        { "action_undo",        "Ctrl+Z"        },
-        { "action_redo",        "Ctrl+Y"        },
+        { "action_openPrj",         "Ctrl+O"    },
+        { "action_savePrj",         "Ctrl+S"    },
+        { "action_undo",            "Ctrl+Z"    },
+        { "action_redo",            "Ctrl+Y"    },
         { "action_ShortcutSettings","Ctrl+K"    },
     };
 
@@ -202,14 +202,15 @@ namespace   FE
             return  false;
 
         /// 节点名即动作名,值即组合文本(空文本表示未绑定)
-        for (const auto& node : root->children())
+        for (size_t i = 0; i < root->size(); ++i)
         {
+            const   FESetting::Item*    node    =   root->childAt(i);
             auto    it  =   std::find_if(_items.begin(),_items.end(),
                 [&node](const FEShortcutItem& item) {    return  item._id == node->name();  });
             if (it == _items.end())
                 continue;
 
-            const   std::string*    text    =   node->value<std::string>();
+            const   std::string* text    =   node->valuePtr<std::string>();
             if (text == nullptr)
                 continue;
             parseCombo(*text,it->_key,it->_ctrl,it->_shift,it->_alt);
@@ -393,15 +394,5 @@ namespace   FE
                 break;
             begin   =   end + 1;
         }
-    }
-
-    std::string FEShortcutConfig::exeXmlPath()
-    {
-        /// exe 路径由平台层提供;拿不到时退回到当前目录下的同名文件
-        std::filesystem::path   path    =   exePath();
-        if (path.empty())
-            return  std::string("FESceneEditor.xml");
-        path.replace_extension(".xml");
-        return  path.string();
     }
 }

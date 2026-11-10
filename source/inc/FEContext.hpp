@@ -44,7 +44,34 @@ namespace FE
         ~FEContext();
     public:
         /// <summary>
-        /// 
+        /// 设置命令行参数
+        /// </summary>
+        /// <param name="argc"></param>
+        /// <param name="argv"></param>
+        void       setArg(int argc, char** argv)
+        {
+            _args.clear();
+            for (int i = 0; i < argc; i++)
+            {
+                _args.push_back(argv[i]);
+            }
+            /// 参数就绪后按规则加载与应用程序同名的配置(如 test.scene.cfg)
+            loadSetting();
+        }
+        /// <summary>
+        /// 获取参数列表,用于解析命令行参数
+        /// </summary>
+        /// <returns></returns>
+        auto&       args() const
+        {
+            return  _args;
+        }
+        const auto& settingPath() const
+        {
+            return  _settingPath;
+        }
+        /// <summary>
+        /// 获取日志对象,用于输出调试/运行时信息
         /// </summary>
         /// <returns></returns>
         FELog&      log()
@@ -207,6 +234,14 @@ namespace FE
         static  FECreators& creators();
     protected:
         /// <summary>
+        /// 按应用同名规则加载全局配置,setArg 之后调用
+        /// </summary>
+        void        loadSetting();
+        /// <summary>
+        /// 把全局配置写回应用同名文件,destroy 时调用
+        /// </summary>
+        void        saveSetting();
+        /// <summary>
         /// 一帧花费的时间，第一帧肯定是0，
         /// </summary>
         real        _deltaTime  =   0;
@@ -216,6 +251,10 @@ namespace FE
         uint64      _frameIndex =   0;
         LogPtr      _log;
         FESetting   _setting;
+        /// <summary>
+        /// 全局配置的落盘路径,空表示未启用持久化
+        /// </summary>
+        String      _settingPath;
         Object      _device;
         Object      _anchor;
         Object      _window;   
@@ -226,6 +265,10 @@ namespace FE
         Object      _nodeTree;
         String      _workPath;
         String      _resourcePath;
+        /// <summary>
+        /// 应用程序启动时的命令行参数,第一个参数是程序本身路径
+        /// </summary>
+        Strings     _args;
     };
 }
 

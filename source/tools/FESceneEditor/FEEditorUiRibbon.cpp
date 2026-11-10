@@ -381,7 +381,7 @@ namespace   FE
         /// </summary>
         if (_scene != nullptr && _ctx != nullptr)
         {
-            const   bool    shown   =   _ctx->setting().get("render").get("showSkyBox").getOr(true);
+            const   bool    shown   =   _ctx->setting().get("render").get("showSkyBox",true).value(true);
             if  (shown != _skyShown)
             {
                 _skyShown   =   shown;

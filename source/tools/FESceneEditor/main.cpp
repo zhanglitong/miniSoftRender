@@ -73,11 +73,7 @@ int     main(int argc,char* argv[])
     }
 
     FEContext&  ctx         =   FEContext::instance();
-    /// <summary>
-    /// 配置是所有功能的启动基础,在创建窗口/场景之前第一时间加载(exe 同目录,
-    /// exe 路径由平台层 FE::exePath() 提供)
-    /// </summary>
-    ctx.setting().load(FEShortcutConfig::exeXmlPath().c_str());
+    ctx.setArg(argc,argv);
 
     const   FEUuid  rendererId  =   RS_VULKAN;
 

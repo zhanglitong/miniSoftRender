@@ -1,5 +1,6 @@
 
 #include    "../inc/FELog.hpp"
+#include    "../inc/FESetting.hpp"
 #include    "../inc/FEPickup.hpp"
 #include    "../inc/FEFileSystem.hpp"
 #include    "../inc/FEImageUsage.hpp"
@@ -27,8 +28,99 @@
 #include    "../inc/material/FEMaterialPBR.hpp"
 #include    "FEOffscreenSwapchain.h"
 
+
+
 namespace   FE
 {
+    /// <summary>
+    /// 相机状态读写:统一走 FEContext::setting()。
+    /// 配置的加载与落盘由上下文负责(setArg 后加载、destroy 时按应用同名文件保存)。
+    /// </summary>
+    namespace
+    {
+        /// <summary>
+        /// 用全局配置覆盖相机状态;缺失的字段以当前相机值补齐
+        /// </summary>
+        void    loadCameraConfig(FEContext& ctx,FECamera& camera)
+        {
+            auto&   cfg     =   ctx.setting().get("scene").get("camera");
+
+            cfg.get("eye"     ).bind("eye",     [&camera](const FESetting::Item& item,   const FESetting::Value*)
+            {
+                camera.setEye(item.value(camera.getEye()));
+                camera.update();
+            });
+            cfg.get("target").bind("target",    [&camera](const FESetting::Item& item, const FESetting::Value*)
+            {
+                camera.setTarget(item.value(camera.getTarget()));
+                camera.update();
+            });
+            cfg.get("up"      ).bind("up",      [&camera](const FESetting::Item& item,   const FESetting::Value*)
+            {
+                camera.setUp(item.value(camera.getUp()));
+            });
+            cfg.get("fov"     ).bind("fov",     [&camera](const FESetting::Item& item,   const FESetting::Value*)
+            {
+                camera.setFov(item.value(camera.getFov()));
+                camera.update();
+            });
+            cfg.get("scaler"  ).bind("scaler",  [&camera](const FESetting::Item& item,   const FESetting::Value*)
+            {
+                camera.setScaler(item.value(camera.getScaler()));
+                camera.update();
+            });
+            cfg.get("near"    ).bind("near",    [&camera](const FESetting::Item& item,   const FESetting::Value*)
+            {
+                camera.setNear(item.value(camera.getNear()));
+                camera.update();
+            });
+            cfg.get("far"     ).bind("far",     [&camera](const FESetting::Item& item,   const FESetting::Value*)
+            {
+                camera.setFar(item.value(camera.getFar()));
+                camera.update();
+            });
+            cfg.get("ortho"   ).bind("ortho",   [&camera](const FESetting::Item& item,   const FESetting::Value*)
+            {
+                camera.setOrtho(item.value(camera.isOrtho()));
+                camera.update();
+            });
+
+            auto    eye     =   cfg.get("eye"     ).value(camera.getEye());   
+            auto    tgt     =   cfg.get("target"  ).value(camera.getTarget());
+            auto    up      =   cfg.get("up"      ).value(camera.getUp());
+            auto    fov     =   cfg.get("fov"     ).value(camera.getFov());
+            auto    scaler  =   cfg.get("scaler"  ).value(camera.getScaler());
+            auto    fNear   =   cfg.get("near"    ).value(camera.getNear());
+            auto    fFar    =   cfg.get("far"     ).value(camera.getFar());
+            auto    ortho   =   cfg.get("ortho"   ).value(camera.isOrtho());
+
+            camera.setEye(eye);
+            camera.setTarget(tgt);
+            camera.setUp(up);
+            camera.setFov(fov);
+            camera.setNearFar(real2(fNear,fFar));
+
+            camera.setOrtho(ortho);
+            camera.setScaler(scaler);
+            camera.update();
+        }
+        /// <summary>
+        /// 把相机状态写回全局配置,由 FEContext::destroy 统一落盘
+        /// </summary>
+        void    saveCameraConfig(FEContext& ctx,const FECamera& camera)
+        {
+            auto&   item    =   ctx.setting().get("scene").get("camera");
+            item.get("eye")     .set(camera.getEye());
+            item.get("target")  .set(camera.getTarget());
+            item.get("up")      .set(camera.getUp());
+            item.get("fov")     .set(camera.getFov());
+            item.get("near")    .set(camera.getNear());
+            item.get("far")     .set(camera.getFar());
+            item.get("ortho")   .set(camera.isOrtho());
+            item.get("scaler")  .set(camera.getScaler());
+        }
+    }
+
     FEScene::FEScene(FEContext& ctx)
         :FEObject(ctx)
         ,_factorys(ctx)
@@ -301,11 +393,22 @@ namespace   FE
         _gridNode   =   createGrid();
         /// 创建工具
         createTools();
+        /// 初始化完成后,统一从全局配置读取对象参数并应用(配置已由 FEContext::setArg 加载)
+        applySetting();
         return  true;
+    }
+    void    FEScene::applySetting()
+    {
+        /// 相机
+        if (_camera != nullptr)
+            loadCameraConfig(_ctx,*_camera);
     }
     void    FEScene::destroy()
     {
         LOG_INF("FEScene.onClose()");
+        /// 相机状态写回全局配置,由 FEContext::destroy 统一落盘
+        if (_camera != nullptr && _device != nullptr)
+            saveCameraConfig(_ctx,*_camera);
         if (_device)
         {
             _device->waitIdle();

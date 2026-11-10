@@ -79,6 +79,8 @@ int     main(int argc, char** argv)
     }
 
     FEContext&  ctx =   FEContext::instance();
+    /// 传入命令行参数:引擎据此把相机状态存成与应用程序同名的配置(如 test.scene.cfg)
+    ctx.setArg(argc,argv);
 
     /// 场景指针在引擎创建后赋值;notify 把窗口消息(更新/渲染/缩放/输入)转发给场景
     FEScene*    pScene  =   nullptr;

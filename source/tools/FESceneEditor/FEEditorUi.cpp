@@ -288,7 +288,6 @@ namespace   FE
         if (_ctx->setting().find("shortcut") == nullptr)
         {
             _shortcuts.save(_ctx->setting());
-            _ctx->setting().save(FEShortcutConfig::exeXmlPath().c_str());
         }
         _shortcutOpen       =   false;
         _shortcutDirty      =   false;
@@ -299,7 +298,7 @@ namespace   FE
         /// 渲染设置:天空盒开关默认开启;读取后立刻同步到场景,
         /// 关闭时天空不绘制且 PBR 的解析天空 IBL 一并停止计入
         /// </summary>
-        _skyShown   =   _ctx->setting().get("render").get("showSkyBox").setIfUnset(true).getOr(true);
+        _skyShown   =   _ctx->setting().get("render").get("showSkyBox",true).value(true);
         scene->showSky(_skyShown);
         _factory    =   new FEEditorImGuiFactory(ctx,_backend);
         _factory->_buildUI  =   [this]() {   this->drawRibbon();  };
@@ -897,7 +896,7 @@ namespace   FE
                                ImGuiCond_FirstUseEver);
         if (ImGui::Begin("配置",&open,ImGuiWindowFlags_NoCollapse))
         {
-            const   std::string path    =   FEShortcutConfig::exeXmlPath();
+            const   std::string path    =   _ctx->settingPath();
             ImGui::TextDisabled("运行时设置树:分组可折叠,值可直接编辑");
             ImGui::SameLine();
             ImGui::TextDisabled("(%s)",path.c_str());
@@ -1048,7 +1047,7 @@ namespace   FE
             if (!_shortcutError.empty())
                 ImGui::TextColored(ImVec4(0.92f,0.45f,0.42f,1.0f),"%s",_shortcutError.c_str());
             else
-                ImGui::TextDisabled("配置文件: %s",FEShortcutConfig::exeXmlPath().c_str());
+                ImGui::TextDisabled("配置文件: %s",_ctx->settingPath().c_str());
 
             if (ImGui::Button("编辑快捷键"))
             {
@@ -1101,7 +1100,7 @@ namespace   FE
                 if (_ctx != nullptr)
                 {
                     _shortcuts.save(_ctx->setting());
-                    saved   =   _ctx->setting().save(FEShortcutConfig::exeXmlPath().c_str());
+                    saved   =   _ctx->setting().save(_ctx->settingPath().c_str());
                 }
                 if (saved)
                 {
@@ -1112,7 +1111,7 @@ namespace   FE
                 }
                 else
                 {
-                    _shortcutError  =   "保存失败: " + FEShortcutConfig::exeXmlPath();
+                    _shortcutError  =   "保存失败: " + _ctx->settingPath();
                 }
             }
         }

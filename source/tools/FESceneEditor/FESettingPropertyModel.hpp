@@ -29,14 +29,12 @@ namespace   FE
         size_t  childCount(Node parent) const override
         {
             const   FESetting::Item*    item    =   itemOf(parent);
-            return  item != nullptr ? item->children().size() : 0;
+            return  item != nullptr ? item->size() : 0;
         }
         Node    child(Node parent,size_t index) const override
         {
             const   FESetting::Item*    item    =   itemOf(parent);
-            if (item == nullptr || index >= item->children().size())
-                return  nullptr;
-            return  item->children()[index].get();
+            return  const_cast<FESetting::Item*>(item != nullptr ? item->childAt(index) : nullptr);
         }
         std::string name(Node node) const override
         {
