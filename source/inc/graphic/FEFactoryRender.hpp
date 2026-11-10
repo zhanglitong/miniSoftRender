@@ -349,6 +349,13 @@ namespace   FE
         virtual void    update(CMDPtr cmd);
         virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL);
         /// <summary>
+        /// 图元 LOD 变化(FEPrimitive::setLod 调用):标记下次 update 重建 LOD 数据
+        /// </summary>
+        virtual void    lodChanged() override
+        {
+            flags().addFlag(FLAG_LOD_CHANGED);
+        }
+        /// <summary>
         /// 工厂内含任意透明材质组(alpha 混合/transmission)时返回 true,
         /// 渲染层据此把工厂排到不透明工厂之后绘制
         /// </summary>
@@ -427,16 +434,14 @@ namespace   FE
         /// 收集并创建命令缓冲区
         /// </summary>
         /// <returns></returns>
-        virtual ITO     buildIndirect(ITO&  gpuFull,ITO& gpuDraw);
+        ITO     buildIndirect(ITO&  gpuFull,ITO& gpuDraw);
         /// <summary>
-        /// 上传每图元固定 4 项的 LOD 大缓冲(无 LOD 的图元写 0)
+        /// 上传 LOD 大缓冲:
+        /// 每图元固定 4 项 LodInf,以及每绘制命令(即每图元)的 LOD 起始下标
         /// </summary>
-        /// <param name="lodInfos">LOD 大缓冲的 CPU 数据</param>
-        VBO     buildLodVBO(const LodInfs& lodInfos);
-        /// <summary>
-        /// 上传每实例的 LOD 偏移数组,供 GPU 裁剪按实例查 LOD 大缓冲
-        /// </summary>
-        VBO     buildInstanceLodVBO();
+        /// <param name="data">CPU 数据</param>
+        /// <param name="length">字节数</param>
+        VBO     buildLodVBO(const void* data,uint64 length);
         /// <summary>
         /// 根据材质获取节点所在的组
         /// </summary>
@@ -460,11 +465,11 @@ namespace   FE
         /// <returns></returns>
         GroupNode*      queryOrCreateGroup(Material mat);
         Material        createCullMaterial(Group grp,Camera camera);
-        void            updateCullMaterial(Group grp,Camera camera);
+        void    updateCullMaterial(Group grp,Camera camera);
         /// <summary>
         /// 填充裁剪材质参数与绑定(创建/更新共用)
         /// </summary>
-        void            fillCullParams(class FEMaterialCull* cull,Group grp,Camera camera);
+        void    fillCullParams(class FEMaterialCull* cull,Group grp,Camera camera);
         VBO     buildBuffer(MeshUSet& meshSet,FEInputSlot slot);
         VBO     buildBuffer(MeshUSet& meshSet,const InputDescs& inputs);
         /// <summary>
@@ -614,9 +619,10 @@ namespace   FE
         /// </summary>
         VBO             _vboLod;
         /// <summary>
-        /// 每实例的 LOD 偏移数组(GPU 裁剪使用)
+        /// 每绘制命令(即每图元)的 LOD 起始下标,-1 表示该图元没有 LOD
+        /// (与 _indirectFull 的命令一一对应,GPU 裁剪使用)
         /// </summary>
-        VBO             _vboInstLod;
+        VBO             _vboCmdLod;
         /// <summary>
         /// 工厂默认归属的场景层。
         /// 注意:不能默认为 USAGE_Classic —— 它是 Background|Scene|GUI|Overlay 的并集,

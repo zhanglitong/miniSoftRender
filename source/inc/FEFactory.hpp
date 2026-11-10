@@ -68,6 +68,10 @@ namespace   FE
             /// 对象修改
             /// </summary>
             FLAG_MODIFY_OBJECT  =   (FLAG_REMOVE_OBJECT)<<1,
+            /// <summary>
+            /// 图元 LOD 数据变化(FEPrimitive::setLod 通知),工厂 update 时消费
+            /// </summary>
+            FLAG_LOD_CHANGED    =   (FLAG_MODIFY_OBJECT)<<1,
         };
         FEFactory(FEContext& ctx)
             :FEObject(ctx)
@@ -94,6 +98,11 @@ namespace   FE
         {
             return  _prioritys[index%_prioritys.size()];
         }
+        /// <summary>
+        /// 图元 LOD 数据变化通知(FEPrimitive::setLod 调用),
+        /// 派生工厂据此在下次 update 时重建 LOD 相关数据
+        /// </summary>
+        virtual void    lodChanged() {}
     protected:
         Prioritys   _prioritys;
     };

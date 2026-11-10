@@ -95,6 +95,13 @@ namespace   FE
                     result._type    =   FEPropertyValue::Type::Double;
                     result._real    =   arg;
                 }
+                else if constexpr (std::is_same_v<T,FESetting::Combo>)
+                {
+                    /// 下拉框按当前选中项文本展示
+                    result._type    =   FEPropertyValue::Type::String;
+                    if (arg._index >= 0 && size_t(arg._index) < arg._options.size())
+                        result._string  =   arg._options[size_t(arg._index)];
+                }
                 else
                 {
                     /// 剩余类型都是 glm 向量
@@ -109,6 +116,9 @@ namespace   FE
         {
             FESetting::Item*    item    =   const_cast<FESetting::Item*>(itemOf(node));
             if (item == nullptr)
+                return  false;
+            /// 下拉框的候选项由设置本身持有,属性面板暂不做编辑
+            if (item->valuePtr<FESetting::Combo>() != nullptr)
                 return  false;
 
             using   Type    =   FEPropertyValue::Type;

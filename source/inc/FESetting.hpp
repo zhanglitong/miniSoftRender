@@ -24,13 +24,26 @@ namespace   FE
     {
     public:
         class   Item;
+        /// <summary>
+        /// 下拉列表值:options 为候选文本,index 为当前选中下标(-1 表示未选中)
+        /// </summary>
+        struct  Combo
+        {
+            Strings     _options;
+            int32       _index  =   -1;
+            bool    operator==(const Combo& rhs) const
+            {
+                return  _index == rhs._index && _options == rhs._options;
+            }
+        };
         using   Value   =   std::variant<std::monostate
                                         , bool,  int32_t, uint32_t, int64_t, uint64_t, float, double
                                         , int2,   int3,   int4
                                         , uint2,  uint3,  uint4
                                         , float2, float3, float4
                                         , real2,  real3,  real4
-                                        , std::string>;
+                                        , std::string
+                                        , Combo>;
         /// <summary>
         /// 值变更通知:第一个参数是当前 item,第二个是旧值;为 nullptr 表示首次设置
         /// 注册方式:bind(key,fn)、bind({对象,&Class::方法}) 或 changes() += {对象,&Class::方法}
@@ -104,10 +117,28 @@ namespace   FE
                 return  _notifys;
             }
             /// <summary>
-            /// 获取子节点,不存在则新建;新建时用 defaultValue 初始化其值
+            /// 获取子节点,不存在则新建;支持 "a/b/c" 层级写法,等价于 get("a").get("b").get("c")
+            /// 中间层按需创建,defaultValue 只作用于最后一级节点
             /// </summary>
             inline  Item&   get(const char* name,const Value& defaultValue = Value())
             {
+                const   char*   sep =   name != nullptr ? std::strchr(name,'/') : nullptr;
+                if (sep != nullptr)
+                {
+                    /// 跳过前导分隔符,如 "/a" 等同 "a"
+                    if (sep == name)
+                    {
+                        if (sep[1] == '\0')
+                            return  *this;
+                        return  get(sep + 1,defaultValue);
+                    }
+                    String  head(name,size_t(sep - name));
+                    Item&   parent  =   get(head.c_str());
+                    /// 忽略尾随分隔符,如 "a/" 等同 "a"
+                    if (sep[1] == '\0')
+                        return  parent;
+                    return  parent.get(sep + 1,defaultValue);
+                }
                 auto    item    =   find(name);
                 if (item == nullptr)
                 {
@@ -325,6 +356,9 @@ namespace   FE
         }
         FESetting(const FESetting&)             =   delete;
         FESetting&  operator=(const FESetting&) =   delete;
+        /// <summary>
+        /// 获取根下的节点,支持 "scene/camera" 层级写法,不存在则新建
+        /// </summary>
         inline  Item&   get(const char* name,const Value& defaultValue = Value())
         {
             return  _root->get(name,defaultValue);
