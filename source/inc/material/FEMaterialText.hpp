@@ -1,6 +1,8 @@
 #pragma     once
 
 #include    "../graphic/FEDevice.h"
+#include    "../graphic/FEOITManager.h"
+#include    "../FELog.hpp"
 #include    "../font/FEFont.hpp"
 #include    "FEMaterial.hpp"
 
@@ -182,6 +184,114 @@ namespace   FE
         {
             return  true;
         }
+        /// ===== OIT 变体管线(文本为透明材质,参与逐像素排序)=====
+        /// <summary>
+        /// LIST(几何)趟绘制本材质用的管线:惰性构建 OIT 变体,
+        /// 无 OIT 管理器或构建失败时返回 null(渲染层回退普通 alpha 混合)
+        /// </summary>
+        virtual Pipeline    oitPipeline(EPrimitive pri) override
+        {
+            if (_oitPipelines[uint(pri)] == nullptr && !_oitVariantFailed)
+                setupOITVariants();
+            return  _oitPipelines[uint(pri)];
+        }
+        /// <summary>
+        /// 构建文本的 OIT 变体管线与描述符集:
+        /// 克隆主管线改 4 项状态(无 color 输出/不写深度/无混合/采样数与场景一致),
+        /// FS 换成 OIT_MODE 编译的 text/shader.oit.frag.spv(写 PPLL 链表 10/11/12),
+        /// 注册名 "text.oit/<图元>";dsets 绑定相机 UBO、字体图集与 OIT SSBO。
+        /// 仅在 FEOITManager::active() 时构建,LIST 趟首次绘制前调用
+        /// </summary>
+        void    setupOITVariants()
+        {
+            for (auto& pl : _oitPipelines)
+                pl      =   nullptr;
+            _oitDsets.clear();
+            auto    mgr     =   FEOITManager::active();
+            if (mgr == nullptr)
+                return;
+            if (_oitFS == nullptr)
+            {
+                _oitFS  =   loadOITFragmentShader();
+                if (_oitFS == nullptr)
+                {
+                    _oitVariantFailed   =   true;
+                    LOG_ERR("Text OIT: load text/shader.oit.frag.spv failed, text falls back to alpha blend");
+                    return;
+                }
+            }
+            auto&   plMgr   =   _ctx.device().pipelines();
+            for (uint8 i = 0; i < PRI_MAX; ++i)
+            {
+                if (_pipelines[i] == nullptr)
+                    continue;
+                String  plName  =   "text.oit/" + String(nameOfEnum(EPrimitive(i)));
+                Pipeline    pl;
+                if (!plMgr.query(plName,pl))
+                {
+                    /// 克隆主管线:几何趟无 color attachment、不写深度、无颜色混合
+                    FEPipeline::CreateInfo  cInfo   =   _pipelines[i]->cInfo();
+                    /// text.xml 的 <shaders> 顺序不固定,按 stage 类型替换片元着色器
+                    for (auto& shader : cInfo._shaders)
+                    {
+                        if (shader != nullptr && shader->cInfo()._shaderType == ST_FRAGMENT_BIT)
+                            shader  =   _oitFS;
+                    }
+                    cInfo._colorAttachmentCount =   0;
+                    cInfo._enableDepthWrite     =   false;
+                    cInfo._enableColorBlend     =   false;
+                    cInfo._sampleCount          =   mgr->sampleCount();
+                    pl      =   _ctx.device().createGPipeline();
+                    if (pl == nullptr || !pl->create(cInfo))
+                    {
+                        _oitVariantFailed   =   true;
+                        LOG_ERR("Text OIT: create pipeline %s failed", plName.c_str());
+                        return;
+                    }
+                    pl->setName(plName);
+                    plMgr.add(plName,pl);
+                }
+                _oitPipelines[i]    =   pl;
+            }
+            if (_oitPipelines[0] == nullptr)
+                return;
+            _oitDsets   =   _oitPipelines[0]->createDSets();
+            if (_oitDsets.empty())
+            {
+                _oitVariantFailed   =   true;
+                LOG_ERR("Text OIT: createDSets for text.oit failed");
+                return;
+            }
+            /// 与主管线绑定同样的资源:相机 UBO(着色器块名为 CameraBlock,
+            /// autoAttach 的名称匹配覆盖不到,须显式绑定)与字体图集;
+            /// 再挂 OIT SSBO(binding 10/11/12,与 text OIT 着色器一致)
+            auto    cameraUBO   =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
+            bindTo(_oitDsets,0,SB_Camera,{cameraUBO});
+            if (_texture != nullptr)
+                bindTo(_oitDsets,0,SB_Material,{_texture.get()});
+            for (auto& dset : _oitDsets)
+                mgr->bindToDSet(dset);
+            update();
+        }
+        /// <summary>
+        /// 加载 OIT_MODE 编译的 text fragment shader(输出写 PPLL 链表)
+        /// </summary>
+        Shader  loadOITFragmentShader()
+        {
+            constexpr   const char* OIT_FRAG_PATH   =   ":/data/shader/cache/text/shader.oit.frag.spv";
+            String      absPath =   _ctx.resourcePath();
+            absPath     +=  (OIT_FRAG_PATH + 1);    /// 跳过 ':',与 FEOITManager 同规则
+            auto    buf     =   FEBuffer::loadFile(_ctx,absPath.c_str());
+            if (buf == nullptr)
+                return  nullptr;
+            auto    shader  =   _ctx.device().createShader();
+            FEShader::CreateInfo    sci;
+            sci._shaderType =   ST_FRAGMENT_BIT;
+            sci._buffer     =   buf;
+            if (!shader->create(sci))
+                return  nullptr;
+            return  shader;
+        }
         virtual uint    pushConstantSize() const override
         {
             return  (uint)sizeof(TextData);
@@ -229,5 +339,11 @@ namespace   FE
         /// </summary>
         uint2       _screenOverride =   uint2(0);
         mutable TextData    _data;
+        /// <summary>
+        /// OIT 变体管线(按图元类型)与片元着色器,惰性构建
+        /// </summary>
+        Pipeline    _oitPipelines[PRI_MAX]  =   {};
+        Shader      _oitFS;
+        bool        _oitVariantFailed       =   false;
     };
 }

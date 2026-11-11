@@ -643,9 +643,11 @@ namespace   FE
             }
             else if (oitPass == FEOITManager::OITPass::MAIN)
             {
-                /// MAIN(主)趟:alpha 混合/OIT 组留给 LIST 趟;
+                /// MAIN(主)趟:具备 OIT 变体的 alpha 混合组留给 LIST 趟;
+                /// 无 OIT 变体的透明材质(如尚未实现变体的新材质)回退到本趟
+                /// 透明子趟,避免被 MAIN/LIST 两趟同时跳过而完全消失。
                 /// transmission 玻璃在本趟第二遍(不透明组之后)按 pbrBlend 绘制
-                if (grpBlend || grpOIT)
+                if ((grpBlend && mat->oitPipeline(_key._primitive) != nullptr) || grpOIT)
                     continue;
                 if (grpTransm != transparentPass)
                     continue;
