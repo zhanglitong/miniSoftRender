@@ -52,6 +52,26 @@ namespace   FE
         WGPUSurfaceCapabilities     surfaceCapabilities = {0};
         wgpuSurfaceGetCapabilities(_native, (physicalDevice), &surfaceCapabilities);
 
+        /// 优先选用 RGBA8Unorm:引擎的管线默认颜色格式、离屏/MSAA/探针目标都是
+        /// RGBA8,交换链若固定为 BGRA8 会造成 "pipeline targets are incompatible
+        /// with render pass" 使整条命令缓冲校验失败(表现为窗口全黑)
+        {
+            bool    hasRgba =   false;
+            bool    hasBgra =   false;
+            for (size_t i = 0;i < surfaceCapabilities.formatCount;++ i)
+            {
+                if (surfaceCapabilities.formats[i] == WGPUTextureFormat_RGBA8Unorm)
+                    hasRgba =   true;
+                else if (surfaceCapabilities.formats[i] == WGPUTextureFormat_BGRA8Unorm)
+                    hasBgra =   true;
+            }
+            if (hasRgba)
+                _colorFormat    =   WGPUTextureFormat_RGBA8Unorm;
+            else if (hasBgra)
+                _colorFormat    =   WGPUTextureFormat_BGRA8Unorm;
+            wgDevice.setSurfaceFormat(_colorFormat);
+        }
+
         WGPUSurfaceConfiguration config = {};
         config.nextInChain      =   nullptr;
         config.device           =   wgDevice.device();

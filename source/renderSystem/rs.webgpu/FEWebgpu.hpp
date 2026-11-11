@@ -99,6 +99,10 @@ namespace   FE
 
     /// 顶点属性格式映射: FEFormat -> WGPUVertexFormat
     /// 与 system2Native(FEFormat)(纹理格式) 分开,因为 WebGPU 的顶点格式与纹理格式枚举不同。
+    /// vertexFormat2Native 的哨兵返回值:0 不是合法的 WGPUVertexFormat,
+    /// 表示该 FEFormat 在 WebGPU 顶点格式集中没有对应项
+    static  const   WGPUVertexFormat   VERTEX_FORMAT_INVALID  =   (WGPUVertexFormat)0;
+
     inline  static  auto    vertexFormat2Native(FEFormat fmt)
     {
         switch(fmt)
@@ -112,6 +116,28 @@ namespace   FE
         case FMT_R8G8_UNORM        :   return  WGPUVertexFormat_Unorm8x2;
         case FMT_R8G8B8_UNORM      :   return  WGPUVertexFormat_Unorm8x4;
         case FMT_R8G8B8A8_UNORM    :   return  WGPUVertexFormat_Unorm8x4;
+
+        case FMT_R8_SNORM           :   return  WGPUVertexFormat_Snorm8;
+        case FMT_R8G8_SNORM         :   return  WGPUVertexFormat_Snorm8x2;
+        case FMT_R8G8B8A8_SNORM     :   return  WGPUVertexFormat_Snorm8x4;
+
+        /// 16 位属性(骨骼索引/权重、半精度法线等):
+        /// WebGPU 顶点格式没有三通道 16 位版本,其余按通道数一一对应
+        case FMT_R16_UNORM          :   return  WGPUVertexFormat_Unorm16;
+        case FMT_R16G16_UNORM       :   return  WGPUVertexFormat_Unorm16x2;
+        case FMT_R16G16B16A16_UNORM :   return  WGPUVertexFormat_Unorm16x4;
+        case FMT_R16_SNORM          :   return  WGPUVertexFormat_Snorm16;
+        case FMT_R16G16_SNORM       :   return  WGPUVertexFormat_Snorm16x2;
+        case FMT_R16G16B16A16_SNORM :   return  WGPUVertexFormat_Snorm16x4;
+        case FMT_R16_UINT           :   return  WGPUVertexFormat_Uint16;
+        case FMT_R16G16_UINT        :   return  WGPUVertexFormat_Uint16x2;
+        case FMT_R16G16B16A16_UINT  :   return  WGPUVertexFormat_Uint16x4;
+        case FMT_R16_SINT           :   return  WGPUVertexFormat_Sint16;
+        case FMT_R16G16_SINT        :   return  WGPUVertexFormat_Sint16x2;
+        case FMT_R16G16B16A16_SINT  :   return  WGPUVertexFormat_Sint16x4;
+        case FMT_R16_FLOAT          :   return  WGPUVertexFormat_Float16;
+        case FMT_R16G16_FLOAT       :   return  WGPUVertexFormat_Float16x2;
+        case FMT_R16G16B16A16_FLOAT :   return  WGPUVertexFormat_Float16x4;
 
         case FMT_R8_SINT            :   return  WGPUVertexFormat_Sint8;
         case FMT_R8G8_SINT          :   return  WGPUVertexFormat_Sint8x2;
@@ -133,8 +159,9 @@ namespace   FE
         case FMT_R32G32B32A32_FLOAT :   return  WGPUVertexFormat_Float32x4;
 
         default:
-            assert(0!=0);
-            return  WGPUVertexFormat_Float32x4;
+            /// WebGPU 顶点格式集固定(无 3 通道 16 位、无 *SCALED 等),
+            /// 返回哨兵值:调用方据此跳过整条管线,而不是断言崩溃
+            return  VERTEX_FORMAT_INVALID;
         }
     }
 

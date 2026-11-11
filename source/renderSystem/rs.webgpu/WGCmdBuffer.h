@@ -83,6 +83,8 @@ namespace   FE
         virtual FEResult    drawIndex(uint32_t firstIndex,uint32_t indexCount,int32_t vertexOffset,uint32_t firstInstance,uint32_t instanceCount) override;
         virtual FEResult    drawArrayIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride) override;
         virtual FEResult    drawIndexedIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride) override;
+        virtual FEResult    drawArrayIndirectCount(ITO buffer,uint64 offset,ITO countBuffer,uint64 countOffset,uint32_t maxDrawCount,uint32_t stride) override;
+        virtual FEResult    drawIndexedIndirectCount(ITO buffer,uint64 offset,ITO countBuffer,uint64 countOffset,uint32_t maxDrawCount,uint32_t stride) override;
 
         virtual FEResult    setPrimitiveTopology(EPrimitive pri) override;
         virtual FEResult    dispatch(uint x,uint y,uint z) override;
@@ -94,6 +96,10 @@ namespace   FE
         WGPURenderPassEncoder       _renderPassEncoder      =   nullptr;
         WGPUComputePassEncoder      _computePassEncoder     =   nullptr;
         WGPURenderPipeline          _currentPipeline        =   nullptr;
+        /// 延迟绑定:_skipDepth/_skipColor 等趟即使没有绘制也会 bindPipeline,
+        /// 而 WebGPU 在 set_pipeline 时就要校验管线与 pass 附件是否兼容。
+        /// 把 set_pipeline 推迟到真正 draw 时,空趟就不再有兼容性校验。
+        WGPURenderPipeline          _pendingPipeline        =   nullptr;
         WGPUComputePipeline         _currentComputePipeline =   nullptr;
         WGPUBindGroup               _currentBindGroup       =   nullptr;
         std::vector<WGPUBindGroup>  _bindGroups;
@@ -111,7 +117,24 @@ namespace   FE
         std::vector<uint64_t>   _vbSlotSize;        ///< 每个 slot 已绑定缓冲的大小
         WGPUBuffer              _dummyVB        =   nullptr;
         uint64_t                _dummyVBSize    =   0;
+        /// 无深度附件的趟(如 OIT 合成)用的占位深度目标:
+        /// WebGPU 要求 pass 的附件与管线声明完全一致,不能像 Vulkan 那样不挂深度附件
+        GImage                  _dummyDepth;
+        GImgView                _dummyDepthView;
+        uint                    _dummyDepthW        =   0;
+        uint                    _dummyDepthH        =   0;
+        uint                    _dummyDepthSamples  =   0;
+        void    ensureDummyDepth(uint width,uint height,uint samples);
         /// 在 draw 前补齐/覆盖未绑定或覆盖范围不足的顶点槽位(零缓冲)
         void    ensureVertexSlots(uint32 firstInstance,uint32 instanceCount);
+        /// 把 bindPipeline 记录的管线实际提交给 pass(仅当发生变化时)
+        inline  void    flushPipeline()
+        {
+            if (_renderPassEncoder && _pendingPipeline != _currentPipeline)
+            {
+                wgpuRenderPassEncoderSetPipeline(_renderPassEncoder,_pendingPipeline);
+                _currentPipeline    =   _pendingPipeline;
+            }
+        }
     };
 }

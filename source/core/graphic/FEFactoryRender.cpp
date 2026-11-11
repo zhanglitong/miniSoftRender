@@ -11,9 +11,6 @@
 
 namespace   FE
 {
-    /// DEBUG: 帧采样全局标志(由 rs.webgpu 的 WGCmdBuffer.beginRender 每帧维护,
-    /// core 端组级打点据此与 WGCMD.bind 采样帧对齐)
-    FE_API bool g_dbgFrameSampled   =   false;
 
     using   GroupNode   =   FEFactoryRender::GroupNode;
     using   VBinds      =   FEFactoryRender::VBinds;
@@ -616,9 +613,6 @@ namespace   FE
         /// 两遍循环:pass=0 不透明组,pass=1 透明组。
         auto    drawGroups  =   [&](bool transparentPass)
         {
-        /// DEBUG: 组级审计——帧采样帧内逐组记录(标志由 WGCmdBuffer.beginRender 维护),
-        /// 捕获空 _dsets / null pipeline 的材质,并把 mat 指针与同帧 WGCMD.bind 按序关联
-        bool    dbgGrpSampled   =   g_dbgFrameSampled;
         for (auto& grp : _groupNode)
         {
             auto    mat         =   grp->_mat;
@@ -686,35 +680,27 @@ namespace   FE
             binds.offsets       =   nullptr;
             binds.plBindPoint   =   PL_GRAPIC;
             binds.plLayout      =   pl->nativeLayout();
-            if (dbgGrpSampled)
-            {
-                LOG_ERR("WGGRP: mat=%p pl=%p ndsets=%zu transp=%d",
-                        (void*)grp->_mat.get(),(void*)pl,
-                        binds.dSets.size(),(int)transparentPass);
-            }
             cmd->bindDescriptors(binds);
             uint64  offset      =   grp->cmdOffset() * sizeof(FECmdIndex);
+            /// GPU 裁剪时命令数由 GPU 计数器给出,不再回读 CPU:
+            /// compute shader 把通过裁剪的命令从 offset 起紧凑写入 _indirectClip,
+            /// 并把条数 atomicAdd 到 _cullResult.clippedCount(每组建一个裁剪材质)
+            if (gpuCull && grp->_cullMat != nullptr)
+            {
+                uint    maxCmd      =   grp->cmdCount();
+                if (maxCmd == 0)
+                    continue;
+                auto    cull        =   grp->_cullMat->as<FEMaterialCull>();
+                ITO     countBuf    =   cull->_cullResult._gpu;
+                if (isArray)
+                    cmd->drawArrayIndirectCount(_indirectClip,  offset,countBuf,0,maxCmd,sizeof(FECmdIndex));
+                else
+                    cmd->drawIndexedIndirectCount(_indirectClip,offset,countBuf,0,maxCmd,sizeof(FECmdIndex));
+                continue;
+            }
             uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
             if (nCmd == 0)
                 continue;
-            if (_device.supportWGSLShaders())
-            {
-                /// WebGPU: 直接使用 firstInstance 索引实例属性。
-                /// 实例 VBO 已在 render() 开头以 offset=0 整体绑定,drawIndex 的
-                /// firstInstance 由 wgpuRenderPassEncoderDrawIndexed 原生支持,
-                /// 实例范围覆盖校验由 ensureVertexSlots 完成。
-                /// 绘制项在构建缓冲时已生成(含本工厂的索引/顶点偏移),
-                /// 每帧只做线性绘制,不再遍历 节点×图元 与查偏移表
-                for (auto& item : grp->_drawItems)
-                {
-                    if (isArray)
-                        cmd->draw(item._firstIndex,item._count,item._instance,item._primCount);
-                    else
-                        cmd->drawIndex(item._firstIndex,item._count,item._baseVertex,
-                                       item._instance,item._primCount);
-                }
-                continue;
-            }
             /// 关闭 GPU 裁剪时(clamp 为 0 或渲染探针等旁路相机)必须用完整
             /// 命令缓冲:_indirectClip 只剩主相机上一帧裁剪通过的命令,
             /// 直接按 cmdCount 读会取到缺失/错位的命令
@@ -1480,9 +1466,6 @@ namespace   FE
         size_t      cmdIdx  =   0;
         for (auto& var : _groupNode)
         {
-            /// 同步重建 WGSL 路径的绘制项(线性绘制,避免每帧遍历节点与查偏移表)
-            var->_drawItems.clear();
-            var->_drawItems.reserve(var->cmdCount());
             for (auto& node: var->_objects)
             {
                 auto    mesh    =   node->mesh();
@@ -1493,15 +1476,6 @@ namespace   FE
                     if (pris[i]->primitive() != _key._primitive)
                         continue;
                     mesh->drawCmd(pCmdIdx[cmdIdx],i,uint(instId));
-                    /// 图元只属于本工厂,drawCmd 读到的偏移即本工厂 IBO/VBO 中的偏移
-                    auto&   item    =   pCmdIdx[cmdIdx];
-                    GroupNode::DrawItem drawItem;
-                    drawItem._firstIndex    =   item.firstIndex;
-                    drawItem._count         =   item.count;
-                    drawItem._baseVertex    =   item.baseVertex;
-                    drawItem._primCount     =   item.primCount;
-                    drawItem._instance      =   item.baseInstance;
-                    var->_drawItems.emplace_back(drawItem);
                     lodOffsets.emplace_back(pris[i]->lodOffset());
                     ++cmdIdx;
                 }
@@ -1509,7 +1483,6 @@ namespace   FE
             }
         }
         cpuBuf->unlock();
-
         _vboCmdLod  =   buildLodVBO(lodOffsets.data(),uint64(lodOffsets.size()) * sizeof(int));
 
         auto    cmdPool =   _device.transferCmdPool();

@@ -138,6 +138,14 @@ namespace   FE
                 WGPUVertexAttribute attr    =   {};
                 attr.shaderLocation         =   var.location;
                 attr.format                 =   vertexFormat2Native(var.format);
+                if (attr.format == VERTEX_FORMAT_INVALID)
+                {
+                    /// WebGPU 没有对应顶点格式(如 3 通道 16 位、*_SCALED):
+                    /// 整条管线无法创建,记录后跳过,避免断言崩溃拖垮整个后端
+                    LOG_ERR("WGPipeline.create: unsupported vertex format %d (binding %d), pipeline skipped",
+                            (int)var.format,(int)sysBind.binding);
+                    return  false;
+                }
                 attr.offset                =   var.offset;
                 vbAttrs[i].push_back(attr);
             }
@@ -188,10 +196,12 @@ namespace   FE
         blendState.alpha.operation  =   WGPUBlendOperation_Add;
 
         WGPUColorTargetState colorTarget = {};
-        /// 与管线声明的颜色附件格式一致;未覆盖时沿用引擎默认(BGRA8Unorm)
+        /// 与实际的渲染目标格式一致:未显式覆盖时跟随交换链格式
+        /// (无窗口/离屏时为 RGBA8Unorm)。WebGPU 要求管线颜色目标格式与
+        /// render pass 附件格式完全相同,硬编码任一格式都会在另一种目标上失效。
         colorTarget.format          =   info._colorFormatOverride
                                         ? system2Native(info._colorFormat)
-                                        : WGPUTextureFormat_BGRA8Unorm;
+                                        : wgDevice.surfaceFormat();
         colorTarget.blend           =   &blendState;
         colorTarget.writeMask       =   WGPUColorWriteMask_All;
 
@@ -207,7 +217,7 @@ namespace   FE
         depthStencilState.format                    =   WGPUTextureFormat_Depth32FloatStencil8;
         depthStencilState.depthWriteEnabled         =   info._enableDepthWrite ? WGPUOptionalBool_True
                                                                                : WGPUOptionalBool_False;
-        depthStencilState.depthCompare              =   WGPUCompareFunction_Less;
+        depthStencilState.depthCompare              =   WGPUCompareFunction_LessEqual;
         depthStencilState.stencilFront.compare      =   WGPUCompareFunction_Always;
         depthStencilState.stencilFront.failOp       =   WGPUStencilOperation_Keep;
         depthStencilState.stencilFront.depthFailOp  =   WGPUStencilOperation_Keep;

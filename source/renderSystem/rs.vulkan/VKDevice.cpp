@@ -668,6 +668,31 @@ namespace   FE
             deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
         }
 #endif
+        /// Vulkan 1.2 drawIndirectCount: vkCmdDrawIndirectCount / vkCmdDrawIndexedIndirectCount
+        /// 的前提特性。1.2+ 设备上该特性默认未启用,不显式打开时校验层会报
+        /// "drawIndirectCount must be enabled to call this command"
+        VkPhysicalDeviceVulkan12Features    vulkan12Features  =   {};
+        vulkan12Features.sType          =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        vulkan12Features.pNext          =   nullptr;
+        bool    drawIndirectCountSupported  =   false;
+        if (_properties.apiVersion >= VK_API_VERSION_1_2)
+        {
+            VkPhysicalDeviceFeatures2   queryFeatures2  =   {};
+            queryFeatures2.sType    =   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            queryFeatures2.pNext    =   &vulkan12Features;
+            vkGetPhysicalDeviceFeatures2(_physicalDevice,&queryFeatures2);
+            drawIndirectCountSupported  =   vulkan12Features.drawIndirectCount == VK_TRUE;
+        }
+        if (drawIndirectCountSupported)
+        {
+            /// 挂到链首,避免与后续追加的 line/unusedAttachments 链尾逻辑纠缠
+            vulkan12Features.pNext  =   const_cast<void*>(deviceCreateInfo.pNext);
+            deviceCreateInfo.pNext  =   &vulkan12Features;
+        }
+        else
+        {
+            LOG_WAR("drawIndirectCount not supported,GPU 裁剪的间接绘制将不可用");
+        }
         if (deviceExtensions.size() > 0)
         {
             for (auto enabledExtension : deviceExtensions)

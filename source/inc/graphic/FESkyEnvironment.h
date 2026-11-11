@@ -33,8 +33,8 @@ namespace   FE
             :FEObject(other)
             ,_cube(other._cube)
             ,_faceViews(other._faceViews)
-            ,_depthImage(other._depthImage)
-            ,_depthView(other._depthView)
+            ,_depthImages(other._depthImages)
+            ,_depthViews(other._depthViews)
             ,_msaaImages(other._msaaImages)
             ,_msaaViews(other._msaaViews)
             ,_cameras(other._cameras)
@@ -81,8 +81,10 @@ namespace   FE
         TexPtr                  _cube       =   nullptr;
         /// [mip][face] 每级 mip 的单面视图(作为 color attachment)
         std::vector<GImgViews>  _faceViews;
-        GImage                  _depthImage =   nullptr;
-        GImgView                _depthView  =   nullptr;
+        /// 深度目标(每级 mip 一张):WebGPU 要求同一 pass 的所有附件尺寸一致,
+        /// 不能像 Vulkan 那样用 mip0 尺寸的深度 + 更小的 renderArea
+        std::vector<GImage>     _depthImages;
+        std::vector<GImgView>   _depthViews;
         /// 多采样颜色目标(场景开启 MSAA 时创建,每级 mip 一张):
         /// 烘焙管线按场景采样数创建,目标必须同为多采样,渲染结束解析到 _faceViews
         std::vector<GImage>     _msaaImages;

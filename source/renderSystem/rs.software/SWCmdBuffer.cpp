@@ -190,6 +190,38 @@ namespace   FE
         return  FEResult::ER_SUCCESS;
     }
 
+    FEResult    SWCmdBuffer::drawArrayIndirectCount(    ITO         buffer,
+                                                        uint64      offset,
+                                                        ITO         countBuffer,
+                                                        uint64      countOffset,
+                                                        uint32_t    maxDrawCount,
+                                                        uint32_t    stride)
+    {
+        (void)buffer;
+        (void)offset;
+        (void)countBuffer;
+        (void)countOffset;
+        (void)maxDrawCount;
+        (void)stride;
+        return  FEResult::ER_SUCCESS;
+    }
+
+    FEResult    SWCmdBuffer::drawIndexedIndirectCount(  ITO         buffer,
+                                                        uint64      offset,
+                                                        ITO         countBuffer,
+                                                        uint64      countOffset,
+                                                        uint32_t    maxDrawCount,
+                                                        uint32_t    stride)
+    {
+        (void)buffer;
+        (void)offset;
+        (void)countBuffer;
+        (void)countOffset;
+        (void)maxDrawCount;
+        (void)stride;
+        return  FEResult::ER_SUCCESS;
+    }
+
     FEResult    SWCmdBuffer::setPrimitiveTopology(EPrimitive pri)
     {
         (void)pri;

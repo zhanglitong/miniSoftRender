@@ -87,6 +87,18 @@ namespace   FE
                                                     uint64      offset,
                                                     uint32_t    drawCount,
                                                     uint32_t    stride) override;
+        virtual FEResult    drawArrayIndirectCount( ITO         buffer,
+                                                    uint64      offset,
+                                                    ITO         countBuffer,
+                                                    uint64      countOffset,
+                                                    uint32_t    maxDrawCount,
+                                                    uint32_t    stride) override;
+        virtual FEResult    drawIndexedIndirectCount(   ITO         buffer,
+                                                        uint64      offset,
+                                                        ITO         countBuffer,
+                                                        uint64      countOffset,
+                                                        uint32_t    maxDrawCount,
+                                                        uint32_t    stride) override;
 
         virtual FEResult    setPrimitiveTopology(EPrimitive pri)  override;
 
