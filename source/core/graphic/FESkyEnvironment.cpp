@@ -90,12 +90,20 @@ namespace   FE
             }
         }
 
-        /// 3. 6 面共用一张深度目标(取 mip0 尺寸,低级别 mip 用更小的 renderArea 即可)
-        _depthImage =   device.createGImage();
+        /// 3. 深度目标:每级 mip 一张,尺寸与该级 color attachment 一致
+        _depthImages.clear();
+        _depthViews.clear();
+        _depthImages.resize(_mips);
+        _depthViews.resize(_mips);
+        for (uint mip = 0; mip < _mips; ++mip)
         {
+            const   uint    dim =   size >> mip;
+            if (dim == 0)
+                break;
+            _depthImages[mip]   =   device.createGImage();
             FEGImage::CreateInfo    info    =   {};
-            info._width     =   size;
-            info._height    =   size;
+            info._width     =   dim;
+            info._height    =   dim;
             info._depth     =   1;
             info._usage     =   USAGE_DEPTH_STENCIL_ATTACHMENT;
             info._type      =   IT_2D;
@@ -103,13 +111,19 @@ namespace   FE
             info._aspect    =   ASPECT_DEPTH_BIT;
             info._layout    =   IL_UNDEFINED;
             info._samples   =   _sampleCount;
-            if (!_depthImage->create(info))
+            if (_depthImages[mip] == nullptr || !_depthImages[mip]->create(info))
             {
-                LOG_ERR("FESkyEnvironment.setup: create depth target failed");
+                LOG_ERR("FESkyEnvironment.setup: create depth target(mip %u) failed",mip);
                 destroy();
                 return  false;
             }
-            _depthView  =   _depthImage->createView();
+            _depthViews[mip]    =   _depthImages[mip]->createView();
+            if (_depthViews[mip] == nullptr)
+            {
+                LOG_ERR("FESkyEnvironment.setup: create depth view(mip %u) failed",mip);
+                destroy();
+                return  false;
+            }
         }
 
         /// 3b. 多采样颜色目标(场景开启 MSAA 时需要):每级 mip 各一张,
@@ -213,8 +227,8 @@ namespace   FE
         _faceViews.clear();
         _msaaViews.clear();
         _msaaImages.clear();
-        _depthView  =   nullptr;
-        _depthImage =   nullptr;
+        _depthViews.clear();
+        _depthImages.clear();
         _cube       =   nullptr;
         _mips       =   0;
         _size       =   0;
@@ -243,7 +257,7 @@ namespace   FE
 
 
                 FECmdBuffer::RenderInfo rs  =   {};
-                rs._depth       =   _depthView;
+                rs._depth       =   (mip < _depthViews.size()) ? _depthViews[mip] : nullptr;
                 /// 开启 MSAA 时先渲染到该级 mip 的多采样目标,结束解析到该面
                 GImgView    msaaView    =   (mip < _msaaViews.size()) ? _msaaViews[mip] : nullptr;
                 rs._colors      =   {(msaaView != nullptr) ? msaaView : _faceViews[mip][face]};

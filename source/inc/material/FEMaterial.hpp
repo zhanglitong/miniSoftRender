@@ -54,7 +54,10 @@ namespace   FE
         {
             _value  =   {};
             _gpu    =   ctx.device().createSBO();
-            _gpu->create({sizeof(UType),usage});
+            /// 追加 INDIRECT 用途:存储缓冲同时可能作为间接绘制的计数缓冲
+            /// (drawArray/IndexedIndirectCount 的 countBuffer),缺少该用途时
+            /// Vulkan 校验层会报 buffer usage 不匹配
+            _gpu->create({sizeof(UType),usage,TRANSFER_DST_BIT | TRANSFER_SRC_BIT | INDIRECT_BUFFER_BIT});
         }
         void    update()
         {

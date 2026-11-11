@@ -85,7 +85,7 @@ namespace   FE
         // VertexWritableStorage: required when vertex shader accesses storage buffer
         // Immediates: WebGPU 原生 push_constant 等价物(var<immediate>),
         //             用于替代此前用 uniform buffer 模拟 push constant 的方案。
-        WGPUFeatureName requiredFeatures[] =
+        WGPUFeatureName requiredFeatures[8] =
         {
             (WGPUFeatureName)0x00030036,  // PassthroughShaders
             WGPUFeatureName_Depth32FloatStencil8,
@@ -124,11 +124,37 @@ namespace   FE
             LOG_WAR("WGDevice: MultiDrawIndirectCount support = false (draw*IndirectCount 不可用)");
         }
 
+        /// 间接绘制的 firstInstance 用于选择实例组(实例数据按组偏移存放)。
+        /// WebGPU 默认要求间接命令的 firstInstance == 0,不开启该特性时
+        /// 非 0 firstInstance 的整批命令会被丢弃(画面全黑)
+        bool    hasIndirectFirstInstance    =   wgpuAdapterHasFeature(adapter,WGPUFeatureName_IndirectFirstInstance) != 0;
+        if (hasIndirectFirstInstance)
+        {
+            LOG_INF("WGDevice: IndirectFirstInstance support = true");
+            requiredFeatures[featureCount ++]   =   WGPUFeatureName_IndirectFirstInstance;
+        }
+        else
+        {
+            LOG_WAR("WGDevice: IndirectFirstInstance support = false (间接绘制 firstInstance 必须为 0)");
+        }
+
         /// 请求 immediate data 上限。PointData 布局为 _mvp(mat4,64)+2*u32,
         /// sizeof=80,这里预留到 128 以容纳后续扩展。仅显式设置需要的字段,
         /// 其余保持 WGPU_LIMIT_U32_UNDEFINED(由实现回退到默认值)。
         WGPULimits requiredLimits =   WGPU_LIMITS_INIT;
         requiredLimits.maxImmediateSize   =   128;
+        /// OIT 链表等大型 SSBO(如 29M 节点 × 16B ≈ 450MB)超过 WebGPU 默认
+        /// 的 256MB maxBufferSize / 128MB maxStorageBufferBindingSize,
+        /// 直接用 adapter 实际上限覆盖这两项,其余保持默认
+        WGPULimits adapterLimits =   WGPU_LIMITS_INIT;
+        if (wgpuAdapterGetLimits(adapter,&adapterLimits) == WGPUStatus_Success)
+        {
+            requiredLimits.maxBufferSize                =   adapterLimits.maxBufferSize;
+            requiredLimits.maxStorageBufferBindingSize  =   adapterLimits.maxStorageBufferBindingSize;
+            LOG_INF("WGDevice limits: maxBufferSize=%llu maxStorageBufferBindingSize=%llu",
+                    (unsigned long long)adapterLimits.maxBufferSize,
+                    (unsigned long long)adapterLimits.maxStorageBufferBindingSize);
+        }
 
         WGPUDeviceDescriptor deviceDesc = {};
         deviceDesc.nextInChain              =   nullptr;

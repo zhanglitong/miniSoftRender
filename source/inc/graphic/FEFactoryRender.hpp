@@ -65,19 +65,6 @@ namespace   FE
                 uint    offset;
             };
             using   NodeUpdates     =   std::vector<NodeUpdate>;
-            /// <summary>
-            /// 预构建的绘制项:构建缓冲时一次性生成,
-            /// WGSL 路径每帧直接线性绘制,避免遍历节点×图元并调用 drawCmd
-            /// </summary>
-            struct  DrawItem
-            {
-                uint    _firstIndex     =   0;
-                uint    _count          =   0;
-                int     _baseVertex     =   0;
-                uint    _primCount      =   0;
-                uint    _instance       =   0;
-            };
-            using   DrawItems       =   std::vector<DrawItem>;
         public:
             GroupNode(FEContext& ctx)
                 :FEObject(ctx)
@@ -125,10 +112,6 @@ namespace   FE
             /// 裁剪所需要的材质
             /// </summary>
             Material    _cullMat;
-            /// <summary>
-            /// 预构建的绘制项(仅 WGSL 路径使用)
-            /// </summary>
-            DrawItems   _drawItems;
             /// <summary>
             /// 裁剪后命令数缓存:updateImpl 每帧失效,同一帧多趟渲染只做一次 GPU→CPU 回读
             /// </summary>

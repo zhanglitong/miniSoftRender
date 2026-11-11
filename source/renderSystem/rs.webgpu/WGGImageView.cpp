@@ -33,20 +33,25 @@ namespace   FE
 
         /// _layer == 6 视为立方体贴图(与 Vulkan 后端 VKGImageView 约定一致);
         /// 视图暴露全部 mip 与面,立方体贴图需要 arrayLayerCount=6 且 dimension=Cube
-        const bool      bCube   =   (imgInfo._layer == 6);
+        const bool      isLayered   =   info._layerCount != 0;
+        const bool      bCube       =   !isLayered && (imgInfo._layer == 6);
+        const uint32_t  layerCount  =   isLayered ? info._layerCount
+                                                  : (bCube ? 6 : (imgInfo._layer > 0 ? imgInfo._layer : 1));
         const uint32_t  mips    =   imgInfo._mips > 0 ? imgInfo._mips : 1;
 
         WGPUTextureViewDescriptor viewDesc = {};
         viewDesc.nextInChain        =   nullptr;
         viewDesc.format             =   viewFormat;
-        viewDesc.dimension          =   bCube ? WGPUTextureViewDimension_Cube : WGPUTextureViewDimension_2D;
+        viewDesc.dimension          =   bCube ? WGPUTextureViewDimension_Cube
+                                             : (layerCount > 1 ? WGPUTextureViewDimension_2DArray
+                                                               : WGPUTextureViewDimension_2D);
         viewDesc.aspect             =   WGPUTextureAspect_All;
         viewDesc.baseMipLevel       =   info._baseMip;
         viewDesc.mipLevelCount      =   info._levelCount > 0
                                             ? info._levelCount
                                             : mips;
-        viewDesc.baseArrayLayer     =   0;
-        viewDesc.arrayLayerCount    =   bCube ? 6 : 1;
+        viewDesc.baseArrayLayer     =   isLayered ? info._baseLayer : 0;
+        viewDesc.arrayLayerCount    =   layerCount;
 
         _native =   wgpuTextureCreateView((WGPUTexture)wgImage->native(),&viewDesc);
         return _native != nullptr;

@@ -10,13 +10,6 @@
 
 namespace   FE
 {
-    /// DEBUG: 帧采样审计——每 200 帧完整记录一次该帧全部 bindDescriptors 调用,
-    /// 用于对账后期帧的 dset→bind group 是否与创建期一致
-    static uint s_dbgFrameSeq   =   0;
-    static bool s_dbgFrameSampled   =   false;
-    /// DEBUG: 供 FEFactoryRender 组级打点读取的全局采样标志(定义于 core 端,
-    /// 与帧采样同步;插件不能反向导出符号给 core)
-    extern FE_API bool  g_dbgFrameSampled;
 
     WGCmdBuffer::~WGCmdBuffer()
     {
@@ -144,16 +137,50 @@ namespace   FE
         return FEResult::ER_FAILED;
     }
 
+    /// <summary>
+    /// 创建/复用无深度趟的占位深度目标(尺寸不小于颜色附件,采样数一致)
+    /// </summary>
+    void    WGCmdBuffer::ensureDummyDepth(uint width,uint height,uint samples)
+    {
+        if (width == 0 || height == 0)
+        {
+            width   =   1;
+            height  =   1;
+        }
+        if (samples == 0)
+            samples =   1;
+        if (_dummyDepthView && _dummyDepthW >= width && _dummyDepthH >= height
+            && _dummyDepthSamples == samples)
+            return;
+
+        _dummyDepthView =   nullptr;
+        _dummyDepth     =   _ctx.device().createGImage();
+        FEGImage::CreateInfo    info    =   {};
+        info._width     =   width;
+        info._height    =   height;
+        info._depth     =   1;
+        info._usage     =   USAGE_DEPTH_STENCIL_ATTACHMENT;
+        info._type      =   IT_2D;
+        info._format    =   FMT_D32_S8_UNORM;
+        info._aspect    =   ASPECT_DEPTH_BIT;
+        info._layout    =   IL_UNDEFINED;
+        info._samples   =   samples;
+        if (_dummyDepth == nullptr || !_dummyDepth->create(info))
+        {
+            LOG_ERR("WGCmdBuffer: create dummy depth(%ux%u samples=%u) failed",width,height,samples);
+            _dummyDepth =   nullptr;
+            return;
+        }
+        _dummyDepthW        =   width;
+        _dummyDepthH        =   height;
+        _dummyDepthSamples  =   samples;
+        _dummyDepthView     =   _dummyDepth->createView();
+    }
+
     FEResult WGCmdBuffer::beginRender(const RenderInfo& rs)
     {
         if (!_native)
             return FEResult::ER_FAILED;
-
-        ++s_dbgFrameSeq;
-        s_dbgFrameSampled   =   (s_dbgFrameSeq % 200 == 0);
-        g_dbgFrameSampled   =   s_dbgFrameSampled;
-        if (s_dbgFrameSampled)
-            LOG_ERR("WGFRAME: %u",s_dbgFrameSeq);
 
         WGPURenderPassDescriptor renderPassDesc = {};
         renderPassDesc.nextInChain      =   nullptr;
@@ -164,6 +191,16 @@ namespace   FE
         {
             attachments[0]  =   (WGPUTextureView)rs._colors.front()->native();
         }
+        /// 该趟没有深度附件时挂一张同尺寸占位深度:管线统一声明了深度格式,
+        /// WebGPU 在 set_pipeline 时要求 pass 附件与管线完全一致
+        if (depthAttachment == nullptr && !rs._colors.empty() && rs._colors.front()
+            && rs._colors.front()->cInfo()._image)
+        {
+            const auto& imgInfo =   rs._colors.front()->cInfo()._image->cInfo();
+            ensureDummyDepth(imgInfo._width,imgInfo._height,imgInfo._samples);
+            if (_dummyDepthView)
+                depthAttachment =   (WGPUTextureView)_dummyDepthView->native();
+        }
 
         WGPURenderPassColorAttachment colorAttachment = {};
         colorAttachment.view                =   attachments[0];
@@ -172,32 +209,38 @@ namespace   FE
                                                 ? (WGPUTextureView)rs._resolveColors.front()->native()
                                                 : nullptr;
         colorAttachment.clearValue          =   { rs._clearColor.x,rs._clearColor.y,rs._clearColor.z,rs._clearColor.w };
-        colorAttachment.loadOp              =   WGPULoadOp_Clear;
+        colorAttachment.loadOp              =   (rs._loadColor || rs._skipColor) ? WGPULoadOp_Load : WGPULoadOp_Clear;
         colorAttachment.storeOp             =   WGPUStoreOp_Store;
         /// depthSlice 必须显式设为 WGPU_DEPTH_SLICE_UNDEFINED,否则默认 0 会被当作
         /// "使用第 0 层切片",而 swapchain 颜色附件是 2D 纹理视图,触发验证错误:
         /// "Depth slice was provided but the color attachment's view is not 3D"。
         colorAttachment.depthSlice          =   WGPU_DEPTH_SLICE_UNDEFINED;
 
+        /// WebGPU 要求 render pass 附件数量与管线声明的颜色目标完全一致,
+        /// 不能像 Vulkan 那样直接不挂颜色附件(colorAttachmentCount=0 会报
+        /// "Incompatible color attachments")。_skipColor 的趟改为 Load/Store:
+        /// 既不清理也不写回,语义上等价于"不触碰颜色附件"
         renderPassDesc.colorAttachmentCount =   1;
         renderPassDesc.colorAttachments     =   &colorAttachment;
 
         WGPURenderPassDepthStencilAttachment depthStencilAttachment = {};
         depthStencilAttachment.view             =   depthAttachment;
         depthStencilAttachment.depthClearValue  =   rs._clearDepth;
-        depthStencilAttachment.depthLoadOp      =   WGPULoadOp_Clear;
+        depthStencilAttachment.depthLoadOp      =   rs._loadDepth ? WGPULoadOp_Load : WGPULoadOp_Clear;
         depthStencilAttachment.depthStoreOp     =   WGPUStoreOp_Store;
         depthStencilAttachment.stencilClearValue=   rs._clearStencil;
         depthStencilAttachment.stencilLoadOp    =   WGPULoadOp_Clear;
         depthStencilAttachment.stencilStoreOp   =   WGPUStoreOp_Store;
 
-        renderPassDesc.depthStencilAttachment =   &depthStencilAttachment;
+        renderPassDesc.depthStencilAttachment = (depthAttachment == nullptr) ? nullptr : &depthStencilAttachment;
 
         _renderPassEncoder =   wgpuCommandEncoderBeginRenderPass(_native,   &renderPassDesc);
         if (!_renderPassEncoder)
             return FEResult::ER_FAILED;
 
         /// 新的 render pass:顶点缓冲绑定状态重置,避免沿用上一趟 pass 的槽位记录
+        _currentPipeline    =   nullptr;
+        _pendingPipeline    =   nullptr;
         _vbSlotBound.clear();
         _vbSlotInstance.clear();
         _vbSlotStride.clear();
@@ -253,8 +296,7 @@ namespace   FE
         auto* wgPipeline = const_cast<WGPipeline*>(static_cast<const WGPipeline*>(pl.get()));
         if (wgPipeline)
         {
-            _currentPipeline =   (WGPURenderPipeline)wgPipeline->native();
-            wgpuRenderPassEncoderSetPipeline(_renderPassEncoder,_currentPipeline);
+            _pendingPipeline =   (WGPURenderPipeline)wgPipeline->native();
 
             /// 记录该管线声明的顶点缓冲槽位(stride/步进模式),
             /// 并在 draw 前把未绑定或覆盖不足的槽位用零缓冲补齐(见 ensureVertexSlots)。
@@ -300,12 +342,6 @@ namespace   FE
                     else if (_renderPassEncoder)
                     {
                         wgpuRenderPassEncoderSetBindGroup(_renderPassEncoder,dss.firstSet + (uint32_t)i,bindGroup,0,nullptr);
-                    }
-                    /// DEBUG: 绘制时实际绑定的 dset,与 WGDSET.ubo 创建记录对账
-                    /// (帧采样:每 200 帧完整记录一次,覆盖后期帧状态)
-                    if (s_dbgFrameSampled)
-                    {
-                        LOG_ERR("WGCMD.bind: dset=%p set=%zu bg=%p",(void*)wgSet,i,(void*)bindGroup);
                     }
                     _bindGroups.push_back(bindGroup);
                 }
@@ -464,6 +500,8 @@ namespace   FE
         (void)shaderBits;
         if (!_renderPassEncoder || size == 0 || data == nullptr)
             return FEResult::ER_SUCCESS;
+        /// WebGPU 要求 set_immediates 时已有绑定的管线(延迟绑定需先落地)
+        flushPipeline();
         wgpuRenderPassEncoderSetImmediates(_renderPassEncoder,offset,data,(size_t)size);
         return FEResult::ER_SUCCESS;
     }
@@ -535,6 +573,7 @@ namespace   FE
             return FEResult::ER_FAILED;
 
         ensureVertexSlots(firstInstance,instanceCount);
+        flushPipeline();
         wgpuRenderPassEncoderDraw(_renderPassEncoder,vertexCount,instanceCount,firstVertex,firstInstance);
         return FEResult::ER_SUCCESS;
     }
@@ -545,6 +584,7 @@ namespace   FE
             return FEResult::ER_FAILED;
 
         ensureVertexSlots(firstInstance,instanceCount);
+        flushPipeline();
         wgpuRenderPassEncoderDrawIndexed(_renderPassEncoder,indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
         return FEResult::ER_SUCCESS;
     }
@@ -557,6 +597,7 @@ namespace   FE
         auto* wgBuf = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(buffer.get()));
         if (wgBuf == nullptr || drawCount == 0)
             return FEResult::ER_SUCCESS;
+        flushPipeline();
         /// wgpu 的多重绘制要求命令紧密排列(步长等于命令大小),否则逐条绘制
         if (stride != sizeof(FECmdIndex))
         {
@@ -576,6 +617,7 @@ namespace   FE
         auto* wgBuf = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(buffer.get()));
         if (wgBuf == nullptr || drawCount == 0)
             return FEResult::ER_SUCCESS;
+        flushPipeline();
         /// wgpu 的多重绘制要求命令紧密排列(步长等于命令大小),否则逐条绘制
         if (stride != sizeof(FECmdIndex))
         {
@@ -600,6 +642,7 @@ namespace   FE
         /// 且要求命令紧密排列,无法用逐条绘制模拟(count 在 GPU 端)
         if (stride != sizeof(FECmdIndex))
             return FEResult::ER_FAILED;
+        flushPipeline();
         wgpuRenderPassEncoderMultiDrawIndirectCount(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset,
                                                     (WGPUBuffer)wgCount->native(),countOffset,maxDrawCount);
         return FEResult::ER_SUCCESS;
@@ -617,6 +660,7 @@ namespace   FE
         /// 同上:命令必须紧密排列
         if (stride != sizeof(FECmdIndex))
             return FEResult::ER_FAILED;
+        flushPipeline();
         wgpuRenderPassEncoderMultiDrawIndexedIndirectCount(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset,
                                                            (WGPUBuffer)wgCount->native(),countOffset,maxDrawCount);
         return FEResult::ER_SUCCESS;

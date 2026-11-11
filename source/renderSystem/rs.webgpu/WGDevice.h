@@ -43,6 +43,19 @@ namespace   FE
         {
             return  _gpuInfo.gpu;
         }
+        /// <summary>
+        /// 当前窗口交换链的颜色格式(无交换链时为 RGBA8Unorm)。
+        /// 引擎的 MSAA/场景/探针等颜色目标均跟随交换链格式,而管线在创建时
+        /// 必须声明与附件一致的格式,因此这里作为管线默认颜色格式的唯一来源。
+        /// </summary>
+        inline  WGPUTextureFormat   surfaceFormat() const
+        {
+            return  _surfaceFormat;
+        }
+        inline  void    setSurfaceFormat(WGPUTextureFormat fmt)
+        {
+            _surfaceFormat  =   fmt;
+        }
 
         virtual FEResult    create(const CreateInfo& cInfo) override;
 
@@ -103,5 +116,7 @@ namespace   FE
         Queue         _queueTransfer   =   nullptr;
         bool          _hasPassthroughShaders = false;
         bool          _hasFloat32Filterable  = false;
+        /// 交换链颜色格式(无窗口时保持 RGBA8Unorm,与离屏目标一致)
+        WGPUTextureFormat   _surfaceFormat   =   WGPUTextureFormat_RGBA8Unorm;
     };
 }
