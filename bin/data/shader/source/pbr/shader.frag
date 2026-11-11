@@ -412,7 +412,10 @@ void main()
         /// "平均法线 ≈ 平面":用 uv 的屏幕足迹把切线空间扰动平滑淡出到 0。
         vec2    nrmTs   =   vec2(textureSize(u_NormalTex, 0));
         vec2    nrmFoot =   max(abs(dFdx(uvN)) * nrmTs, abs(dFdy(uvN)) * nrmTs);
-        float   nrmFade =   smoothstep(0.2, 1.0, max(nrmFoot.x, nrmFoot.y));
+        /// 仅对清漆车漆(高频闪片法线)生效:轮胎/轮毂/机械件等材质的纹路
+        /// 本身就靠法线贴图表达,不能一起淡掉,否则正常视距下纹路会消失
+        float   nrmFade =   (_pbrClearcoatStrength > 0.0)
+                          ? smoothstep(0.2, 1.0, max(nrmFoot.x, nrmFoot.y)) : 0.0;
         normalSample.xy *= normalScale * (1.0 - nrmFade);
         n = normalize(TBN * normalSample);
     }

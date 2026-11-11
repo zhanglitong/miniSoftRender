@@ -173,9 +173,10 @@ int main(int argc, char** argv)
     constexpr int       kEnvCount   =   int(sizeof(kEnvs) / sizeof(kEnvs[0]));
 
     FEApp::CreateInfo info{};
-    info._width = 1280; info._height = 720;
-    info._appInst = GetModuleHandle(nullptr);   /// WebGPU surface 创建需要正确的 HINSTANCE
-    info._notify = [&](const FEMessage& msg)
+    info._width     =   1280; 
+    info._height    =   720;
+    info._appInst   =   GetModuleHandle(nullptr);   /// WebGPU surface 创建需要正确的 HINSTANCE
+    info._notify    =   [&](const FEMessage& msg)
     {
         /// 面板先把鼠标消息喂给 ImGui,并在其捕获鼠标时阻止场景响应
         const bool blockScene = panel.onMessage(msg);
