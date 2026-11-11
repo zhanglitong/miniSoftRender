@@ -901,17 +901,13 @@ namespace   FE
     {
         LodInfs     lodInfos;
         IndexCounts count   =   indexCount(meshSet,_key._primitive);
-        if (count._indices == 0)
-        {
-            /// DRAW_ARRAY 没有索引表,不参与 LOD;仍提供一个 4 项的空缓冲,
-            /// 保证裁剪材质 binding 6 始终有合法资源(命令 LOD 偏移全为 -1 不会读取)
-            lodInfos.assign(4,LodInf{});
-            _vboLod =   buildLodVBO(lodInfos.data(),uint64(lodInfos.size()) * sizeof(LodInf));
-            return  nullptr;
-        }
         /// <summary>
-        /// 按 IBO 写入顺序为带 LOD 的图元分配偏移(第 n 个带 LOD 图元 = n*4),
-        /// 并收集固定 4 项 LOD 数据;没有 LOD 的图元偏移置 -1,不占用 LOD 数据
+        /// 按 IBO/顶点流写入顺序为带 LOD 的图元分配偏移(第 n 个带 LOD 图元 = n*4),
+        /// 并收集固定 4 项 LOD 数据;没有 LOD 的图元偏移置 -1,不占用 LOD 数据。
+        /// LOD 与是否索引绘制无关:非索引图元的 LOD 用顶点区间表达(shader 只对
+        /// 命令的 first/count 做 start 累加与 count 覆盖),其 start/count 与命令
+        /// 字段同单位。偏移挂在图元上、会跨重建保留,所以这段记账必须在
+        /// "无索引数据"的提前返回之前完成,否则会残留上一次构建的偏移
         /// </summary>
         {
             uint    lodIdx  =   0;
@@ -927,10 +923,15 @@ namespace   FE
                         srcPri->setLodOffset(-1);
                         continue;
                     }
-                    /// 图元索引总数(取法与下面 IBO 写入一致)
+                    /// 图元自身的几何总量:索引绘制取索引数,非索引绘制取顶点数
+                    /// (与 applyLod 写回的命令 count 同单位,保证越界校验有效)
                     uint    total   =   0;
                     switch (_key._drawType)
                     {
+                    case FE::DRAW_ARRAY:
+                        /// 非索引绘制按顶点数校验:LOD 的 start/count 即顶点区间
+                        total   =   srcPri->as<FEDrawArray>()->count();
+                        break;
                     case FE::DRAW_ELEMENT_UINT8:
                         total   =   srcPri->as<FEDrawElementUint8>()->count();
                         break;
@@ -946,7 +947,7 @@ namespace   FE
                     if (!validLod(*lod,total))
                     {
                         /// 坏 LOD 数据按无 LOD 处理,避免命令 count 被清零或越界读 IBO
-                        ctx().log().error("FEFactoryRender: invalid lod data (mesh %p, primitive %d, indices %u), treat as no lod"
+                        ctx().log().error("FEFactoryRender: invalid lod data (mesh %p, primitive %d, total %u), treat as no lod"
                                          ,(const void*)var.get(),int(_key._primitive),total);
                         srcPri->setLodOffset(-1);
                         continue;
@@ -967,6 +968,13 @@ namespace   FE
         /// 没有任何带 LOD 的图元时仍提供一个空块,保证 binding 6 始终有合法资源
         if (lodInfos.empty())
             lodInfos.assign(4,LodInf{});
+        /// 非索引绘制本来就没有索引表;索引数据为空时也不创建空 IBO。
+        /// LOD 数据已在上面写定,这里只是不分配 IBO,不影响 LOD 记账
+        if (_key._drawType == FE::DRAW_ARRAY || count._bytes == 0)
+        {
+            _vboLod =   buildLodVBO(lodInfos.data(),uint64(lodInfos.size()) * sizeof(LodInf));
+            return  nullptr;
+        }
         IBO     cpu     =   _device.createIBO();
         if(!cpu->create({count._bytes,HOST_VISIBLE_BIT}))
         {

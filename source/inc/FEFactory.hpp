@@ -50,8 +50,8 @@ namespace   FE
             /// </summary>
             UO_Skin         =   MaxInt16,
         };
-        static_assert(UO_Default < UO_Animation,"默认系统必须排在动画之前");
-        static_assert(UO_Animation < UO_Constraint,"动画必须在约束之前执行");
+        static_assert(UO_Default    < UO_Animation,"默认系统必须排在动画之前");
+        static_assert(UO_Animation  < UO_Constraint,"动画必须在约束之前执行");
         static_assert(UO_Constraint < UO_Skin,"约束必须在蒙皮之前执行");
     public:
         enum  FactoryFlag
