@@ -731,6 +731,38 @@ namespace   FE
         return  FEResult::ER_SUCCESS;
     }
 
+    FEResult    VKCmdBuffer::drawArrayIndirectCount(    ITO         buffer,
+                                                        uint64      offset,
+                                                        ITO         countBuffer,
+                                                        uint64      countOffset,
+                                                        uint32_t    maxDrawCount,
+                                                        uint32_t    stride)
+    {
+        if (!isValid() || !buffer || !countBuffer)
+            return  FEResult::ER_FAILED;
+        /// Vulkan 1.2 核心(等价 VK_KHR_draw_indirect_count):
+        /// countBuffer 中的计数值决定实际条数,maxDrawCount 只是上限
+        vkCmdDrawIndirectCount(_native,(VkBuffer)buffer->native(),offset,
+                                      (VkBuffer)countBuffer->native(),countOffset,
+                                      maxDrawCount,stride);
+        return  FEResult::ER_SUCCESS;
+    }
+
+    FEResult    VKCmdBuffer::drawIndexedIndirectCount(  ITO         buffer,
+                                                        uint64      offset,
+                                                        ITO         countBuffer,
+                                                        uint64      countOffset,
+                                                        uint32_t    maxDrawCount,
+                                                        uint32_t    stride)
+    {
+        if (!isValid() || !buffer || !countBuffer)
+            return  FEResult::ER_FAILED;
+        vkCmdDrawIndexedIndirectCount(_native,(VkBuffer)buffer->native(),offset,
+                                             (VkBuffer)countBuffer->native(),countOffset,
+                                             maxDrawCount,stride);
+        return  FEResult::ER_SUCCESS;
+    }
+
     FEResult    VKCmdBuffer::setPrimitiveTopology(EPrimitive pri) 
     {
         if (!isValid())

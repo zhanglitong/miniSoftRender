@@ -178,6 +178,26 @@ namespace   FE
                                                     uint64      offset,
                                                     uint32_t    cullCount,
                                                     uint32_t    stride) =   0;
+        /// <summary>
+        /// 间接绘制,实际绘制条数由 GPU 缓冲区给出(vkCmdDrawIndirectCount):
+        /// 从 countBuffer 的 countOffset 处读取条数,maxDrawCount 为上限,stride 为命令步长
+        /// </summary>
+        virtual FEResult    drawArrayIndirectCount( ITO         buffer,
+                                                    uint64      offset,
+                                                    ITO         countBuffer,
+                                                    uint64      countOffset,
+                                                    uint32_t    maxDrawCount,
+                                                    uint32_t    stride) =   0;
+        /// <summary>
+        /// 带索引的间接绘制,条数同样由 GPU 缓冲区给出(vkCmdDrawIndexedIndirectCount)
+        /// </summary>
+        virtual FEResult    drawIndexedIndirectCount(   ITO         buffer,
+                                                        uint64      offset,
+                                                        ITO         countBuffer,
+                                                        uint64      countOffset,
+                                                        uint32_t    maxDrawCount,
+                                                        uint32_t    stride) =   0;
+                                                    
 
         virtual FEResult    setPrimitiveTopology(EPrimitive pri)    =   0;
         virtual FEResult    dispatch(uint x,uint y,uint z) =   0;

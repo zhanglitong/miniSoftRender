@@ -95,13 +95,34 @@ namespace   FE
             /// 可被线性采样。WebGPU 核心里该格式不可过滤,若不开启,"float 采样类型 +
             /// 过滤采样器"的组合在创建 bind group 时会校验失败(PBR 环境图依赖线性采样)。
             /// 仅在 adapter 支持时请求,避免其不支持时设备请求整体失败。
-            WGPUFeatureName_Float32Filterable
+            WGPUFeatureName_Float32Filterable,
+            /// MultiDrawIndirectCount:绘制条数由 GPU 缓冲区决定
+            /// (drawArray/IndexedIndirectCount 依赖该特性)
+            (WGPUFeatureName)WGPUNativeFeature_MultiDrawIndirectCount
         };
+        uint32_t    featureCount    =   4;
         _hasFloat32Filterable   =   wgpuAdapterHasFeature(adapter,WGPUFeatureName_Float32Filterable) != 0;
         if (_hasFloat32Filterable)
+        {
             LOG_INF("WGDevice: Float32Filterable support = true");
+            requiredFeatures[featureCount ++]   =   WGPUFeatureName_Float32Filterable;
+        }
         else
+        {
             LOG_WAR("WGDevice: Float32Filterable support = false (HDR float 纹理不可线性采样)");
+        }
+
+        /// 仅 adapter 支持时请求,否则设备请求会整体失败
+        bool    hasMultiDrawIndirectCount   =   wgpuAdapterHasFeature(adapter,(WGPUFeatureName)WGPUNativeFeature_MultiDrawIndirectCount) != 0;
+        if (hasMultiDrawIndirectCount)
+        {
+            LOG_INF("WGDevice: MultiDrawIndirectCount support = true");
+            requiredFeatures[featureCount ++]   =   (WGPUFeatureName)WGPUNativeFeature_MultiDrawIndirectCount;
+        }
+        else
+        {
+            LOG_WAR("WGDevice: MultiDrawIndirectCount support = false (draw*IndirectCount 不可用)");
+        }
 
         /// 请求 immediate data 上限。PointData 布局为 _mvp(mat4,64)+2*u32,
         /// sizeof=80,这里预留到 128 以容纳后续扩展。仅显式设置需要的字段,
@@ -112,7 +133,7 @@ namespace   FE
         WGPUDeviceDescriptor deviceDesc = {};
         deviceDesc.nextInChain              =   nullptr;
         deviceDesc.label                    =   { "Device",6 };
-        deviceDesc.requiredFeatureCount     =   _hasFloat32Filterable ? 5 : 4;
+        deviceDesc.requiredFeatureCount     =   featureCount;
         deviceDesc.requiredFeatures         =   requiredFeatures;
         deviceDesc.requiredLimits           =   &requiredLimits;
         deviceDesc.defaultQueue             =   {};

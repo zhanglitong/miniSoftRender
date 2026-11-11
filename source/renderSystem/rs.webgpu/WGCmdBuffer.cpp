@@ -1,4 +1,5 @@
 #include    "WGCmdBuffer.h"
+#include    "graphic/FECmdDraw.h"
 #include    "WGDevice.h"
 #include    "WGGPUBuffer.h"
 #include    "WGPipeline.h"
@@ -550,31 +551,74 @@ namespace   FE
 
     FEResult WGCmdBuffer::drawArrayIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride)
     {
-        (void)drawCount;
-        (void)stride;
         if (!_renderPassEncoder || !buffer)
             return FEResult::ER_FAILED;
 
         auto* wgBuf = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(buffer.get()));
-        if (wgBuf)
+        if (wgBuf == nullptr || drawCount == 0)
+            return FEResult::ER_SUCCESS;
+        /// wgpu 的多重绘制要求命令紧密排列(步长等于命令大小),否则逐条绘制
+        if (stride != sizeof(FECmdIndex))
         {
-            wgpuRenderPassEncoderDrawIndirect(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset);
+            for (uint32_t i = 0; i < drawCount; ++ i)
+                wgpuRenderPassEncoderDrawIndirect(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset + uint64(i) * stride);
+            return FEResult::ER_SUCCESS;
         }
+        wgpuRenderPassEncoderMultiDrawIndirect(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset,drawCount);
         return FEResult::ER_SUCCESS;
     }
 
     FEResult WGCmdBuffer::drawIndexedIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride)
     {
-        (void)drawCount;
-        (void)stride;
         if (!_renderPassEncoder || !buffer)
             return FEResult::ER_FAILED;
 
         auto* wgBuf = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(buffer.get()));
-        if (wgBuf)
+        if (wgBuf == nullptr || drawCount == 0)
+            return FEResult::ER_SUCCESS;
+        /// wgpu 的多重绘制要求命令紧密排列(步长等于命令大小),否则逐条绘制
+        if (stride != sizeof(FECmdIndex))
         {
-            wgpuRenderPassEncoderDrawIndexedIndirect(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset);
+            for (uint32_t i = 0; i < drawCount; ++ i)
+                wgpuRenderPassEncoderDrawIndexedIndirect(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset + uint64(i) * stride);
+            return FEResult::ER_SUCCESS;
         }
+        wgpuRenderPassEncoderMultiDrawIndexedIndirect(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset,drawCount);
+        return FEResult::ER_SUCCESS;
+    }
+
+    FEResult WGCmdBuffer::drawArrayIndirectCount(ITO buffer,uint64 offset,ITO countBuffer,uint64 countOffset,uint32_t maxDrawCount,uint32_t stride)
+    {
+        if (!_renderPassEncoder || !buffer || !countBuffer)
+            return FEResult::ER_FAILED;
+
+        auto* wgBuf   = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(buffer.get()));
+        auto* wgCount = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(countBuffer.get()));
+        if (wgBuf == nullptr || wgCount == nullptr || maxDrawCount == 0)
+            return FEResult::ER_SUCCESS;
+        /// MultiDraw*IndirectCount 依赖设备的 MultiDrawIndirectCount 原生特性,
+        /// 且要求命令紧密排列,无法用逐条绘制模拟(count 在 GPU 端)
+        if (stride != sizeof(FECmdIndex))
+            return FEResult::ER_FAILED;
+        wgpuRenderPassEncoderMultiDrawIndirectCount(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset,
+                                                    (WGPUBuffer)wgCount->native(),countOffset,maxDrawCount);
+        return FEResult::ER_SUCCESS;
+    }
+
+    FEResult WGCmdBuffer::drawIndexedIndirectCount(ITO buffer,uint64 offset,ITO countBuffer,uint64 countOffset,uint32_t maxDrawCount,uint32_t stride)
+    {
+        if (!_renderPassEncoder || !buffer || !countBuffer)
+            return FEResult::ER_FAILED;
+
+        auto* wgBuf   = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(buffer.get()));
+        auto* wgCount = const_cast<WGGPUBuffer*>(static_cast<const WGGPUBuffer*>(countBuffer.get()));
+        if (wgBuf == nullptr || wgCount == nullptr || maxDrawCount == 0)
+            return FEResult::ER_SUCCESS;
+        /// 同上:命令必须紧密排列
+        if (stride != sizeof(FECmdIndex))
+            return FEResult::ER_FAILED;
+        wgpuRenderPassEncoderMultiDrawIndexedIndirectCount(_renderPassEncoder,(WGPUBuffer)wgBuf->native(),offset,
+                                                           (WGPUBuffer)wgCount->native(),countOffset,maxDrawCount);
         return FEResult::ER_SUCCESS;
     }
 

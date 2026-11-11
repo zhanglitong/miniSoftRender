@@ -83,6 +83,8 @@ namespace   FE
         virtual FEResult    drawIndex(uint32_t firstIndex,uint32_t indexCount,int32_t vertexOffset,uint32_t firstInstance,uint32_t instanceCount) override;
         virtual FEResult    drawArrayIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride) override;
         virtual FEResult    drawIndexedIndirect(ITO buffer,uint64 offset,uint32_t drawCount,uint32_t stride) override;
+        virtual FEResult    drawArrayIndirectCount(ITO buffer,uint64 offset,ITO countBuffer,uint64 countOffset,uint32_t maxDrawCount,uint32_t stride) override;
+        virtual FEResult    drawIndexedIndirectCount(ITO buffer,uint64 offset,ITO countBuffer,uint64 countOffset,uint32_t maxDrawCount,uint32_t stride) override;
 
         virtual FEResult    setPrimitiveTopology(EPrimitive pri) override;
         virtual FEResult    dispatch(uint x,uint y,uint z) override;
