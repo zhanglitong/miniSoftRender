@@ -1,41 +1,56 @@
 #pragma     once
-#include    <cstdio>
+#include    <cassert>
+#include    <cstdint>
 #include    <cstring>
-#include    <fstream>
+#include    <filesystem>
 #include    <functional>
-#include    <iterator>
-#include    <sstream>
+#include    <memory>
+#include    <string>
+#include    <type_traits>
+#include    <utility>
 #include    <variant>
+#include    <vector>
 #include    "FEDefine.h"
 #include    "FEDelegate.hpp"
 #include    "FEMath.hpp"
-#include    "FEXML.hpp"
 
 namespace   FE
 {
     /// <summary>
-    /// 分层配置容器:每个节点持有一个 variant 值、若干子节点和一组变更通知。
-    /// 值的类型在首次写入时确定,之后不允许改变。
+    /// 分层配置容器:每个节点持有一个 variant 值、若干子节点。
+    /// 值的类型在首次写入时确定,之后不允许改变(反序列化除外)。
     /// </summary>
-    class   FESetting
+    class   FE_API  FESetting
     {
     public:
         class   Item;
+        /// <summary>
+        /// 下拉列表值:options 为候选文本,index 为当前选中下标(-1 表示未选中)
+        /// </summary>
+        struct  Combo
+        {
+            Strings     _options;
+            int32       _index  =   -1;
+            bool    operator==(const Combo& rhs) const
+            {
+                return  _index == rhs._index && _options == rhs._options;
+            }
+        };
         using   Value   =   std::variant<std::monostate
                                         , bool,  int32_t, uint32_t, int64_t, uint64_t, float, double
                                         , int2,   int3,   int4
                                         , uint2,  uint3,  uint4
                                         , float2, float3, float4
                                         , real2,  real3,  real4
-                                        , std::string>;
+                                        , std::string
+                                        , Combo>;
         /// <summary>
-        /// 当前item,以及历史值,如果第二个为nullptr,则是第一次设置
-        /// 回调中可以安全地 bind/unbind;对同一个 Item 的重入 set 通知会被丢弃,避免递归
+        /// 值变更通知:第一个参数是当前 item,第二个是旧值;为 nullptr 表示首次设置
         /// 注册方式:bind(key,fn)、bind({对象,&Class::方法}) 或 changes() += {对象,&Class::方法}
         /// </summary>
-        using   NotifyChange    =   std::function<void(const Item& Item,const Value*)>;
-        using   NotifyChanges   =   FETMultiDelegate<void(const Item& Item,const Value*)>;
-        using   NotifyArg       =   FEDelegateArg<void(const Item& Item,const Value*)>;
+        using   NotifyChange    =   std::function<void(const Item& ,   const Value*)>;
+        using   NotifyChanges   =   FETMultiDelegate<void(const Item& ,const Value*)>;
+        using   NotifyArg       =   FEDelegateArg<void(const Item& ,   const Value*)>;
         class   Item
         {
         public:
@@ -75,7 +90,7 @@ namespace   FE
                 return  *this;
             }
             /// <summary>
-            /// 移除通知
+            /// 移除指定对象的所有通知
             /// </summary>
             inline  Item&   unbind(const void* key)
             {
@@ -84,7 +99,7 @@ namespace   FE
                 return  *this;
             }
             /// <summary>
-            /// 清除通知
+            /// 清除全部通知
             /// </summary>
             inline  void    clearNotify()
             {
@@ -102,14 +117,35 @@ namespace   FE
                 return  _notifys;
             }
             /// <summary>
-            /// 获取，如果没有，添加
+            /// 获取子节点,不存在则新建;支持 "a/b/c" 层级写法,等价于 get("a").get("b").get("c")
+            /// 中间层按需创建,defaultValue 只作用于最后一级节点
             /// </summary>
-            inline  Item&   get(const char* name)
+            inline  Item&   get(const char* name,const Value& defaultValue = Value())
             {
+                const   char*   sep =   name != nullptr ? std::strchr(name,'/') : nullptr;
+                if (sep != nullptr)
+                {
+                    /// 跳过前导分隔符,如 "/a" 等同 "a"
+                    if (sep == name)
+                    {
+                        if (sep[1] == '\0')
+                            return  *this;
+                        return  get(sep + 1,defaultValue);
+                    }
+                    String  head(name,size_t(sep - name));
+                    Item&   parent  =   get(head.c_str());
+                    /// 忽略尾随分隔符,如 "a/" 等同 "a"
+                    if (sep[1] == '\0')
+                        return  parent;
+                    return  parent.get(sep + 1,defaultValue);
+                }
                 auto    item    =   find(name);
                 if (item == nullptr)
                 {
                     auto    child   =   std::make_shared<Item>(name);
+                    /// 默认值不是 monostate 时写入新节点,等价于 get(...).setIfUnset(...)
+                    if (!std::holds_alternative<std::monostate>(defaultValue))
+                        child->_value   =   defaultValue;
                     _childs.emplace_back(child);
                     return  *child;
                 }
@@ -130,16 +166,16 @@ namespace   FE
                 }
                 return  (Item*)nullptr;
             }
-            inline  auto    find(const char* name) const
+            const   Item*   find(const char* name) const
             {
                 if (name == nullptr)
-                    return  (Item*)nullptr;
+                    return  nullptr;
                 for (auto& var : _childs)
                 {
                     if (var->_name == name)
                         return  var.get();
                 }
-                return  (Item*)nullptr;
+                return  nullptr;
             }
             /// <summary>
             /// 是否存在指定子节点
@@ -187,28 +223,30 @@ namespace   FE
             {
                 return  _value;
             }
-            inline  auto&   children() const
+            
+            /// <summary>
+            /// 只读访问第 index 个子节点,越界返回 nullptr
+            /// </summary>
+           const   Item*    childAt(size_t index) const
             {
-                return  _childs;
+                return  index < _childs.size() ? _childs[index].get() : nullptr;
             }
             /// <summary>
             /// 只读获取值,未设置或类型不符返回 nullptr,无副作用
             /// </summary>
             template<class TVal>
-            const TVal*     value() const
+            const   TVal*    valuePtr() const
             {
-                static_assert(!std::is_same_v<TVal, const char*> && !std::is_same_v<TVal, char*>
-                            , "字符串请使用 String");
+                static_assert(!std::is_same_v<TVal, const char*> && !std::is_same_v<TVal, char*>, "字符串请使用 String");
                 return  std::get_if<TVal>(&_value);
             }
             /// <summary>
             /// 只读获取值,未设置或类型不符返回默认值
             /// </summary>
             template<class TVal>
-            inline  TVal    getOr(const TVal& def) const
+            inline  TVal    value(const TVal& def = TVal()) const
             {
-                static_assert(!std::is_same_v<TVal, const char*> && !std::is_same_v<TVal, char*>
-                            , "字符串请使用 String");
+                static_assert(!std::is_same_v<TVal, const char*> && !std::is_same_v<TVal, char*>, "字符串请使用 String");
                 auto    pVal    =   std::get_if<TVal>(&_value);
                 return  pVal    ?   *pVal   :   def;
             }
@@ -234,7 +272,7 @@ namespace   FE
                     assert(false && "FESetting: value type mismatch");
                     return  *this;
                 }
-                if ((*pOld) == val)
+                if (sameValue(*pOld,val))
                     return  *this;
                 /// 没有监听者时不需要保存旧值
                 if (_notifys.size() == 0)
@@ -255,6 +293,15 @@ namespace   FE
                 return  set(String(val ? val : ""));
             }
             /// <summary>
+            /// 反序列化专用:直接覆盖值,允许改变已有类型(跳过 set 的类型锁定)
+            /// </summary>
+            template<class TVal>
+            inline  Item&   setUnchecked(const TVal& val)
+            {
+                _value  =   val;
+                return  *this;
+            }
+            /// <summary>
             /// 未初始化时写入默认值,已初始化则保持原值
             /// </summary>
             template<class TVal>
@@ -272,35 +319,33 @@ namespace   FE
             }
         protected:
             /// <summary>
-            /// 触发通知:先拷贝通知表,允许回调中 bind/unbind
+            /// 触发通知:先拷贝通知表,允许回调中 bind/unbind;同一 Item 的重入 set 通知会被丢弃
             /// </summary>
             inline  void    fire(const Value* old) const
             {
                 if (_notifying || _notifys.size() == 0)
                     return;
-                struct  Guard
-                {
-                    bool&   _flag;
-                    Guard(bool& flag)
-                        :   _flag(flag)
-                    {
-                        _flag   =   true;
-                    }
-                    ~Guard()
-                    {
-                        _flag   =   false;
-                    }
-                };
-                Guard           guard(_notifying);
+                _notifying  =   true;
                 NotifyChanges   notifys =   _notifys;
                 notifys(*this,old);
+                _notifying  =   false;
             }
-        protected:
+            /// <summary>
+            /// 值等价判断:可平凡复制类型按字节比较,避免浮点 NaN 永不相等、-0.0 与 0.0 被误判相等
+            /// </summary>
+            template<class TVal>
+            static  bool    sameValue(const TVal& lhs,const TVal& rhs)
+            {
+                if constexpr (std::is_trivially_copyable_v<TVal>)
+                    return  std::memcmp(&lhs,&rhs,sizeof(TVal)) == 0;
+                else
+                    return  lhs == rhs;
+            }
+            mutable bool    _notifying  =   false;
             Value           _value;
             String          _name;
-            NotifyChanges   _notifys;
             ItemPtrs        _childs;
-            mutable bool    _notifying  =   false;
+            NotifyChanges   _notifys;
         };
         using   ItemPtr     =   std::shared_ptr<Item>;
         using   ItemPtrs    =   std::vector<ItemPtr>;
@@ -311,9 +356,12 @@ namespace   FE
         }
         FESetting(const FESetting&)             =   delete;
         FESetting&  operator=(const FESetting&) =   delete;
-        inline  Item&   get(const char* name)
+        /// <summary>
+        /// 获取根下的节点,支持 "scene/camera" 层级写法,不存在则新建
+        /// </summary>
+        inline  Item&   get(const char* name,const Value& defaultValue = Value())
         {
-            return  _root->get(name);
+            return  _root->get(name,defaultValue);
         }
         /// <summary>
         /// 根节点(供通用遍历/属性面板等适配器使用)
@@ -322,11 +370,15 @@ namespace   FE
         {
             return  _root.get();
         }
-        inline  auto    root() const
+        const   Item*   root() const
         {
             return  _root.get();
         }
-        inline  auto    find(const char* name) const
+        inline  Item*   find(const char* name)
+        {
+            return  _root->find(name);
+        }
+        const   Item*   find(const char* name) const
         {
             return  _root->find(name);
         }
@@ -345,312 +397,13 @@ namespace   FE
         /// <summary>
         /// 保存为 XML 文件
         /// </summary>
-        inline  bool    save(const char* path) const
-        {
-            if (path == nullptr)
-                return  false;
-
-            XMLDoc      doc;
-            XMLNode*    decl    =   doc.allocate_node(rapidxml::node_pi,"xml version='1.0' encoding='utf-8'");
-            doc.append_node(decl);
-
-            XMLNode*    root    =   doc.allocate_node(rapidxml::node_element,"setting");
-            doc.append_node(root);
-            saveItems(doc,root,*_root);
-
-            std::ofstream   file(path,std::ios::binary | std::ios::trunc);
-            if (!file.is_open())
-                return  false;
-            file << doc;
-            return  file.good();
-        }
+        bool    save(const std::filesystem::path& path) const;
         /// <summary>
-        /// 从 XML 文件加载,已存在的节点保留,值按 type 覆盖
+        /// 从 XML 文件加载,已存在的节点保留,值按 type 覆盖(允许改变已有类型)
         /// </summary>
-        inline  bool    load(const char* path)
-        {
-            if (path == nullptr)
-                return  false;
-
-            std::ifstream   file(path,std::ios::binary);
-            if (!file.is_open())
-                return  false;
-
-            std::vector<char>   buffer((std::istreambuf_iterator<char>(file))
-                                      ,std::istreambuf_iterator<char>());
-            if (buffer.empty())
-                return  false;
-            buffer.push_back('\0');
-
-            XMLDoc      doc;
-            try
-            {
-                doc.parse<0>(buffer.data());
-            }
-            catch (...)
-            {
-                return  false;
-            }
-
-            XMLNode*    root    =   doc.first_node("setting");
-            if (root == nullptr)
-                return  false;
-            loadItems(*_root,root);
-            return  true;
-        }
+        bool    load(const std::filesystem::path& path);
     protected:
         ItemPtr     _root;
-    protected:
-        /// <summary>
-        /// 写 XML 属性,值拷贝进文档内存池
-        /// </summary>
-        inline  static  void    setAttr(XMLDoc& doc,XMLNode* node,const char* name,const char* value)
-        {
-            node->append_attribute(doc.allocate_attribute(name,doc.allocate_string(value)));
-        }
-        /// <summary>
-        /// 标量转字符串
-        /// </summary>
-        template<class T>
-        inline  static  String  scalarToString(T val)
-        {
-            if constexpr (std::is_same_v<T,float>)
-            {
-                char    buf[32] =   {};
-                snprintf(buf,sizeof(buf),"%.9g",(double)val);
-                return  buf;
-            }
-            else if constexpr (std::is_same_v<T,double>)
-            {
-                char    buf[32] =   {};
-                snprintf(buf,sizeof(buf),"%.17g",val);
-                return  buf;
-            }
-            else
-            {
-                return  std::to_string(val);
-            }
-        }
-        /// <summary>
-        /// 向量转空格分隔字符串
-        /// </summary>
-        template<class T>
-        inline  static  String  vecToString(const T& val)
-        {
-            String  result;
-            for (typename T::length_type i = 0; i < T::length(); ++i)
-            {
-                if (i != 0)
-                    result.push_back(' ');
-                result.append(scalarToString(val[i]));
-            }
-            return  result;
-        }
-        /// <summary>
-        /// 整数类型名
-        /// </summary>
-        template<class T>
-        inline  static  auto    intTypeName()
-        {
-            if constexpr (std::is_same_v<T,int32>)
-                return  "int32";
-            else if constexpr (std::is_same_v<T,uint32>)
-                return  "uint32";
-            else if constexpr (std::is_same_v<T,int64>)
-                return  "int64";
-            else
-                return  "uint64";
-        }
-        /// <summary>
-        /// 向量类型名
-        /// </summary>
-        template<class T>
-        inline  static  auto    vecTypeName()
-        {
-            if constexpr (std::is_same_v<T,int2>)       return  "int2";
-            else if constexpr (std::is_same_v<T,int3>)  return  "int3";
-            else if constexpr (std::is_same_v<T,int4>)  return  "int4";
-            else if constexpr (std::is_same_v<T,uint2>) return  "uint2";
-            else if constexpr (std::is_same_v<T,uint3>) return  "uint3";
-            else if constexpr (std::is_same_v<T,uint4>) return  "uint4";
-            else if constexpr (std::is_same_v<T,float2>)return  "float2";
-            else if constexpr (std::is_same_v<T,float3>)return  "float3";
-            else if constexpr (std::is_same_v<T,float4>)return  "float4";
-            else if constexpr (std::is_same_v<T,real2>) return  "real2";
-            else if constexpr (std::is_same_v<T,real3>) return  "real3";
-            else if constexpr (std::is_same_v<T,real4>) return  "real4";
-            else                                        return  "vec";
-        }
-        /// <summary>
-        /// 值写入节点:type 描述类型,value 保存文本
-        /// </summary>
-        inline  static  void    writeValue(XMLDoc& doc,XMLNode* node,const Value& value)
-        {
-            std::visit([&](const auto& arg)
-            {
-                using   T   =   std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<T,std::monostate>)
-                {
-                    return;
-                }
-                else if constexpr (std::is_same_v<T,bool>)
-                {
-                    setAttr(doc,node,"type","bool");
-                    setAttr(doc,node,"value",arg ? "true" : "false");
-                }
-                else if constexpr (std::is_same_v<T,String>)
-                {
-                    setAttr(doc,node,"type","string");
-                    setAttr(doc,node,"value",arg.c_str());
-                }
-                else if constexpr (std::is_integral_v<T>)
-                {
-                    setAttr(doc,node,"type",intTypeName<T>());
-                    String  text    =   scalarToString(arg);
-                    setAttr(doc,node,"value",text.c_str());
-                }
-                else if constexpr (std::is_floating_point_v<T>)
-                {
-                    setAttr(doc,node,"type",std::is_same_v<T,float> ? "float" : "double");
-                    String  text    =   scalarToString(arg);
-                    setAttr(doc,node,"value",text.c_str());
-                }
-                else
-                {
-                    setAttr(doc,node,"type",vecTypeName<T>());
-                    String  text    =   vecToString(arg);
-                    setAttr(doc,node,"value",text.c_str());
-                }
-            },value);
-        }
-        /// <summary>
-        /// 文本转标量
-        /// </summary>
-        template<class T>
-        inline  static  bool    scalarFromString(const char* text,T& out)
-        {
-            std::istringstream  stream(text != nullptr ? text : "");
-            return  static_cast<bool>(stream >> out);
-        }
-        /// <summary>
-        /// 空格分隔文本转向量
-        /// </summary>
-        template<class T>
-        inline  static  bool    vecFromString(const char* text,T& out)
-        {
-            std::istringstream  stream(text != nullptr ? text : "");
-            for (typename T::length_type i = 0; i < T::length(); ++i)
-            {
-                if (!(stream >> out[i]))
-                    return  false;
-            }
-            return  true;
-        }
-        inline  static  bool    readBool(Item& item,const char* text)
-        {
-            item.set<bool>(text != nullptr
-                && (std::strcmp(text,"1") == 0 || std::strcmp(text,"true") == 0));
-            return  true;
-        }
-        inline  static  bool    readString(Item& item,const char* text)
-        {
-            item.set(text != nullptr ? text : "");
-            return  true;
-        }
-        template<class T>
-        inline  static  bool    readScalar(Item& item,const char* text)
-        {
-            T   val =   {};
-            if (!scalarFromString(text,val))
-                return  false;
-            item.set<T>(val);
-            return  true;
-        }
-        template<class T>
-        inline  static  bool    readVec(Item& item,const char* text)
-        {
-            T   val =   {};
-            if (!vecFromString(text,val))
-                return  false;
-            item.set<T>(val);
-            return  true;
-        }
-        /// <summary>
-        /// type 属性到读取器的映射
-        /// </summary>
-        struct  Reader
-        {
-            const char* _type;
-            bool        (*_read)(Item& item,const char* text);
-        };
-        inline  static  bool    applyValue(Item& item,const char* type,const char* text)
-        {
-            if (type == nullptr)
-                return  false;
-            static  const   Reader  table[] =
-            {
-                { "bool",   readBool            },
-                { "string", readString          },
-                { "int32",  readScalar<int32>   },
-                { "uint32", readScalar<uint32>  },
-                { "int64",  readScalar<int64>   },
-                { "uint64", readScalar<uint64>  },
-                { "float",  readScalar<float>   },
-                { "double", readScalar<double>  },
-                { "int2",   readVec<int2>       },
-                { "int3",   readVec<int3>       },
-                { "int4",   readVec<int4>       },
-                { "uint2",  readVec<uint2>      },
-                { "uint3",  readVec<uint3>      },
-                { "uint4",  readVec<uint4>      },
-                { "float2", readVec<float2>     },
-                { "float3", readVec<float3>     },
-                { "float4", readVec<float4>     },
-                { "real2",  readVec<real2>      },
-                { "real3",  readVec<real3>      },
-                { "real4",  readVec<real4>      },
-            };
-            for (const Reader& var : table)
-            {
-                if (std::strcmp(var._type,type) == 0)
-                    return  var._read(item,text);
-            }
-            return  false;
-        }
-        /// <summary>
-        /// 递归写出子节点
-        /// </summary>
-        inline  static  void    saveItems(XMLDoc& doc,XMLNode* parent,const Item& item)
-        {
-            for (auto& var : item.children())
-            {
-                XMLNode*    node    =   doc.allocate_node(rapidxml::node_element,"item");
-                parent->append_node(node);
-                setAttr(doc,node,"name",var->name().c_str());
-                writeValue(doc,node,var->raw());
-                saveItems(doc,node,*var);
-            }
-        }
-        /// <summary>
-        /// 递归读入子节点,已存在的节点复用
-        /// </summary>
-        inline  static  void    loadItems(Item& parent,XMLNode* node)
-        {
-            if (node == nullptr)
-                return;
-            for (XMLNode* var = node->first_node("item"); var != nullptr; var = var->next_sibling("item"))
-            {
-                XMLAttr*    name    =   var->first_attribute("name");
-                if (name == nullptr)
-                    continue;
-                Item&       item    =   parent.get(name->value());
-                XMLAttr*    type    =   var->first_attribute("type");
-                XMLAttr*    value   =   var->first_attribute("value");
-                if (type != nullptr && value != nullptr)
-                    applyValue(item,type->value(),value->value());
-                loadItems(item,var);
-            }
-        }
     };
 
     using   Setting  =   SharedPtr<FESetting>;

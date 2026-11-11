@@ -60,7 +60,9 @@ namespace   FE
         /// 且 geometry pass shader 不做环境采样,天空环境下发忽略
         /// </summary>
         virtual void        setSkyEnvironment(TexPtr tex,TexPtr irradiance = nullptr) override
-        {}
+        {
+            UNUSED(tex,irradiance);
+        }
     protected:
         /// <summary>
         /// 用 OIT geometry 管线替换基类 pbr 管线,并重绑 DSets:

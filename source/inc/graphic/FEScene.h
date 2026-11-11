@@ -298,6 +298,10 @@ namespace   FE
         /// 设备/系统初始化(setup 与 setupHeadless 共用)
         /// </summary>
         bool    initialize(const FEUuid& rendererId);
+        /// <summary>
+        /// 初始化完成后,从全局配置读取各对象参数并应用
+        /// </summary>
+        void    applySetting();
         void    resize(const MsgResize& evt);
         /// <summary>
         /// 场景中是否存在需要折射双趟渲染的 transmission 材质

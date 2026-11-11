@@ -78,7 +78,6 @@ namespace   FE
         {
             return  _NChangedNodes;  
         }
-        
         /// <summary>
         /// 获取节点树清空通知对象(读写):clear() 开头触发
         /// </summary>
@@ -95,7 +94,6 @@ namespace   FE
         {
             return  _NotifyClears;
         }
-        
     public:
         /// <summary>
         /// 获取所有顶层节点(只读)

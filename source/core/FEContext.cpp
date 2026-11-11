@@ -23,6 +23,8 @@
 #include    "../inc/geometry/FEGeometrySVG.hpp"
 #include    "../inc/FEStreamReader.hpp"
 
+#include    <filesystem>
+
 #include    "../inc/mesh/FEAttribute.hpp"
 #include    "../inc/mesh/FEPrimitive.hpp"
 #include    "../inc/mesh/FEDrawArray.hpp"
@@ -206,11 +208,38 @@ namespace   FE
         static  FECreators    sInstance;
         return  sInstance;
     }
+    void    FEContext::loadSetting()
+    {
+        _settingPath.clear();
+        if (_args.empty())
+            return;
+        /// 配置文件名与应用一致,如 test.exe 对应 test.cfg
+        std::filesystem::path   exe(_args.front());
+        String                  name    =   exe.stem().string();
+        if (name.empty())
+            return;
+        std::filesystem::path   dir(_workPath);
+        if (dir.empty())
+            dir =   exe.parent_path();
+        std::filesystem::path   path    =   dir / (name + ".cfg");
+        _settingPath    =   path.string();
+        _setting.load(path);
+    }
+    void    FEContext::saveSetting()
+    {
+        if (_settingPath.empty())
+            return;
+        _setting.save(_settingPath);
+        /// 只落盘一次,析构里再走 destroy 时不再重复写
+        _settingPath.clear();
+    }
     void    FEContext::destroy()
     {
         /// 场景必须最先释放:它持有全部 GPU 资源(设备/交换链/缓冲/管线);
         /// 若留到静态析构(DLL 卸载阶段)才释放,验证层会因为设备已不可用而中止进程
         _scene  =   nullptr;
+        /// 场景已把相机等状态写回 _setting,这里统一落盘
+        saveSetting();
         _device =   nullptr;
         _window =   nullptr;
         _anchor =   nullptr;

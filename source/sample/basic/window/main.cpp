@@ -32,6 +32,8 @@ int     main(int argc,char** argv)
     dt.toDateString(sx);
 
     FEContext&      ctx     =   FEContext::instance();
+    /// 传入命令行参数:引擎据此把相机状态存成与应用程序同名的配置(如 test.scene.cfg)
+    ctx.setArg(argc,argv);
     FEApp::CreateInfo   info    =   {};
     info._appInst   =   GetModuleHandle(nullptr);
     App     app     =   FEAppHelper::create(ctx, info);

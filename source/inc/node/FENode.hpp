@@ -62,14 +62,9 @@ namespace   FE
             /// </summary>
             FLAG_PROP_STATE     =   (FLAG_PROP_COLOR    <<1),
             /// <summary>
-            /// mesh 有可能存在lod信息,有可能没有，如果么有lod LOD_INDEX == -1,其他则是有效值
-            /// 系统会收集所有lod信息到一个统一的数组中,
-            /// </summary>
-            FLAG_PROP_LOD       =   (FLAG_PROP_STATE    <<1),
-            /// <summary>
             /// 产生阴影,触发更新 IS_INSTANCE_FLAG,当修改了renderBits()需要增加该状态，该状态会在节点所在工厂中消费后移除
             /// </summary>
-            FLAG_CAST_SHADOW    =   (FLAG_PROP_LOD      << 1),
+            FLAG_CAST_SHADOW    =   (FLAG_PROP_STATE    << 1),
             /// <summary>
             /// 接收阴影,触发更新 IS_INSTANCE_FLAG,当修改了renderBits()需要增加该状态，该状态会在节点所在工厂中消费后移除
             /// </summary>
@@ -95,7 +90,6 @@ namespace   FE
                                 | FLAG_PROP_SCALE
                                 | FLAG_PROP_ROT
                                 | FLAG_PROP_COLOR
-                                | FLAG_PROP_LOD
                                 | FLAG_PROP_STATE
                                 | FLAG_UPDATE,
 
@@ -103,7 +97,6 @@ namespace   FE
                                 | FLAG_PROP_SCALE
                                 | FLAG_PROP_ROT
                                 | FLAG_PROP_COLOR
-                                | FLAG_PROP_LOD
                                 | FLAG_PROP_STATE,
         };   
         using   RenderFlags =   FEFlags<RenderFlag,uint32>;

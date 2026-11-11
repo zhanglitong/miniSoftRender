@@ -123,13 +123,7 @@ namespace   FE
         /// <summary>
         /// 文本 → 组合,例如 "Ctrl+Shift+O";解析失败时 vk 为 0
         /// </summary>
-        static  void    parseCombo(const std::string& text,int& vk,
-                                   bool& ctrl,bool& shift,bool& alt);
-        /// <summary>
-        /// 设置文件路径(与 exe 同名同目录,例如 FESceneEditor.xml);
-        /// exe 路径取自平台层 FE::exePath(),取不到时回退到当前目录
-        /// </summary>
-        static  std::string exeXmlPath();
+        static  void    parseCombo(const std::string& text,int& vk,bool& ctrl,bool& shift,bool& alt);
     public:
         std::vector<FEShortcutItem>     _items;
     protected:

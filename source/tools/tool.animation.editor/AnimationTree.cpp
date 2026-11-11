@@ -808,6 +808,7 @@ AnimationItem*  AnimationTree::createItemForNode(FE::FENode* object, AnimationIt
 
 AnimationItem*  AnimationTree::createItemForObj(FE::FEObject* pObject, AnimationItems& needExpand)
 {
+    UNUSED(pObject,needExpand);
     using   MapItem     =   std::map<const FEObject*,AnimationItem*>;
     /// 建立树形结构
     /// Object(mat,geo...)

@@ -108,7 +108,8 @@ namespace   FE
             return  _vertexOffset;
         }
         /// <summary>
-        /// 该图元的 LOD 在工厂 LOD 大缓冲中的起始下标(第 i 个图元 = i*4)
+        /// 该图元的 LOD 在工厂 LOD 大缓冲中的起始下标(第 n 个带 LOD 的图元 = n*4),
+        /// -1 表示该图元没有 LOD
         /// </summary>
         inline  int     lodOffset() const
         {
@@ -128,6 +129,9 @@ namespace   FE
         inline  auto&   setLod(Lod lod)
         {
             _lod    =   lod;
+            /// 通知所属工厂重建 LOD 数据(挂载前设置时还未绑定工厂,构建时会直接读取最新数据)
+            if (_factory != nullptr)
+                _factory->lodChanged();
             return  *this;
         }
     protected:
@@ -180,7 +184,7 @@ namespace   FE
         EPrimitive  _primitive      =   PRI_TRIANGLES;
         EDrawType   _type           =   DRAW_ARRAY;
         int         _vertexOffset   =   0;
-        int         _lodOffset      =   0;
+        int         _lodOffset      =   -1;
         /// <summary>
         /// FEFactoryRender; 用来访问对应GPU数据
         /// </summary>

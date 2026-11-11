@@ -22,10 +22,6 @@ namespace   FE
         int     _intPartY;
         int     _intPartZ;
         int     _instanceId;
-        /// <summary>
-        /// 存储lod索引,默认值是-1,说明没有lod
-        /// </summary>
-        int     _lodIndex;
         uint32  _renderBits;
         /// <summary>
         /// 旋转信息
@@ -55,7 +51,6 @@ namespace   FE
             _intPartY       =   0;
             _intPartZ       =   0;
             _instanceId     =   0;
-            _lodIndex       =   -1;
             _renderBits     =   0;
             _rotX           =   0;
             _rotY           =   0;
@@ -71,11 +66,6 @@ namespace   FE
             _scaleX         =   1;
             _scaleY         =   1;
             _scaleZ         =   1;
-        }
-        inline  auto&   setLod(int lodId)
-        {
-            _lodIndex        =   lodId;
-            return   *this;
         }
         /// <summary>
         /// 设置位置信息
@@ -240,7 +230,6 @@ namespace   FE
             {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_ROTATE      ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT )},
             {FMT_R32G32B32A32_FLOAT     ,   IS_INSTANCE_BOUNDSPHERE ,   FEFormatHelper::sizeOf(FMT_R32G32B32A32_FLOAT)},
             {FMT_R32_SINT               ,   IS_INSTANCE_INSTANCE    ,   FEFormatHelper::sizeOf(FMT_R32_SINT          )},
-            {FMT_R32_SINT               ,   IS_INSTANCE_LOD_INDEX   ,   FEFormatHelper::sizeOf(FMT_R32_SINT          )},
             {FMT_R32_UINT               ,   IS_INSTANCE_FLAG        ,   FEFormatHelper::sizeOf(FMT_R32_UINT          )},
             {FMT_R8G8B8A8_UNORM         ,   IS_INSTANCE_COLOR       ,   FEFormatHelper::sizeOf(FMT_R8G8B8A8_UNORM)    }, 
             
@@ -253,7 +242,6 @@ namespace   FE
             offsetof(FEInstance,    _rotX           ),
             offsetof(FEInstance,    _boundSphereX   ),
             offsetof(FEInstance,    _instanceId     ),
-            offsetof(FEInstance,    _lodIndex       ),
             offsetof(FEInstance,    _renderBits     ),
             offsetof(FEInstance,    _color          ),
         };

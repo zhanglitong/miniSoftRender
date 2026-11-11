@@ -249,8 +249,7 @@ namespace FE
         /// 保持节点当前姿态(编辑器暂停/编辑依赖该语义),仅打标记供 UI 提示
         if (hasRange)
         {
-            const   real2   rng =   real2((std::max)(clipRange.x,real(0)),clipRange.y)
-                                +   real2(_offset,_offset);
+            const   real2   rng =   real2((std::max)(clipRange.x,real(0)),clipRange.y) + real2(_offset,_offset);
             if (clipTime < rng.x || clipTime > rng.y)
             {
                 flags().addFlag(OutOfRangeBit);
