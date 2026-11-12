@@ -32,6 +32,10 @@ file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS
 
 if(GLSLC AND SHADER_SOURCES)
     set(SPV_OUTPUTS "")
+    # 需要额外产出 OIT_MODE 变体的片元着色器(输出改写入 PPLL 链表):
+    #   pbr  -> 所有透明 PBR 材质(OIT 变体管线复用)
+    #   text -> SDF 文本(透明材质,参与逐像素排序)
+    set(OIT_FRAG_SOURCES "pbr/shader.frag" "text/shader.frag")
     foreach(SHADER ${SHADER_SOURCES})
         file(RELATIVE_PATH RELATIVE_PATH ${SHADER_SRC_DIR} ${SHADER})
         set(OUTPUT_SPV "${SHADER_CACHE_DIR}/${RELATIVE_PATH}.spv")
@@ -53,19 +57,19 @@ if(GLSLC AND SHADER_SOURCES)
         )
         list(APPEND SPV_OUTPUTS ${OUTPUT_SPV})
 
-        # pbr fragment 额外产出 OIT_MODE 变体(输出写 PPLL 链表):
-        # 所有透明材质(alpha/transmission)的 OIT 变体管线复用该 FS,
-        # 输出名 pbr/shader.oit.frag.spv,由 FEMaterialPBR::setupOITVariants 加载
-        if(RELATIVE_PATH STREQUAL "pbr/shader.frag")
-            set(PBR_OIT_SPV "${SHADER_CACHE_DIR}/pbr/shader.oit.frag.spv")
+        # 额外产出 OIT_MODE 变体,输出名 <目录>/shader.oit.frag.spv,
+        # 由对应材质(如 FEMaterialPBR/FEMaterialText::setupOITVariants)加载
+        if(RELATIVE_PATH IN_LIST OIT_FRAG_SOURCES)
+            get_filename_component(SHADER_DIR ${RELATIVE_PATH} DIRECTORY)
+            set(OIT_FRAG_SPV "${SHADER_CACHE_DIR}/${SHADER_DIR}/shader.oit.frag.spv")
             add_custom_command(
-                OUTPUT ${PBR_OIT_SPV}
-                COMMAND ${GLSLC} -I ${SHADER_SRC_DIR}/common -DOIT_MODE ${SHADER} -o ${PBR_OIT_SPV}
+                OUTPUT ${OIT_FRAG_SPV}
+                COMMAND ${GLSLC} -I ${SHADER_SRC_DIR}/common -DOIT_MODE ${SHADER} -o ${OIT_FRAG_SPV}
                 DEPENDS ${SHADER}
-                COMMENT "编译着色器 pbr/shader.frag (OIT_MODE)"
+                COMMENT "编译着色器 ${RELATIVE_PATH} (OIT_MODE)"
                 VERBATIM
             )
-            list(APPEND SPV_OUTPUTS ${PBR_OIT_SPV})
+            list(APPEND SPV_OUTPUTS ${OIT_FRAG_SPV})
         endif()
     endforeach()
 

@@ -10,7 +10,51 @@
 layout  (location = 0)          in  vec2    inUV;
 layout  (location = 1)          in  vec4    inColor;
 
-layout  (location = 0) out vec4 fragColor;
+#ifdef  OIT_MODE
+    /// ===== OIT 变体:输出写入 PPLL 每像素链表(binding 10/11/12)=====
+    /// 文本是透明材质(字形覆盖率 alpha),LIST(几何)趟无 color attachment,
+    /// 颜色进链表由 color pass 按深度排序合成。text 着色器仅用 SB_Camera(0)/
+    /// SB_Material(4),10~12 空闲,沿用 oit/shader 的绑定槽。
+    layout  (set = 0, binding = 10) buffer OITCounterSBO
+    {
+        uint    oitCount;
+        uint    oitMaxCount;
+        uint    oitScreenW;
+        uint    oitScreenH;
+    };
+    layout  (set = 0, binding = 11) buffer OITHeadIndex
+    {
+        uint    oitHeadIndex[];
+    };
+    layout  (set = 0, binding = 12) buffer OITLinkedList
+    {
+        OITNode oitNodes[];
+    };
+
+    /// 统一输出函数(OIT 构建):分配链表节点,front-to-back 挂入该像素链表
+    void    writePixel(vec4 color)
+    {
+        uint    pixelIdx    =   uint(gl_FragCoord.y) * oitScreenW + uint(gl_FragCoord.x);
+        uint    nodeIdx     =   atomicAdd(oitCount, 1);
+        if (nodeIdx < oitMaxCount)      /// 溢出保护:超出节点池容量直接丢弃
+        {
+            uint2   pc      =   packColorHDR(color);
+            oitNodes[nodeIdx].colorRG   =   pc.x;
+            oitNodes[nodeIdx].colorBA   =   pc.y;
+            oitNodes[nodeIdx].depth     =   gl_FragCoord.z;
+            uint    oldHead =   atomicExchange(oitHeadIndex[pixelIdx], nodeIdx);
+            oitNodes[nodeIdx].next      =   oldHead;
+        }
+    }
+#else
+    layout  (location = 0) out vec4 fragColor;
+
+    /// 统一输出函数(普通构建):直写 color attachment
+    void    writePixel(vec4 color)
+    {
+        fragColor   =   color;
+    }
+#endif
 
 layout  (push_constant) uniform TextPush
 {
@@ -81,5 +125,5 @@ void main()
         alpha           =   pow(alpha,0.5);
     }
 
-    fragColor   =   vec4(color,inColor.a * alpha);
+    writePixel(vec4(color,inColor.a * alpha));
 }
