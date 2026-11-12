@@ -4,7 +4,6 @@
 #include    "../inc/graphic/FECmdBuffer.h"
 #include    "../inc/graphic/FEInstance.h"
 #include    "../inc/graphic/FEScene.h"
-#include    "../inc/graphic/FEOITManager.h"
 #include    "../inc/material/FEMaterialCull.hpp"
 #include    "../inc/FEContext.hpp"
 #include    "../inc/FEFormatHelper.hpp"
@@ -14,39 +13,6 @@ namespace   FE
 
     using   GroupNode   =   FEFactoryRender::GroupNode;
     using   VBinds      =   FEFactoryRender::VBinds;
-
-    /// <summary>
-    /// 校验图元的 LOD 数据,不合法时按"无 LOD"处理:
-    /// - L0 必须有效(count>0),否则 shader 会把命令的 count 清成 0,物体消失
-    /// - 有效级必须连续在前(shader 遇到 count==0 即停止)
-    /// - start+count 不能超出该图元索引总数(否则 GPU 越界读 IBO)
-    /// - dist 必须非降序(shader 按"最后一个 dist<=距离"选级,乱序会选错)
-    /// </summary>
-    bool    validLod(const FELod& lod,uint32 total)
-    {
-        if (total == 0 || lod._lod[0].count == 0)
-            return  false;
-        float   lastDist    =   -1.0f;
-        bool    tail        =   false;
-        for (uint i = 0; i < 4; ++ i)
-        {
-            const FELodInf& inf =   lod._lod[i];
-            if (inf.count == 0)
-            {
-                tail    =   true;
-                continue;
-            }
-            /// 有效项必须连续在前
-            if (tail)
-                return  false;
-            if (uint64(inf.start) + inf.count > total)
-                return  false;
-            if (inf.dist < lastDist)
-                return  false;
-            lastDist    =   inf.dist;
-        }
-        return  true;
-    }
 
     constexpr   uint    instTransSlots  =   IS_INSTANCE_ITRANSLATE | IS_INSTANCE_TRANSLATE | IS_INSTANCE_SCALE | IS_INSTANCE_ROTATE;
     constexpr   uint    instStateSlots  =   IS_INSTANCE_FLAG;
@@ -553,7 +519,7 @@ namespace   FE
         return  false;
     }
 
-    void    FEFactoryRender::render(CMDPtr cmd,TransPass pass)
+    void    FEFactoryRender::render(CMDPtr cmd,const FERenderPassInfo& pass)
     {
         /// 不可见工厂不参与绘制(update 已经跳过,render 也必须跳过,
         /// 否则会使用未构建的 VBO/实例缓冲与陈旧绘制计数绘制,导致崩溃)
@@ -577,9 +543,6 @@ namespace   FE
                 return;
         }
         Material    mat     =   _groupNode.front()->_mat;
-        /// OIT 双趟过滤下沉到组级:混合工厂(部分组透明部分不透明)可同时
-        /// 参与 MAIN/LIST 两趟,不再按工厂首组材质整体过滤
-        auto        oitPass =   FEOITManager::pass();
         auto        pl      =   mat->pipeline(_key._primitive)->as<FEGPipeline>();
 
         cmd->bindPipeline(pl);
@@ -608,53 +571,40 @@ namespace   FE
         }
         bool    gpuCull =   supportGPUCull();
         const   bool    isArray =   _key._drawType == EDrawType::DRAW_ARRAY;
-        /// 透明组(alpha 混合/transmission)必须在同工厂所有不透明组之后绘制:
-        /// 混合管线不写深度,先画会被后画的不透明几何整体覆盖,表现为"玻璃不透明"。
-        /// 两遍循环:pass=0 不透明组,pass=1 透明组。
-        auto    drawGroups  =   [&](bool transparentPass)
+        /// <summary>
+        /// 组类别:材质特性 -> 批次分类(优先级 透射 > 混合 > 不透明)。
+        /// 工厂只做这一层机械映射;本趟画哪些类别完全由场景下发的趟描述决定。
+        /// 本趟无颜色附件 ⇒ 透明组只能写 OIT 透明层,与类别无关
+        /// </summary>
+        auto    groupCat    =   [](FEMaterial* mat) -> uint
         {
+            if (mat->isTransmission())
+                return  GroupCat::GC_TRANSMISSION;
+            if (mat->isTransparent())
+                return  GroupCat::GC_BLEND;
+            return  GroupCat::GC_OPAQUE;
+        };
+        /// 透明组必须在同工厂所有不透明组之后绘制:混合管线不写深度,先画会被
+        /// 后画的不透明几何整体覆盖。场景按 _catsFirst/_catsLate 分两批下发,
+        /// 工厂只按类别掩码顺序筛选
+        auto    drawGroups  =   [&](uint cats)
+        {
+        if (cats == GroupCat::GC_NONE)
+            return;
+        /// 趟没有颜色附件 = 透明层收集趟。管线兼容性是硬约束:
+        /// OIT 写出变体的片元着色器不声明颜色输出,只能配 0 附件的 render pass
+        const   bool    oitOut  =   pass._colorAttachmentCount == 0;
         for (auto& grp : _groupNode)
         {
             auto    mat         =   grp->_mat;
             if (mat == nullptr)
                 continue;
-            /// transmission 玻璃不进 OIT:该材质的着色已按"不透明写出"(alpha=1),
-            /// 进链表只会得到"整像素覆盖"。而 LIST 趟深度测试是逐采样的(4x MSAA),
-            /// 只要 1 个采样通过,合成趟就把玻璃色写满 4 个采样 —— 零厚度玻璃薄片
-            /// 在掠射/与车身相交处因此变成一条硬边亮线(玻璃边缘看起来没被车身遮挡)。
-            /// 改为在 MAIN 趟用 pbrBlend 绘制,借 MSAA 逐采样颜色覆盖得到正确的
-            /// 边缘遮挡与抗锯齿。
-            const   bool    grpTransm   =   mat->isTransmission();
-            const   bool    grpBlend    =   mat->isTransparent() && !grpTransm;
-            const   bool    grpOIT      =   mat->isOIT();
-            /// 需排在同工厂不透明组之后绘制的组:alpha 混合 + transmission 玻璃
-            const   bool    grpLate     =   grpBlend || grpTransm;
-            if (oitPass == FEOITManager::OITPass::LIST)
-            {
-                /// LIST(几何)趟:只收集 alpha 混合/OIT 组写 PPLL 链表,其余跳过
-                if (!(grpBlend || grpOIT))
-                    continue;
-            }
-            else if (oitPass == FEOITManager::OITPass::MAIN)
-            {
-                /// MAIN(主)趟:alpha 混合/OIT 组留给 LIST 趟;
-                /// transmission 玻璃在本趟第二遍(不透明组之后)按 pbrBlend 绘制
-                if (grpBlend || grpOIT)
-                    continue;
-                if (grpTransm != transparentPass)
-                    continue;
-            }
-            else
-            {
-                /// 非 OIT:维持原两遍逻辑(不透明组→透明组);
-                /// OIT 材质(oitGeometry 管线无 color 输出)只在 LIST 趟绘制
-                if (grpOIT || (grpLate != transparentPass))
-                    continue;
-            }
-            /// LIST 趟用 OIT 变体管线(OIT 材质本身就是 oitGeometry 管线);
-            /// 同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
+            if ((groupCat(mat) & cats) == 0)
+                continue;
+            /// 收集趟使用 OIT 写出变体管线与 dsets(布局含 OIT SSBO,与主管线
+            /// 不同);同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
             /// 切换到该组材质自身的管线与动态状态(混合状态/剔除模式随管线变化)
-            auto    grpPl   =   (oitPass == FEOITManager::OITPass::LIST)
+            auto    grpPl   =   oitOut
                                 ?   mat->oitPipeline(_key._primitive)
                                 :   mat->pipeline(_key._primitive);
             auto    gpl     =   (grpPl != nullptr) ? grpPl->as<FEGPipeline>() : nullptr;
@@ -667,10 +617,9 @@ namespace   FE
                 mat->appDynamicState(cmd,_key._primitive);
             }
             FECmdBuffer::DSetBind   binds   =   {};
-            /// LIST 趟必须绑 OIT 变体 dsets(布局含 OIT SSBO,与主管线 dsets 不同)
-            binds.dSets         =   (oitPass == FEOITManager::OITPass::LIST)
+            binds.dSets         =   oitOut
                                     ?   mat->listDsets()
-                                    :   grp->_mat->dsets();
+                                    :   mat->dsets();
             if (binds.dSets.empty())
                 continue;
             binds.firstSet      =   0;
@@ -713,14 +662,8 @@ namespace   FE
             }
         }
         };
-        drawGroups(false);
-        /// transmission 场景折射预渲染趟(TP_OPAQUE):只画不透明组,
-        /// 透明组从场景纹理中剔除(否则玻璃会出现在自身折射背景里并自折射)。
-        /// 第二遍(透明组):非 OIT 渲染需要;OIT 渲染下 alpha 混合组已改由
-        /// LIST 趟收集,但 transmission 玻璃仍在 MAIN 趟按 pbrBlend 绘制,
-        /// 所以 MAIN 趟同样需要这一遍
-        if (pass == TransPass::TP_ALL && oitPass != FEOITManager::OITPass::LIST)
-            drawGroups(true);
+        drawGroups(pass._catsFirst);
+        drawGroups(pass._catsLate);
     }
 
     void    FEFactoryRender::bindMaterial(CMDPtr cmd,FEMaterial* mat,EPrimitive pri)
@@ -944,7 +887,7 @@ namespace   FE
                     default:
                         break;
                     }
-                    if (!validLod(*lod,total))
+                    if (!lod->valid(total))
                     {
                         /// 坏 LOD 数据按无 LOD 处理,避免命令 count 被清零或越界读 IBO
                         ctx().log().error("FEFactoryRender: invalid lod data (mesh %p, primitive %d, total %u), treat as no lod"

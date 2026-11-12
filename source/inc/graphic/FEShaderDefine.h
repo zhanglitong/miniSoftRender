@@ -550,6 +550,29 @@ struct  OITNode
     uint    next;
 };
 
+/// <summary>
+/// OIT 每像素透明层数上限(K 槽模式):
+///   > 0 : 每像素固定 K 个槽,几何趟无锁预订层号、槽内无序,
+///         合成趟统一按深度排序后混合;超出 K 的 fragment 直接丢弃
+///         (保留哪几层取决于到达顺序,不再保证"保留最近 K 层")
+///   = 0 : 旧 PPLL 每像素链表路径
+/// C++ 与 GLSL 共用本宏,改值后必须重新编译 oit/color 与
+/// pbr/shader.oit(两者共用同一份缓冲布局)
+/// </summary>
+#define OIT_SLOT_K  8
+
+/// <summary>
+/// K 槽模式的单层数据(整槽 12 字节,std430 数组步长 12,
+/// 与 C++ 端 sizeof(OITSlot) 一致):
+/// 颜色仍用 2 个 uint 存 half4(保留 HDR),深度为 gl_FragCoord.z
+/// </summary>
+struct  OITSlot
+{
+    uint    colorRG;
+    uint    colorBA;
+    float   depth;
+};
+
 struct  PointData
 {
     mat4        _mvp;

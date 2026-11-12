@@ -222,7 +222,7 @@ namespace   FE
         /// <summary>
         /// 每一帧调用,绘制旋转编辑轴
         /// </summary>
-        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL) override
+        virtual void    render(CMDPtr cmd,const FERenderPassInfo& pass = FERenderPassInfo()) override
         {
             UNUSED(pass);
             if (_rotate == nullptr 

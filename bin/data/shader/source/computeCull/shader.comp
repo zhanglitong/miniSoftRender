@@ -49,10 +49,10 @@ layout(std430, binding = 6) buffer  LodBuffer
 {
     LodInf          _lods[];
 };
-/// 每实例的 LOD 在大缓冲中的起始下标,-1 表示没有 LOD
-layout(std430, binding = 7) buffer  InstanceLodBuffer
+/// 每绘制命令(即每图元)的 LOD 起始下标,-1 表示没有 LOD
+layout(std430, binding = 7) buffer  CmdLodBuffer
 {
-    int             _instLod[];
+    int             _cmdLod[];
 };
 
 /// <summary>
@@ -60,9 +60,9 @@ layout(std430, binding = 7) buffer  InstanceLodBuffer
 /// 取最后一个 dist <= 距离且 count > 0 的级,替换命令的 firstIndex/count。
 /// LOD 的 start 相对图元自身索引数组,命令 firstIndex 已是本工厂 IBO 内偏移
 /// </summary>
-void    applyLod(inout DrawElement cmd, uint instId, vec3 center, float radius)
+void    applyLod(inout DrawElement cmd, uint cmdId, vec3 center, float radius)
 {
-    int     off =   _instLod[instId];
+    int     off =   _cmdLod[cmdId];
     if (off < 0)
         return;
     float   dist    =   max(distance(center, _cullParam._cameraPos.xyz) - radius, 0.0);
@@ -154,7 +154,7 @@ bool    checkVisible(uint flagBits)
         
             if (checkVisible(_flags[instId]) && checkFrustumIn(center, radius) && checkMinPixels(center, radius))
             {
-                applyLod(cmd, instId, center, radius);
+                applyLod(cmd, globalID + offset, center, radius);
                 resultBits[localID_X] =   1;
                 localCmds[localID_X]  =   cmd;
             }

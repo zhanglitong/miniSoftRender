@@ -143,17 +143,42 @@ layout(location = 5) in  vec2 inUV1;
     };
     layout(set = 0, binding = 22) buffer OITHeadIndex
     {
+#if OIT_SLOT_K > 0
+        /// K 槽模式:每像素一个 uint —— 本帧预订到的层数
+        uint    oitPixelCount[];
+#else
         uint    oitHeadIndex[];
+#endif
     };
     layout(set = 0, binding = 23) buffer OITLinkedList
     {
+#if OIT_SLOT_K > 0
+        OITSlot oitSlots[];
+#else
         OITNode oitNodes[];
+#endif
     };
 
-    /// 统一输出函数(OIT 构建):分配链表节点,front-to-back 挂入该像素链表
+    /// 统一输出函数(OIT 构建):写入该像素的透明层
     void    writePixel(vec4 color)
     {
         uint    pixelIdx    =   uint(gl_FragCoord.y) * oitScreenW + uint(gl_FragCoord.x);
+#if OIT_SLOT_K > 0
+        /// K 槽模式:无锁。atomicAdd 预订该像素的第 layer 层,
+        /// 只有 layer < K 的 fragment 落槽,超出丢弃。
+        /// 绝不能用每像素自旋锁 —— 同一 warp 内持锁线程与自旋线程
+        /// 在 SIMT 下无法推进,会直接死锁。
+        /// 槽内无序,由合成趟(OIT color)统一按深度排序。
+        uint    layer   =   atomicAdd(oitPixelCount[pixelIdx], 1u);
+        if (layer < OIT_SLOT_K)
+        {
+            uint2   pc      =   packColorHDR(color);
+            uint    at      =   pixelIdx * OIT_SLOT_K + layer;
+            oitSlots[at].colorRG    =   pc.x;
+            oitSlots[at].colorBA    =   pc.y;
+            oitSlots[at].depth      =   gl_FragCoord.z;
+        }
+#else
         uint    nodeIdx     =   atomicAdd(oitCount, 1);
         if (nodeIdx < oitMaxCount)      /// 溢出保护:超出节点池容量直接丢弃
         {
@@ -164,6 +189,7 @@ layout(location = 5) in  vec2 inUV1;
             uint    oldHead =   atomicExchange(oitHeadIndex[pixelIdx], nodeIdx);
             oitNodes[nodeIdx].next      =   oldHead;
         }
+#endif
     }
 #else
     layout(location = 0) out vec4 fragColor;

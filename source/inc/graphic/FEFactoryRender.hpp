@@ -330,7 +330,7 @@ namespace   FE
         virtual size_t  nodePropChanged(Node node);
     public:
         virtual void    update(CMDPtr cmd);
-        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL);
+        virtual void    render(CMDPtr cmd,const FERenderPassInfo& pass = FERenderPassInfo());
         /// <summary>
         /// 图元 LOD 变化(FEPrimitive::setLod 调用):标记下次 update 重建 LOD 数据
         /// </summary>

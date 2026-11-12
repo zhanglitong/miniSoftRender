@@ -214,11 +214,9 @@ namespace   FE
                 /// 必须用 cast(dynamic_cast) 做类型检查:as 是无校验的强制转换
                 if (FEMaterialPBR*  pbr =   mat->cast<FEMaterialPBR>())
                 {
-                    /// OIT 材质(oitGeometry 管线)的 binding 10~12 是 OIT SSBO,
-                    /// 不是 PBR 贴图槽位:绑定环境贴图会覆写 SSBO 描述符导致崩溃,
-                    /// 且几何趟 shader 不做环境采样,跳过
-                    if (!pbr->isOIT())
-                        pbr->setSkyEnvironment(cube);
+                    /// OIT 变体与主管线共用 PBR 贴图槽位(SSBO 在 21/22/23),
+                    /// 透明材质的几何趟同样采样环境贴图,照常下发
+                    pbr->setSkyEnvironment(cube);
                 }
             }
         }
@@ -680,6 +678,43 @@ namespace   FE
         }
 
     }
+    /// <summary>
+    /// 渲染趟描述:帧图语义的唯一事实来源(scene 决定,工厂只按掩码执行)
+    /// </summary>
+    namespace
+    {
+        /// 折射/不透明预趟:只画不透明组,不叠 UI
+        FERenderPassInfo    passOpaque()
+        {
+            FERenderPassInfo    pass;
+            pass._catsFirst =   GroupCat::GC_OPAQUE;
+            pass._catsLate  =   GroupCat::GC_NONE;
+            pass._drawUi    =   false;
+            return  pass;
+        }
+        /// OIT 主趟:不透明组 + transmission 玻璃(第二遍)。
+        /// transmission 玻璃不进 OIT:其着色已按"不透明写出"(alpha=1),进链表
+        /// 只会得到整像素覆盖;而收集趟深度测试是逐采样的(4x MSAA),只要 1 个
+        /// 采样通过,合成趟就把玻璃色写满 4 个采样,掠射/相交处会出现硬边亮线。
+        /// 放在本趟第二遍按 pbrBlend 绘制,借 MSAA 逐采样覆盖得到正确边缘遮挡
+        FERenderPassInfo    passOitMain()
+        {
+            FERenderPassInfo    pass;
+            pass._catsLate  =   GroupCat::GC_TRANSMISSION;
+            return  pass;
+        }
+        /// OIT 收集趟:只把混合组写进透明层,无颜色输出、不叠 UI
+        FERenderPassInfo    passOitList()
+        {
+            FERenderPassInfo    pass;
+            pass._catsFirst =   GroupCat::GC_BLEND;
+            pass._catsLate  =   GroupCat::GC_NONE;
+            pass._colorAttachmentCount  =   0;
+            pass._drawUi    =   false;
+            return  pass;
+        }
+    }
+
     void    FEScene::onFrameRender()
     {
         if (_frame == nullptr)
@@ -706,7 +741,7 @@ namespace   FE
             FESkyComponent* skyComp =   sky();
             const   bool    dirty   =   (skyComp != nullptr) && skyComp->consumeEnvDirty();
             _skyEnvTimer    +=  _ctx.deltaTime();
-            if (dirty || _skyEnvTimer >= real(1.0) / real(12.0))
+            if (dirty || _skyEnvTimer >= real(1.0) / real(15.0))
             {
                 if (_skyEnv->bake(*this,cmd))
                     applySkyEnvironment();
@@ -737,9 +772,8 @@ namespace   FE
 
 
             // 2. transmission 场景折射预趟:OIT 模式下玻璃同样在 shader 中
-            //    采样 sceneTex 折射,先把不透明场景渲进 sceneTex(TP_OPAQUE 趟
-            //    过滤掉透明组),否则 LIST 趟的玻璃折射采样到的是黑/占位纹理
-            FEOITManager::setPass(FEOITManager::OITPass::NONE);
+            //    采样 sceneTex 折射,先把不透明场景渲进 sceneTex(趟描述只放
+            //    GC_OPAQUE 组),否则 LIST 趟的玻璃折射采样到的是黑/占位纹理
             if (_sceneTexView && anyTransmissionMaterial())
             {
                 FECmdBuffer::RenderInfo p1Info  =   rsInfo;
@@ -751,7 +785,7 @@ namespace   FE
                 cmd->beginRender(p1Info);
                 for (auto viewer : _viewerMgr.objects())
                 {
-                    FEFramInfo  info(0,cmd,TransPass::TP_OPAQUE);
+                    FEFramInfo  info(0,cmd,passOpaque());
                     viewer->onMessage(MsgRender(info));
                 }
                 /// endRender 把 sceneTex 从 COLOR_ATTACHMENT 转入 SHADER_READ_ONLY
@@ -764,30 +798,28 @@ namespace   FE
 
 
             // 3. 主趟：不透明物体（清 color + depth，写入不透明深度供几何趟遮挡测试）
-            FEOITManager::setPass(FEOITManager::OITPass::MAIN);
             cmd->beginRender(rsInfo);
             for (auto viewer : _viewerMgr.objects())
             {
-                FEFramInfo  info = {0, cmd};
+                FEFramInfo  info(0,cmd,passOitMain());
                 viewer->onMessage(MsgRender(info));
             }
             cmd->endRender(rsInfo);
 
 
-            // 4. 几何趟：所有透明物体(alpha 混合/transmission/OIT)收集进链表
-            //    （无 color 输出，depth LOAD 保留不透明深度）
-            FEOITManager::setPass(FEOITManager::OITPass::LIST);
+            // 4. 几何趟:alpha 混合与 OIT 物体收集进链表
+            //    (transmission 玻璃不进链表,已在主趟第二遍按混合绘制;
+            //     本趟无 color 输出,depth LOAD 保留不透明深度)
             FECmdBuffer::RenderInfo geoInfo = rsInfo;
             geoInfo._skipColor  =   true;
             geoInfo._loadDepth  =   true;   // depthTest ON / depthWrite OFF，测不透明深度
             cmd->beginRender(geoInfo);
             for (auto viewer : _viewerMgr.objects())
             {
-                FEFramInfo  info = {0, cmd};
+                FEFramInfo  info(0,cmd,passOitList());
                 viewer->onMessage(MsgRender(info));
             }
             cmd->endRender(geoInfo);
-            FEOITManager::setPass(FEOITManager::OITPass::NONE);
 
 
             // 5. Barrier：Geometry Pass 写完 SSBO → Color Pass 读取
@@ -804,19 +836,7 @@ namespace   FE
             auto colorDSets    = _oitManager->colorDSets();
             if (colorPipeline && !colorDSets.empty())
             {
-                cmd->bindPipeline(colorPipeline);
-                /// 合成管线的 cull/depth 是动态状态(VKGPipeline 自动补全),
-                /// 必须显式设置,否则沿用前面工厂绘制残留的状态(剔除/深度测试
-                /// 状态不定,验证层报 VK_DYNAMIC_STATE_* never called)
-                cmd->setCullMode(CullMode::CM_NULL);
-                cmd->setDepthTest(false);
-                FECmdBuffer::DSetBind dBind;
-                dBind.plBindPoint   = PL_GRAPIC;
-                dBind.plLayout      = colorPipeline->nativeLayout();
-                dBind.firstSet      = 0;
-                dBind.dSets         = colorDSets;
-                cmd->bindDescriptors(dBind);
-                cmd->draw(0, 3, 0, 1);   // 全屏三角形（顶点在 VS 里展开）
+                _oitManager->composite(cmd);
             }
 
             cmd->endRender(compInfo);
@@ -825,7 +845,7 @@ namespace   FE
         else if (_sceneTexView && anyTransmissionMaterial())
         {
             // ===== transmission 场景折射:双趟渲染 =====
-            // pass1: 仅不透明场景 → sceneTex(工厂 TP_OPAQUE 趟过滤掉透明组)
+            // pass1: 仅不透明场景 → sceneTex(趟描述只放 GC_OPAQUE 组)
             FECmdBuffer::RenderInfo p1Info  =   rsInfo;
             /// 多采样:深度也是多采样,pass1 必须同样渲染到 MSAA 目标后再解析到 sceneTex
             if (_msaaColorView)
@@ -835,7 +855,7 @@ namespace   FE
             cmd->beginRender(p1Info);
             for (auto viewer : _viewerMgr.objects())
             {
-                FEFramInfo  info(0,cmd,TransPass::TP_OPAQUE);
+                FEFramInfo  info(0,cmd,passOpaque());
                 viewer->onMessage(MsgRender(info));
             }
             /// endRender 把 sceneTex 从 COLOR_ATTACHMENT 转入 SHADER_READ_ONLY
@@ -849,7 +869,7 @@ namespace   FE
             cmd->beginRender(rsInfo);
             for (auto viewer : _viewerMgr.objects())
             {
-                FEFramInfo  info(0,cmd,TransPass::TP_ALL);
+                FEFramInfo  info(0,cmd);
                 viewer->onMessage(MsgRender(info));
             }
             cmd->endRender(rsInfo);
@@ -1517,15 +1537,19 @@ namespace   FE
         {
             viewer->onMessage(evt);
         }
-        /// OIT 的每像素头索引 SSBO 尺寸锁定创建时的分辨率,尺寸变化后旧缓冲区
-        /// 无法安全复用(材质已缓存的 OIT 变体 dsets 也无法重绑),此处关闭 OIT,
-        /// 透明物体回退普通 alpha 混合,避免越界写入
+        /// OIT 的每像素头索引缓冲按容量预分配(4K),窗口在容量内变化时只更新
+        /// counter 里的屏幕尺寸,shader 用它计算像素索引,无需重建 GPU 资源;
+        /// 超出容量才关闭 OIT(材质已缓存的 OIT 变体 dsets 无法重绑,不能重建 SSBO),
+        /// 透明物体回退普通 alpha 混合
         if (_oitManager && (_oitManager->screenWidth() != width || _oitManager->screenHeight() != height))
         {
-            LOG_ERR("FEScene.resize: resolution changed %ux%u -> %ux%u, OIT disabled (fallback to alpha blending)",
-                    _oitManager->screenWidth(),_oitManager->screenHeight(),width,height);
-            FEOITManager::setActive(nullptr);
-            _oitManager =   nullptr;
+            if (!_oitManager->resizeScreen(width,height))
+            {
+                LOG_ERR("FEScene.resize: OIT resize to %ux%u failed, OIT disabled (fallback to alpha blending)",
+                        width,height);
+                FEOITManager::setActive(nullptr);
+                _oitManager =   nullptr;
+            }
         }
         _device->waitIdle();
     }

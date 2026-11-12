@@ -41,18 +41,13 @@ namespace   FE
         extractDrawData();
     }
 
-    void    FEImGuiFactory::render(CMDPtr cmd,TransPass pass)
+    void    FEImGuiFactory::render(CMDPtr cmd,const FERenderPassInfo& pass)
     {
         if (_backend == nullptr || cmd == nullptr)
             return;
-        /// 趟过滤:OIT LIST(几何)趟无 color attachment,画了必触发
-        /// colorAttachmentCount 不匹配的验证错误;transmission 预趟(TP_OPAQUE)
-        /// 的渲染目标是 sceneTex,UI 画进去会被玻璃折射采到。
-        /// 只在 OIT MAIN 趟或非 OIT 的 TP_ALL 趟绘制 UI。
-        const auto  oitPass =   FEOITManager::pass();
-        if (oitPass == FEOITManager::OITPass::LIST)
-            return;
-        if (oitPass == FEOITManager::OITPass::NONE && pass == TransPass::TP_OPAQUE)
+        /// 趟过滤由场景在趟描述里给出:OIT 收集趟无 color attachment、
+        /// 折射预趟的渲染目标是 sceneTex,两种情况都不能叠 UI
+        if (!pass._drawUi)
             return;
         _backend->render(_drawData,cmd.get());
     }

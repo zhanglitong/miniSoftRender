@@ -147,8 +147,7 @@ namespace   FE
         }
         /// <summary>
         /// OIT 变体管线(LIST 几何趟绘制透明材质用):
-        /// 默认无变体(返回 null);PBR 材质按需克隆主管线生成,
-        /// OIT 材质本身就是 oitGeometry 管线,直接返回 pipeline()
+        /// 默认无变体(返回 null,渲染层跳过);PBR 材质按需克隆主管线生成
         /// </summary>
         virtual Pipeline    oitPipeline(EPrimitive )
         {
@@ -156,8 +155,7 @@ namespace   FE
         }
         /// <summary>
         /// LIST(几何)趟使用的描述符集:必须与 oitPipeline 的布局匹配。
-        /// 默认返回 OIT 变体 dsets(无变体时为空,渲染层跳过);
-        /// OIT 材质的主管线即几何趟管线,重写为返回 _dsets
+        /// 默认返回 OIT 变体 dsets(无变体时为空,渲染层跳过)
         /// </summary>
         virtual DSets&      listDsets()
         {
@@ -195,11 +193,6 @@ namespace   FE
         /// <param name="prefix"></param>
         /// <returns></returns>
         virtual bool        setup(const String& prefix);
-        /// <summary>
-        /// OIT 双趟渲染过滤标记:OIT 材质(LIST 趟收集进链表)返回 true,
-        /// 普通材质(MAIN 趟正常画)返回 false。默认 false。
-        /// </summary>
-        virtual bool        isOIT() const { return false; }
         /// <summary>
         /// 透明物体标记(alpha 混合/transmission):渲染工厂据此保证透明组
         /// 在同 factory 内所有不透明组之后绘制,渲染层据此把透明 factory

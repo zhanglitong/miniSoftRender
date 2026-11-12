@@ -56,7 +56,7 @@ namespace   FE
         void    invalidateBackend()     {   _backend    =   nullptr;    }
     public:
         virtual void    update(CMDPtr cmd)  override;
-        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL)  override;
+        virtual void    render(CMDPtr cmd,const FERenderPassInfo& pass = FERenderPassInfo())  override;
     protected:
         /// <summary>
         /// 把 ImGui 的绘制数据扁平化成与后端无关的形式

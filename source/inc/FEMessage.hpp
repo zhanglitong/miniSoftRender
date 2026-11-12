@@ -154,23 +154,48 @@ namespace   FE
 
     class   FECmdBuffer;
     /// <summary>
-    /// 渲染阶段:transmission 场景需要双趟,
-    /// TP_OPAQUE 为预渲染趟(仅画不透明组到 sceneTex),
-    /// TP_ALL 为主渲染趟(全量绘制)。
-    /// 枚举值带 TP_ 前缀,OPAQUE 与 wingdi.h 宏冲突
+    /// 渲染组类别:由材质特性决定的批次分类。
+    /// 渲染工厂只按趟描述里的类别掩码机械筛选,不关心类别与材质特性的对应关系
+    /// (用 GC_ 前缀避开 Windows 的 NONE/OPAQUE 宏)
     /// </summary>
-    enum class  TransPass : uint { TP_ALL = 0, TP_OPAQUE };
+    namespace   GroupCat
+    {
+        constexpr   uint    GC_NONE         =   0u;
+        constexpr   uint    GC_OPAQUE       =   1u << 0;    /// 不透明
+        constexpr   uint    GC_BLEND        =   1u << 1;    /// alpha 混合
+        constexpr   uint    GC_TRANSMISSION =   1u << 2;    /// 折射透射
+    }
+
+    /// <summary>
+    /// 渲染趟描述:由 FEScene 按帧图决定,随 MsgRender 下发、经 FEViewer
+    /// 原样交给工厂。工厂只按 _catsFirst/_catsLate 机械筛组、按颜色附件数
+    /// 选管线变体,不再读取任何全局趟状态;烘焙/探针等嵌套渲染用默认值即可
+    /// </summary>
+    struct  FERenderPassInfo
+    {
+        /// 本趟第一遍(不透明批次)绘制的组类别
+        uint        _catsFirst  =   GroupCat::GC_OPAQUE;
+        /// 本趟第二遍(延后批次:混合/透射)绘制的组类别
+        uint        _catsLate   =   GroupCat::GC_BLEND | GroupCat::GC_TRANSMISSION;
+        /// 本趟的颜色附件数。0 表示无颜色输出(透明层收集趟):
+        /// 此时工厂改用材质的 OIT 写出变体管线/dsets,片元只写 SSBO
+        uint        _colorAttachmentCount   =   1;
+        /// 是否允许 GUI 类 viewer 叠加界面(收集趟/折射预趟为 false)
+        bool        _drawUi     =   true;
+    };
+
     class   FEFramInfo
     {
     public:
-        FEFramInfo(ViewerUsages usages = 0,FECmdBuffer* cmdBuffer = nullptr,TransPass pass = TransPass::TP_ALL)
+        FEFramInfo(ViewerUsages usages = 0,FECmdBuffer* cmdBuffer = nullptr,
+                   const FERenderPassInfo& pass = FERenderPassInfo())
             :_usages(usages)
             ,_cmdBuffer(cmdBuffer)
             ,_pass(pass)
         {}
-        ViewerUsages    _usages;
-        FECmdBuffer*    _cmdBuffer = nullptr;
-        TransPass       _pass      =   TransPass::TP_ALL;
+        ViewerUsages        _usages;
+        FECmdBuffer*        _cmdBuffer = nullptr;
+        FERenderPassInfo    _pass;
     };
 
     class   FEKeyInfo
@@ -195,8 +220,6 @@ namespace   FE
     };
     class   FEMouseWheel
     {
-    public:
-        
     public:
         FEMouseWheel(const int2& mouse = int2(),int zDelta = 0)
             :_mouse(mouse)

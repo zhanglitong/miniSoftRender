@@ -2,7 +2,6 @@
 
 #include    "../inc/FEContext.hpp"
 #include    "../inc/graphic/FECmdBuffer.h"
-#include    "../inc/graphic/FEOITManager.h"
 #include    "../inc/graphic/FEScene.h"
 #include    "../inc/material/FEMaterialText.hpp"
 
@@ -187,14 +186,13 @@ namespace   FE
         _textSize       =   size;
         rebuildText(cmd,size,rect);
     }
-    void    FEProgressBar::render(CMDPtr cmd,TransPass pass)
+    void    FEProgressBar::render(CMDPtr cmd,const FERenderPassInfo& pass)
     {
         if (!_visible || cmd == nullptr)
             return;
-        /// 折射预渲染与 OIT 的 LIST 趟跳过,避免进度条被烘进折射/OIT 缓冲
-        if (pass == TransPass::TP_OPAQUE)
-            return;
-        if (FEOITManager::pass() == FEOITManager::OITPass::LIST)
+        /// 折射预渲染与 OIT 收集趟由场景在趟描述里标记为不叠 UI,
+        /// 避免进度条被烘进折射目标/OIT 缓冲
+        if (!pass._drawUi)
             return;
         FEScene*    scene   =   _ctx.scene();
         if (scene == nullptr)

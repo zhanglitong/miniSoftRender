@@ -100,7 +100,7 @@ namespace   FE
         /// 每一帧调用
         /// </summary>
         /// <param name="cmd"></param>
-        virtual void    render(CMDPtr cmd,TransPass pass = TransPass::TP_ALL) override
+        virtual void    render(CMDPtr cmd,const FERenderPassInfo& pass = FERenderPassInfo()) override
         {
             UNUSED(pass);
             if (_move == nullptr 

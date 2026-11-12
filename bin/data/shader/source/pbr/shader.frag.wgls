@@ -328,7 +328,6 @@ fn main(in : FsIn) -> @location(0) vec4f
         baseColor = baseColor * vec4f(pow(bc.rgb, vec3f(2.2)), bc.a);
     }
     baseColor = vec4f(baseColor.rgb * select(vec3f(1.0), in.inColor.rgb, hasNodeColor(in.inFlagBits)), baseColor.a);
-    baseColor = vec4f(_pbr._diffuse.r, _pbr._metallic, _pbr._emissive.r, 1.0); /// DEBUG: pure fingerprint after all multiplies (R=diffuse.r G=metallic B=emissive.r)
 
     /// 2. metallic / roughness
     var metallic  = _pbr._metallic;

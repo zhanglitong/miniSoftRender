@@ -8,17 +8,36 @@
 
 namespace   FE
 {
-    // ===== 全局活动实例/渲染趟状态 =====
+    // ===== 全局活动实例 =====
     namespace
     {
         FEOITManager*           s_activeOIT =   nullptr;
-        FEOITManager::OITPass   s_oitPass   =   FEOITManager::OITPass::NONE;
     }
 
     void            FEOITManager::setActive(FEOITManager* mgr)  { s_activeOIT = mgr; }
     FEOITManager*   FEOITManager::active()                      { return s_activeOIT; }
-    void            FEOITManager::setPass(OITPass pass)         { s_oitPass = pass; }
-    FEOITManager::OITPass FEOITManager::pass()                  { return s_oitPass; }
+
+    /// <summary>
+    /// 从链表合成透明层:绑定合成管线与 dsets,画全屏三角形
+    /// (剔除/深度是动态状态,必须显式设置,否则沿用前面工厂绘制残留的状态)
+    /// </summary>
+    void            FEOITManager::composite(CMDPtr cmd)
+    {
+        if (cmd == nullptr || _colorPipeline == nullptr || _colorDSets.empty())
+            return;
+
+        cmd->bindPipeline(_colorPipeline);
+        cmd->setCullMode(CullMode::CM_NULL);
+        cmd->setDepthTest(false);
+
+        FECmdBuffer::DSetBind   dBind;
+        dBind.plBindPoint   =   PL_GRAPIC;
+        dBind.plLayout      =   _colorPipeline->nativeLayout();
+        dBind.firstSet      =   0;
+        dBind.dSets         =   _colorDSets;
+        cmd->bindDescriptors(dBind);
+        cmd->draw(0, 3, 0, 1);  // 全屏三角形(顶点在 VS 里展开)
+    }
 
     // ===== OITNode 定义在 FEShaderDefine.h,与 shader std430 布局完全一致 =====
     // uint colorRG (4B) + uint colorBA (4B, half HDR) + float depth (4B) + uint next (4B) = 16B
@@ -46,15 +65,32 @@ namespace   FE
     {
         _screenW     = screenW;
         _screenH     = screenH;
+#if OIT_SLOT_K > 0
+        /// K 槽模式:每像素固定 K 层,总层数即容量(与 maxNodesPerPixel 无关)
+        UNUSED(maxNodesPerPixel);
+        _maxNodes    = OIT_SLOT_K * screenW * screenH;
+#else
         _maxNodes    = maxNodesPerPixel * screenW * screenH;
+#endif
         _sampleCount = sampleCount;
+        /// 头索引/层存储按容量预分配(至少 4K):窗口在容量内变化时只更新 counter
+        /// 里的屏幕尺寸,不必重建 SSBO(材质已缓存的 OIT dsets 无法重绑)
+        _headPixels  = (uint64_t(screenW) * screenH > OIT_HEAD_CAPACITY)
+                     ? uint64_t(screenW) * screenH
+                     : OIT_HEAD_CAPACITY;
 
         FEDevice& device = _ctx.device();
 
         // ===== 1. 创建三个 SSBO =====
         const uint64_t counterSize    =   sizeof(CounterSBO);
-        const uint64_t headIndexSize  =   (uint64_t)screenW * screenH * sizeof(uint32_t);
+#if OIT_SLOT_K > 0
+        /// K 槽模式:每像素 1 个 uint(本帧预订到的层数)与 K 个槽(12B/槽)
+        const uint64_t headIndexSize  =   _headPixels * sizeof(uint32_t);
+        const uint64_t linkedListSize =   _headPixels * OIT_SLOT_K * sizeof(OITSlot);
+#else
+        const uint64_t headIndexSize  =   _headPixels * sizeof(uint32_t);
         const uint64_t linkedListSize =   (uint64_t)_maxNodes * sizeof(OITNode);
+#endif
 
         auto makeSBO = [&](uint64_t size, const char* logName) -> SBO
         {
@@ -98,11 +134,17 @@ namespace   FE
         auto loadShader = [&](const char* path, FEShaderType type) -> Shader
         {
             String absPath = _ctx.resourcePath();
-            if (path[0] == ':') absPath += (path + 1);
-            else absPath = path;
+            if (path[0] == ':') 
+                absPath += (path + 1);
+            else 
+                absPath = path;
 
             auto buf = FEBuffer::loadFile(_ctx, absPath.c_str());
-            if (!buf) { LOG_ERR("OIT: load shader %s failed", path); return nullptr; }
+            if (!buf) 
+            { 
+                LOG_ERR("OIT: load shader %s failed", path); 
+                return nullptr; 
+            }
 
             auto shader = device.createShader();
             FEShader::CreateInfo sci;
@@ -116,104 +158,13 @@ namespace   FE
             return shader;
         };
 
-        _geometryVS = loadShader(":/data/shader/cache/oit/geometry.vert.spv", ST_VERTEX_BIT);
-        _geometryFS = loadShader(":/data/shader/cache/oit/geometry.frag.spv", ST_FRAGMENT_BIT);
         _colorVS    = loadShader(":/data/shader/cache/oit/color.vert.spv",    ST_VERTEX_BIT);
         _colorFS    = loadShader(":/data/shader/cache/oit/color.frag.spv",    ST_FRAGMENT_BIT);
 
-        if (!_geometryVS || !_geometryFS || !_colorVS || !_colorFS)
+        if (!_colorVS || !_colorFS)
             return false;
 
-        // ===== 4. Geometry Pass RenderPass（attachmentCount=0）=====
-        auto rpFactory = device.createRenderPass();
-        FERenderPass::CreateInfo rpCI;
-        rpCI._withColor = false;
-        rpCI._withDepth = false;
-        rpCI._samples   = sampleCount;
-        _geometryRP = rpFactory;
-        if (!_geometryRP || !_geometryRP->create(rpCI))
-        {
-            LOG_ERR("OIT: create geometry render pass failed");
-            return false;
-        }
-
-        // ===== 5. Geometry Pipeline =====
-        {
-            auto gpipeline = device.createGPipeline();
-            FEPipeline::CreateInfo cInfo;
-            // 动态渲染(vkCmdBeginRendering)要求管线以 renderPass=VK_NULL_HANDLE 创建,
-            // 否则触发 VUID-vkCmdDrawIndexedIndirect-renderPass-06198
-            cInfo._renderPass = nullptr;
-            cInfo._sampleCount = sampleCount;
-            cInfo._shaders    = {_geometryVS, _geometryFS};
-            cInfo._inputAssemblyState._primitive = PRI_TRIANGLES;
-            cInfo._dynamicStates.push_back(VIEWPORT);
-            cInfo._dynamicStates.push_back(SCISSOR);
-            /// appDynamicState 每次绘制都会 setPrimitiveTopology/setCullMode/setDepthTest/setLineWidth，
-            /// CULL_MODE/DEPTH_TEST_ENABLE/LINE_WIDTH 由 VKGPipeline 自动补全，
-            /// 拓扑必须显式声明为动态，否则触发 VUID-08608（静态拓扑+动态设置命令）
-            cInfo._dynamicStates.push_back(PRIMITIVE_TOPOLOGY);
-            /// 顶点输入布局：与 pbr.xml 完全一致（V3 逐顶点 + 实例属性），
-            /// geometry.vert 声明了 location 0~7，缺了会触发 validation 报错
-            {
-                auto attr = [](uint16_t binding, uint16_t loc, uint32_t off,
-                               FEFormat fmt, FEInputSlot slot)
-                {
-                    FEInputDesc d;
-                    d.binding = binding; d.location = loc; d.offset = off;
-                    d.format = fmt; d.slot = slot;
-                    return d;
-                };
-                // binding 0: 逐顶点 pos + nor（stride 24）
-                FEInputBindDesc b0;
-                b0.binding = 0; b0.inputRate = V_INPUT_VERTEX; b0.stride = 24;
-                b0.inputs = { attr(0,0,0,  FMT_R32G32B32_FLOAT, IS_VERTEX_POS),
-                              attr(0,1,12, FMT_R32G32B32_FLOAT, IS_VERTEX_NOR) };
-                // binding 1: 实例 intPart/trans/scale/rot（stride 52）
-                FEInputBindDesc b1;
-                b1.binding = 1; b1.inputRate = V_INPUT_INSTANCE; b1.stride = 52;
-                b1.inputs = { attr(1,2,0,  FMT_R32G32B32_SINT,    IS_INSTANCE_ITRANSLATE),
-                              attr(1,3,12, FMT_R32G32B32_FLOAT,   IS_INSTANCE_TRANSLATE),
-                              attr(1,4,24, FMT_R32G32B32_FLOAT,   IS_INSTANCE_SCALE),
-                              attr(1,5,36, FMT_R32G32B32A32_FLOAT,IS_INSTANCE_ROTATE) };
-                // binding 2: 实例 nodeColor（stride 4）
-                FEInputBindDesc b2;
-                b2.binding = 2; b2.inputRate = V_INPUT_INSTANCE; b2.stride = 4;
-                b2.inputs = { attr(2,6,0, FMT_R8G8B8A8_UNORM, IS_INSTANCE_COLOR) };
-                // binding 3: 实例 flagBits（stride 4）
-                FEInputBindDesc b3;
-                b3.binding = 3; b3.inputRate = V_INPUT_INSTANCE; b3.stride = 4;
-                b3.inputs = { attr(3,7,0, FMT_R32_UINT, IS_INSTANCE_FLAG) };
-                cInfo._binds = { b0, b1, b2, b3 };
-            }
-
-            // OIT Geometry Pass 状态
-            cInfo._enableDepthTest       = true;   // 不透明物体仍能挡住
-            cInfo._enableDepthWrite      = false;  // 透明物体不互相遮挡 → 全部进链表
-            cInfo._enableColorBlend      = false;  // 无 color attachment
-            cInfo._colorAttachmentCount  = 0;      // 关键！无输出 attachment
-            cInfo._cullModeOverride      = 2;      // BACK
-
-            if (!gpipeline->create(cInfo))
-            {
-                LOG_ERR("OIT: create geometry pipeline failed");
-                return false;
-            }
-            _geometryPipeline = gpipeline;
-            _geometryPipeline->setName("OIT/geometry");
-
-            /// 注册到管线注册表：FEMaterialOIT::setup("oitGeometry")
-            /// 按 前缀 + "/" + 图元名 查询（如 "oitGeometry/TRIANGLES"）
-            auto&   plMgr   =   _ctx.device().pipelines();
-            for (uint8 i = 0; i < PRI_MAX; ++i)
-            {
-                String  plName  =   String("oitGeometry/") + String(nameOfEnum(EPrimitive(i)));
-                if (!plMgr.isExist(plName.c_str()))
-                    plMgr.add(plName, _geometryPipeline);
-            }
-        }
-
-        // ===== 6. Color Pipeline =====
+        // ===== 4. Color Pipeline =====
         {
             auto cpipeline = device.createGPipeline();
             FEPipeline::CreateInfo cInfo;
@@ -230,7 +181,7 @@ namespace   FE
             cInfo._enableDepthTest      = false;  // 合成不做深度测试
             cInfo._enableDepthWrite     = false;
             cInfo._enableColorBlend     = true;   // 预乘 alpha: ONE / OneMinusSrcAlpha
-            /// color.frag 输出的 accumRGB 已经是预乘颜色(c.rgb * c.a 累加),
+            /// 几何趟写入的是预乘色,color.frag 按剩余透射率加权累加后仍是预乘颜色,
             /// 若按普通 alpha 混合(SRC_ALPHA)会再乘一次 alpha:
             /// 玻璃覆盖度高的地方(轮廓/边缘)被压暗、透明层整体偏弱,
             /// 边缘出现 1px 亮/暗细线
@@ -247,69 +198,14 @@ namespace   FE
             _colorPipeline->setName("OIT/color");
         }
 
-        // ===== 7. Geometry DSets（从 geometry pipeline 的 reflection 创建）=====
-        _oitDSets = _geometryPipeline->createDSets();
-        if (_oitDSets.empty())
-        {
-            LOG_ERR("OIT: createDSets from geometry pipeline returned empty");
-            return false;
-        }
-
-        // 共享的 dummy 材质 UBO：geometry pass 不逐物体换材质，
-        // 颜色/透明度走实例属性 nodeColor，这里给个默认 PBRData 兜底
-        _dummyMaterialUBO = device.createUBO();
-        if (!_dummyMaterialUBO || !_dummyMaterialUBO->create({sizeof(PBRData), MemoryUsage::DEVICE_DEFAULT_BIT}))
-        {
-            LOG_ERR("OIT: create dummy material UBO failed");
-            return false;
-        }
-        {
-            PBRData dummy;
-            dummy._diffuse  =   float4(1.0f, 1.0f, 1.0f, 0.5f);
-            _dummyMaterialUBO->update(&dummy, sizeof(PBRData), 0);
-        }
-
-        auto bindOITBuffers = [&](DSet dset)
-        {
-            bindToDSet(dset);
-        };
-
-        // Geometry pipeline DSets：除 OIT SSBO 外，把 camera/lights/全局 UBO/material 也绑上
-        // （与 FEMaterial::autoAttach 同样的按槽位匹配逻辑）
-        {
-            DSet dset = _oitDSets[0];
-            auto& binds = dset->cInfo()._binds;
-            for (auto& bind : binds)
-            {
-                switch (bind._type)
-                {
-                case DT_UNIFORM_BUFFER:
-                    if (bind._name == "_camera")
-                        dset->setBinding(bind._binding, Objects{ _ctx.device().queryCache(FEConstUuid::CameraUBOId) });
-                    else if (bind._binding == SB_Global)
-                        dset->setBinding(bind._binding, Objects{ _ctx.device().queryCache(FEConstUuid::GlobalUBOId) });
-                    else if (bind._objects.empty())
-                        dset->setBinding(bind._binding, Objects{ Object(static_cast<FEObject*>(_dummyMaterialUBO.get())) });
-                    break;
-                case DT_STORAGE_BUFFER:
-                    if (bind._name == "_lights")
-                        dset->setBinding(bind._binding, Objects{ _ctx.device().queryCache(FEConstUuid::LightsId) });
-                    break;
-                default:
-                    break;
-                }
-            }
-            bindOITBuffers(dset);
-        }
-
-        // Color pipeline DSets（color.frag 只用 OIT SSBO）
+        // ===== 5. Color DSets（color.frag 只用 OIT SSBO）=====
         _colorDSets = _colorPipeline->createDSets();
         if (_colorDSets.empty())
         {
             LOG_ERR("OIT: createDSets from color pipeline returned empty");
             return false;
         }
-        bindOITBuffers(_colorDSets[0]);
+        bindToDSet(_colorDSets[0], OIT_BIND_COUNTER, OIT_BIND_HEAD, OIT_BIND_LIST);
 
         _initialized = true;
         LOG_INF("OITManager initialized: %ux%u, maxNodes=%u", screenW, screenH, _maxNodes);
@@ -333,6 +229,30 @@ namespace   FE
         dset->update();
     }
 
+    bool    FEOITManager::resizeScreen(uint32_t screenW, uint32_t screenH)
+    {
+        if (!_initialized || screenW == 0 || screenH == 0)
+            return  false;
+        if (uint64_t(screenW) * screenH > _headPixels)
+        {
+            LOG_ERR("OIT: screen %ux%u exceeds head index capacity %llu pixels",
+                    screenW, screenH, (unsigned long long)_headPixels);
+            return  false;
+        }
+        if (screenW == _screenW && screenH == _screenH)
+            return  true;
+        /// 只改 counter 里的屏幕尺寸:pbr OIT 变体与 color shader 都用它计算
+        /// 像素索引;头索引与层池的 GPU 资源保持不变(材质缓存的 dsets 仍然有效)。
+        /// update 对 device-local 缓冲是提交一次 transfer(不等待),调用方
+        /// 需在下一帧前 waitIdle(FEScene::resize 末尾已保证)
+        CounterSBO  counter =   {0,_maxNodes,screenW,screenH};
+        _counterSBO->update(&counter, sizeof(counter), 0);
+        LOG_INF("OIT: screen resize %ux%u -> %ux%u", _screenW, _screenH, screenW, screenH);
+        _screenW    =   screenW;
+        _screenH    =   screenH;
+        return  true;
+    }
+
     void    FEOITManager::resetFrame(CMDPtr cmd)
     {
         if (!cmd || !_initialized) return;
@@ -340,10 +260,17 @@ namespace   FE
         // 1. Counter: fillBuffer 把前 4 字节清 0（count=0）
         cmd->fillBuffer(_counterSBO, 0, sizeof(uint32_t), 0);
 
-        // 2. HeadIndex: 全部填 0xFFFFFFFF（链表空哨兵）
+        // 2. 每像素状态:PPLL 填 0xFFFFFFFF(空链表哨兵);
+        //    K 槽模式填 0(每像素层数清零)
+#if OIT_SLOT_K > 0
+        cmd->fillBuffer(_headIndexSBO, 0,
+                        (uint64_t)_screenW * _screenH * sizeof(uint32_t),
+                        0u);
+#else
         cmd->fillBuffer(_headIndexSBO, 0,
                         (uint64_t)_screenW * _screenH * sizeof(uint32_t),
                         0xFFFFFFFFu);
+#endif
     }
 
     void    FEOITManager::barrierToGeometry(CMDPtr cmd)

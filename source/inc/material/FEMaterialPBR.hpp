@@ -308,9 +308,8 @@ namespace   FE
         /// 场景烘焙的天空环境贴图(由 FEScene 在重烘后统一分发):
         /// 仅在用户未显式 setEnvironmentMap 时生效。烘焙贴图是线性 HDR
         /// (已乘曝光与天空开关),与解析天空 IBL 同量级,PBR 只需采样,不再逐像素求值。
-        /// OIT 材质(oitGeometry 管线)重写为空实现——其 binding 10~12 是
-        /// OIT SSBO,绑定贴图会覆写 SSBO 描述符
-        /// </summary>
+        /// OIT 变体与主管线共享同一套 PBR 贴图槽位(binding 10~17),
+        /// 环境贴图照常下发
         /// </summary>
         virtual inline  void    setSkyEnvironment(TexPtr tex,TexPtr irradiance = nullptr)
         {
@@ -590,7 +589,7 @@ namespace   FE
         /// <summary>
         /// 构建本材质的 OIT 变体管线与描述符集:
         /// 克隆主管线改 4 项状态(无 color 输出/不写深度/无混合/采样数与场景一致),
-        /// FS 换成 OIT_MODE 编译的 shader.frag(pbr/shader.oit.frag.spv,写 PPLL 链表),
+        /// FS 换成 OIT_MODE 编译的 shader.frag(pbr/shader.oit.frag.spv,写逐像素透明层),
         /// 注册名 "<prefix>.oit/<图元>";dsets 绑定与主管线相同的资源 + OIT SSBO。
         /// 仅在 FEOITManager::active() 时构建,LIST 趟首次绘制前调用
         /// </summary>
@@ -666,7 +665,7 @@ namespace   FE
             update();
         }
         /// <summary>
-        /// 加载 OIT_MODE 编译的 pbr fragment shader(输出写 PPLL 链表)
+        /// 加载 OIT_MODE 编译的 pbr fragment shader(输出写逐像素透明层)
         /// </summary>
         Shader  loadOITFragmentShader()
         {
@@ -935,7 +934,7 @@ namespace   FE
         /// </summary>
         Pipeline            _oitPipelines[PRI_MAX]  =   {};
         /// <summary>
-        /// OIT_MODE 编译的 pbr fragment shader(输出写 PPLL 链表,变体管线共用)
+        /// OIT_MODE 编译的 pbr fragment shader(输出写逐像素透明层,变体管线共用)
         /// </summary>
         Shader              _oitFS;
         /// <summary>

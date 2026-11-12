@@ -1,6 +1,7 @@
 /// sample.oit
-/// Order-Independent Transparency (PPLL) 演示:
-///   多个半透明球相互穿插,用链表按像素排序后 alpha 合成
+/// Order-Independent Transparency 演示:
+///   多个半透明球相互穿插,按像素收集透明层后从远到近 alpha 合成
+///   存储模式由 OIT_SLOT_K 决定:K 槽(默认 8)/ PPLL 链表
 ///
 /// 用法: sample.oit.exe [--vulkan|--webgpu] [--msaa N]
 
@@ -13,7 +14,6 @@
 #include    "../../inc/graphic/FEOITManager.h"
 #include    "../../inc/geometry/FEGeometrySphere.hpp"
 #include    "../../inc/material/FEMaterialPBR.hpp"
-#include    "../../inc/material/FEMaterialOIT.hpp"
 
 using   namespace   FE;
 
@@ -21,8 +21,8 @@ using   namespace   FE;
 USING_PLUGIN(rs_vulkan);
 USING_PLUGIN(rs_webgpu);
 
-/// 创建一个半透明球节点:OIT 可用时走 FEMaterialOIT(geometry pass 收集进链表),
-/// 否则回退普通 PBR alpha 混合
+/// 创建一个半透明球节点:OIT 管理器激活时,PBR 材质的 alpha 混合组
+/// 自动走 OIT 变体管线(几何趟写逐像素透明层),否则回退普通 alpha 混合
 static  Node    createTransparentSphere(FEContext& ctx, uint32_t segments,
                                         const float4& color, float3 position)
 {
@@ -40,23 +40,12 @@ static  Node    createTransparentSphere(FEContext& ctx, uint32_t segments,
     Node node = new FENode(ctx);
     node->setMesh(mesh);
 
-    FEMaterial* pMat = nullptr;
-    if (FEOITManager::active())
-    {
-        // OIT 材质: alpha < 1.0 表示半透明,fragment 写入 PPLL 链表
-        FEMaterialOIT* pOIT = new FEMaterialOIT(ctx);
-        pOIT->data()._value._diffuse  = color;   // a 通道 = 透明度
-        pOIT->data().update();
-        pMat = pOIT;
-    }
-    else
-    {
-        // PBR 材质: 普通 alpha 混合回退
-        FEMaterialPBR* pPBR = new FEMaterialPBR(ctx);
-        pPBR->data()._value._diffuse  = color;
-        pPBR->data().update();
-        pMat = pPBR;
-    }
+    /// 只用 PBR 材质:alpha 混合标记决定它是透明组,
+    /// OIT 管理器激活时几何趟用 OIT 变体管线把它写进透明层
+    FEMaterialPBR* pMat = new FEMaterialPBR(ctx);
+    pMat->data()._value._diffuse  = color;   // a 通道 = 透明度
+    pMat->data().update();
+    pMat->setAlphaBlend(true);
     node->setMaterial(pMat);
     node->setLocalTranslation(position);
     node->update();
@@ -150,11 +139,11 @@ int     main(int argc, char** argv)
 
     scene->dispatchNodesToSystem({center, left, right, front, back});
 
-    std::cout << "sample.oit running (" << (oit ? "OIT PPLL" : "alpha blending") << ")..." << std::endl;
+    std::cout << "sample.oit running (" << (oit ? "OIT" : "alpha blending") << ")..." << std::endl;
 
     /// <summary>
     /// 消息总线订阅:窗口关闭时抢在场景销毁 device 之前,释放 main 持有的
-    /// 场景外 GPU 资源——五个球节点与 OITManager(持有 PPLL SSBO)
+    /// 场景外 GPU 资源——五个球节点与 OITManager(持有透明层 SSBO)
     /// </summary>
     app->messageBus().subscribe(MSG_CLOSE,[&](const FEMessage&)
     {
