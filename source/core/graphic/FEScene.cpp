@@ -1,5 +1,5 @@
 
-#include    "../inc/FELog.hpp"
+#include    <future>
 #include    "../inc/FESetting.hpp"
 #include    "../inc/FEPickup.hpp"
 #include    "../inc/FEFileSystem.hpp"
@@ -127,6 +127,8 @@ namespace   FE
         ,_viewerMgr(ctx)
         ,_comSysMgr(ctx)
     {
+        /// 场景创建于主线程:记录线程 id,sendRunable 据此判断是否需要跨线程等待
+        _mainThread =   std::this_thread::get_id();
         /// 节点树归 FEContext 持有;FEScene 只订阅事件,把数据侧的变化同步到显示侧。
         /// 移除事件先挂起:reparent 同样会触发,帧首再确认节点是否真的不在树里
         _ctx.nodeTree().eventsChangedNode() +=  {this,[this](FENode* node)
@@ -143,7 +145,9 @@ namespace   FE
         ,_factorys(other._factorys)
         ,_viewerMgr(other._viewerMgr)
         ,_comSysMgr(other._comSysMgr)
-    {}
+    {
+        _mainThread =   std::this_thread::get_id();
+    }
     FEScene::~FEScene()
     {
         destroy();
@@ -237,6 +241,12 @@ namespace   FE
     bool    FEScene::initialize(const FEUuid& rendererId)
     {
         FETimestamp     timestamp;
+        /// 重新初始化(销毁后再次 setup):恢复跨线程队列,记录当前线程为主线程
+        {
+            std::lock_guard<std::mutex> lock(_runableMutex);
+            _runableClosed  =   false;
+        }
+        _mainThread =   std::this_thread::get_id();
         LOG_INF("FE::FEAppHelper::create cost %lf",timestamp.milliSec());
         timestamp.update();
         _rendererId =   rendererId;
@@ -404,6 +414,14 @@ namespace   FE
     void    FEScene::destroy()
     {
         LOG_INF("FEScene.onClose()");
+        /// 先关闭跨线程队列:丢弃挂起任务会让阻塞中的 sendRunable
+        /// 立即以 broken_promise 返回,避免销毁期间主线程等待卡死
+        {
+            std::lock_guard<std::mutex> lock(_runableMutex);
+            _runableClosed  =   true;
+            std::queue<RunableTask> dropped;
+            dropped.swap(_runables);
+        }
         /// 相机状态写回全局配置,由 FEContext::destroy 统一落盘
         if (_camera != nullptr && _device != nullptr)
             saveCameraConfig(_ctx,*_camera);
@@ -550,8 +568,100 @@ namespace   FE
         updateToSystem<FEInput>(_comSysMgr,nodeList);
     }
 
+    size_t  FEScene::postRunable(QueueItems items)
+    {
+        const   size_t  count   =   items.size();
+        if (count == 0)
+            return  0;
+        std::lock_guard<std::mutex> lock(_runableMutex);
+        if (_runableClosed)
+            return  0;
+        _runables.emplace([this, items = std::move(items)]() mutable
+        {
+            runItems(items);
+        });
+        return  count;
+    }
+
+    size_t  FEScene::sendRunable(QueueItems items)
+    {
+        const   size_t  count   =   items.size();
+        if (count == 0)
+            return  0;
+        /// 同线程直调:与 SendMessage 对同线程窗口过程的处理一致,
+        /// 也避免"投递后排队等自己执行"的死锁
+        if (std::this_thread::get_id() == _mainThread)
+        {
+            {
+                std::lock_guard<std::mutex> lock(_runableMutex);
+                if (_runableClosed)
+                    return  0;
+            }
+            return  runItems(items);
+        }
+
+        auto    task    =   std::make_shared<std::packaged_task<size_t()>>(
+            [this, items = std::move(items)]() mutable
+            {
+                return  runItems(items);
+            });
+        auto    future  =   task->get_future();
+        {
+            std::lock_guard<std::mutex> lock(_runableMutex);
+            if (_runableClosed)
+                return  0;
+            _runables.emplace([task]{ (*task)(); });
+        }
+        try
+        {
+            return  future.get();
+        }
+        catch (const std::future_error&)
+        {
+            /// 场景销毁时队列被整体丢弃,packaged_task 随之析构,
+            /// promise 被破坏:这里立即返回 0,而不是永久阻塞
+            return  0;
+        }
+    }
+
+    size_t  FEScene::runItems(QueueItems& items)
+    {
+        size_t  executed    =   0;
+        for (auto& item : items)
+        {
+            if (item == nullptr || !item->_runable)
+                continue;
+            item->_runable();
+            ++executed;
+        }
+        /// 执行完立即释放队列项,不必等整批闭包析构
+        items.clear();
+        return  executed;
+    }
+
+    void    FEScene::pumpRunables()
+    {
+        /// 先摘走当前挂起项,锁外执行:执行体内部可以继续投递,
+        /// 新投递项进入下一轮,不会与本次派发互相阻塞
+        std::queue<RunableTask> batch;
+        {
+            std::lock_guard<std::mutex> lock(_runableMutex);
+            batch.swap(_runables);
+        }
+        while (!batch.empty())
+        {
+            auto    task    =   std::move(batch.front());
+            batch.pop();
+            if (task)
+                task();
+        }
+    }
+
     void    FEScene::onFrameStart()
     {
+        /// 跨线程投递项在帧首统一执行;必须早于 _swapchain 判空,
+        /// 否则场景未初始化时阻塞中的 sendRunable 会一直等不到执行
+        pumpRunables();
         /// 先把数据侧挂起的移除结算掉,再开帧:保证被删节点不会多渲染一帧
         flushPendingRemovals();
         if (_swapchain == nullptr)

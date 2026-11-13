@@ -270,7 +270,7 @@ namespace   FE
             if (_texture != nullptr)
                 bindTo(_oitDsets,0,SB_Material,{_texture.get()});
             for (auto& dset : _oitDsets)
-                mgr->bindToDSet(dset);
+                mgr->bindToDSet(dset,OIT_BIND_COUNTER,OIT_BIND_HEAD,OIT_BIND_LIST);
             update();
         }
         /// <summary>

@@ -1,5 +1,10 @@
 #pragma     once
 
+#include    <future>
+#include    <mutex>
+#include    <queue>
+#include    <thread>
+#include    <vector>
 #include    "../FEInput.hpp"
 #include    "../FECamera.hpp"
 #include    "../FETimestamp.hpp"
@@ -38,6 +43,22 @@ namespace   FE
     {
         RFactorys   rFactorys;
     };
+    /// <summary>
+    /// 队列项执行体:FETMultiDelegate 的调用运算符本身不返回结果,
+    /// 原来的 void*(Object) 返回值实际从未被使用,这里改为无参无返回。
+    /// 需要场景/帧数据的执行体在注册时捕获
+    /// </summary>
+    using   RunEvent    =   FETMultiDelegate<void()>;
+    class   FEQueueItem:public FEObject
+    {
+    public:
+        FEQueueItem(FEContext& ctx)
+            :FEObject(ctx)
+        {}
+        RunEvent    _runable;
+    };
+    using   QueueItem   =   SharedPtr<FEQueueItem>;
+    using   QueueItems  =   std::vector<QueueItem>;
 
     class   FEInputSystem;
     class   FE_API  FEScene 
@@ -196,6 +217,23 @@ namespace   FE
         /// </summary>
         /// <param name="nodeList">要更新的顶层节点,其子树一并同步</param>
         void            updateNodesToSystem(const Nodes& nodeList);
+        /// <summary>
+        /// PostMessage 语义:把可执行项投递到场景队列后立即返回,
+        /// 由主线程在下一帧帧首(onFrameStart)统一执行。可在任意线程调用。
+        /// 参数按值接收:入队即移交所有权,避免调用方随后修改造成数据竞争
+        /// </summary>
+        /// <param name="items">待执行项,内部按投递顺序(FIFO)执行</param>
+        /// <returns>实际入队项数;场景已销毁时返回 0</returns>
+        size_t          postRunable(QueueItems items);
+        /// <summary>
+        /// SendMessage 语义:在场景主线程执行并等待完成。
+        /// 主线程调用时直接执行(等价 SendMessage 同线程直调,避免排队等自己);
+        /// 其他线程调用时投递并阻塞,直到主线程帧首执行完返回。
+        /// 注意:主线程若正在 join/future 等待该工作线程,再调用本函数会死锁
+        /// </summary>
+        /// <param name="items">待执行项,内部按投递顺序(FIFO)执行</param>
+        /// <returns>实际执行项数;场景销毁导致任务被丢弃时返回 0</returns>
+        size_t          sendRunable(QueueItems items);
     public:
         virtual void    onFrameStart();
         virtual void    onFrameUpdate();
@@ -304,6 +342,17 @@ namespace   FE
         void    applySetting();
         void    resize(const MsgResize& evt);
         /// <summary>
+        /// 帧首消息泵:在主线程执行全部挂起的可执行项。
+        /// 必须早于各帧函数里的提前 return,否则 sendRunable 可能永久阻塞
+        /// </summary>
+        void    pumpRunables();
+        /// <summary>
+        /// 依次触发 items 中各项的 RunEvent 并释放队列项
+        /// </summary>
+        /// <param name="items">执行后会被清空</param>
+        /// <returns>实际执行项数(空项与无执行体的项不计)</returns>
+        size_t  runItems(QueueItems& items);
+        /// <summary>
         /// 场景中是否存在需要折射双趟渲染的 transmission 材质
         /// (由渲染工厂查询其材质组,替代材质类的全局静态计数)
         /// </summary>
@@ -383,6 +432,21 @@ namespace   FE
         /// </summary>
         Components          _inputTools;
         FEUpdateQueue       _updateQueue;
+        /// <summary>
+        /// 跨线程可执行队列:postRunable/sendRunable 投递,主线程帧首 pumpRunables 执行。
+        /// 队列存闭包而非 QueueItems,以便同步调用携带 packaged_task 等待结果
+        /// </summary>
+        using   RunableTask     =   std::function<void()>;
+        std::mutex              _runableMutex;
+        std::queue<RunableTask> _runables;
+        /// <summary>
+        /// 销毁后拒绝新任务;丢弃挂起任务可让阻塞中的 sendRunable 立即返回
+        /// </summary>
+        bool                    _runableClosed  =   false;
+        /// <summary>
+        /// 场景线程(主线程)id,用于 sendRunable 判断是否需要跨线程等待
+        /// </summary>
+        std::thread::id         _mainThread;
         /// <summary>
         /// 待结算的移除节点(事件里只挂起,帧首统一摘除显示侧登记;
         /// 持有强引用,保证结算前节点不被释放)

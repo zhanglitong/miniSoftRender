@@ -91,7 +91,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 
 target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
 
-set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "tool")
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "tools")
 
 # -------------------------------------------------------------------------
 # Deploy Qt runtime dependencies (DLLs + plugins) into the exe directory

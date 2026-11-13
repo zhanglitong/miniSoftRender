@@ -26,7 +26,7 @@ target_include_directories(${TARGET_NAME} PRIVATE
 
 target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
 
-set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "tool")
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "tools")
 
 # -------------------------------------------------------------------------
 # 静态链接 C/C++ 运行时，生成不依赖运行时 DLL 的独立可执行文件

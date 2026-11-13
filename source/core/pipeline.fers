@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='gb2312' ?>
-<root dataPath="E:/miniSoftRender/bin/data" outPath="" singleOut="1">
+<root dataPath="D:/miniSoftRender/bin/data" outPath="" singleOut="1">
 	<folder path="pipeline">
 		<file name="pipeline/computeCull.xml" input="computeCull.xml"/>
 		<file name="pipeline/cube.xml" input="cube.xml"/>
