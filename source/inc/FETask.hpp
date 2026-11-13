@@ -1,4 +1,6 @@
 #pragma     once
+#include    <atomic>
+#include    <functional>
 #include    "FEMath.hpp"
 #include    "FEObject.h"
 #include    "FEProgress.hpp"
@@ -43,8 +45,25 @@ namespace   FE
 
     class   FETask :public FEProgress
     {
+    public:
+        /// <summary>
+        /// 执行体(工作线程调用)
+        /// </summary>
+        /// <returns>true 表示任务已完成,false 表示未完成,任务系统会继续调度</returns>
+        using   ExecFunc    =   std::function<bool(FETask&)>;
+        /// <summary>
+        /// 完成回调(由任务系统在完成队列所属线程调用,即主线程)
+        /// </summary>
+        using   FinishFunc  =   std::function<void(FETask&)>;
     protected:
-        TaskState   _state  =   TS_Waiting;
+        /// <summary>
+        /// 任务状态:工作线程与主线程都会访问,使用原子变量
+        /// </summary>
+        std::atomic<TaskState>  _state{TS_Waiting};
+        /// <summary>
+        /// 取消标记:外部请求取消后,执行体可通过 isCanceled() 提前退出
+        /// </summary>
+        std::atomic<bool>       _canceled{false};
         /// <summary>
         /// 如果是reader,则是结果
         /// 如果是writer,则是被操作对象
@@ -62,6 +81,14 @@ namespace   FE
         /// 任务名称，方便调试使用,无实际业务价值
         /// </summary>
         String      _name;
+        /// <summary>
+        /// 自定义执行体(工作线程)
+        /// </summary>
+        ExecFunc    _execFunc;
+        /// <summary>
+        /// 自定义完成回调(主线程)
+        /// </summary>
+        FinishFunc  _finishFunc;
     public:
         FETask(FEContext& ctx)
             :FEProgress(ctx)
@@ -72,6 +99,10 @@ namespace   FE
         }
         FETask(const FETask& other)
             :FEProgress(other)
+            ,_state(other._state.load())
+            ,_canceled(other._canceled.load())
+            ,_execFunc(other._execFunc)
+            ,_finishFunc(other._finishFunc)
         {
             char    szDefault[32]   =   {0};
             sprintf(szDefault,"Task[%p]",this);
@@ -86,6 +117,48 @@ namespace   FE
             _name   =   name;
             return  *this;
         }
+        /// <summary>
+        /// 设置执行体(工作线程中执行)
+        /// </summary>
+        inline  auto&   setExec(ExecFunc func)
+        {
+            _execFunc   =   std::move(func);
+            return  *this;
+        }
+        /// <summary>
+        /// 设置完成回调(主线程中执行)
+        /// </summary>
+        inline  auto&   setFinish(FinishFunc func)
+        {
+            _finishFunc =   std::move(func);
+            return  *this;
+        }
+        /// <summary>
+        /// 任务是否已完成
+        /// </summary>
+        inline  bool    isFinished() const
+        {
+            return  _state.load() == TS_Finished;
+        }
+        /// <summary>
+        /// 是否已被取消
+        /// </summary>
+        inline  bool    isCanceled() const
+        {
+            return  _canceled.load();
+        }
+        /// <summary>
+        /// 结果码:>= 0 成功,< 0 失败
+        /// </summary>
+        inline  int64   code() const
+        {
+            return  _code;
+        }
+        inline  auto&   setCode(int64 code)
+        {
+            _code   =   code;
+            return  *this;
+        }
         // <summary>
         /// 任务执行体,系统会优先调用该函数执行任务，如果返回false
         /// 任务会调用  _evtRun;
@@ -93,7 +166,7 @@ namespace   FE
         /// <returns>返回true,说明是已经执行了任务，如果false 系统会认为任务还没有执行,会调用任务管理继续执行任务</returns>
         inline  bool    exec()
         {
-            _state  =   TS_Run;
+            _state.store(TS_Run);
             /// <summary>
             /// 1. 先调用开始
             /// </summary>
@@ -107,7 +180,8 @@ namespace   FE
         /// <returns></returns>
         inline  bool    cancel()
         {
-            _state  =   TS_Finished;
+            _canceled.store(true);
+            _state.store(TS_Finished);
             return  onCancel();
         }
         /// <summary>
@@ -115,7 +189,7 @@ namespace   FE
         /// </summary>
         inline  bool    finish()
         {
-            _state  =   TS_Finished;
+            _state.store(TS_Finished);
             return  onFinish();
         }
         /// <summary>
@@ -180,7 +254,7 @@ namespace   FE
         /// <returns>返回true,说明是已经执行了任务，如果false 系统会认为任务还没有执行,会调用任务管理继续执行任务</returns>
         virtual bool    onExec()
         {
-            return  false;
+            return  _execFunc ? _execFunc(*this) : false;
         }
         /// <summary>
         /// 任务取消通知
@@ -195,6 +269,11 @@ namespace   FE
         /// </summary>
         virtual bool    onFinish()
         {
+            if (_finishFunc)
+            {
+                _finishFunc(*this);
+                return  true;
+            }
             return  false;
         }
     };

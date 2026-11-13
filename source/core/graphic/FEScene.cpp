@@ -5,6 +5,7 @@
 #include    "../inc/FEFileSystem.hpp"
 #include    "../inc/FEImageUsage.hpp"
 #include    "../inc/FEImageType.hpp"
+#include    "../inc/FEMutex.hpp"
 #include    "../inc/geometry/FEGeometryGrid.hpp"
 #include    "../inc/material/FEMaterialLibrary.hpp"
 #include    "../inc/graphic/FEScene.h"
@@ -1024,6 +1025,11 @@ namespace   FE
 
     void    FEScene::renderFrame()
     {
+        /// 与后台加载线程的 GPU 资源创建互斥(见 FEDevice::gpuMutex)
+        static  FEMutex     sNoDevice;
+        FEMutex&            gpuLock =   (_device != nullptr) ? _device->gpuMutex() : sNoDevice;
+        FEMutex::ScopeLock  lock(gpuLock);
+
         onFrameStart();
         onFrameUpdate();
         onFrameRender();
@@ -1117,14 +1123,21 @@ namespace   FE
 
     void    FEScene::onMessage(const FEMessage& msgIn)
     {
+        /// 主线程的更新/渲染与后台加载线程的 GPU 资源创建互斥,
+        /// 避免并发访问同一图形队列(见 FEDevice::gpuMutex)
+        static  FEMutex     sNoDevice;
+        FEMutex&            gpuLock =   (_device != nullptr) ? _device->gpuMutex() : sNoDevice;
         switch(msgIn.msgId())
         {
         case MSG_CLOSE  :
             destroy();
             break;
         case MSG_RESIZE :
+        {
+            FEMutex::ScopeLock  lock(gpuLock);
             resize(static_cast<const MsgResize&>(msgIn));
             break;
+        }
         case MSG_LBUTTON_DOWN:
         case MSG_RBUTTON_DOWN:
         case MSG_LBUTTON_UP:
@@ -1137,13 +1150,19 @@ namespace   FE
                 _viewerMgr.activeViewer()->onMessage(msgIn);
             break;
         case MSG_UPDATE :
+        {
+            FEMutex::ScopeLock  lock(gpuLock);
             onFrameStart();
             onFrameUpdate();
             break;
+        }
         case MSG_RENDER:
+        {
+            FEMutex::ScopeLock  lock(gpuLock);
             onFrameRender();
             onFrameEnd();
             break;
+        }
         }
     }
 

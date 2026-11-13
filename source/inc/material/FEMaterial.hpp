@@ -15,6 +15,8 @@ namespace   FE
     public:
         TBlock(FEContext& ctx)
         {
+            /// 后台加载线程会随材质一起创建 UBO,与主线程渲染互斥
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
             _gpu    =   ctx.device().createUBO();
             _gpu->create({sizeof(UType),usage});
         }
@@ -52,6 +54,8 @@ namespace   FE
     public:
         TStorge(FEContext& ctx)
         {
+            /// 后台加载线程会随材质一起创建 SBO,与主线程渲染互斥
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
             _value  =   {};
             _gpu    =   ctx.device().createSBO();
             /// 追加 INDIRECT 用途:存储缓冲同时可能作为间接绘制的计数缓冲

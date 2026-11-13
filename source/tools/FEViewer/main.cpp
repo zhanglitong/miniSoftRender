@@ -30,6 +30,8 @@
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/FEFileFormatHelper.hpp"
+#include    "../../../inc/FETaskMgr.hpp"
+#include    "../../../inc/graphic/FEProgressBar.hpp"
 #include    "../../../inc/material/FEMaterialPBR.hpp"
 #include    "../../../inc/component/FESkyComponent.hpp"
 #include    "../../../core/FEImageHelper.hpp"
@@ -63,7 +65,7 @@ namespace
         uint    _sampleCount    =   4;
         String  _env            =   "Cannon_Exterior";
         float4  _clearColor     =   float4(0.22f, 0.22f, 0.22f, 1.0f);
-        bool    _showGrid       =   false;
+        bool    _showGrid       =   true;
         bool    _regAssociation =   false;
         bool    _unregAssociation   =   false;
         bool    _help           =   false;
@@ -189,7 +191,16 @@ namespace
         if (cam == nullptr)
             return;
         aabb3dr box =   computeAabb(rootNodes);
-        cam->lookAtTo(box, FECamera::FrontRightTop);
+        /// 正视构图:相机在模型正前方(+Z 轴),视线正对包围盒中心,up 为 +Y。
+        /// 不用 lookAtTo:它的 FaceDirs 方向表会把相机放到模型下方,看到车底
+        const   real3   center  =   box.center();
+        const   real    radius  =   length(box.getSize()) * real(0.5);
+        const   real    dist    =   radius / sin((std::max)(cam->getFov(),real(0.1)) * real(0.5)) * real(1.15);
+        const   real3   eye     =   center + real3(0.0f,0.0f,1.0f) * dist;
+        cam->setEye(eye);
+        cam->setTarget(center);
+        cam->setUp(real3(0.0f,1.0f,0.0f));
+        cam->update();
 
         real3   size    =   box.getSize();
         real    maxDim  =   size.x > size.y ? size.x : size.y;
@@ -267,7 +278,7 @@ namespace
             << "  --env <name|path>      HDR environment: pisa / Cannon_Exterior /\n"
             << "                         Colorful_Studio, or a .hdr file path\n"
             << "  --bg <r,g,b>           clear color in 0..1 (default: 0.22,0.22,0.22)\n"
-            << "  --grid                 show the editor grid (default: hidden)\n"
+            << "  --grid                 show the editor grid (default: shown)\n"
             << "\n"
             << "Keys:\n"
             << "  F / R  frame model        E  cycle HDR environment\n"
@@ -408,8 +419,8 @@ int main(int argc, char** argv)
     FEScene*    pScene  =   nullptr;
     Nodes       rootNodes;
     TexPtr      envCube, irrCube, brdfLUT;
-    Objects     objects;
     bool        envReady    =   false;
+    FEProgressBar*  loadBar =   nullptr;
     String      envFile;
     int         envIndex    =   -1;
     for (int i = 0; i < kEnvCount; ++i)
@@ -439,8 +450,10 @@ int main(int argc, char** argv)
         else if (key == 'E' && !rootNodes.empty())
         {
             envIndex    =   (envIndex + 1) % kEnvCount;
-            String  hdr =   ctx.resourcePath() + kEnvs[envIndex].file;
-            if (applyEnvironment(ctx, rootNodes, hdr, envCube, irrCube, brdfLUT, pScene))
+            envFile     =   ctx.resourcePath() + kEnvs[envIndex].file;
+            /// IBL 生成/旧纹理释放与后台加载线程的纹理上传互斥
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
+            if (applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, pScene))
             {
                 envReady    =   true;
                 std::cout << "environment: " << kEnvs[envIndex].name << "\n";
@@ -494,6 +507,38 @@ int main(int argc, char** argv)
         }
     }
 
+    /// ---- 环境 HDR 路径(加载任务完成时也要用,先算好) ----
+    if (envIndex >= 0)
+        envFile =   ctx.resourcePath() + kEnvs[envIndex].file;
+    else if (options._env.size() > 1 && (options._env[0] == '/' || options._env[1] == ':'))
+        envFile =   options._env;
+    else
+        envFile =   ctx.resourcePath() + options._env;
+
+    /// ---- 任务系统:加载在工作线程执行,完成回调在主线程派发 ----
+    FETaskMgr   taskMgr(1);
+    /// 主线程每帧取完成队列,触发 FETask::finish()
+    app->messageBus().subscribe(MSG_UPDATE, [&](const FEMessage&)
+    {
+        taskMgr.pump();
+    });
+    /// 释放顺序:先停工作线程(等待正在执行的加载返回),再释放 main 持有的 GPU 资源,
+    /// 最后场景销毁 device
+    app->messageBus().subscribe(MSG_CLOSE, [&](const FEMessage&)
+    {
+        /// 先解除进度条对任务的引用,任务随 taskMgr 清理后被释放
+        if (loadBar != nullptr)
+        {
+            loadBar->bindProgress(nullptr);
+            loadBar->setVisible(false);
+        }
+        taskMgr.stop();
+        envCube =   nullptr;
+        irrCube =   nullptr;
+        brdfLUT =   nullptr;
+        rootNodes.clear();
+    });
+
     /// ---- 打开模型或工程 ----
     if (extension == ".fepj")
     {
@@ -506,6 +551,12 @@ int main(int argc, char** argv)
         }
         const   Nodes&  tops    =   scene->nodeTree().topLevelNodes();
         rootNodes.assign(tops.begin(), tops.end());
+
+        envReady    =   applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene.get());
+        frameCamera(ctx, scene.get(), rootNodes);
+
+        std::cout << "FEViewer ready: " << options._file << "\n"
+                  << "LButton orbit / RButton pan / Wheel zoom, F frame, E environment, G grid\n";
     }
     else
     {
@@ -514,59 +565,81 @@ int main(int argc, char** argv)
         const   FEFileFormat    fmt =   (extension == ".glb")
             ?   FEFileFormat(".glb", "1.0.0.0", "GLTF binary Format!")
             :   FEFileFormat(".gltf","1.0.0.0", "GLTF text Format!");
-        auto    reader  =   FEFileFormatHelper::queryReader(ctx, fmt);
-        if (!reader)
-        {
-            std::cerr << "no reader found for: " << options._file << "\n";
-            scene   =   nullptr;
-            app->destroy();
-            return  1;
-        }
         /// 引擎文件接口按本机窄编码解释文件名(已在上方统一转换)
         Strings files   =   { options._file };
-        objects =   reader->readFiles(files);
-        for (auto var : objects)
+
+        Task    loadTask    =   new FETask(ctx);
+        loadTask->setName("LoadModel");
+        /// 主线程先取好 reader:进度条直接轮询它的进度(reader 每阶段上报),
+        /// 任务本身只在完成时才有结果码
+        auto    reader  =   FEFileFormatHelper::queryReader(ctx, fmt);
+        /// 工作线程:执行加载(纹理创建/上传与主线程渲染由设备锁串行化)
+        loadTask->setExec([&ctx, files, reader](FETask& task) -> bool
         {
-            Node    node    =   var->cast<FENode>();
-            if (node != nullptr)
-                rootNodes.push_back(node);
-        }
-        if (rootNodes.empty())
+            if (reader == nullptr)
+            {
+                task.setCode(-1);
+                return  true;
+            }
+            /// const 拷贝(SharedPtr 的 const operator-> 返回 const 指针)
+            auto    streamReader    =   reader;
+            Objects objects =   streamReader->readFiles(files);
+            if (objects.empty())
+            {
+                task.setCode(-2);
+                return  true;
+            }
+            task.setObjects(std::move(objects));
+            task.setCode(0);
+            return  true;
+        });
+        /// 进度条:叠加在场景最上层,进度源为文件读取器
+        loadBar =   new FEProgressBar(ctx);
+        scene->factoryMgr().addObject(loadBar);
+        loadBar->bindProgress(reader.get());
+        /// 主线程:入场景 / IBL / 构图
+        loadTask->setFinish([&](FETask& task)
         {
-            std::cerr << "load model failed: " << options._file << "\n";
-            scene   =   nullptr;
-            app->destroy();
-            return  1;
-        }
-        scene->dispatchNodesToSystem(rootNodes);
-        scene->addNodesToTree(rootNodes);
+            /// 加载结束(成功或失败)立即隐藏进度条并解除引用
+            if (loadBar != nullptr)
+            {
+                loadBar->bindProgress(nullptr);
+                loadBar->setVisible(false);
+            }
+            if (task.code() < 0 || task.objects().empty())
+            {
+                std::cerr << "load model failed: " << options._file << "\n";
+                return;
+            }
+            for (auto var : task.objects())
+            {
+                Node    node    =   var->cast<FENode>();
+                if (node != nullptr)
+                    rootNodes.push_back(node);
+            }
+            if (rootNodes.empty())
+            {
+                std::cerr << "load model failed: " << options._file << "\n";
+                return;
+            }
+            /// 入场景与 IBL 都会创建 GPU 资源,与后台线程保持互斥
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
+            scene->dispatchNodesToSystem(rootNodes);
+            scene->addNodesToTree(rootNodes);
+            envReady    =   applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene.get());
+            frameCamera(ctx, scene.get(), rootNodes);
+
+            std::cout << "FEViewer ready: " << options._file << "\n"
+                      << "LButton orbit / RButton pan / Wheel zoom, F frame, E environment, G grid\n";
+        });
+        taskMgr.addTask(loadTask);
+
+        std::cout << "loading: " << options._file << "\n";
     }
 
-    /// ---- 环境 IBL ----
-    if (envIndex >= 0)
-        envFile =   ctx.resourcePath() + kEnvs[envIndex].file;
-    else if (options._env.size() > 1 && (options._env[0] == '/' || options._env[1] == ':'))
-        envFile =   options._env;
-    else
-        envFile =   ctx.resourcePath() + options._env;
-    envReady    =   applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene.get());
-
-    frameCamera(ctx, scene.get(), rootNodes);
-
-    std::cout << "FEViewer ready: " << options._file << "\n"
-              << "LButton orbit / RButton pan / Wheel zoom, F frame, E environment, G grid\n";
-
-    /// 释放顺序:场景销毁 device 之前先释放 main 持有的 GPU 资源
-    app->messageBus().subscribe(MSG_CLOSE, [&](const FEMessage&)
-    {
-        envCube =   nullptr;
-        irrCube =   nullptr;
-        brdfLUT =   nullptr;
-        rootNodes.clear();
-        objects.clear();
-    });
-
     app->run();
+    /// 兜底:确保工作线程在场景/设备销毁前结束
+    taskMgr.stop();
 
     scene   =   nullptr;
     app->destroy();

@@ -198,7 +198,7 @@ namespace   FE
         /// <summary>
         /// 构建文本的 OIT 变体管线与描述符集:
         /// 克隆主管线改 4 项状态(无 color 输出/不写深度/无混合/采样数与场景一致),
-        /// FS 换成 OIT_MODE 编译的 text/shader.oit.frag.spv(写 PPLL 链表 10/11/12),
+        /// FS 换成 OIT_MODE 编译的 text/shader.oit.frag.spv(写逐像素透明层 10/11/12),
         /// 注册名 "text.oit/<图元>";dsets 绑定相机 UBO、字体图集与 OIT SSBO。
         /// 仅在 FEOITManager::active() 时构建,LIST 趟首次绘制前调用
         /// </summary>
@@ -274,7 +274,7 @@ namespace   FE
             update();
         }
         /// <summary>
-        /// 加载 OIT_MODE 编译的 text fragment shader(输出写 PPLL 链表)
+        /// 加载 OIT_MODE 编译的 text fragment shader(输出写逐像素透明层)
         /// </summary>
         Shader  loadOITFragmentShader()
         {

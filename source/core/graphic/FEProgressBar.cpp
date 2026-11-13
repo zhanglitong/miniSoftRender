@@ -155,7 +155,13 @@ namespace   FE
     void    FEProgressBar::update(CMDPtr cmd)
     {
         if (!_visible)
+        {
+            /// 隐藏时文本节点是独立工厂(常驻),不会随本对象停止绘制,
+            /// 必须显式移除,否则百分比会一直残留在屏幕上
+            if (_textNode != nullptr)
+                releaseText();
             return;
+        }
         /// 轮询外部进度源(如 FETask / 文件 reader)
         if (_source != nullptr)
             _progress   =   std::clamp(_source->progress(),real(0.0),real(1.0));
