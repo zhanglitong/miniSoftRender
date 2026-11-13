@@ -849,6 +849,8 @@ namespace   FE
         /// </summary>
         TexPtr  createDefaultColor(const float4& color)
         {
+            /// 后台加载线程创建材质时会走到这里,与主线程渲染互斥
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
             auto    tex =   _ctx.device().createTexture();
             FETexture::CreateInfo  ci;
             ci._width         =   1;
@@ -890,6 +892,8 @@ namespace   FE
         /// </summary>
         TexPtr  createDefaultCube(const float4& color)
         {
+            /// 后台加载线程创建材质时会走到这里,与主线程渲染互斥
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
             auto    tex =   _ctx.device().createTexture();
             FETexture::CreateInfo  ci;
             ci._width         =   1;

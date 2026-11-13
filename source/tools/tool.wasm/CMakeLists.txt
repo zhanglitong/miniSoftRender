@@ -76,6 +76,6 @@ if(EMSCRIPTEN)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DIS_EMSCRIPTEN)
 else()
     target_compile_definitions(${TARGET_NAME} PRIVATE -DNOMINMAX -DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
-    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "tool")
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "tools")
 endif()
 

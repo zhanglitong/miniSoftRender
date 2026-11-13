@@ -6,4 +6,5 @@ else()
 endif()
 add_subdirectory ("tool.animation.editor")
 add_subdirectory ("FESceneEditor")
+add_subdirectory ("FEViewer")
 

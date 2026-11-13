@@ -166,6 +166,8 @@ namespace   FE
                 auto    temp  =   readBuffers({buffer});
                 result.insert(result.end(),temp.begin(),temp.end());
             }
+            /// 加载完成,进度到 100%
+            setProgress(real(1));
             return  result;
         }
         /// <summary>
@@ -238,6 +240,9 @@ namespace   FE
                 }
                 if(!loaded)
                     continue;
+                /// 进度:解析 JSON 完成 5%,网格 20%,材质/纹理 20%~80%,
+                /// 节点 90%,动画 95%,蒙皮 98%(供进度条读取)
+                setProgress(real(0.05));
                 MeshsIndex          meshMap;
                 MaterialIndex       matMap;
                 AnimatonIndex       animations;
@@ -245,15 +250,21 @@ namespace   FE
                 _texCache.clear();
                 _variantNodes.clear();
                 gltfMesh2Mesh(gltfModel,meshMap);
+                setProgress(real(0.20));
                 gltfMat2Material(gltfModel,matMap);
+                setProgress(real(0.80));
                 parseVariants(gltfModel);
+                setProgress(real(0.85));
                 _variantMaterials   =   matMap;
                 auto    nodes   =   parseNodes(gltfModel,meshMap,matMap,nodeMap);
+                setProgress(real(0.90));
                 /// animation;
                 results.reserve(results.size() + nodes.size());
                 createNodeAnimation(gltfModel,animations,nodeMap,modelName);
+                setProgress(real(0.95));
                 /// 骨骼蒙皮(skins)必须在节点表建立之后解析
                 parseSkins(gltfModel,nodeMap);
+                setProgress(real(0.98));
 
                 for (auto& node : nodes)
                 {
@@ -409,10 +420,14 @@ namespace   FE
 
         void        gltfMat2Material(tinygltf::Model& model,MaterialIndex& matMap)
         {
-            for (size_t i = 0; i < model.materials.size(); ++i)
+            const   size_t  count   =   model.materials.size();
+            for (size_t i = 0; i < count; ++i)
             {
                 Material    pMat    =   parseMaterialPBR(model,int(i));
                 matMap[int(i)]      =   pMat;
+                /// 材质创建含纹理解码/上传,是加载最耗时的阶段,按材质数推进进度
+                if (count > 0)
+                    setProgress(real(0.20) + real(0.60) * real(i + 1) / real(count));
             }
         }
         /// <summary>

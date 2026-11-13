@@ -11,10 +11,12 @@ layout  (location = 0)          in  vec2    inUV;
 layout  (location = 1)          in  vec4    inColor;
 
 #ifdef  OIT_MODE
-    /// ===== OIT 变体:输出写入 PPLL 每像素链表(binding 10/11/12)=====
+    /// ===== OIT 变体:输出写入逐像素透明层(binding 10/11/12)=====
     /// 文本是透明材质(字形覆盖率 alpha),LIST(几何)趟无 color attachment,
-    /// 颜色进链表由 color pass 按深度排序合成。text 着色器仅用 SB_Camera(0)/
+    /// 颜色进透明层由 color pass 按深度排序合成。text 着色器仅用 SB_Camera(0)/
     /// SB_Material(4),10~12 空闲,沿用 oit/shader 的绑定槽。
+    /// 存储布局与 OIT_SLOT_K 保持一致(K 槽 / PPLL 链表),
+    /// 否则写入的数据合成趟不可见。
     layout  (set = 0, binding = 10) buffer OITCounterSBO
     {
         uint    oitCount;
@@ -24,17 +26,38 @@ layout  (location = 1)          in  vec4    inColor;
     };
     layout  (set = 0, binding = 11) buffer OITHeadIndex
     {
+#if OIT_SLOT_K > 0
+        /// K 槽模式:每像素一个 uint —— 本帧预订到的层数
+        uint    oitPixelCount[];
+#else
         uint    oitHeadIndex[];
+#endif
     };
     layout  (set = 0, binding = 12) buffer OITLinkedList
     {
+#if OIT_SLOT_K > 0
+        OITSlot oitSlots[];
+#else
         OITNode oitNodes[];
+#endif
     };
 
-    /// 统一输出函数(OIT 构建):分配链表节点,front-to-back 挂入该像素链表
+    /// 统一输出函数(OIT 构建):写入该像素的透明层(颜色须预乘 alpha)
     void    writePixel(vec4 color)
     {
         uint    pixelIdx    =   uint(gl_FragCoord.y) * oitScreenW + uint(gl_FragCoord.x);
+#if OIT_SLOT_K > 0
+        /// K 槽模式:atomicAdd 预订该像素的第 layer 层,超出 K 的 fragment 丢弃
+        uint    layer   =   atomicAdd(oitPixelCount[pixelIdx], 1u);
+        if (layer < OIT_SLOT_K)
+        {
+            uint2   pc      =   packColorHDR(color);
+            uint    at      =   pixelIdx * OIT_SLOT_K + layer;
+            oitSlots[at].colorRG    =   pc.x;
+            oitSlots[at].colorBA    =   pc.y;
+            oitSlots[at].depth      =   gl_FragCoord.z;
+        }
+#else
         uint    nodeIdx     =   atomicAdd(oitCount, 1);
         if (nodeIdx < oitMaxCount)      /// 溢出保护:超出节点池容量直接丢弃
         {
@@ -45,6 +68,7 @@ layout  (location = 1)          in  vec4    inColor;
             uint    oldHead =   atomicExchange(oitHeadIndex[pixelIdx], nodeIdx);
             oitNodes[nodeIdx].next      =   oldHead;
         }
+#endif
     }
 #else
     layout  (location = 0) out vec4 fragColor;
@@ -125,5 +149,7 @@ void main()
         alpha           =   pow(alpha,0.5);
     }
 
-    writePixel(vec4(color,inColor.a * alpha));
+    /// 合成趟按预乘 alpha 累积(accumRGB += rgb*(1-accumAlpha)),颜色须预乘
+    float   finalA  =   inColor.a * alpha;
+    writePixel(vec4(color * finalA,finalA));
 }

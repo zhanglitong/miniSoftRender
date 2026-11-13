@@ -1,6 +1,7 @@
 #pragma     once
 
 #include    "RSObject.h"
+#include    "FEMutex.hpp"
 #include    "FECmdBuffer.h"
 #include    "FERenderPass.h"
 #include    "FEGPipeline.h"
@@ -73,6 +74,15 @@ namespace   FE
         inline  auto        transferCmdPool()  const
         {
             return  _transferPool;
+        }
+        /// <summary>
+        /// GPU 提交/资源创建锁:
+        /// 主线程渲染与后台加载线程的纹理创建/上传通过它串行化。
+        /// 递归锁,允许同线程嵌套加锁。
+        /// </summary>
+        inline  FEMutex&    gpuMutex()
+        {
+            return  _gpuMutex;
         }
         const   auto&       pipelines() const
         {
@@ -206,6 +216,10 @@ namespace   FE
         /// 管理灯光对象
         /// </summary>
         LightMgr        _lightsMgr;
+        /// <summary>
+        /// 串行化主线程渲染与后台线程 GPU 资源创建/上传
+        /// </summary>
+        FEMutex         _gpuMutex;
         
     };
     using   Device  =   SharedPtr<FEDevice>;

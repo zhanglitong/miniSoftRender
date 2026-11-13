@@ -523,23 +523,28 @@ namespace   FE
             }
         }
 
-        TexPtr  texture =   ctx.device().createTexture();
-        if (texture == nullptr)
-            return  nullptr;
+        /// GPU 对象创建/上传与主线程渲染互斥(后台加载线程会走到这里)
+        TexPtr  texture;
+        {
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
+            texture =   ctx.device().createTexture();
+            if (texture == nullptr)
+                return  nullptr;
 
-        FETexture::CreateInfo   texInfo;
-        texInfo._width      =   width;
-        texInfo._height     =   height;
-        texInfo._format     =   cInfo._format;
-        texInfo._magFilter  =   magFilter;
-        texInfo._minFilter  =   minFilter;
-        texInfo._addressMode=   addressMode;
-        texInfo._mips       =   levels;
-        texInfo._cube       =   cube;
-        if  (!texture->create(texInfo))
-            return  nullptr;
-        if  (!texture->update(pixels.data(),pixels.size()))
-            return  nullptr;
+            FETexture::CreateInfo   texInfo;
+            texInfo._width      =   width;
+            texInfo._height     =   height;
+            texInfo._format     =   cInfo._format;
+            texInfo._magFilter  =   magFilter;
+            texInfo._minFilter  =   minFilter;
+            texInfo._addressMode=   addressMode;
+            texInfo._mips       =   levels;
+            texInfo._cube       =   cube;
+            if  (!texture->create(texInfo))
+                return  nullptr;
+            if  (!texture->update(pixels.data(),pixels.size()))
+                return  nullptr;
+        }
         return  texture;
     }
 
@@ -620,21 +625,26 @@ namespace   FE
             srcH    =   dstH;
         }
 
-        TexPtr  texture =   ctx.device().createTexture();
-        if  (texture == nullptr)
-            return  nullptr;
-        FETexture::CreateInfo   texInfo;
-        texInfo._width      =   width;
-        texInfo._height     =   height;
-        texInfo._format     =   FMT_R8G8B8A8_UNORM;
-        texInfo._magFilter  =   magFilter;
-        texInfo._minFilter  =   minFilter;
-        texInfo._addressMode=   addressMode;
-        texInfo._mips       =   mipCount;
-        if  (!texture->create(texInfo))
-            return  nullptr;
-        if  (!texture->update(pixels.data(),pixels.size()))
-            return  nullptr;
+        /// GPU 对象创建/上传与主线程渲染互斥(后台加载线程会走到这里)
+        TexPtr  texture;
+        {
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
+            texture =   ctx.device().createTexture();
+            if  (texture == nullptr)
+                return  nullptr;
+            FETexture::CreateInfo   texInfo;
+            texInfo._width      =   width;
+            texInfo._height     =   height;
+            texInfo._format     =   FMT_R8G8B8A8_UNORM;
+            texInfo._magFilter  =   magFilter;
+            texInfo._minFilter  =   minFilter;
+            texInfo._addressMode=   addressMode;
+            texInfo._mips       =   mipCount;
+            if  (!texture->create(texInfo))
+                return  nullptr;
+            if  (!texture->update(pixels.data(),pixels.size()))
+                return  nullptr;
+        }
         return  texture;
     }
 
