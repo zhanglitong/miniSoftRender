@@ -116,7 +116,7 @@ namespace   FE
         }
         auto&   vkDev   =   (VKDevice&)(_ctx.device());
         VK_CHECK_RESULT(vkCreateRenderPass(vkDev.logicalDevice(), &renderPassInfo, nullptr, &_native));
-
+        fireNotify();
         return  _native != nullptr;
     }
 }

@@ -82,7 +82,13 @@ namespace   FE
     bool    VKGPUBuffer::create(const CreateInfo& info)
     {
         _cInfo  =   info;
-        return  createBuffer(_ctx.device(),info,_bufferUsage,_native,_memory,&_allocSize);
+        bool    result  =   createBuffer(_ctx.device(),info,_bufferUsage,_native,_memory,&_allocSize);
+        if (result)
+        {
+            fireNotify();
+        }
+        return  result;
+
     }
 
     bool    VKGPUBuffer::update(const void* pData,uint64 length,uint64 offset)
@@ -140,7 +146,14 @@ namespace   FE
             _memory =   nullptr;
         }
         _cInfo._length  =   length;
-        return  createBuffer(_ctx.device(),_cInfo,_bufferUsage,_native,_memory,&_allocSize);
+        bool    result  =   createBuffer(_ctx.device(),_cInfo,_bufferUsage,_native,_memory,&_allocSize);
+        /// 这里要通知所有使用者数据变化了，需要重新绑定
+        if (result)
+        {
+            fireNotify();
+        }
+        
+        return  result;
     }
     void*   VKGPUBuffer::lock(uint64 size,uint64 offset)
     {

@@ -49,6 +49,10 @@ namespace   FE
         auto    pool        =   _cInfo._pool->as<VKDSetPool>();
         pool->alloc();
 
+        if (_native)
+        {
+            fireNotify();
+        }
         return  _native != nullptr;
     }
 

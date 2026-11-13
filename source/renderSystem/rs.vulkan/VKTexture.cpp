@@ -84,6 +84,9 @@ namespace   FE
             vkDevice.initializeImageToShaderReadable(_image);
 
         LOG_DBG("VKTexture.create %ux%u ok",info._width,info._height);
+       
+        fireNotify();
+        
         return  true;
     }
 

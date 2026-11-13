@@ -301,7 +301,6 @@ namespace   FE
         {
             _gpuCull    =   bFlag;
         }
-
         Groups&         groups() 
         {
             return  _groupNode;
@@ -310,8 +309,6 @@ namespace   FE
         {
             return  _groupNode;
         }
-
-        
     public:
         /// <summary>
         /// 添加节点:递归收集该节点及其带 mesh 的子节点,调用方只传顶层节点
