@@ -186,24 +186,27 @@ namespace   FE
             _texParams.update();
 
             /// 创建并绑定默认贴图(未设置时的安全占位,采样结果等价于"无贴图")
-            _baseColorMap  =  createDefaultColor(float4(1,1,1,1));
-            _mrMap         =  createDefaultColor(float4(1,1,1,1));   /// G=roughness=1,B=metallic=1 → 取因子值
-            _normalMap     =  createDefaultColor(float4(0.5f,0.5f,1,1)); /// 平面法线(0,0,1)
-            _occlusionMap  =  createDefaultColor(float4(1,1,1,1));   /// AO=1
-            _emissiveMap   =  createDefaultColor(float4(0,0,0,1));   /// 自发光=0
-            _environmentMap = createDefaultCube(float4(0,0,0,1));    /// 默认黑环境(标志位默认关)
-            _irradianceMap  = _environmentMap;
+            _baseColorMap       =   _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);
+            _mrMap              =   _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);        /// G=roughness=1,B=metallic=1 → 取因子值
+            _normalMap          =   _ctx.device().defaultTexture(DEFAULT_TEX_NORMAL);       /// 平面法线(0,0,1)
+            _occlusionMap       =   _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);        /// AO=1
+            _emissiveMap        =   _ctx.device().defaultTexture(DEFAULT_TEX_BLACK);        /// 自发光=0
+            _environmentMap     =   _ctx.device().defaultTexture(DEFAULT_TEX_BLACK_CUBE);   /// 默认黑环境(标志位默认关)
+            _irradianceMap      =   _environmentMap;
             /// 默认 BRDF LUT:R=1/G=0 → F*1+0 = F,与未挂 LUT 的旧行为一致
-            _brdfLUT        = createDefaultColor(float4(1,0,0,1));
+            _brdfLUT            =   _ctx.device().defaultTexture(DEFAULT_TEX_BRDF);
             /// 默认虹彩厚度贴图:G=1(标志位默认关,仅作占位;置位时等效厚度取 tmax)
-            _iriThicknessMap = createDefaultColor(float4(1,1,1,1));
+            _iriThicknessMap    =   _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);
             /// 默认场景折射纹理:1x1 白(占位,由 FEScene 创建场景后挂真纹理)
-            _sceneTexMap     = createDefaultColor(float4(1,1,1,1));
+            _sceneTexMap        =   _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);
             /// 占位白图(不透明材质专用,永不被替换;见 _sceneTexWhite 注释)
-            _sceneTexWhite   = _sceneTexMap;
+            _sceneTexWhite      =   _sceneTexMap;
             bindResources();
 
-            lightSBO->as<FENotify>()->notify()  +=  {[this](Object object)
+            /// 注册到灯光对象的通知链:需与主线程派发互斥,并记录指针供析构注销
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
+            _lightNotify    =   lightSBO->as<FENotify>();
+            _lightNotify->notify()  +=  {this,[this](Object object)
             {
                 if (object->flags().hasFlag(FLAG_UPDATE))
                 {
@@ -245,7 +248,29 @@ namespace   FE
         }
         virtual ~FEMaterialPBR()
         {
-            _pbr._gpu   =   nullptr;
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
+            /// 注销灯光通知,避免通知链里残留悬空 this
+            if (_lightNotify != nullptr)
+            {
+                _lightNotify->notify()  -=  this;
+                _lightNotify    =   nullptr;
+            }
+            /// 成员析构发生在本体之后,这里持锁把 GPU 资源显式释放掉
+            _pbr._gpu       =   nullptr;
+            _texParams._gpu =   nullptr;
+            _baseColorMap   =   nullptr;
+            _mrMap          =   nullptr;
+            _normalMap      =   nullptr;
+            _occlusionMap   =   nullptr;
+            _emissiveMap    =   nullptr;
+            _environmentMap =   nullptr;
+            _irradianceMap  =   nullptr;
+            _brdfLUT        =   nullptr;
+            _iriThicknessMap=   nullptr;
+            _sceneTexMap    =   nullptr;
+            _sceneTexWhite  =   nullptr;
+            for (auto& pl : _oitPipelines)
+                pl          =   nullptr;
         }
 
         /// <summary>
@@ -253,37 +278,52 @@ namespace   FE
         /// </summary>
         inline  void    setBaseColorMap(TexPtr tex)
         {
-            _baseColorMap = (tex != nullptr) ? tex : createDefaultColor(float4(1,1,1,1));
+            TexPtr  old             =   _baseColorMap;
+            _baseColorMap = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);
+            if (old.get() != _baseColorMap.get())
+                unwatchTexture(old.get());
             setTexFlag(PBR_TEX_BASECOLOR, tex != nullptr);
-            bind(0,BIND_BASECOLOR,{_baseColorMap.get()});
+            bindTexture(0,BIND_BASECOLOR,_baseColorMap);
             _pbr.update(); _texParams.update(); update();
         }
         inline  void    setMetallicRoughnessMap(TexPtr tex)
         {
-            _mrMap = (tex != nullptr) ? tex : createDefaultColor(float4(1,1,1,1));
+            TexPtr  old     =   _mrMap;
+            _mrMap = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);
+            if (old.get() != _mrMap.get())
+                unwatchTexture(old.get());
             setTexFlag(PBR_TEX_METALLICROUGH, tex != nullptr);
-            bind(0,BIND_METALLICROUGH,{_mrMap.get()});
+            bindTexture(0,BIND_METALLICROUGH,_mrMap);
             _pbr.update(); _texParams.update(); update();
         }
         inline  void    setNormalMap(TexPtr tex)
         {
-            _normalMap = (tex != nullptr) ? tex : createDefaultColor(float4(0.5f,0.5f,1,1));
+            TexPtr  old     =   _normalMap;
+            _normalMap = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_NORMAL);
+            if (old.get() != _normalMap.get())
+                unwatchTexture(old.get());
             setTexFlag(PBR_TEX_NORMAL, tex != nullptr);
-            bind(0,BIND_NORMAL,{_normalMap.get()});
+            bindTexture(0,BIND_NORMAL,_normalMap);
             _pbr.update(); _texParams.update(); update();
         }
         inline  void    setOcclusionMap(TexPtr tex)
         {
-            _occlusionMap = (tex != nullptr) ? tex : createDefaultColor(float4(1,1,1,1));
+            TexPtr  old     =   _occlusionMap;
+            _occlusionMap = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);
+            if (old.get() != _occlusionMap.get())
+                unwatchTexture(old.get());
             setTexFlag(PBR_TEX_OCCLUSION, tex != nullptr);
-            bind(0,BIND_OCCLUSION,{_occlusionMap.get()});
+            bindTexture(0,BIND_OCCLUSION,_occlusionMap);
             _pbr.update(); _texParams.update(); update();
         }
         inline  void    setEmissiveMap(TexPtr tex)
         {
-            _emissiveMap = (tex != nullptr) ? tex : createDefaultColor(float4(0,0,0,1));
+            TexPtr  old     =   _emissiveMap;
+            _emissiveMap = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_BLACK);
+            if (old.get() != _emissiveMap.get())
+                unwatchTexture(old.get());
             setTexFlag(PBR_TEX_EMISSIVE, tex != nullptr);
-            bind(0,BIND_EMISSIVE,{_emissiveMap.get()});
+            bindTexture(0,BIND_EMISSIVE,_emissiveMap);
             _pbr.update(); _texParams.update(); update();
         }
         /// <summary>
@@ -295,13 +335,19 @@ namespace   FE
         /// </summary>
         inline  void    setEnvironmentMap(TexPtr tex,TexPtr irradiance = nullptr)
         {
-            _environmentMap = (tex != nullptr) ? tex : createDefaultCube(float4(0,0,0,1));
+            TexPtr  oldEnv  =   _environmentMap;
+            TexPtr  oldIrr  =   _irradianceMap;
+            _environmentMap = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_BLACK_CUBE);
             _irradianceMap  = (irradiance != nullptr) ? irradiance : _environmentMap;
             /// 用户显式挂接环境贴图后,不再被场景烘焙的天空环境覆盖
             _envUserSet     = (tex != nullptr);
+            if (oldEnv.get() != _environmentMap.get())
+                unwatchTexture(oldEnv.get());
+            if (oldIrr.get() != _irradianceMap.get())
+                unwatchTexture(oldIrr.get());
             setTexFlag(PBR_TEX_ENVIRONMENT, tex != nullptr);
-            bind(0,BIND_ENVIRONMENT,{_environmentMap.get()});
-            bind(0,BIND_IRRADIANCE,{_irradianceMap.get()});
+            bindTexture(0,BIND_ENVIRONMENT,_environmentMap);
+            bindTexture(0,BIND_IRRADIANCE,_irradianceMap);
             _pbr.update(); _texParams.update(); update();
         }
         /// <summary>
@@ -320,11 +366,17 @@ namespace   FE
             if (_environmentMap == tex && _irradianceMap == irr
                 && (_texParams._value._flags & PBR_TEX_ENVIRONMENT) != 0u)
                 return;
+            TexPtr  oldEnv  =   _environmentMap;
+            TexPtr  oldIrr  =   _irradianceMap;
             _environmentMap = tex;
             _irradianceMap  = irr;
+            if (oldEnv.get() != _environmentMap.get())
+                unwatchTexture(oldEnv.get());
+            if (oldIrr.get() != _irradianceMap.get())
+                unwatchTexture(oldIrr.get());
             setTexFlag(PBR_TEX_ENVIRONMENT, tex != nullptr);
-            bind(0,BIND_ENVIRONMENT,{_environmentMap.get()});
-            bind(0,BIND_IRRADIANCE,{_irradianceMap.get()});
+            bindTexture(0,BIND_ENVIRONMENT,_environmentMap);
+            bindTexture(0,BIND_IRRADIANCE,_irradianceMap);
             _pbr.update(); _texParams.update(); update();
         }
         /// <summary>
@@ -332,8 +384,11 @@ namespace   FE
         /// </summary>
         inline  void    setIrradianceMap(TexPtr tex)
         {
-            _irradianceMap  = (tex != nullptr) ? tex : _environmentMap;
-            bind(0,BIND_IRRADIANCE,{_irradianceMap.get()});
+            TexPtr  old     =   _irradianceMap;
+            _irradianceMap  =   (tex != nullptr) ? tex : _environmentMap;
+            if (old.get() != _irradianceMap.get())
+                unwatchTexture(old.get());
+            bindTexture(0,BIND_IRRADIANCE,_irradianceMap);
             update();
         }
         /// <summary>
@@ -356,8 +411,11 @@ namespace   FE
         /// </summary>
         inline  void    setBRDFLUT(TexPtr tex)
         {
-            _brdfLUT    = (tex != nullptr) ? tex : createDefaultColor(float4(1,0,0,1));
-            bind(0,BIND_BRDF_LUT,{_brdfLUT.get()});
+            TexPtr  old     =   _brdfLUT;
+            _brdfLUT    = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_BRDF);
+            if (old.get() != _brdfLUT.get())
+                unwatchTexture(old.get());
+            bindTexture(0,BIND_BRDF_LUT,_brdfLUT);
             update();
         }
         /// <summary>
@@ -367,9 +425,12 @@ namespace   FE
         /// </summary>
         inline  void    setIriThicknessMap(TexPtr tex)
         {
-            _iriThicknessMap = (tex != nullptr) ? tex : createDefaultColor(float4(1,1,1,1));
+            TexPtr  old     =   _iriThicknessMap;
+            _iriThicknessMap = (tex != nullptr) ? tex : _ctx.device().defaultTexture(DEFAULT_TEX_WHITE);
+            if (old.get() != _iriThicknessMap.get())
+                unwatchTexture(old.get());
             setTexFlag(PBR_TEX_IRITHICKNESS, tex != nullptr);
-            bind(0,BIND_IRI_THICKNESS,{_iriThicknessMap.get()});
+            bindTexture(0,BIND_IRI_THICKNESS,_iriThicknessMap);
             _texParams.update(); update();
         }
 
@@ -595,6 +656,8 @@ namespace   FE
         /// </summary>
         void    setupOITVariants()
         {
+            /// 管线克隆/描述符集分配会改设备级管线池,需与渲染线程互斥
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
             for (auto& pl : _oitPipelines)
                 pl      =   nullptr;
             _oitDsets.clear();
@@ -831,42 +894,19 @@ namespace   FE
         }
         inline  void    bindAllTexturesTo(DSets& dsets)
         {
-            bindTo(dsets,0,BIND_BASECOLOR,     {_baseColorMap.get()});
-            bindTo(dsets,0,BIND_METALLICROUGH, {_mrMap.get()});
-            bindTo(dsets,0,BIND_NORMAL,        {_normalMap.get()});
-            bindTo(dsets,0,BIND_OCCLUSION,     {_occlusionMap.get()});
-            bindTo(dsets,0,BIND_EMISSIVE,      {_emissiveMap.get()});
-            bindTo(dsets,0,BIND_ENVIRONMENT,   {_environmentMap.get()});
-            bindTo(dsets,0,BIND_IRRADIANCE,    {_irradianceMap.get()});
-            bindTo(dsets,0,BIND_BRDF_LUT,      {_brdfLUT.get()});
-            bindTo(dsets,0,BIND_IRI_THICKNESS, {_iriThicknessMap.get()});
-            bindTo(dsets,0,BIND_SCENE_TEX,     {_sceneTexWhite.get()});
+            /// 用 bindTextureTo 绑定:贴图重建(create)后会收到通知并自动重绑
+            bindTextureTo(dsets,0,BIND_BASECOLOR,     _baseColorMap);
+            bindTextureTo(dsets,0,BIND_METALLICROUGH, _mrMap);
+            bindTextureTo(dsets,0,BIND_NORMAL,        _normalMap);
+            bindTextureTo(dsets,0,BIND_OCCLUSION,     _occlusionMap);
+            bindTextureTo(dsets,0,BIND_EMISSIVE,      _emissiveMap);
+            bindTextureTo(dsets,0,BIND_ENVIRONMENT,   _environmentMap);
+            bindTextureTo(dsets,0,BIND_IRRADIANCE,    _irradianceMap);
+            bindTextureTo(dsets,0,BIND_BRDF_LUT,      _brdfLUT);
+            bindTextureTo(dsets,0,BIND_IRI_THICKNESS, _iriThicknessMap);
+            bindTextureTo(dsets,0,BIND_SCENE_TEX,     _sceneTexWhite);
         /// 占位绑定随后由 bindSceneTexTo 按 transmission 因子修正
             bindSceneTexTo(dsets);
-        }
-        /// <summary>
-        /// 创建 1x1 RGBA8 默认纹理
-        /// </summary>
-        TexPtr  createDefaultColor(const float4& color)
-        {
-            /// 后台加载线程创建材质时会走到这里,与主线程渲染互斥
-            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
-            auto    tex =   _ctx.device().createTexture();
-            FETexture::CreateInfo  ci;
-            ci._width         =   1;
-            ci._height        =   1;
-            ci._format        =   FMT_R8G8B8A8_UNORM;
-            ci._magFilter     =   FILTER_LINEAR;
-            ci._minFilter     =   FILTER_LINEAR;
-            ci._addressMode   =   ADDRESS_REPEAT;
-            tex->create(ci);
-            uint8   rgba[4];
-            rgba[0] =   (uint8)(clamp(color.x,0.0f,1.0f) * 255.0f + 0.5f);
-            rgba[1] =   (uint8)(clamp(color.y,0.0f,1.0f) * 255.0f + 0.5f);
-            rgba[2] =   (uint8)(clamp(color.z,0.0f,1.0f) * 255.0f + 0.5f);
-            rgba[3] =   (uint8)(clamp(color.w,0.0f,1.0f) * 255.0f + 0.5f);
-            tex->update(rgba,4);
-            return  tex;
         }
         /// <summary>
         /// 各贴图槽位的来源对象(FEFileBuffer 压缩字节 / FEImage)作为序列化依赖,
@@ -886,34 +926,6 @@ namespace   FE
                     uSet.emplace(source);
             }
             return  uSet.size() - nPrev;
-        }
-        /// <summary>
-        /// 创建 1x1x6 默认 cubemap(六面同色,单 mip)
-        /// </summary>
-        TexPtr  createDefaultCube(const float4& color)
-        {
-            /// 后台加载线程创建材质时会走到这里,与主线程渲染互斥
-            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
-            auto    tex =   _ctx.device().createTexture();
-            FETexture::CreateInfo  ci;
-            ci._width         =   1;
-            ci._height        =   1;
-            ci._format        =   FMT_R8G8B8A8_UNORM;
-            ci._magFilter     =   FILTER_LINEAR;
-            ci._minFilter     =   FILTER_LINEAR;
-            ci._addressMode   =   ADDRESS_CLAMP_TO_EDGE;
-            ci._cube          =   true;
-            tex->create(ci);
-            uint8   rgba[4];
-            rgba[0] =   (uint8)(clamp(color.x,0.0f,1.0f) * 255.0f + 0.5f);
-            rgba[1] =   (uint8)(clamp(color.y,0.0f,1.0f) * 255.0f + 0.5f);
-            rgba[2] =   (uint8)(clamp(color.z,0.0f,1.0f) * 255.0f + 0.5f);
-            rgba[3] =   (uint8)(clamp(color.w,0.0f,1.0f) * 255.0f + 0.5f);
-            uint8   faces[24];
-            for (int i = 0; i < 6; ++i)
-                memcpy(faces + i * 4, rgba, 4);
-            tex->update(faces,sizeof(faces));
-            return  tex;
         }
     protected:
         TBlock<PBRData>         _pbr;
@@ -946,6 +958,10 @@ namespace   FE
         /// 透明材质回退普通 alpha 混合管线
         /// </summary>
         bool                _oitVariantFailed       =   false;
+        /// <summary>
+        /// 灯光通知对象(全局 lightSBO),析构时用它注销 this 的回调
+        /// </summary>
+        FENotify*           _lightNotify            =   nullptr;
         TexPtr              _baseColorMap;
         TexPtr              _mrMap;
         TexPtr              _normalMap;

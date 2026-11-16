@@ -317,7 +317,7 @@ namespace   FE
         if (length == 0 || pData == nullptr)
             return  nullptr;
         LOG_DBG("VKRenderSystem.createUBO");
-        auto    object  =  new VKGPUBuffer(_ctx,BufferUsage::TRANSFER_SRC_BIT);
+        GPUBuffer   object  =  new VKGPUBuffer(_ctx,BufferUsage::TRANSFER_SRC_BIT);
         FEGPUBuffer::CreateInfo cInfo;
         cInfo._bufUsages    =   TRANSFER_SRC_BIT;
         cInfo._memUsages    =   HOST_VISIBLE_BIT;

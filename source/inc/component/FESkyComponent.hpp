@@ -389,7 +389,7 @@ namespace   FE
         }
     protected:
         UBOSky          _value;
-        FEGPUBuffer*    _ubo        =   nullptr;
+        GPUBuffer       _ubo        =   nullptr;
         /// <summary>
         /// 同步目标:场景主方向光(由 resolveSunLight 解析)
         /// </summary>

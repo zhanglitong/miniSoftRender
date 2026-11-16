@@ -9,6 +9,13 @@ namespace   FE
 {
     VKTexture::~VKTexture()
     {
+        destroy();
+    }
+
+    void    VKTexture::destroy()
+    {
+        /// GPU 资源可能在任意线程释放:与渲染提交互斥
+        FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
         auto&   vkDevice    =   (VKDevice&)_ctx.device();
         auto    device      =   vkDevice.logicalDevice();
         if (_sampler)
@@ -23,6 +30,14 @@ namespace   FE
 
     bool    VKTexture::create(const FETexture::CreateInfo& info)
     {
+        /// 可重复调用:已创建且参数一致时复用现有 image/view/sampler,
+        /// 像素数据不重传(需要新内容时调用 update)
+        if (_image != nullptr && _view != nullptr && _sampler != nullptr && _cInfo == info)
+            return  true;
+
+        /// 参数变化或上次创建不完整:先释放旧资源再重建
+        destroy();
+
         _cInfo  =   info;
         auto&   vkDevice    =   (VKDevice&)_ctx.device();
         auto    device      =   vkDevice.logicalDevice();

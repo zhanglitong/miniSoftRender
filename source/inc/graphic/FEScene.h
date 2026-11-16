@@ -61,6 +61,7 @@ namespace   FE
     using   QueueItems  =   std::vector<QueueItem>;
 
     class   FEInputSystem;
+    class   FEProgressBar;
     class   FE_API  FEScene 
         :public FEObject
         ,public FEInput
@@ -123,6 +124,12 @@ namespace   FE
         {
             return  _factorys;
         }
+        /// <summary>
+        /// 场景默认进度条(创建场景时已建好:常驻、默认隐藏):
+        /// 需要时取回后 setVisible/bindProgress/setProgress 即可使用
+        /// </summary>
+        /// <returns>进度条实例,未创建时为 nullptr</returns>
+        FEProgressBar*  progressBar();
         inline  auto&   viewerMgr()
         {
             return  _viewerMgr;
@@ -234,6 +241,12 @@ namespace   FE
         /// <param name="items">待执行项,内部按投递顺序(FIFO)执行</param>
         /// <returns>实际执行项数;场景销毁导致任务被丢弃时返回 0</returns>
         size_t          sendRunable(QueueItems items);
+        /// <summary>
+        /// 关闭跨线程可执行队列:丢弃挂起项,让阻塞中的 sendRunable 立即返回 0。
+        /// destroy() 会自动调用;若要在销毁场景之前 join 可能正阻塞在 sendRunable
+        /// 里的工作线程,必须自己先调用本函数,否则 join 会互相等待
+        /// </summary>
+        void            closeRunables();
     public:
         virtual void    onFrameStart();
         virtual void    onFrameUpdate();

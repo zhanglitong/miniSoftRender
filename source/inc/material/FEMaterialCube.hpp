@@ -29,7 +29,7 @@ namespace   FE
             auto    cameraUBO   =   ctx.device().queryCache(FEConstUuid::CameraUBOId);
             bind(0,SB_Camera,   {cameraUBO});
             if (_cube)
-                bind(0,SB_Material, {_cube.get()});
+                bindTexture(0,SB_Material, _cube);
 
             /// <summary>
             /// 同步数据到显卡
@@ -43,21 +43,30 @@ namespace   FE
             _cube   =   other._cube;
             if (_cube)
             {
-                bind(0,SB_Material, {_cube.get()});
+                bindTexture(0,SB_Material, _cube);
                 update();
             }
         }
         virtual ~FEMaterialCube()
-        {}
+        {
+            /// 先退订纹理通知,再释放 cubemap 引用
+            unwatchTexture(_cube.get());
+            /// 成员析构发生在本体之后,先持锁释放 cubemap 引用
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
+            _cube   =   nullptr;
+        }
         /// <summary>
         /// 设置立方体贴图(内部完成描述符绑定与上传)
         /// </summary>
         inline  void    setCube(TexPtr cube)
         {
+            TexPtr  old     =   _cube;
             _cube   =   cube;
+            if (old.get() != _cube.get())
+                unwatchTexture(old.get());
             if (_cube)
             {
-                bind(0,SB_Material, {_cube.get()});
+                bindTexture(0,SB_Material, _cube);
                 update();
             }
         }

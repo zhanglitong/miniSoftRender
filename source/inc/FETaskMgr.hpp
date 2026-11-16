@@ -12,9 +12,12 @@ namespace   FE
     /// <summary>
     /// 任务系统:
     ///   1. addTask 后由工作线程执行 FETask::exec()
-    ///   2. 执行完成的任务进入完成队列
-    ///   3. 主线程每帧调用 pump(),在完成队列所属线程(主线程)触发 FETask::finish()
-    /// 注意:pump() 只能在主线程调用;工作线程数量默认 1。
+    ///   2. exec() 返回 false 表示尚未完成,任务重新入队,由工作线程继续调度
+    ///   3. exec() 返回 true 后由当前工作线程立即触发 FETask::finish()
+    /// 注意:finish() 在工作线程执行,不是主线程。回调里需要访问主线程独占状态
+    ///       (场景树/UI/渲染)时,用 FEScene::sendRunable 投递到场景主线程执行;
+    ///       若直接访问则必须自行持 FEDevice::gpuMutex 与帧循环互斥。
+    ///       任务对象的最后一个引用也可能在工作线程释放。
     /// </summary>
     class   FETaskMgr
     {
@@ -52,25 +55,7 @@ namespace   FE
             _cv.notify_one();
         }
         /// <summary>
-        /// 主线程:取出已完成任务并触发完成回调
-        /// </summary>
-        /// <returns>本次处理的任务数量</returns>
-        size_t  pump()
-        {
-            std::deque<Task>    finished;
-            {
-                std::lock_guard<std::mutex>    lock(_mutex);
-                finished.swap(_finished);
-            }
-            for (auto& task : finished)
-            {
-                if (task != nullptr && !task->isCanceled())
-                    task->finish();
-            }
-            return  finished.size();
-        }
-        /// <summary>
-        /// 取消所有未执行以及已完成但尚未派发的任务(不触发完成回调)
+        /// 取消所有未执行的任务(不触发完成回调),正在执行的任务只能靠 isCanceled() 提前退出
         /// </summary>
         void    cancelAll()
         {
@@ -78,8 +63,6 @@ namespace   FE
             {
                 std::lock_guard<std::mutex>    lock(_mutex);
                 tasks.swap(_pending);
-                tasks.insert(tasks.end(),_finished.begin(),_finished.end());
-                _finished.clear();
             }
             for (auto& task : tasks)
             {
@@ -103,7 +86,7 @@ namespace   FE
             _workers.clear();
             cancelAll();
         }
-        inline  bool    running() const
+        bool    running() const
         {
             return  _running.load();
         }
@@ -137,15 +120,26 @@ namespace   FE
                     task->setCode(-1);
                     done    =   true;
                 }
+                if (!done)
                 {
                     std::lock_guard<std::mutex>    lock(_mutex);
-                    /// 停止过程中完成的任务不再派发,直接释放
+                    /// 停止过程中未完成的任务不再调度
                     if (!_running.load())
                         continue;
-                    if (done)
-                        _finished.push_back(task);
-                    else
-                        _pending.push_back(task);
+                    _pending.push_back(task);
+                    continue;
+                }
+                /// 停止过程中完成的任务不再派发,直接释放
+                if (!_running.load() || task->isCanceled())
+                    continue;
+                try
+                {
+                    task->finish();
+                }
+                catch (...)
+                {
+                    /// 完成回调异常同样不能杀掉工作线程
+                    task->setCode(-1);
                 }
             }
         }
@@ -153,7 +147,6 @@ namespace   FE
         std::mutex                  _mutex;
         std::condition_variable     _cv;
         std::deque<Task>            _pending;
-        std::deque<Task>            _finished;
         std::vector<std::thread>    _workers;
         std::atomic<bool>           _running{false};
     };

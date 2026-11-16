@@ -2,6 +2,7 @@
 #include    "FEStreamReader.hpp"
 #include    "FEStreamWriter.hpp"
 #include    "FEObjectHelper.hpp"
+#include    "FEFileFormatRegistry.hpp"
 
 namespace   FE
 {
@@ -74,9 +75,10 @@ namespace   FE
         {
             const auto  key =   fmt.toString();
             Format  fFmt;
-            if (!_ctx.readers().query(key,fFmt))
+            FEFileFormatRegistry    formats(_ctx);
+            if (!formats.queryReader(key,fFmt))
             {
-                LOG_INF("ctx.readers().query(%s) return false",key.c_str());
+                LOG_INF("formats.queryReader(%s) return false",key.c_str());
                 return  nullptr;
             }
             /// 检测模式是否兼容,例如插件支持文件模式，不支持内存模式
@@ -161,9 +163,10 @@ namespace   FE
         {
             const auto  key =   fmt.toString();
             Format      fFmt;
-            if (!_ctx.writers().query(key,fFmt))
+            FEFileFormatRegistry    formats(_ctx);
+            if (!formats.queryWriter(key,fFmt))
             {
-                LOG_INF("ctx.writers().query(%s) return false",key.c_str());
+                LOG_INF("formats.queryWriter(%s) return false",key.c_str());
                 return  nullptr;
             }
             /// 检测模式是否兼容,例如插件支持文件模式，不支持内存模式

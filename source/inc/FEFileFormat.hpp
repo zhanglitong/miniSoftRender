@@ -188,20 +188,23 @@ namespace   FE
         }
     };
 
-    extern  void    systemRegReader(const FEFileFormat& fmt);
-    extern  void    systemRegWriter(const FEFileFormat& fmt);
+    #define DEFINE_FORMAT_READER(ctx, className)            \
+            {                                               \
+                FEFileFormatRegistry    formats(ctx);       \
+                for (auto& fmt: className::formatList())    \
+                {                                           \
+                    formats.addReader(fmt);                 \
+                }                                           \
+            }
 
-    #define DEFINE_FORMAT_READER(className)             \
-            for (auto& fmt: className::formatList())    \
-            {                                           \
-                systemRegReader(fmt);                   \
-            }                                           \
-
-    #define DEFINE_FORMAT_WRITER(className)             \
-            for (auto& fmt: className::formatList())    \
-            {                                           \
-                systemRegWriter(fmt);                   \
-            }                                           \
+    #define DEFINE_FORMAT_WRITER(ctx, className)            \
+            {                                               \
+                FEFileFormatRegistry    formats(ctx);       \
+                for (auto& fmt: className::formatList())    \
+                {                                           \
+                    formats.addWriter(fmt);                 \
+                }                                           \
+            }
 
     using   Format      =   FEFileFormat;
     using   Formats     =   std::vector<FEFileFormat>;

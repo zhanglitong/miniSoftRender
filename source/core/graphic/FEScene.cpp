@@ -25,6 +25,7 @@
 #include    "../inc/graphic/FEFactoryAxisRotate.hpp"
 #include    "../inc/graphic/FEFactoryAxisScale.hpp"
 #include    "../inc/graphic/FESceneBrowse.h"
+#include    "../inc/graphic/FEProgressBar.hpp"
 #include    "../inc/component/FESkyComponent.hpp"
 #include    "../inc/material/FEMaterialPBR.hpp"
 #include    "FEOffscreenSwapchain.h"
@@ -327,7 +328,7 @@ namespace   FE
         /// 必须在 resize(确定最终尺寸)与 loadPipelines(设备管线注册表就绪)之后;
         /// 初始化失败时 _oitManager 为空,渲染回退到普通 alpha 混合。
         {
-            auto    oit =   OITManager(new FEOITManager(_ctx));
+            OITManager  oit =   OITManager(new FEOITManager(_ctx));
             if (oit->init(_size.x,_size.y,32,_sampleCount))
             {
                 FEOITManager::setActive(oit.get());
@@ -402,9 +403,24 @@ namespace   FE
         _gridNode   =   createGrid();
         /// 创建工具
         createTools();
+        /// 默认进度条:常驻(FEFactoryMgr::clear 不回收)、默认隐藏;
+        /// 固定 ObjectId,外部按 Id 查回后设置状态即可使用
+        {
+            FEProgressBar*  bar     =   new FEProgressBar(_ctx);
+            bar->setObjectId(FEConstUuid::ProgressBarId);
+            bar->setResident(true);
+            bar->setVisible(false);
+            _factorys.addObject(bar);
+        }
         /// 初始化完成后,统一从全局配置读取对象参数并应用(配置已由 FEContext::setArg 加载)
         applySetting();
         return  true;
+    }
+    FEProgressBar*  FEScene::progressBar()
+    {
+        /// 固定 ObjectId 查回:工厂表按 mesh key 索引,内部线性查找
+        RFactory    factory =   _factorys.findObject(FEConstUuid::ProgressBarId);
+        return  factory != nullptr ? factory->as<FEProgressBar>() : nullptr;
     }
     void    FEScene::applySetting()
     {
@@ -412,17 +428,20 @@ namespace   FE
         if (_camera != nullptr)
             loadCameraConfig(_ctx,*_camera);
     }
+    void    FEScene::closeRunables()
+    {
+        /// 销毁后拒绝新任务;丢弃挂起任务可让阻塞中的 sendRunable 立即返回
+        std::lock_guard<std::mutex> lock(_runableMutex);
+        _runableClosed  =   true;
+        std::queue<RunableTask> dropped;
+        dropped.swap(_runables);
+    }
     void    FEScene::destroy()
     {
         LOG_INF("FEScene.onClose()");
         /// 先关闭跨线程队列:丢弃挂起任务会让阻塞中的 sendRunable
         /// 立即以 broken_promise 返回,避免销毁期间主线程等待卡死
-        {
-            std::lock_guard<std::mutex> lock(_runableMutex);
-            _runableClosed  =   true;
-            std::queue<RunableTask> dropped;
-            dropped.swap(_runables);
-        }
+        closeRunables();
         /// 相机状态写回全局配置,由 FEContext::destroy 统一落盘
         if (_camera != nullptr && _device != nullptr)
             saveCameraConfig(_ctx,*_camera);
@@ -1391,7 +1410,7 @@ namespace   FE
         device.cacheObject(clipUBO.get());
 
         /// 引擎全局 UBO:渲染状态(选中高亮)+ 天空环境,所有非 UI 材质共用
-        auto    globalUBO   =   device.createUBO();
+        UBO     globalUBO   =   device.createUBO();
         globalUBO->create({sizeof(FEGlobalUBO),  MemoryUsage::DEVICE_DEFAULT_BIT});
         globalUBO->setObjectId(FEConstUuid::GlobalUBOId);
         {

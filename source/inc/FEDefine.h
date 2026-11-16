@@ -20,6 +20,7 @@
 #include    <type_traits>
 #include    <algorithm>
 #include    <numeric>
+#include    <atomic>
 
 #include    <assert.h>
 #include    "FEPlatform.h"
@@ -72,6 +73,10 @@ namespace   FE
     using   PCSTR   =   const char*;
     using   PCVOID  =   const void*;
     using   PVOID   =   void*;
+    /// <summary>
+    /// 原子布尔:跨线程脏标记/开关统一用它,不要在业务头文件里直接写 std::atomic<bool>
+    /// </summary>
+    using   AtomicBool  =   std::atomic<bool>;
 
     template<typename T, typename... Set>
     constexpr bool is_any_type = (std::is_same_v<T, Set> || ...);

@@ -58,7 +58,7 @@ namespace   FE
             bind(0,SB_Camera,   {cameraUBO});
 
             if (_texture != nullptr)
-                bind(0,SB_Material,{_texture.get()});
+                bindTexture(0,SB_Material,_texture);
 
             update();
         }
@@ -74,20 +74,33 @@ namespace   FE
             _data          =   other._data;
             if (_texture != nullptr)
             {
-                bind(0,SB_Material,{_texture.get()});
+                bindTexture(0,SB_Material,_texture);
                 update();
             }
         }
         virtual ~FEMaterialText()
-        {}
+        {
+            /// 先退订字体图集的重建通知,再释放引用
+            unwatchTexture(_texture.get());
+            /// 成员析构发生在本体之后,先持锁释放 OIT 管线与字体图集引用
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
+            for (auto& pl : _oitPipelines)
+                pl      =   nullptr;
+            _texture    =   nullptr;
+            _font       =   nullptr;
+        }
         /// <summary>
         /// 设置字体(内部完成 SDF 图集绑定与上传)
         /// </summary>
         inline  void    setFont(Font font)
         {
+            TexPtr  old     =   _texture;
             _font      =   font;
             /// 取出图集引用(非 const 局部,以取得可用的裸指针)
             _texture   =   (_font != nullptr) ? _font->texture() : nullptr;
+            /// 字体/图集变化时退订旧图集
+            if (old.get() != _texture.get())
+                unwatchTexture(old.get());
             /// 渲染模式:SDF 由 spread 推算编码梯度;位图直接用覆盖率
             const   bool    bitmap  =   (_font != nullptr) && _font->isBitmap();
             _data._sdf.x =  (bitmap) ? 0.0f
@@ -96,7 +109,7 @@ namespace   FE
             _data._sdf.y =  bitmap ? 1.0f : 0.0f;
             if (_texture != nullptr)
             {
-                bind(0,SB_Material,{_texture.get()});
+                bindTexture(0,SB_Material,_texture);
                 update();
             }
         }
@@ -204,6 +217,8 @@ namespace   FE
         /// </summary>
         void    setupOITVariants()
         {
+            /// 管线克隆/描述符集分配会改设备级管线池,需与渲染线程互斥
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
             for (auto& pl : _oitPipelines)
                 pl      =   nullptr;
             _oitDsets.clear();

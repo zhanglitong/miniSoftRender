@@ -161,4 +161,6 @@ namespace   FE
         float4      _textRect       =   float4(0.0f);
         uint2       _textSize       =   uint2(0);
     };
+
+    using   PrgBar  =   SharedPtr<FEProgressBar>;
 }

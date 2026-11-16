@@ -37,6 +37,26 @@ namespace   FE
             /// 如 transmission 场景折射纹理;此时无需 update 上传像素)
             /// </summary>
             bool            _renderTarget = false;
+            /// <summary>
+            /// 参数比较(含影响图像分配与采样器的全部字段,不含像素数据):
+            /// create 重复调用时据此判断是否需要重建 GPU 资源
+            /// </summary>
+            bool    operator==(const CreateInfo& other) const
+            {
+                return  _width          ==  other._width
+                    &&  _height         ==  other._height
+                    &&  _format         ==  other._format
+                    &&  _magFilter      ==  other._magFilter
+                    &&  _minFilter      ==  other._minFilter
+                    &&  _addressMode    ==  other._addressMode
+                    &&  _mips           ==  other._mips
+                    &&  _cube           ==  other._cube
+                    &&  _renderTarget   ==  other._renderTarget;
+            }
+            bool    operator!=(const CreateInfo& other) const
+            {
+                return  !(*this == other);
+            }
         };
     public:
         FETexture(FEContext& ctx)
@@ -53,7 +73,7 @@ namespace   FE
         /// FEFileBuffer(原始压缩文件字节)或 FEImage(CPU 图像)。
         /// 保存工程时只序列化该来源,打开时再解码/上传,避免在纹理里长期克隆一份像素。
         /// </summary>
-        void    setSource(const Object& source)
+        inline  void    setSource(const Object& source)
         {
             _source =   source;
         }
@@ -61,7 +81,7 @@ namespace   FE
         /// 纹理来源对象;nullptr 表示该纹理没有可序列化的来源
         /// (如 1x1 默认纹理、渲染目标、程序生成的纹理)
         /// </summary>
-        Object  source() const
+        inline  Object  source() const
         {
             return  _source;
         }
@@ -99,7 +119,9 @@ namespace   FE
             return  _cInfo._cube;
         }
         /// <summary>
-        /// 创建 GPU 资源(image + view + sampler)
+        /// 创建 GPU 资源(image + view + sampler),可重复调用:
+        /// 1. 已创建且参数一致:直接复用,不重建(像素内容保持不变,新数据用 update 上传)
+        /// 2. 参数变化或上次未创建完整:先 destroy 旧资源,再按新参数重建
         /// </summary>
         virtual bool    create(const CreateInfo& info)  =   0;
         /// <summary>
@@ -107,13 +129,17 @@ namespace   FE
         /// </summary>
         virtual bool    update(const void* data,uint64 size)    =   0;
         /// <summary>
-        /// 图像视图(render target 用法下作为 color attachment 挂到 RenderInfo._colors)
+        /// 销毁释放 GPU 资源(image + view + sampler)
         /// </summary>
-        virtual GImgView    imageView() {   return  nullptr;    }
+        virtual void    destroy() = 0;
         /// <summary>
         /// 底层 GPU 图像(用于创建指定 mip 范围的 imageView 等高级操作)
         /// </summary>
-        virtual GImage      image() {   return  nullptr;    }
+        virtual GImage  image() {   return  nullptr;    }
+        /// <summary>
+        /// 图像视图(render target 用法下作为 color attachment 挂到 RenderInfo._colors)
+        /// </summary>
+        virtual GImgView    imageView() {   return  nullptr;    }
     protected:
         CreateInfo  _cInfo;
         /// <summary>

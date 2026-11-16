@@ -17,6 +17,8 @@ namespace   FE
             ,_cullParam(ctx)
             ,_cullResult(ctx)
         {  
+            /// 管线查询与描述符集分配需与渲染线程互斥
+            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
             Pipeline    result;
             if(_ctx.device().pipelines().query("computeCull/default",result))
             {
@@ -53,7 +55,12 @@ namespace   FE
             update();
         }
         virtual ~FEMaterialCull()
-        {}
+        {
+            /// 成员析构发生在本体之后,先持锁把 GPU 缓冲显式释放掉
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
+            _cullParam._gpu     =   nullptr;
+            _cullResult._gpu    =   nullptr;
+        }
     public:
         CullParamObject     _cullParam;
         CullResultObject    _cullResult;

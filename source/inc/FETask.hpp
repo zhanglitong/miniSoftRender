@@ -52,7 +52,7 @@ namespace   FE
         /// <returns>true 表示任务已完成,false 表示未完成,任务系统会继续调度</returns>
         using   ExecFunc    =   std::function<bool(FETask&)>;
         /// <summary>
-        /// 完成回调(由任务系统在完成队列所属线程调用,即主线程)
+        /// 完成回调(任务完成后由工作线程立即调用,不是主线程)
         /// </summary>
         using   FinishFunc  =   std::function<void(FETask&)>;
     protected:
@@ -86,7 +86,7 @@ namespace   FE
         /// </summary>
         ExecFunc    _execFunc;
         /// <summary>
-        /// 自定义完成回调(主线程)
+        /// 自定义完成回调(工作线程)
         /// </summary>
         FinishFunc  _finishFunc;
     public:
@@ -126,7 +126,7 @@ namespace   FE
             return  *this;
         }
         /// <summary>
-        /// 设置完成回调(主线程中执行)
+        /// 设置完成回调(工作线程中执行)
         /// </summary>
         inline  auto&   setFinish(FinishFunc func)
         {

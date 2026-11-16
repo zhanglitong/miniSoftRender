@@ -494,7 +494,8 @@ void    MainWindow::disableAllAnimations()
 void    MainWindow::slotImportModel()
 {
     String  sptList =   "";
-    auto    readers =   scene()->ctx().readers();
+    FE::FEFileFormatRegistry    formats(scene()->ctx());
+    const auto&         readers =   formats.readerFormats();
     size_t  cnt     =   readers.data().size();
     size_t  index   =   0;
     for (auto& var : readers.data())
@@ -518,7 +519,7 @@ void    MainWindow::slotImportModel()
     if (fileNames.isEmpty())
         return;
     FE::Format  fmt;
-    if(!readers.query(qFilter.toStdString(),fmt))
+    if(!formats.queryReader(qFilter.toStdString(),fmt))
     {
         QMessageBox::information(this, C2Q("提示"), C2Q("没有适合的格式化组件!"), QMessageBox::Ok);
         return;

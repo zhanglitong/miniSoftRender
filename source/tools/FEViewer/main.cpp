@@ -26,16 +26,20 @@
 #endif
 
 #include    "../../../inc/FEContext.hpp"
+#include    "../../../inc/FEFileFormatRegistry.hpp"
 #include    "../../../inc/FEAppHelper.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/FEFileFormatHelper.hpp"
+#include    "../../../inc/animation/FEAnimationSys.hpp"
+#include    "../../../inc/node/FESkin.hpp"
 #include    "../../../inc/FETaskMgr.hpp"
 #include    "../../../inc/graphic/FEProgressBar.hpp"
 #include    "../../../inc/material/FEMaterialPBR.hpp"
 #include    "../../../inc/component/FESkyComponent.hpp"
 #include    "../../../core/FEImageHelper.hpp"
 #include    "../../../core/graphic/FETextureHelper.hpp"
+#include    "cmdline.h"
 
 using   namespace   FE;
 
@@ -121,7 +125,7 @@ namespace
         auto    mat =   node->material();
         if (mat != nullptr)
         {
-            auto    pbr =   mat->as<FEMaterialPBR>();
+            auto    pbr =   mat->cast<FEMaterialPBR>();
             if (pbr != nullptr)
             {
                 pbr->setEnvironmentMap(env, irradiance);
@@ -219,11 +223,11 @@ namespace
     }
 
 #ifdef  _WIN32
-    std::wstring    executablePath()
+    WString executablePath()
     {
         wchar_t buffer[MAX_PATH * 2] =   {};
         DWORD   len =   GetModuleFileNameW(nullptr, buffer, DWORD(sizeof(buffer) / sizeof(buffer[0])));
-        return  std::wstring(buffer, len);
+        return  WString(buffer, len);
     }
 
     bool    setRegistryString(HKEY root, const wchar_t* subKey, const wchar_t* valueName, const std::wstring& value)
@@ -285,63 +289,55 @@ namespace
             << "  G      toggle grid\n";
     }
 
-    bool    parseOptions(const std::vector<String>& args, ViewerOptions& options)
+    /// <summary>
+    /// 解析命令行(cmdline.h):第一个位置参数是要打开的文件,
+    /// 其余为 --vulkan/--webgpu/--msaa/--env/--bg/--grid/--register/--unregister
+    /// </summary>
+    bool    parseOptions(const Strings& args, ViewerOptions& options)
     {
-        int     positional  =   0;
-        for (size_t i = 0; i < args.size(); ++i)
+        CMDLine::Parser  parser;
+        parser.add("help",      'h', "print this message");
+        parser.add("vulkan",     0,  "use Vulkan backend (default)");
+        parser.add("webgpu",     0,  "use WebGPU backend");
+        parser.add("msaa",       0,  "MSAA sample count: 1|2|4|8", false, uint(4),
+                   CMDLine::oneof<uint>(1, 2, 4, 8));
+        parser.add("env",        0,  "HDR environment: pisa / Cannon_Exterior / Colorful_Studio / .hdr path",
+                   false, String("Cannon_Exterior"));
+        parser.add("bg",         0,  "clear color as r,g,b in 0..1", false, String("0.22,0.22,0.22"));
+        parser.add("grid",       0,  "show the editor grid (default)");
+        parser.add("register",   0,  "associate .fepj with FEViewer (current user)");
+        parser.add("unregister", 0,  "remove the .fepj association");
+        /// 解析器约定第 0 个参数是程序名,这里补上
+        CMDLine::Strings    cli;
+        cli.reserve(args.size() + 1);
+        cli.push_back("FEViewer");
+        cli.insert(cli.end(), args.begin(), args.end());
+        if (!parser.parse(cli))
         {
-            const   String& arg =   args[i];
-            if (arg == "--help" || arg == "-h" || arg == "/?")
-            {
-                options._help   =   true;
-            }
-            else if (_stricmp(arg.c_str(), "--webgpu") == 0 || _stricmp(arg.c_str(), "-webgpu") == 0)
-            {
-                options._rendererId =   RS_WEBGPU;
-            }
-            else if (_stricmp(arg.c_str(), "--vulkan") == 0 || _stricmp(arg.c_str(), "-vulkan") == 0)
-            {
-                options._rendererId =   RS_VULKAN;
-            }
-            else if (_stricmp(arg.c_str(), "--register") == 0 || _stricmp(arg.c_str(), "-register") == 0)
-            {
-                options._regAssociation =   true;
-            }
-            else if (_stricmp(arg.c_str(), "--unregister") == 0 || _stricmp(arg.c_str(), "-unregister") == 0)
-            {
-                options._unregAssociation   =   true;
-            }
-            else if (_stricmp(arg.c_str(), "--grid") == 0 || _stricmp(arg.c_str(), "-grid") == 0)
-            {
-                options._showGrid   =   true;
-            }
-            else if (_stricmp(arg.c_str(), "--msaa") == 0 && i + 1 < args.size())
-            {
-                options._sampleCount    =   uint(atoi(args[++i].c_str()));
-                if (options._sampleCount != 1 && options._sampleCount != 2 &&
-                    options._sampleCount != 4 && options._sampleCount != 8)
-                {
-                    options._sampleCount    =   4;
-                }
-            }
-            else if (_stricmp(arg.c_str(), "--env") == 0 && i + 1 < args.size())
-            {
-                options._env    =   args[++i];
-            }
-            else if (_stricmp(arg.c_str(), "--bg") == 0 && i + 1 < args.size())
-            {
-                float   r =   0.22f, g = 0.22f, b = 0.22f;
-                if (sscanf_s(args[++i].c_str(), "%f,%f,%f", &r, &g, &b) >= 1)
-                    options._clearColor =   float4(r, g, b, 1.0f);
-            }
-            else if (!arg.empty() && arg[0] != '-')
-            {
-                if (positional == 0)
-                    options._file   =   arg;
-                ++positional;
-            }
+            std::cerr << parser.error() << std::endl;
+            return  false;
         }
-        return  !options._file.empty() || options._help || options._regAssociation || options._unregAssociation;
+
+        options._help           =   parser.exist("help");
+        options._rendererId     =   parser.exist("webgpu") ? RS_WEBGPU : RS_VULKAN;
+        options._sampleCount    =   parser.get<uint>("msaa");
+        options._env            =   parser.get<String>("env");
+        options._showGrid       =   true;
+        options._regAssociation =   parser.exist("register");
+        options._unregAssociation   =   parser.exist("unregister");
+
+        /// 背景色:文本 r,g,b 转换失败时沿用默认值
+        float   r =   0.22f, g =   0.22f, b =   0.22f;
+        if (sscanf_s(parser.get<String>("bg").c_str(), "%f,%f,%f", &r, &g, &b) == 3)
+            options._clearColor =   float4(r, g, b, 1.0f);
+
+        /// 位置参数只取第一个作为待打开文件
+        const   auto&   rest    =   parser.rest();
+        if (!rest.empty())
+            options._file   =   rest.front();
+
+        return  options._help || options._regAssociation || options._unregAssociation ||
+                !options._file.empty();
     }
 }
 
@@ -350,7 +346,7 @@ int main(int argc, char** argv)
     UNUSED(argc);
     UNUSED(argv);
 
-    std::vector<String> args;
+    Strings args;
 #ifdef  _WIN32
     int     wargc   =   0;
     LPWSTR* wargv   =   CommandLineToArgvW(GetCommandLineW(), &wargc);
@@ -402,11 +398,15 @@ int main(int argc, char** argv)
     /// 命令行参数是 UTF-8(来自 CommandLineToArgvW),转成本机窄编码后统一使用
     options._file   =   std::filesystem::u8path(options._file).string();
 
-    const   String  extension   =   fileExtension(options._file);
-    if (extension != ".fepj" && extension != ".gltf" && extension != ".glb")
+    String      extension   =   fileExtension(options._file);
+    /// 支持哪些格式由注册表决定,不在调用方写死扩展名
+    FEContext&  ctx         =   FEContext::instance();
+    FEFileFormatRegistry    formats(ctx);
+    auto        fmt         =   formats.reader(extension);
+    if (fmt == nullptr)
     {
         std::cerr << "unsupported file type: " << options._file << "\n"
-                  << "supported: .fepj .gltf .glb\n";
+                  << "supported: " << formats.readerExtensionsText() << "\n";
         return  1;
     }
     if (!fileExists(options._file))
@@ -415,12 +415,13 @@ int main(int argc, char** argv)
         return  1;
     }
 
-    FEContext&  ctx =   FEContext::instance();
-    FEScene*    pScene  =   nullptr;
+    Scene       scene      =   nullptr;
     Nodes       rootNodes;
-    TexPtr      envCube, irrCube, brdfLUT;
+    TexPtr      envCube;
+    TexPtr      irrCube;
+    TexPtr      brdfLUT;
     bool        envReady    =   false;
-    FEProgressBar*  loadBar =   nullptr;
+    PrgBar      loadBar     =   nullptr;
     String      envFile;
     int         envIndex    =   -1;
     for (int i = 0; i < kEnvCount; ++i)
@@ -438,14 +439,14 @@ int main(int argc, char** argv)
     info._appInst   =   GetModuleHandle(nullptr);
     info._notify    =   [&](const FEMessage& msg)
     {
-        if (pScene != nullptr)
-            pScene->onMessage(msg);
-        if (msg.msgId() != MSG_KEYDOWN || pScene == nullptr)
+        if (scene != nullptr)
+            scene->onMessage(msg);
+        if (msg.msgId() != MSG_KEYDOWN || scene == nullptr)
             return;
         const   auto&   key =   static_cast<const MsgKeyDown&>(msg)._info._key;
         if (key == 'F' || key == 'R')
         {
-            frameCamera(ctx, pScene, rootNodes);
+            frameCamera(ctx, scene, rootNodes);
         }
         else if (key == 'E' && !rootNodes.empty())
         {
@@ -453,16 +454,16 @@ int main(int argc, char** argv)
             envFile     =   ctx.resourcePath() + kEnvs[envIndex].file;
             /// IBL 生成/旧纹理释放与后台加载线程的纹理上传互斥
             FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
-            if (applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, pScene))
+            if (applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene))
             {
                 envReady    =   true;
                 std::cout << "environment: " << kEnvs[envIndex].name << "\n";
             }
         }
-        else if (key == 'G' && pScene != nullptr)
+        else if (key == 'G' && scene != nullptr)
         {
             options._showGrid   =   !options._showGrid;
-            pScene->showGrid(options._showGrid);
+            scene->showGrid(options._showGrid);
         }
     };
 
@@ -476,8 +477,7 @@ int main(int argc, char** argv)
     ctx.setWorkPath(app->path());
     ctx.setResourcePath(app->path() + "/../");
 
-    Scene scene =   new FEScene(ctx);
-    pScene  =   scene.get();
+    scene   =   new FEScene(ctx);
     scene->setSampleCount(options._sampleCount);
     if (!scene->setup(app, options._rendererId))
     {
@@ -506,7 +506,6 @@ int main(int argc, char** argv)
             }
         }
     }
-
     /// ---- 环境 HDR 路径(加载任务完成时也要用,先算好) ----
     if (envIndex >= 0)
         envFile =   ctx.resourcePath() + kEnvs[envIndex].file;
@@ -514,65 +513,34 @@ int main(int argc, char** argv)
         envFile =   options._env;
     else
         envFile =   ctx.resourcePath() + options._env;
-
-    /// ---- 任务系统:加载在工作线程执行,完成回调在主线程派发 ----
     FETaskMgr   taskMgr(1);
-    /// 主线程每帧取完成队列,触发 FETask::finish()
-    app->messageBus().subscribe(MSG_UPDATE, [&](const FEMessage&)
-    {
-        taskMgr.pump();
-    });
-    /// 释放顺序:先停工作线程(等待正在执行的加载返回),再释放 main 持有的 GPU 资源,
-    /// 最后场景销毁 device
+    /// 释放顺序:先停工作线程(等待正在执行或等待主线程派发的任务返回),再释放 main 持有的 GPU
+    /// 资源,最后场景销毁 device。stop() 之前必须关闭场景的可执行队列:完成回调可能正阻塞在
+    /// sendRunable 里等主线程执行,不丢弃挂起项的话 join 会互相等待
     app->messageBus().subscribe(MSG_CLOSE, [&](const FEMessage&)
     {
-        /// 先解除进度条对任务的引用,任务随 taskMgr 清理后被释放
+        scene->closeRunables();
+        taskMgr.stop();
         if (loadBar != nullptr)
         {
             loadBar->bindProgress(nullptr);
             loadBar->setVisible(false);
         }
-        taskMgr.stop();
         envCube =   nullptr;
         irrCube =   nullptr;
         brdfLUT =   nullptr;
         rootNodes.clear();
     });
 
-    /// ---- 打开模型或工程 ----
-    if (extension == ".fepj")
+    /// ---- 打开模型或工程:格式由注册表按扩展名提供,统一走读取器加载 ----
     {
-        if (!scene->open(options._file.c_str()))
-        {
-            std::cerr << "open fepj failed: " << options._file << "\n";
-            scene   =   nullptr;
-            app->destroy();
-            return  1;
-        }
-        const   Nodes&  tops    =   scene->nodeTree().topLevelNodes();
-        rootNodes.assign(tops.begin(), tops.end());
-
-        envReady    =   applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene.get());
-        frameCamera(ctx, scene.get(), rootNodes);
-
-        std::cout << "FEViewer ready: " << options._file << "\n"
-                  << "LButton orbit / RButton pan / Wheel zoom, F frame, E environment, G grid\n";
-    }
-    else
-    {
-        /// 格式必须与 FEContext 注册读取器时使用的完全一致(FEContext.cpp 的
-        /// DEFINE_FORMAT_READER(FEFormatGLTFReader)),否则按扩展名拼出的键查不到
-        const   FEFileFormat    fmt =   (extension == ".glb")
-            ?   FEFileFormat(".glb", "1.0.0.0", "GLTF binary Format!")
-            :   FEFileFormat(".gltf","1.0.0.0", "GLTF text Format!");
         /// 引擎文件接口按本机窄编码解释文件名(已在上方统一转换)
-        Strings files   =   { options._file };
-
+        Strings files       =   { options._file };
         Task    loadTask    =   new FETask(ctx);
         loadTask->setName("LoadModel");
         /// 主线程先取好 reader:进度条直接轮询它的进度(reader 每阶段上报),
         /// 任务本身只在完成时才有结果码
-        auto    reader  =   FEFileFormatHelper::queryReader(ctx, fmt);
+        auto    reader      =   FEFileFormatHelper::queryReader(ctx, *fmt);
         /// 工作线程:执行加载(纹理创建/上传与主线程渲染由设备锁串行化)
         loadTask->setExec([&ctx, files, reader](FETask& task) -> bool
         {
@@ -593,52 +561,76 @@ int main(int argc, char** argv)
             task.setCode(0);
             return  true;
         });
-        /// 进度条:叠加在场景最上层,进度源为文件读取器
-        loadBar =   new FEProgressBar(ctx);
-        scene->factoryMgr().addObject(loadBar);
-        loadBar->bindProgress(reader.get());
-        /// 主线程:入场景 / IBL / 构图
+        /// 进度条:场景创建时已建好(常驻、默认隐藏),这里按接口取回后启用
+        loadBar =   scene->progressBar();
+        if (loadBar != nullptr)
+        {
+            loadBar->setVisible(true);
+            loadBar->bindProgress(reader.get());
+        }
+        /// 工作线程:完成回调只做投递,真正的落地动作在主线程执行
         loadTask->setFinish([&](FETask& task)
         {
-            /// 加载结束(成功或失败)立即隐藏进度条并解除引用
-            if (loadBar != nullptr)
+            QueueItems  items;
+            QueueItem   item    =   new FEQueueItem(ctx);
+            item->_runable  +=  [&]
             {
-                loadBar->bindProgress(nullptr);
-                loadBar->setVisible(false);
-            }
-            if (task.code() < 0 || task.objects().empty())
-            {
-                std::cerr << "load model failed: " << options._file << "\n";
-                return;
-            }
-            for (auto var : task.objects())
-            {
-                Node    node    =   var->cast<FENode>();
-                if (node != nullptr)
-                    rootNodes.push_back(node);
-            }
-            if (rootNodes.empty())
-            {
-                std::cerr << "load model failed: " << options._file << "\n";
-                return;
-            }
-            /// 入场景与 IBL 都会创建 GPU 资源,与后台线程保持互斥
-            FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
-            scene->dispatchNodesToSystem(rootNodes);
-            scene->addNodesToTree(rootNodes);
-            envReady    =   applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene.get());
-            frameCamera(ctx, scene.get(), rootNodes);
+                /// 加载结束(成功或失败)立即隐藏进度条并解除引用
+                if (loadBar != nullptr)
+                {
+                    loadBar->bindProgress(nullptr);
+                    loadBar->setVisible(false);
+                }
+                if (task.code() < 0 || task.objects().empty())
+                {
+                    std::cerr << "load model failed: " << options._file << "\n";
+                    return;
+                }
+                /// 读取器返回的根对象:节点进场景,播放器(fepj)登记回动画系统
+                for (auto var : task.objects())
+                {
+                    Node    node        =   var->cast<FENode>();
+                    if (node != nullptr)
+                    {
+                        node->flags().addFlag(FE::FLAG_UPDATE);
+                        node->update();
+                        rootNodes.push_back(node);
+                        continue;
+                    }
+                    auto    playback    =   var->cast<FEPlayback>();
+                    if (playback != nullptr)
+                    {
+                        if (auto sys = scene->animationSystem())
+                            sys->addPlayback(playback);
+                    }
+                }
+                /// 骨骼关节引用的是节点 id,节点读完后统一回填
+                FESkinData::resolvePending(rootNodes);
+                if (rootNodes.empty())
+                {
+                    std::cerr << "load model failed: " << options._file << "\n";
+                    return;
+                }
+                scene->dispatchNodesToSystem(rootNodes);
+                scene->addNodesToTree(rootNodes);
+                envReady    =   applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene.get());
+                frameCamera(ctx, scene.get(), rootNodes);
 
-            std::cout << "FEViewer ready: " << options._file << "\n"
-                      << "LButton orbit / RButton pan / Wheel zoom, F frame, E environment, G grid\n";
+                std::cout << "FEViewer ready: " << options._file << "\n"
+                          << "LButton orbit / RButton pan / Wheel zoom, F frame, E environment, G grid\n";
+            };
+            items.emplace_back(item);
+            /// 主线程执行并等待完成:投递项在场景帧首、设备锁内执行,可直接操作场景与 GPU
+            scene->sendRunable(std::move(items));
         });
         taskMgr.addTask(loadTask);
-
         std::cout << "loading: " << options._file << "\n";
     }
 
     app->run();
-    /// 兜底:确保工作线程在场景/设备销毁前结束
+    /// 兜底:确保工作线程在场景/设备销毁前结束(sendRunable 可能仍在等主线程,先关队列)
+    if (scene != nullptr)
+        scene->closeRunables();
     taskMgr.stop();
 
     scene   =   nullptr;

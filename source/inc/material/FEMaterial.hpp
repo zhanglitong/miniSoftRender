@@ -2,6 +2,7 @@
 #include    "FEObject.h"
 #include    "graphic/FEDSet.h"
 #include    "graphic/FEPipeline.h"
+#include    "graphic/FETexture.h"
 #include    "graphic/FEDevice.h"
 #include    "graphic/FEConstUuid.h"
 #include    "graphic/FEShaderDefine.h"
@@ -14,6 +15,7 @@ namespace   FE
     {
     public:
         TBlock(FEContext& ctx)
+            : _device(ctx.device())
         {
             /// 后台加载线程会随材质一起创建 UBO,与主线程渲染互斥
             FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
@@ -22,37 +24,44 @@ namespace   FE
         }
         void    update()
         {
-            _gpu->update(&_value,sizeof(_value),0);
+            /// 先取本地快照:避免锁外解引用可能已被析构置空的 _gpu
+            GPUBuffer   gpu =   _gpu;
+            if (gpu == nullptr)
+                return;
+            /// 主机端写映射内存,需与渲染线程的提交互斥
+            FEMutex::ScopeLock  lock(_device.gpuMutex());
+            gpu->update(&_value,sizeof(_value),0);
+            _dirty.store(false,std::memory_order_release);
         }
         bool    isDirty() const
         {
-            return  _dirty;
+            return  _dirty.load(std::memory_order_acquire);
         }
         void    makeDirty()
         {
-            _dirty  =   true;
+            _dirty.store(true,std::memory_order_release);
         }
         /// <summary>
         /// 使用前检查
         /// </summary>
         void    checkDirty()
         {
-            if (_dirty)
-            {
-                _dirty  =   false;
+            if (isDirty())
                 update();
-            }
         }
     public:
         UType       _value;
         GPUBuffer   _gpu;
-        bool        _dirty  =   true;
+        AtomicBool  _dirty  =   true;
+    private:
+        FEDevice&   _device;
     };
     template<typename UType,MemoryUsage usage = DEVICE_DEFAULT_BIT>
     class   TStorge
     {
     public:
         TStorge(FEContext& ctx)
+            : _device(ctx.device())
         {
             /// 后台加载线程会随材质一起创建 SBO,与主线程渲染互斥
             FEMutex::ScopeLock  lock(ctx.device().gpuMutex());
@@ -65,26 +74,30 @@ namespace   FE
         }
         void    update()
         {
-            _dirty  =   false;
-            _gpu->update(&_value,sizeof(_value),0);
+            /// 先取本地快照:避免锁外解引用可能已被析构置空的 _gpu
+            GPUBuffer   gpu =   _gpu;
+            if (gpu == nullptr)
+                return;
+            /// 主机端写映射内存,需与渲染线程的提交互斥
+            FEMutex::ScopeLock  lock(_device.gpuMutex());
+            gpu->update(&_value,sizeof(_value),0);
+            _dirty.store(false,std::memory_order_release);
         }
         bool    isDirty() const
         {
-            return  _dirty;
+            return  _dirty.load(std::memory_order_acquire);
         }
         void    makeDirty()
         {
-            _dirty  =   true;
+            _dirty.store(true,std::memory_order_release);
         }
         /// <summary>
         /// 使用前检查
         /// </summary>
         void    checkDirty()
         {
-            if (_dirty)
-            {
+            if (isDirty())
                 update();
-            }
         }
         /// <summary>
         /// 同步显卡数据到内存端
@@ -95,17 +108,24 @@ namespace   FE
             static_assert(usage == HOST_COHERENT_BIT);
             if constexpr (usage != HOST_COHERENT_BIT)
                 return  false;
-            auto    ptr =   _gpu->lock(sizeof(_value),0);
+            GPUBuffer   gpu =   _gpu;
+            if (gpu == nullptr)
+                return  false;
+            /// 映射读回同样需要与渲染线程互斥
+            FEMutex::ScopeLock  lock(_device.gpuMutex());
+            auto    ptr =   gpu->lock(sizeof(_value),0);
             if (ptr == nullptr)
                 return  false;
             memcpy(&_value,ptr,sizeof(_value));
-            _gpu->unlock();
+            gpu->unlock();
             return  true;
         }
     public:
         UType       _value;
         GPUBuffer   _gpu;
-        bool        _dirty  =   true;
+        AtomicBool  _dirty  =   true;
+    private:
+        FEDevice&   _device;
     };
 
     class   FEDevice;
@@ -140,7 +160,16 @@ namespace   FE
             :FEObject(other)
         {}
         virtual ~FEMaterial()
-        {}
+        {
+            /// 先退订纹理重建通知(委托内部加锁),再持 gpuMutex 释放 GPU 资源
+            unwatchAllTextures();
+            /// 最后一个引用可能在任何线程释放:销毁描述符集/管线引用前与渲染互斥
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
+            _dsets.clear();
+            _oitDsets.clear();
+            for (auto& var : _pipelines)
+                var =   nullptr;
+        }
         const   Pipeline    pipeline(EPrimitive pri) const
         {
             return  _pipelines[pri];
@@ -233,6 +262,14 @@ namespace   FE
         /// </summary>
         bool    bindTo(DSets& dsets,uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges = {},const uint64s& offsets = {});
         /// <summary>
+        /// 绑定纹理到槽位,并订阅它的重建通知:
+        /// 纹理 create 重建(参数变化)后会按原槽位自动重绑,bind 内部同时写 OIT 变体
+        /// </summary>
+        bool    bindTexture(uint16 set,uint16 slot,TexPtr texture,
+                            const uint64s& ranges = {},const uint64s& offsets = {});
+        bool    bindTextureTo(DSets& dsets,uint16 set,uint16 slot,TexPtr texture,
+                              const uint64s& ranges = {},const uint64s& offsets = {});
+        /// <summary>
         /// 绑定引擎全局 UBO(GlobalUBOId)到 SB_Global。
         /// 昼夜衰减、解析天空 IBL、选中高亮等所有材质共用的引擎级状态都从这里读取;
         /// 着色器未声明该绑定时返回 false,不影响其余资源
@@ -254,6 +291,29 @@ namespace   FE
         /// </summary>
         void    autoAttach();
         void    autoAttachTo(DSets& dsets);
+        /// <summary>
+        /// 纹理重建通知:记录槽位并订阅,重复订阅会自动去重
+        /// </summary>
+        void    watchTexture(TexPtr texture,uint16 set,uint16 slot,
+                             const uint64s& ranges,const uint64s& offsets);
+        /// <summary>
+        /// 退订指定纹理的全部槽位(换贴图/析构时调用)
+        /// </summary>
+        void    unwatchTexture(FETexture* texture);
+        void    unwatchAllTextures();
+    protected:
+        /// <summary>
+        /// 纹理绑定记录:纹理重建(fireNotify)后据此重绑原槽位
+        /// </summary>
+        struct  TexBinding
+        {
+            FETexture*  _texture    =   nullptr;
+            uint16      _set        =   0;
+            uint16      _bind       =   0;
+            uint64s     _ranges     =   {};
+            uint64s     _offsets    =   {};
+        };
+        std::vector<TexBinding> _texBindings;
     };
     using   Material        =   SharedPtr<FEMaterial>;
     using   Materials       =   std::vector<Material>;

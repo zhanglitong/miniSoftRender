@@ -39,6 +39,7 @@
 #include    "../inc/FEEntryList.hpp"
 
 #include    "../inc/FEFileFormatLibrary.hpp"
+#include    "../inc/FEFileFormatRegistry.hpp"
 
 #include    "../inc/graphic/FEScene.h"
 
@@ -151,16 +152,13 @@ namespace   FE
     }
     void    systemInitializeReader(FEContext& ctx)
     {
-        UNUSED(ctx);
-
-        DEFINE_FORMAT_READER(FEFormatFepjReader);
-        DEFINE_FORMAT_READER(FEFormatGLTFReader);
+        DEFINE_FORMAT_READER(ctx,FEFormatFepjReader);
+        DEFINE_FORMAT_READER(ctx,FEFormatGLTFReader);
     }
     void    systemInitializeWriter(FEContext& ctx)
     {
-        UNUSED(ctx);
-        DEFINE_FORMAT_WRITER(FEFormatFepjWriter);
-        DEFINE_FORMAT_WRITER(FEFormatGLTFWriter);
+        DEFINE_FORMAT_WRITER(ctx,FEFormatFepjWriter);
+        DEFINE_FORMAT_WRITER(ctx,FEFormatGLTFWriter);
     }
     void    systemInitialize(FEContext& ctx)
     {
@@ -177,16 +175,6 @@ namespace   FE
         assert(FEContext::creators().isExist(id) == nullptr);
 
         FEContext::creators().add(id,creator);
-    }
-    void    systemRegReader(const FEFileFormat& fmt)
-    {
-        assert(FEContext::readers().isExist(fmt.toString()) == nullptr);
-        FEContext::readers().add(fmt.toString(),fmt);
-    }
-    void    systemRegWriter(const FEFileFormat& fmt)
-    {
-        assert(FEContext::writers().isExist(fmt.toString()) == nullptr);
-        FEContext::writers().add(fmt.toString(),fmt);
     }
 
     /// <summary>
@@ -250,17 +238,6 @@ namespace   FE
     {
         static  FEContext   sInsance;
         return  sInsance;
-    }
-
-    FFReader&   FEContext::readers()
-    {
-        static  FFReader    sInstance;
-        return  sInstance;
-    }
-    FFWriter&   FEContext::writers()
-    {   
-        static  FFWriter  sInstance;
-        return  sInstance;
     }
 
     FEContext::FEContext()

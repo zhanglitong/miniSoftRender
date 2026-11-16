@@ -22,6 +22,18 @@
 namespace   FE
 {
     class   FEImGuiBackend;
+    /// <summary>
+    /// 系统默认纹理种类:内容固定、全引擎共享,避免每个材质重复创建 1x1 贴图
+    /// </summary>
+    enum    EDefaultTex
+    {
+        DEFAULT_TEX_WHITE       =   0,  ///< (1,1,1,1)
+        DEFAULT_TEX_NORMAL      =   1,  ///< (0.5,0.5,1,1) 平面法线
+        DEFAULT_TEX_BLACK       =   2,  ///< (0,0,0,1)
+        DEFAULT_TEX_BRDF        =   3,  ///< (1,0,0,1) BRDF LUT 占位
+        DEFAULT_TEX_BLACK_CUBE  =   4,  ///< 1x1x6 黑色环境
+        DEFAULT_TEX_MAX
+    };
     DEFINE_CLASS_UUID(FEDevice,"{0C870EE5-B0CB-445B-A23A-DE0639B582DB}");
     /// <summary>
     /// 
@@ -84,6 +96,13 @@ namespace   FE
         {
             return  _gpuMutex;
         }
+        /// <summary>
+        /// 只读访问同一把锁:queryCache 等 const 查询也要与后台创建线程互斥
+        /// </summary>
+        inline  FEMutex&    gpuMutex() const
+        {
+            return  _gpuMutex;
+        }
         const   auto&       pipelines() const
         {
             return  _pipelineMgr;
@@ -126,6 +145,15 @@ namespace   FE
         {
             return  nullptr;
         }
+        /// <summary>
+        /// 获取系统默认纹理(懒创建并缓存到设备,全引擎共享):
+        /// 调用方只读,不要对它调用 update/create,否则会影响所有材质
+        /// </summary>
+        TexPtr              defaultTexture(EDefaultTex kind);
+        /// <summary>
+        /// 默认纹理对应的缓存 Id,可用于 queryCache 直接取回
+        /// </summary>
+        static  const   FEUuid& defaultTextureId(EDefaultTex kind);
         /// <summary>
         /// 图像像素回读到主机内存(离屏/无头渲染用;未实现的后端返回 false)。
         /// dst 按 format 紧密排布,size 需不小于 宽*高*每像素字节。
@@ -219,7 +247,7 @@ namespace   FE
         /// <summary>
         /// 串行化主线程渲染与后台线程 GPU 资源创建/上传
         /// </summary>
-        FEMutex         _gpuMutex;
+        mutable FEMutex _gpuMutex;
         
     };
     using   Device  =   SharedPtr<FEDevice>;

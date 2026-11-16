@@ -31,7 +31,7 @@ namespace   FE
             /// 天空环境(昼夜门控):与其他非 UI 材质共用同一份 SkyUBO
             bindSkyEnvironment();
             if (_texture)
-                bind(0,SB_Material, {_texture.get()});
+                bindTexture(0,SB_Material, _texture);
 
             /// <summary>
             /// 同步数据到显卡
@@ -45,21 +45,30 @@ namespace   FE
             _texture    =   other._texture;
             if (_texture)
             {
-                bind(0,SB_Material, {_texture.get()});
+                bindTexture(0,SB_Material, _texture);
                 update();
             }
         }
         virtual ~FEMaterialTexture()
-        {}
+        {
+            /// 先退订纹理通知,再释放贴图引用
+            unwatchTexture(_texture.get());
+            /// 成员析构发生在本体之后,先持锁释放贴图引用
+            FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
+            _texture    =   nullptr;
+        }
         /// <summary>
         /// 设置漫反射贴图(内部完成描述符绑定与上传)
         /// </summary>
         inline  void    setTexture(TexPtr texture)
         {
+            TexPtr  old     =   _texture;
             _texture    =   texture;
+            if (old.get() != _texture.get())
+                unwatchTexture(old.get());
             if (_texture)
             {
-                bind(0,SB_Material, {_texture.get()});
+                bindTexture(0,SB_Material, _texture);
                 update();
             }
         }

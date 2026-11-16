@@ -23,10 +23,14 @@ namespace   FE
         {}
         virtual ~VKTexture();
 
-        virtual bool    create(const CreateInfo& info)  override;
-        virtual bool    update(const void* data,uint64 size)    override;
-        virtual GImgView imageView() override { return _view; }
-        virtual GImage  image()    override { return _image; }
+        virtual bool        create(const CreateInfo& info)  override;
+        virtual bool        update(const void* data,uint64 size)    override;
+        /// <summary>
+        /// 释放 image / view / sampler;可重复调用
+        /// </summary>
+        virtual void        destroy() override;
+        virtual GImgView    imageView() override    {   return _view;   }
+        virtual GImage      image()    override     {   return _image;  }
 
         inline  VkSampler   sampler() const
         {

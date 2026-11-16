@@ -8,6 +8,11 @@ namespace   FE
 {
     WGTexture::~WGTexture()
     {
+        destroy();
+    }
+
+    void    WGTexture::destroy()
+    {
         if (_sampler)
         {
             wgpuSamplerRelease(_sampler);
@@ -20,6 +25,14 @@ namespace   FE
 
     bool    WGTexture::create(const FETexture::CreateInfo& info)
     {
+        /// 可重复调用:已创建且参数一致时复用现有 image/view/sampler,
+        /// 像素数据不重传(需要新内容时调用 update)
+        if (_image != nullptr && _view != nullptr && _sampler != nullptr && _cInfo == info)
+            return  true;
+
+        /// 参数变化或上次创建不完整:先释放旧资源再重建
+        destroy();
+
         _cInfo  =   info;
         auto&   wgDevice    =   const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
 
@@ -68,7 +81,11 @@ namespace   FE
         _sampler    =   wgpuDeviceCreateSampler(wgDevice.device(),&samplerDesc);
 
         LOG_DBG("WGTexture.create %ux%u ok",info._width,info._height);
-        return  _sampler != nullptr;
+        if (_sampler == nullptr)
+            return  false;
+        /// 重建后通知订阅方(材质)重新绑定新的 imageView
+        fireNotify();
+        return  true;
     }
 
     bool    WGTexture::update(const void* data,uint64 size)

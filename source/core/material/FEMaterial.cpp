@@ -8,6 +8,8 @@ namespace   FE
 {
     bool    FEMaterial::setup(const String& prefix)
     {
+        /// 后台加载线程会与主线程同时创建材质:管线查询与描述符集分配必须互斥
+        FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
         /// 1. 典型的管线建立，正确配置了管线的情况下,一种图元结构建立一种类型的管线
         /// 2. 用户自定义配置了指定类型图元的管线，没有全部覆盖,那么使用该类型填充其他类型
         ///    避免一些错误
@@ -79,6 +81,8 @@ namespace   FE
     }
     bool    FEMaterial::bindTo(DSets& dsets,uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges,const uint64s& offsets)
     {
+        /// 描述符写入(vkUpdateDescriptorSets)不能与渲染线程并发
+        FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
         if (dsets.empty())
             return  false;
         for (auto& dset : dsets)
@@ -89,8 +93,77 @@ namespace   FE
         }
         return  false;
     }
+    bool    FEMaterial::bindTexture(uint16 set,uint16 slot,TexPtr texture,
+                                    const uint64s& ranges,const uint64s& offsets)
+    {
+        if (texture == nullptr)
+            return  false;
+        if (!bind(set,slot,{texture.get()},ranges,offsets))
+            return  false;
+        watchTexture(texture,set,slot,ranges,offsets);
+        return  true;
+    }
+    bool    FEMaterial::bindTextureTo(DSets& dsets,uint16 set,uint16 slot,TexPtr texture,
+                                      const uint64s& ranges,const uint64s& offsets)
+    {
+        if (texture == nullptr)
+            return  false;
+        if (!bindTo(dsets,set,slot,{texture.get()},ranges,offsets))
+            return  false;
+        watchTexture(texture,set,slot,ranges,offsets);
+        return  true;
+    }
+    void    FEMaterial::watchTexture(TexPtr texture,uint16 set,uint16 slot,
+                                     const uint64s& ranges,const uint64s& offsets)
+    {
+        if (texture == nullptr)
+            return;
+        /// 同一纹理同一槽位只订阅一次(bindAllTextures 会被反复调用)
+        for (auto& rec : _texBindings)
+        {
+            if (rec._texture == texture.get() && rec._set == set && rec._bind == slot)
+                return;
+        }
+        TexBinding  rec;
+        rec._texture    =   texture.get();
+        rec._set        =   set;
+        rec._bind       =   slot;
+        rec._ranges     =   ranges;
+        rec._offsets    =   offsets;
+        _texBindings.push_back(rec);
+        /// 用 {this, lambda} 注册对象跟踪,换贴图/析构时可按 this 退订
+        texture->notify()   +=  {this,[this,set,slot,ranges,offsets](Object sender)
+        {
+            /// 纹理重建(create 参数变化)后按原槽位重绑;bind 内部会同步 OIT 变体
+            if (sender != nullptr)
+                bind(set,slot,{sender},ranges,offsets);
+        }};
+    }
+    void    FEMaterial::unwatchTexture(FETexture* texture)
+    {
+        if (texture == nullptr)
+            return;
+        texture->notify()   -=  this;
+        auto    itr =   std::remove_if(_texBindings.begin(),_texBindings.end(),
+                                       [texture](const TexBinding& rec)
+        {
+            return  rec._texture == texture;
+        });
+        _texBindings.erase(itr,_texBindings.end());
+    }
+    void    FEMaterial::unwatchAllTextures()
+    {
+        for (auto& rec : _texBindings)
+        {
+            if (rec._texture != nullptr)
+                rec._texture->notify()  -=  this;
+        }
+        _texBindings.clear();
+    }
     void    FEMaterial::update()
     {
+        /// 描述符集更新会立即提交到设备,需与渲染线程互斥
+        FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
         /// push constant 数据由 cmd->pushConstants 在 draw 前直接下发
         /// (WebGPU 走 wgpuRenderPassEncoderSetImmediates),无需 UBO 中转。
         for (auto& var : _dsets)
@@ -110,6 +183,8 @@ namespace   FE
     }
     void    FEMaterial::autoAttachTo(DSets& dsets)
     {
+        /// 查询设备级 UBO 缓存并写描述符,缓存与描述符都需要与主线程互斥
+        FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
         /// push constant 数据由 cmd->pushConstants 在 draw 前直接下发:
         ///   - Vulkan: vkCmdPushConstants
         ///   - WebGPU: wgpuRenderPassEncoderSetImmediates(var<immediate>)

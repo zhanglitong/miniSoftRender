@@ -39,6 +39,10 @@ namespace FE
     {
     public:
         friend  class   FEScene;
+        /// <summary>
+        /// 文件格式注册表的访问入口,数据(读取器/写入器格式表)由 FEContext 持有
+        /// </summary>
+        friend  class   FEFileFormatRegistry;
     protected:
         FEContext();
         ~FEContext();
@@ -229,8 +233,6 @@ namespace FE
         void    destroy();
     public:
         static  FEContext&  instance();
-        static  FFReader&   readers();
-        static  FFWriter&   writers();
         static  FECreators& creators();
     protected:
         /// <summary>
@@ -265,6 +267,11 @@ namespace FE
         Object      _nodeTree;
         String      _workPath;
         String      _resourcePath;
+        /// <summary>
+        /// 文件格式读取器/写入器注册表,由 FEFileFormatRegistry 注册和查询
+        /// </summary>
+        FFReader    _readers;
+        FFWriter    _writers;
         /// <summary>
         /// 应用程序启动时的命令行参数,第一个参数是程序本身路径
         /// </summary>

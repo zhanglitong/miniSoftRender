@@ -5,6 +5,8 @@
 #include    <algorithm>
 #include    <type_traits>
 #include    <utility>
+#include    <memory>
+#include    "FEMutex.hpp"
 
 namespace   FE
 {
@@ -77,7 +79,27 @@ namespace   FE
             void*       obj;    ///< 绑定的对象指针（用于 -= 移除），自由函数为 nullptr
             FuncType    func;
         };
-        std::vector<Entry>  _entries;
+    public:
+        FETMultiDelegate()
+            : _mutex(std::make_shared<FEMutex>())
+        {}
+        /// <summary>
+        /// 拷贝:持源委托的锁取快照,新委托使用独立的锁
+        /// </summary>
+        FETMultiDelegate(const FETMultiDelegate& other)
+            : _entries(other.snapshot())
+            , _mutex(std::make_shared<FEMutex>())
+        {}
+        FETMultiDelegate& operator=(const FETMultiDelegate& other)
+        {
+            if (this != &other)
+            {
+                std::vector<Entry>  entries =   other.snapshot();
+                FEMutex::ScopeLock  lock(*_mutex);
+                _entries.swap(entries);
+            }
+            return  *this;
+        }
     public:
         /// <summary>
         /// 注册一个回调函数
@@ -86,6 +108,7 @@ namespace   FE
         /// <param name="obj">绑定的对象指针，用于 -= 移除</param>
         void    add(const FuncType& func, void* obj = nullptr)
         {
+            FEMutex::ScopeLock  lock(*_mutex);
             _entries.push_back({obj, func});
         }
         /// <summary>
@@ -93,6 +116,7 @@ namespace   FE
         /// </summary>
         void    clear()
         {
+            FEMutex::ScopeLock  lock(*_mutex);
             _entries.clear();
         }
         /// <summary>
@@ -101,6 +125,7 @@ namespace   FE
         /// <returns></returns>
         size_t  size() const
         {
+            FEMutex::ScopeLock  lock(*_mutex);
             return  _entries.size();
         }
         /// <summary>
@@ -110,6 +135,7 @@ namespace   FE
         /// <returns></returns>
         FETMultiDelegate& operator+=(ArgType arg)
         {
+            FEMutex::ScopeLock  lock(*_mutex);
             _entries.push_back({arg.obj, std::move(arg.fn)});
             return  *this;
         }
@@ -120,27 +146,51 @@ namespace   FE
         /// <returns></returns>
         FETMultiDelegate& operator-=(void* obj)
         {
+            FEMutex::ScopeLock  lock(*_mutex);
             auto    itr =   std::remove_if(_entries.begin(),_entries.end(),[obj](const Entry& e) { return e.obj == obj; });
             _entries.erase(itr,_entries.end());
             return  *this;
         }
+        /// <summary>
+        /// 派发:持锁拷贝快照,释放锁后再调用。
+        /// 回调里可能再取 gpuMutex(材质 bind),若持锁调用会与
+        /// "gpuMutex -> 委托锁" 的注册路径形成锁序反转
+        /// </summary>
         void    operator()(const Args&... args) const
         {
-            for (auto& e : _entries)
-            {
-                if (e.func) e.func(args...);
-            }
+            dispatch(args...);
         }
         operator    bool() const
         {
-            return  !_entries.empty();
+            return  size() != 0;
         }
         void    fireNotify(const Args&... args) const
         {
-            for (auto& e : _entries)
+            dispatch(args...);
+        }
+    private:
+        std::vector<Entry>  snapshot() const
+        {
+            FEMutex::ScopeLock  lock(*_mutex);
+            return  _entries;
+        }
+        void    dispatch(const Args&... args) const
+        {
+            std::vector<Entry>  entries;
+            {
+                FEMutex::ScopeLock  lock(*_mutex);
+                entries =   _entries;
+            }
+            for (auto& e : entries)
             {
                 if (e.func) e.func(args...);
             }
         }
+    private:
+        std::vector<Entry>          _entries;
+        /// <summary>
+        /// 递归锁:派发中回调可再次注册/注销同一委托
+        /// </summary>
+        std::shared_ptr<FEMutex>    _mutex;
     };
 }
