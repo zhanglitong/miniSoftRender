@@ -78,7 +78,7 @@ namespace   FE
         virtual TexPtr      createTexture()     override;
 
         virtual DSetLayout  createDSLayout()    override;
-        DSetLayout          createDSLayoutFromShaders(const std::vector<Shader>& shaders);
+        DSetLayouts         createDSLayoutFromShaders(const std::vector<Shader>& shaders);
         virtual DSetPool    createDSetPool() override;
         virtual DSet        createDSet() override;
 

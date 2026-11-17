@@ -617,7 +617,6 @@ namespace   FE
             /// 管线前缀变化后旧 OIT 变体失效,清空待 LIST 趟惰性重建
             for (auto& pl : _oitPipelines)
                 pl      =   nullptr;
-            _oitDsets.clear();
         }
         inline  void    setDoubleSided(bool sided)
         {
@@ -648,10 +647,11 @@ namespace   FE
             return  _oitPipelines[uint(pri)];
         }
         /// <summary>
-        /// 构建本材质的 OIT 变体管线与描述符集:
+        /// 构建本材质的 OIT 变体管线:
         /// 克隆主管线改 4 项状态(无 color 输出/不写深度/无混合/采样数与场景一致),
         /// FS 换成 OIT_MODE 编译的 shader.frag(pbr/shader.oit.frag.spv,写逐像素透明层),
-        /// 注册名 "<prefix>.oit/<图元>";dsets 绑定与主管线相同的资源 + OIT SSBO。
+        /// 注册名 "<prefix>.oit/<图元>"。透明层 SSBO 由 FEOITManager 的
+        /// 共享 set 1 提供,材质只需复用主管线的 set 0。
         /// 仅在 FEOITManager::active() 时构建,LIST 趟首次绘制前调用
         /// </summary>
         void    setupOITVariants()
@@ -660,7 +660,6 @@ namespace   FE
             FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
             for (auto& pl : _oitPipelines)
                 pl      =   nullptr;
-            _oitDsets.clear();
             auto    mgr     =   FEOITManager::active();
             if (mgr == nullptr)
                 return;
@@ -710,22 +709,6 @@ namespace   FE
                 }
                 _oitPipelines[i]    =   pl;
             }
-            if (_oitPipelines[0] == nullptr)
-                return;
-            _oitDsets   =   _oitPipelines[0]->createDSets();
-            if (_oitDsets.empty())
-            {
-                _oitVariantFailed   =   true;
-                LOG_ERR("PBR OIT: createDSets for %s.oit failed", _pipelinePrefix.c_str());
-                return;
-            }
-            /// 与主管线绑定同样的资源(camera/全局 UBO/lights 自动关联,
-            /// 材质 UBO/贴图手动绑定),再挂 OIT SSBO(binding 21/22/23)
-            autoAttachTo(_oitDsets);
-            bindResourcesTo(_oitDsets);
-            for (auto& dset : _oitDsets)
-                mgr->bindToDSet(dset,PBR_OIT_BIND_COUNTER,PBR_OIT_BIND_HEAD,PBR_OIT_BIND_LIST);
-            update();
         }
         /// <summary>
         /// 加载 OIT_MODE 编译的 pbr fragment shader(输出写逐像素透明层)
@@ -853,13 +836,7 @@ namespace   FE
         /// </summary>
         void    bindResources()
         {
-            bindResourcesTo(_dsets);
-        }
-        /// <summary>
-        /// 绑定到指定描述符集(OIT 变体初始化时传 _oitDsets)
-        /// </summary>
-        void    bindResourcesTo(DSets& dsets)
-        {
+            DSets&  dsets   =   _dsets;
             auto    cameraUBO   =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
             auto    lightSBO    =   _ctx.device().queryCache(FEConstUuid::LightsId);
             auto&   lights      =   _ctx.device().lights();
@@ -870,9 +847,7 @@ namespace   FE
             /// 方向解析求值作为 IBL 输入,并读取全局环境光门控(昼夜衰减)。
             /// 统一走材质基类绑定,与其余材质保持同一份数据来源;
             /// WebGPU 侧 WGSL 暂未声明该绑定,bind 会返回 false,不影响其余资源。
-            /// (OIT 变体 dsets 的 SB_Global 已由 autoAttachTo 绑定,无需重复)
-            if (&dsets == &_dsets)
-                bindSkyEnvironment();
+            bindSkyEnvironment();
             bindTo(dsets,0,BIND_TEX_PARAMS,{_texParams._gpu.get()});
             bindAllTexturesTo(dsets);
             update();
@@ -1019,12 +994,6 @@ namespace   FE
         inline  void        bindSceneTex()
         {
             bindSceneTexTo(_dsets);
-            /// OIT 变体 dsets 必须同步:LIST 趟玻璃折射采样的是 _oitDsets 的
-            /// BIND_SCENE_TEX。setupOITVariants 惰性构建时 _hasRealSceneTex
-            /// 尚未置位(透明组不在 MAIN/预趟绘制,refreshSceneTexture 晚于变体
-            /// 构建),漏掉这里会让 OIT 趟永远采 1x1 占位白图→玻璃奶白漏光
-            if (!_oitDsets.empty())
-                bindSceneTexTo(_oitDsets);
         }
         inline  void        bindSceneTexTo(DSets& dsets)
         {

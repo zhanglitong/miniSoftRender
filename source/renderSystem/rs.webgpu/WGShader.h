@@ -12,6 +12,10 @@ namespace   FE
     public:
         struct ReflectBinding
         {
+            /// <summary>
+            /// 描述符集编号(WGSL 的 @group(N) / SPIR-V 的 set = N)
+            /// </summary>
+            uint32_t    _set            =   0;
             uint32_t    _binding;
             FEDescType  _descriptorType;
             uint32_t    _stageFlags;

@@ -11,20 +11,21 @@ layout  (location = 0)          in  vec2    inUV;
 layout  (location = 1)          in  vec4    inColor;
 
 #ifdef  OIT_MODE
-    /// ===== OIT 变体:输出写入逐像素透明层(binding 10/11/12)=====
+    /// ===== OIT 变体:输出写入逐像素透明层(set = 1)=====
     /// 文本是透明材质(字形覆盖率 alpha),LIST(几何)趟无 color attachment,
-    /// 颜色进透明层由 color pass 按深度排序合成。text 着色器仅用 SB_Camera(0)/
-    /// SB_Material(4),10~12 空闲,沿用 oit/shader 的绑定槽。
+    /// 颜色进透明层由 color pass 按深度排序合成。三个 SSBO 是全局逐帧资源,
+    /// 放在独立的 set 1(OIT_SET),与材质资源所在的 set 0 解耦;
+    /// 集号/绑定号由 FEShaderDefine.h 的 OIT_SET_BIND_* 统一给出。
     /// 存储布局与 OIT_SLOT_K 保持一致(K 槽 / PPLL 链表),
     /// 否则写入的数据合成趟不可见。
-    layout  (set = 0, binding = 10) buffer OITCounterSBO
+    layout  (set = OIT_SET, binding = OIT_SET_BIND_COUNTER) buffer OITCounterSBO
     {
         uint    oitCount;
         uint    oitMaxCount;
         uint    oitScreenW;
         uint    oitScreenH;
     };
-    layout  (set = 0, binding = 11) buffer OITHeadIndex
+    layout  (set = OIT_SET, binding = OIT_SET_BIND_HEAD) buffer OITHeadIndex
     {
 #if OIT_SLOT_K > 0
         /// K 槽模式:每像素一个 uint —— 本帧预订到的层数
@@ -33,7 +34,7 @@ layout  (location = 1)          in  vec4    inColor;
         uint    oitHeadIndex[];
 #endif
     };
-    layout  (set = 0, binding = 12) buffer OITLinkedList
+    layout  (set = OIT_SET, binding = OIT_SET_BIND_LIST) buffer OITLinkedList
     {
 #if OIT_SLOT_K > 0
         OITSlot oitSlots[];

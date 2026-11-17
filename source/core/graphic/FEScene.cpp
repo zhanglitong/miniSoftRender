@@ -220,7 +220,7 @@ namespace   FE
                 /// 必须用 cast(dynamic_cast) 做类型检查:as 是无校验的强制转换
                 if (FEMaterialPBR*  pbr =   mat->cast<FEMaterialPBR>())
                 {
-                    /// OIT 变体与主管线共用 PBR 贴图槽位(SSBO 在 21/22/23),
+                    /// OIT 变体与主管线共用 PBR 贴图槽位(set 0),
                     /// 透明材质的几何趟同样采样环境贴图,照常下发
                     pbr->setSkyEnvironment(cube);
                 }
@@ -1687,7 +1687,7 @@ namespace   FE
         }
         /// OIT 的每像素头索引缓冲按容量预分配(4K),窗口在容量内变化时只更新
         /// counter 里的屏幕尺寸,shader 用它计算像素索引,无需重建 GPU 资源;
-        /// 超出容量才关闭 OIT(材质已缓存的 OIT 变体 dsets 无法重绑,不能重建 SSBO),
+        /// 超出容量才关闭 OIT(本实现不重建 SSBO),
         /// 透明物体回退普通 alpha 混合
         if (_oitManager && (_oitManager->screenWidth() != width || _oitManager->screenHeight() != height))
         {

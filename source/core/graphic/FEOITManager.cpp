@@ -74,7 +74,7 @@ namespace   FE
 #endif
         _sampleCount = sampleCount;
         /// 头索引/层存储按容量预分配(至少 4K):窗口在容量内变化时只更新 counter
-        /// 里的屏幕尺寸,不必重建 SSBO(材质已缓存的 OIT dsets 无法重绑)
+        /// 里的屏幕尺寸,不必重建 SSBO(透明层描述符集由本管理器持有,与材质无关)
         _headPixels  = (uint64_t(screenW) * screenH > OIT_HEAD_CAPACITY)
                      ? uint64_t(screenW) * screenH
                      : OIT_HEAD_CAPACITY;
@@ -129,6 +129,60 @@ namespace   FE
         // ===== 2. 写入 counter UBO（count 初始化为 0）=====
         CounterSBO initialCounter = {0, _maxNodes, screenW, screenH};
         _counterSBO->update(&initialCounter, sizeof(CounterSBO), 0);
+
+        // ===== 2b. 几何趟共享描述符集(set = 1) =====
+        /// 三个 SSBO 是全局逐帧资源:所有透明材质的 OIT 变体管线都绑定这一份,
+        /// 材质侧因此不必为 OIT 复制一套 set 0。布局必须与 OIT 变体着色器
+        /// (layout(set = 1, binding = 0/1/2) buffer ...)逐项一致
+        _listLayout =   device.createDSLayout();
+        if (!_listLayout)
+        {
+            LOG_ERR("OIT: create list DSetLayout failed");
+            return false;
+        }
+        FEDSetLayout::CreateInfo    layoutCI;
+        layoutCI._setNumber =   OIT_SET;
+        auto    addBind     =   [&layoutCI](uint16 bind,const char* name)
+        {
+            FEDSetBinding   b   =   {};
+            b._set              =   (uint16)OIT_SET;
+            b._binding          =   (uint16)bind;
+            b._descriptorType   =   DT_STORAGE_BUFFER;
+            b._descriptorCount  =   1;
+            b._stageFlags       =   ST_FRAGMENT_BIT;
+            b._name             =   name;
+            layoutCI._bindings.push_back(b);
+        };
+        addBind(OIT_SET_BIND_COUNTER, "OITCounterSBO");
+        addBind(OIT_SET_BIND_HEAD,    "OITHeadIndex");
+        addBind(OIT_SET_BIND_LIST,    "OITLinkedList");
+        if (!_listLayout->create(layoutCI))
+        {
+            LOG_ERR("OIT: create list DSetLayout failed (set=%u)", (uint)OIT_SET);
+            return false;
+        }
+
+        _listPool   =   device.createDSetPool();
+        FEDSetPool::CreateInfo  poolCI;
+        poolCI._layouts =   {_listLayout};
+        poolCI._maxSets =   1;
+        if (!_listPool || !_listPool->create(poolCI))
+        {
+            LOG_ERR("OIT: create list DSetPool failed");
+            return false;
+        }
+
+        _listDSet   =   device.createDSet();
+        FEDSet::CreateInfo  setCI;
+        setCI._layout   =   _listLayout;
+        setCI._pool     =   _listPool;
+        setCI._set      =   OIT_SET;
+        if (!_listDSet || !_listDSet->create(setCI))
+        {
+            LOG_ERR("OIT: create list DSet failed");
+            return false;
+        }
+        bindToDSet(_listDSet, OIT_SET_BIND_COUNTER, OIT_SET_BIND_HEAD, OIT_SET_BIND_LIST);
 
         // ===== 3. Load Shaders =====
         auto loadShader = [&](const char* path, FEShaderType type) -> Shader

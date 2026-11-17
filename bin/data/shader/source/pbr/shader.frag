@@ -128,20 +128,20 @@ layout(location = 4) flat in uint inFlagBits;
 layout(location = 5) in  vec2 inUV1;
 
 #ifdef  OIT_MODE
-    /// ===== OIT 变体:输出写入 PPLL 每像素链表(binding 21/22/23)=====
+    /// ===== OIT 变体:输出写入 PPLL 每像素链表(set = 1)=====
     /// 所有透明材质(alpha 混合/transmission)的 OIT 变体管线共用本 FS,
     /// LIST(几何)趟无 color attachment,颜色进链表由 color pass 按深度排序合成。
-    /// binding 10~17 已被 PBR 贴图/参数占用,18 被 pbrSkin 顶点着色器的
-    /// SkinBlock(SB_Skin)占用,故 SSBO 从 21 开始;oit/shader(几何趟专用)
-    /// 仍用 10/11/12,两端各自独立。
-    layout(set = 0, binding = 21) buffer OITCounterSBO
+    /// 三个 SSBO 是全局逐帧资源,放在独立的 set 1(OIT_SET),
+    /// 与材质资源所在的 set 0 解耦:共享同一份描述符集,材质无需复制 set 0。
+    /// 绑定号/集号由 FEShaderDefine.h 的 OIT_SET_BIND_* 统一给出。
+    layout(set = OIT_SET, binding = OIT_SET_BIND_COUNTER) buffer OITCounterSBO
     {
         uint    oitCount;
         uint    oitMaxCount;
         uint    oitScreenW;
         uint    oitScreenH;
     };
-    layout(set = 0, binding = 22) buffer OITHeadIndex
+    layout(set = OIT_SET, binding = OIT_SET_BIND_HEAD) buffer OITHeadIndex
     {
 #if OIT_SLOT_K > 0
         /// K 槽模式:每像素一个 uint —— 本帧预订到的层数
@@ -150,7 +150,7 @@ layout(location = 5) in  vec2 inUV1;
         uint    oitHeadIndex[];
 #endif
     };
-    layout(set = 0, binding = 23) buffer OITLinkedList
+    layout(set = OIT_SET, binding = OIT_SET_BIND_LIST) buffer OITLinkedList
     {
 #if OIT_SLOT_K > 0
         OITSlot oitSlots[];

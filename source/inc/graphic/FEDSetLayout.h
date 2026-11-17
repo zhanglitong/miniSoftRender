@@ -10,6 +10,10 @@ namespace   FE
 
     struct  FE_API FEDSetBinding
     {
+        /// <summary>
+        /// 描述符集编号(shader 中的 set = N)
+        /// </summary>
+        uint16_t        _set            =   0;
         uint16_t        _binding;
         uint16_t        _descriptorCount;
         /// <summary>

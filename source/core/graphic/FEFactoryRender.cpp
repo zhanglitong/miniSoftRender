@@ -4,6 +4,7 @@
 #include    "../inc/graphic/FECmdBuffer.h"
 #include    "../inc/graphic/FEInstance.h"
 #include    "../inc/graphic/FEScene.h"
+#include    "../inc/graphic/FEOITManager.h"
 #include    "../inc/material/FEMaterialCull.hpp"
 #include    "../inc/FEContext.hpp"
 #include    "../inc/FEFormatHelper.hpp"
@@ -601,8 +602,8 @@ namespace   FE
                 continue;
             if ((groupCat(mat) & cats) == 0)
                 continue;
-            /// 收集趟使用 OIT 写出变体管线与 dsets(布局含 OIT SSBO,与主管线
-            /// 不同);同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
+            /// 收集趟使用 OIT 写出变体管线(布局含独立的 set 1,材质资源仍是
+            /// 主管线的 set 0);同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
             /// 切换到该组材质自身的管线与动态状态(混合状态/剔除模式随管线变化)
             auto    grpPl   =   oitOut
                                 ?   mat->oitPipeline(_key._primitive)
@@ -617,9 +618,15 @@ namespace   FE
                 mat->appDynamicState(cmd,_key._primitive);
             }
             FECmdBuffer::DSetBind   binds   =   {};
-            binds.dSets         =   oitOut
-                                    ?   mat->listDsets()
-                                    :   mat->dsets();
+            /// set 0 始终是材质资源;LIST 趟再追加 OIT 透明层的共享 set 1
+            binds.dSets         =   mat->dsets();
+            if (oitOut)
+            {
+                auto    oitMgr  =   FEOITManager::active();
+                if (oitMgr == nullptr || oitMgr->listDSet() == nullptr)
+                    continue;
+                binds.dSets.push_back(oitMgr->listDSet());
+            }
             if (binds.dSets.empty())
                 continue;
             binds.firstSet      =   0;

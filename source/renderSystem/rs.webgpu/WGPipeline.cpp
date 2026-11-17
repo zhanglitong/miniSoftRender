@@ -26,25 +26,18 @@ namespace   FE
         auto&   wgDevice    =   static_cast<const WGDevice&>(_ctx.device());
 
         /// 与 Vulkan 后端 (VKGPipeline / createDSLayoutFromShaders) 对齐:
-        /// 将所有 shader stage(VS/FS)的 binding 按 binding 编号合并,stage flags 取并集,
-        /// 然后创建单一的 bind group layout 对应 group 0。
-        /// WebGPU 的 pipeline layout 中每个 bind group layout 对应一个 group,
-        /// VS/FS 共享 group 0,因此必须合并而非各自创建独立 layout(否则 VS 的 binding 0
-        /// 会被放到 group 1,与 shader 中 @group(0) @binding(0) 不匹配)。
+        /// 按 shader 中的 group 号分组,同组内 VS/FS 的 binding 合并、stage flags 取并集,
+        /// 每组生成一个 bind group layout,按 group 序号排列成 pipeline layout 的数组。
+        /// (OIT 的透明层 SSBO 使用 group 1,与材质的 group 0 解耦)
         auto&   wgDeviceRef =   const_cast<WGDevice&>(static_cast<const WGDevice&>(_ctx.device()));
-        auto    layout  =   wgDeviceRef.createDSLayoutFromShaders(info._shaders);
-        if (layout)
-        {
-            _dsLayouts.clear();
-            _dsLayouts.push_back(layout);
-        }
+        _dsLayouts  =   wgDeviceRef.createDSLayoutFromShaders(info._shaders);
 
-        WGPUBindGroupLayout bindGroupLayout    =   nullptr;
-        if (!_dsLayouts.empty())
+        std::vector<WGPUBindGroupLayout>    bindGroupLayouts;
+        bindGroupLayouts.reserve(_dsLayouts.size());
+        for (auto& var : _dsLayouts)
         {
-            auto    wgLayout    =   const_cast<WGDSetLayout*>(static_cast<const WGDSetLayout*>(_dsLayouts[0].get()));
-            if (wgLayout)
-                bindGroupLayout    =   (WGPUBindGroupLayout)wgLayout->native();
+            auto    wgLayout    =   var ? const_cast<WGDSetLayout*>(static_cast<const WGDSetLayout*>(var.get())) : nullptr;
+            bindGroupLayouts.push_back(wgLayout ? (WGPUBindGroupLayout)wgLayout->native() : nullptr);
         }
 
         /// 汇总各 shader stage 的 var<immediate> 结构体大小,取最大值作为
@@ -62,8 +55,8 @@ namespace   FE
 
         WGPUPipelineLayoutDescriptor layoutDesc = {};
         layoutDesc.nextInChain          =   nullptr;
-        layoutDesc.bindGroupLayoutCount =   bindGroupLayout ? 1 : 0;
-        layoutDesc.bindGroupLayouts     =   bindGroupLayout ? &bindGroupLayout : nullptr;
+        layoutDesc.bindGroupLayoutCount =   (uint32_t)bindGroupLayouts.size();
+        layoutDesc.bindGroupLayouts     =   bindGroupLayouts.empty() ? nullptr : bindGroupLayouts.data();
         layoutDesc.immediateSize        =   immediateSize;
 
         _layout =   wgpuDeviceCreatePipelineLayout(wgDevice.device(),&layoutDesc);

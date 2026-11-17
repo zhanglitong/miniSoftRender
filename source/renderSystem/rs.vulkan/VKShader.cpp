@@ -79,9 +79,12 @@ namespace   FE
         for (const auto& binding : bindings)
         {
             FEDSetBinding layoutBinding{};
+            layoutBinding._set              =   (uint16_t)binding->set;
             layoutBinding._binding          =   binding->binding;
             layoutBinding._descriptorType   =   (FEDescType)binding->descriptor_type;
-            layoutBinding._descriptorCount  =   binding->count;
+            /// 运行时数组(runtime array)反射出的 count 可能为 0,
+            /// Vulkan 要求 descriptorCount > 0,统一按 1 处理
+            layoutBinding._descriptorCount  =   binding->count ? (uint16_t)binding->count : 1;
             layoutBinding._stageFlags       =   stageFlags;
             layoutBinding._name             =   binding->name;
             if (layoutBinding._name .empty() && binding->block.type_description && binding->block.type_description->members)

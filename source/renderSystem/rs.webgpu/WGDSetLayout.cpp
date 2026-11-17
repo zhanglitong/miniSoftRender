@@ -145,6 +145,8 @@ namespace   FE
         auto dset = new WGDSet(_ctx);
         FEDSet::CreateInfo info;
         info._layout =   this;
+        /// 记录所属 group 号,材质/工厂按 group 绑定与过滤时依赖该值
+        info._set    =   (uint)_cInfo._setNumber;
         if (dset->create(info))
         {
             return dset;

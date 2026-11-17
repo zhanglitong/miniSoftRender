@@ -18,11 +18,16 @@ namespace   FE
         }
     }
 
-    DSetLayout  createDSLayoutFromShaders(FEContext& ctx,FEDevice& device,const Shaders& shaders)
+    /// <summary>
+    /// 按 shader 反射结果生成描述符集布局:同一个 set 内的 VS/FS binding 合并,
+    /// 不同 set 各自生成一套布局,返回的数组下标即 set 号(缺失的 set 补空布局),
+    /// 供 VkPipelineLayout 的 pSetLayouts 直接按序号取用
+    /// </summary>
+    DSetLayouts createDSLayoutFromShaders(FEContext& ctx,FEDevice& device,const Shaders& shaders)
     {
         (void)device;
-        std::vector<FEDSetBinding>        allBindings;
-        std::map<uint32_t, FEDSetBinding> bindingMap;
+        /// set -> (binding -> 合并后的 binding)
+        std::map<uint32_t,std::map<uint32_t,FEDSetBinding>> setMaps;
 
         for (const auto& shader : shaders)
         {
@@ -33,8 +38,9 @@ namespace   FE
 
             for (const auto& binding : reflectData._bindings)
             {
-                uint32_t    key =   binding._binding;
-                auto        it  =   bindingMap.find(key);
+                auto&       bindingMap  =   setMaps[binding._set];
+                uint32_t    key         =   binding._binding;
+                auto        it          =   bindingMap.find(key);
                 if (it != bindingMap.end())
                 {
                     it->second._stageFlags =    (it->second._stageFlags | binding._stageFlags);
@@ -46,29 +52,47 @@ namespace   FE
             }
         }
 
-        for (const auto& pair : bindingMap)
+        if (setMaps.empty())
+            return {};
+
+        DSetLayouts     layouts;
+        const uint32_t  maxSet  =   setMaps.rbegin()->first;
+        layouts.resize(maxSet + 1);
+        for (auto& pair : setMaps)
         {
-            allBindings.push_back(pair.second);
+            std::vector<FEDSetBinding>  allBindings;
+            for (auto& bindPair : pair.second)
+                allBindings.push_back(bindPair.second);
+
+            std::sort(allBindings.begin(), allBindings.end(), [](const FEDSetBinding& a, const FEDSetBinding& b)
+            {
+                return a._binding < b._binding;
+            });
+
+            FEDSetLayout::CreateInfo info;
+            info._setNumber =   pair.first;
+            info._bindings  =   allBindings;
+
+            auto layout = new VKDSetLayout(ctx);
+            if (layout->create(info))
+                layouts[pair.first] =   layout;
+            else
+                delete layout;
         }
-
-        std::sort(allBindings.begin(), allBindings.end(), [](const FEDSetBinding& a, const FEDSetBinding& b) 
+        /// 空槽补空布局:shader 未声明某个 set 时,VkPipelineLayout 仍需该位置的布局对象
+        for (uint32_t i = 0; i < layouts.size(); ++i)
         {
-            return a._binding < b._binding;
-        });
-
-        if (allBindings.empty())
-            return nullptr;
-
-        FEDSetLayout::CreateInfo info;
-        info._bindings  =   allBindings;
-
-        auto layout = new VKDSetLayout(ctx);
-        if (!layout->create(info))
-        {
-            delete layout;
-            return nullptr;
+            if (layouts[i] != nullptr)
+                continue;
+            FEDSetLayout::CreateInfo info;
+            info._setNumber =   i;
+            auto layout = new VKDSetLayout(ctx);
+            if (layout->create(info))
+                layouts[i]  =   layout;
+            else
+                delete layout;
         }
-        return layout;
+        return layouts;
     }
 
 
@@ -94,18 +118,16 @@ namespace   FE
             if (!refect._pushConstants.empty())
                 _cInfo._pushConstantStage  |=  refect._stage;
         }
-        auto    layout  =   createDSLayoutFromShaders(_ctx,_ctx.device(),shaders);
-        if (layout)
-        {
-            _dsLayouts.clear();
-            _dsLayouts.push_back(layout);
-        }
-        VkDescriptorSetLayout   dsLayouts[1]    =   {layout ? (VkDescriptorSetLayout)layout->native() : nullptr};
- 
+        _dsLayouts  =   createDSLayoutFromShaders(_ctx,_ctx.device(),shaders);
+        std::vector<VkDescriptorSetLayout>  vkLayouts;
+        vkLayouts.reserve(_dsLayouts.size());
+        for (auto& var : _dsLayouts)
+            vkLayouts.push_back(var ? (VkDescriptorSetLayout)var->native() : nullptr);
+
         pipelineLayoutCI.sType                  =    VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCI.pNext                  =    nullptr;
-        pipelineLayoutCI.setLayoutCount         =    layout ? 1 : 0;
-        pipelineLayoutCI.pSetLayouts            =    layout ? dsLayouts : nullptr;
+        pipelineLayoutCI.setLayoutCount         =    (uint)vkLayouts.size();
+        pipelineLayoutCI.pSetLayouts            =    vkLayouts.empty() ? nullptr : vkLayouts.data();
         pipelineLayoutCI.pushConstantRangeCount =    (uint)pushConsts.size();
         pipelineLayoutCI.pPushConstantRanges    =    pushConsts.data();
         VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &_layout));
@@ -320,6 +342,8 @@ namespace   FE
             FEDSet::CreateInfo  cInfo;
             cInfo._layout   =   _dsLayouts[i];
             cInfo._pool     =   pool;
+            /// 记录 set 号,材质层按 set 过滤/覆盖绑定时依赖该值
+            cInfo._set      =   (uint)i;
             
             if(dset->create(cInfo))
                 result.emplace_back(dset);

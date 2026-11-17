@@ -329,10 +329,10 @@ namespace   FE
         return new WGDSetLayout(_ctx);
     }
 
-    DSetLayout WGDevice::createDSLayoutFromShaders(const std::vector<Shader>& shaders)
+    DSetLayouts WGDevice::createDSLayoutFromShaders(const std::vector<Shader>& shaders)
     {
-        std::vector<FEDSetBinding> allBindings;
-        std::map<uint32_t,FEDSetBinding> bindingMap;
+        /// set -> (binding -> 合并后的 binding);每个 set 对应一个 bind group layout
+        std::map<uint32_t,std::map<uint32_t,FEDSetBinding>> setMaps;
 
         for (const auto& shader : shaders)
         {
@@ -343,8 +343,9 @@ namespace   FE
 
             for (const auto& binding : reflectData._bindings)
             {
-                uint32_t key = binding._binding;
-                auto it = bindingMap.find(key);
+                auto&   bindingMap  =   setMaps[binding._set];
+                uint32_t key        =   binding._binding;
+                auto    it          =   bindingMap.find(key);
                 if (it != bindingMap.end())
                 {
                     it->second._stageFlags = (it->second._stageFlags | binding._stageFlags);
@@ -352,38 +353,60 @@ namespace   FE
                 else
                 {
                     FEDSetBinding setBinding;
-                    setBinding._binding = binding._binding;
-                    setBinding._descriptorType = binding._descriptorType;
-                    setBinding._stageFlags = binding._stageFlags;
-                    setBinding._name = binding._name;
-                    setBinding._typeName = binding._typeName;
-                    bindingMap[key] = setBinding;
+                    setBinding._set             = (uint16_t)binding._set;
+                    setBinding._binding         = binding._binding;
+                    setBinding._descriptorType  = binding._descriptorType;
+                    setBinding._descriptorCount = 1;
+                    setBinding._stageFlags      = binding._stageFlags;
+                    setBinding._name            = binding._name;
+                    setBinding._typeName        = binding._typeName;
+                    bindingMap[key]             = setBinding;
                 }
             }
         }
 
-        for (const auto& pair : bindingMap)
+        if (setMaps.empty())
+            return {};
+
+        DSetLayouts     layouts;
+        const uint32_t  maxSet  =   setMaps.rbegin()->first;
+        layouts.resize(maxSet + 1);
+        for (auto& pair : setMaps)
         {
-            allBindings.push_back(pair.second);
+            std::vector<FEDSetBinding>  allBindings;
+            for (auto& bindPair : pair.second)
+                allBindings.push_back(bindPair.second);
+
+            std::sort(allBindings.begin(),allBindings.end(),[](const FEDSetBinding& a,const FEDSetBinding& b) {
+                return a._binding < b._binding;
+            });
+
+            FEDSetLayout::CreateInfo info;
+            info._setNumber =   pair.first;
+            info._bindings  =   allBindings;
+
+            auto layout = new WGDSetLayout(_ctx);
+            if (!layout->create(info))
+            {
+                delete layout;
+                continue;
+            }
+            layouts[pair.first] =   layout;
         }
-
-        std::sort(allBindings.begin(),allBindings.end(),[](const FEDSetBinding& a,const FEDSetBinding& b) {
-            return a._binding < b._binding;
-        });
-
-        if (allBindings.empty())
-            return nullptr;
-
-        FEDSetLayout::CreateInfo info;
-        info._bindings = allBindings;
-
-        auto layout = new WGDSetLayout(_ctx);
-        if (!layout->create(info))
+        /// 空槽补空布局:缺失的 group 仍需要布局对象占位
+        for (uint32_t i = 0; i < layouts.size(); ++i)
         {
-            delete layout;
-            return nullptr;
+            if (layouts[i] != nullptr)
+                continue;
+            FEDSetLayout::CreateInfo info;
+            info._setNumber =   i;
+            auto layout = new WGDSetLayout(_ctx);
+            if (layout->create(info))
+                layouts[i]  =   layout;
+            else
+                delete layout;
         }
-        return layout;
+        return layouts;
     }
 
     DSetPool WGDevice::createDSetPool()

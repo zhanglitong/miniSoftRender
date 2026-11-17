@@ -273,6 +273,7 @@ namespace   FE
         for (const auto& binding : bindings)
         {
             ReflectBinding reflectBinding;
+            reflectBinding._set             =   binding->set;
             reflectBinding._binding         =   binding->binding;
             reflectBinding._descriptorType  =   static_cast<FEDescType>(binding->descriptor_type);
             /// WebGPU 区分 storage buffer 的 read / read_write 权限,

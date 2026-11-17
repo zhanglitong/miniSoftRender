@@ -74,6 +74,24 @@
     #define  SB_Skin        18
 #endif
 
+/// ===== OIT 透明层 SSBO 的独立描述符集 =====
+/// 与材质资源所在的 set 0 解耦:三个 SSBO 是全局逐帧资源,
+/// 所有透明材质(OIT 变体管线)共用同一份描述符集(set = 1)
+#ifdef __cplusplus
+    enum    OITSetBinding
+    {
+        OIT_SET                 =   1,
+        OIT_SET_BIND_COUNTER    =   0,
+        OIT_SET_BIND_HEAD       =   1,
+        OIT_SET_BIND_LIST       =   2,
+    };
+#else
+    #define  OIT_SET                1
+    #define  OIT_SET_BIND_COUNTER   0
+    #define  OIT_SET_BIND_HEAD      1
+    #define  OIT_SET_BIND_LIST      2
+#endif
+
 
 
 /// <summary>

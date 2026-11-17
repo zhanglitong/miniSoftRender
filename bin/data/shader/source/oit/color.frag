@@ -1,5 +1,5 @@
 // OIT Color Pass: 从链表读、按 depth 排序、alpha 合成
-#version 450
+#version    450
 #include    "FEShaderDefine.h"
 
 #define UINT32_MAX 0xFFFFFFFFu
@@ -123,8 +123,8 @@ void main()
 
     // 第三步：从前往后 alpha 合成
     // front-to-back: result = result * (1 - alpha_i) + color_i * alpha_i
-    vec3  accumRGB  = vec3(0.0);
-    float accumAlpha = 0.0;
+    vec3  accumRGB      =   vec3(0.0);
+    float accumAlpha    =   0.0;
 
     for (uint i = 0; i < count; i++)
     {

@@ -209,10 +209,11 @@ namespace   FE
             return  _oitPipelines[uint(pri)];
         }
         /// <summary>
-        /// 构建文本的 OIT 变体管线与描述符集:
+        /// 构建文本的 OIT 变体管线:
         /// 克隆主管线改 4 项状态(无 color 输出/不写深度/无混合/采样数与场景一致),
-        /// FS 换成 OIT_MODE 编译的 text/shader.oit.frag.spv(写逐像素透明层 10/11/12),
-        /// 注册名 "text.oit/<图元>";dsets 绑定相机 UBO、字体图集与 OIT SSBO。
+        /// FS 换成 OIT_MODE 编译的 text/shader.oit.frag.spv(写逐像素透明层),
+        /// 注册名 "text.oit/<图元>"。透明层 SSBO 由 FEOITManager 的共享 set 1 提供,
+        /// 字体图集等材质资源仍复用主管线的 set 0。
         /// 仅在 FEOITManager::active() 时构建,LIST 趟首次绘制前调用
         /// </summary>
         void    setupOITVariants()
@@ -221,7 +222,6 @@ namespace   FE
             FEMutex::ScopeLock  lock(_ctx.device().gpuMutex());
             for (auto& pl : _oitPipelines)
                 pl      =   nullptr;
-            _oitDsets.clear();
             auto    mgr     =   FEOITManager::active();
             if (mgr == nullptr)
                 return;
@@ -268,25 +268,6 @@ namespace   FE
                 }
                 _oitPipelines[i]    =   pl;
             }
-            if (_oitPipelines[0] == nullptr)
-                return;
-            _oitDsets   =   _oitPipelines[0]->createDSets();
-            if (_oitDsets.empty())
-            {
-                _oitVariantFailed   =   true;
-                LOG_ERR("Text OIT: createDSets for text.oit failed");
-                return;
-            }
-            /// 与主管线绑定同样的资源:相机 UBO(着色器块名为 CameraBlock,
-            /// autoAttach 的名称匹配覆盖不到,须显式绑定)与字体图集;
-            /// 再挂 OIT SSBO(binding 10/11/12,与 text OIT 着色器一致)
-            auto    cameraUBO   =   _ctx.device().queryCache(FEConstUuid::CameraUBOId);
-            bindTo(_oitDsets,0,SB_Camera,{cameraUBO});
-            if (_texture != nullptr)
-                bindTo(_oitDsets,0,SB_Material,{_texture.get()});
-            for (auto& dset : _oitDsets)
-                mgr->bindToDSet(dset,OIT_BIND_COUNTER,OIT_BIND_HEAD,OIT_BIND_LIST);
-            update();
         }
         /// <summary>
         /// 加载 OIT_MODE 编译的 text fragment shader(输出写逐像素透明层)

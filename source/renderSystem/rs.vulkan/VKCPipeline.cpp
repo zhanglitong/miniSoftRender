@@ -5,7 +5,7 @@
 #include    "FEVulkan.h"
 namespace   FE
 {
-    extern  DSetLayout  createDSLayoutFromShaders(FEContext& ctx,FEDevice& device,const Shaders& shaders);
+    extern  DSetLayouts createDSLayoutFromShaders(FEContext& ctx,FEDevice& device,const Shaders& shaders);
 
     VKCPipeline::~VKCPipeline()
     {
@@ -43,16 +43,17 @@ namespace   FE
             if (!refect._pushConstants.empty())
                 _cInfo._pushConstantStage  |=  refect._stage;
         }
-        auto    layout  =   createDSLayoutFromShaders(_ctx,_ctx.device(),shaders);
-        _dsLayouts.clear();
-        _dsLayouts.push_back(layout);
+        _dsLayouts  =   createDSLayoutFromShaders(_ctx,_ctx.device(),shaders);
 
-        VkDescriptorSetLayout   dsLayouts[1]    =   {(VkDescriptorSetLayout)layout->native()};
- 
+        std::vector<VkDescriptorSetLayout>  vkLayouts;
+        vkLayouts.reserve(_dsLayouts.size());
+        for (auto& var : _dsLayouts)
+            vkLayouts.push_back(var ? (VkDescriptorSetLayout)var->native() : nullptr);
+
         pipelineLayoutCI.sType                  =    VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCI.pNext                  =    nullptr;
-        pipelineLayoutCI.setLayoutCount         =    1;
-        pipelineLayoutCI.pSetLayouts            =    dsLayouts;
+        pipelineLayoutCI.setLayoutCount         =    (uint)vkLayouts.size();
+        pipelineLayoutCI.pSetLayouts            =    vkLayouts.empty() ? nullptr : vkLayouts.data();
         pipelineLayoutCI.pushConstantRangeCount =    (uint)pushConsts.size();
         pipelineLayoutCI.pPushConstantRanges    =    pushConsts.data();
         VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &_layout));
@@ -108,6 +109,7 @@ namespace   FE
             FEDSet::CreateInfo  cInfo;
             cInfo._layout   =   _dsLayouts[i];
             cInfo._pool     =   pool;
+            cInfo._set      =   (uint)i;
             
             if(dset->create(cInfo))
                 result.emplace_back(dset);

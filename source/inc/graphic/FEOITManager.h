@@ -8,6 +8,7 @@
 #include    "FEBuffer.hpp"
 #include    "FEDSet.h"
 #include    "FEDSetLayout.h"
+#include    "FEDSetPool.h"
 #include    "FEGPUBuffer.h"
 #include    "FEPipeline.h"
 #include    "FERenderPass.h"
@@ -16,15 +17,11 @@
 namespace   FE
 {
     /// ===== OIT SSBO binding 常量 =====
-    /// oit/color.frag(合成趟专用)固定用 10/11/12;
-    /// pbr/shader.frag 的 10~17 已被 PBR 贴图/参数占用,18 被 pbrSkin 顶点
-    /// 着色器的 SkinBlock(SB_Skin)占用,其 OIT 变体用 21/22/23
+    /// 合成趟(oit/color.frag)自己一套管线,固定用 set 0 的 10/11/12;
+    /// 几何趟(OIT 变体管线)走独立的 set 1(见 FEShaderDefine.h 的 OIT_SET_BIND_*)
     constexpr   uint    OIT_BIND_COUNTER        =   10;
     constexpr   uint    OIT_BIND_HEAD           =   11;
     constexpr   uint    OIT_BIND_LIST           =   12;
-    constexpr   uint    PBR_OIT_BIND_COUNTER    =   21;
-    constexpr   uint    PBR_OIT_BIND_HEAD       =   22;
-    constexpr   uint    PBR_OIT_BIND_LIST       =   23;
 
     /// <summary>
     /// 逐像素透明层 OIT 管理器
@@ -41,8 +38,8 @@ namespace   FE
     ///   - LinkedListSBO   : PPLL=节点池(maxNodes × OITNode);
     ///                       K 槽=槽池(W*H*K × OITSlot)
     ///
-    /// 几何趟由 FEMaterialPBR 的 OIT 变体管线直接写这三个 buffer(21/22/23),
-    /// 本管理器只负责分配/清零/屏障与合成趟(10/11/12)。
+    /// 几何趟由 FEMaterialPBR/FEMaterialText 的 OIT 变体管线直接写这三个 buffer
+    /// (共享 set 1 的 binding 0/1/2),本管理器只负责分配/清零/屏障与合成趟(10/11/12)。
     /// Color Pass: 全屏三角形, depthTest OFF, 预乘 alpha 混合
     /// </summary>
     class   FE_API  FEOITManager : public FEObject
@@ -62,8 +59,8 @@ namespace   FE
         /// <summary>
         /// 窗口尺寸变化:容量内只更新 counter 里的屏幕尺寸(shader 用它的
         /// screenW/H 计算像素索引),无需重建 SSBO。
-        /// 超出预分配容量返回 false(材质已缓存的 OIT 变体 dsets 无法重绑,
-        /// 不能重建 SSBO),调用方应停用 OIT 回退 alpha 混合。
+        /// 超出预分配容量返回 false(本实现不重建 SSBO,超出容量即停用 OIT),
+        /// 调用方应停用 OIT 回退 alpha 混合。
         /// 调用前必须保证 GPU 空闲(不能在帧中间调用)
         /// </summary>
         bool    resizeScreen(uint32_t screenW, uint32_t screenH);
@@ -86,8 +83,8 @@ namespace   FE
 
         /// <summary>
         /// 把 3 个 OIT SSBO 绑定到指定 DSet 的给定 binding:
-        /// 合成趟传 10/11/12(OIT_BIND_*),
-        /// pbr OIT 变体管线传 21/22/23(PBR_OIT_BIND_*)
+        /// 合成趟传 set 0 的 10/11/12(OIT_BIND_*),
+        /// 几何趟的共享 set 1 传 OIT_SET_BIND_COUNTER/HEAD/LIST
         /// </summary>
         void    bindToDSet(DSet dset,
                            uint bindCounter,
@@ -114,6 +111,13 @@ namespace   FE
         Pipeline    colorPipeline()         const { return _colorPipeline; }
         DSets       colorDSets()            const { return _colorDSets; }
 
+        /// <summary>
+        /// 几何趟(OIT 变体管线)共用的描述符集(set = 1):
+        /// 三个透明层 SSBO 是全局逐帧资源,所有透明材质绑定同一份,
+        /// 材质的 set 0 因此无需为 OIT 复制一套描述符集
+        /// </summary>
+        DSet        listDSet()              const { return _listDSet; }
+
         uint32_t    screenWidth()           const { return _screenW; }
         uint32_t    screenHeight()          const { return _screenH; }
         /// 渲染目标采样数:OIT 变体管线克隆时需与之匹配(由 FEMaterialPBR 使用)
@@ -138,6 +142,11 @@ namespace   FE
         SBO         _counterSBO;    // 4 × uint32: {count, maxCount, screenW, screenH}
         SBO         _headIndexSBO;  // 容量 × uint32(按 OIT_HEAD_CAPACITY 预分配)
         SBO         _linkedListSBO; // 节点池/槽池(maxNodes × OITNode/OITSlot)
+
+        // 几何趟共享描述符集(set = 1),生命周期与三个 SSBO 一致
+        DSetLayout  _listLayout;
+        DSetPool    _listPool;
+        DSet        _listDSet;
 
         // Pipeline
         Shader      _colorVS;

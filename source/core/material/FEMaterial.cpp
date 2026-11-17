@@ -73,11 +73,7 @@ namespace   FE
 
     bool    FEMaterial::bind(uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges,const uint64s& offsets)
     {
-        bool    ok      =   bindTo(_dsets,set,bind,objects,ranges,offsets);
-        /// OIT 变体 dsets 同步绑定:LIST 趟 OIT 管线与主管线共享同一份资源
-        if (!_oitDsets.empty())
-            bindTo(_oitDsets,set,bind,objects,ranges,offsets);
-        return  ok;
+        return  bindTo(_dsets,set,bind,objects,ranges,offsets);
     }
     bool    FEMaterial::bindTo(DSets& dsets,uint16 set,uint16 bind,const Objects& objects,const uint64s& ranges,const uint64s& offsets)
     {
@@ -134,7 +130,7 @@ namespace   FE
         /// 用 {this, lambda} 注册对象跟踪,换贴图/析构时可按 this 退订
         texture->notify()   +=  {this,[this,set,slot,ranges,offsets](Object sender)
         {
-            /// 纹理重建(create 参数变化)后按原槽位重绑;bind 内部会同步 OIT 变体
+            /// 纹理重建(create 参数变化)后按原槽位重绑
             if (sender != nullptr)
                 bind(set,slot,{sender},ranges,offsets);
         }};
@@ -170,16 +166,11 @@ namespace   FE
         {
             var->update();
         }
-        for (auto& var : _oitDsets)
-        {
-            var->update();
-        }
     }
 
     void    FEMaterial::autoAttach()
     {
         autoAttachTo(_dsets);
-        autoAttachTo(_oitDsets);
     }
     void    FEMaterial::autoAttachTo(DSets& dsets)
     {
