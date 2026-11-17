@@ -516,6 +516,10 @@ namespace   FE
         uint2               _captureSize     =   uint2(0,0);
         Node                _mousePoint;
         aabb3dr             _aabb;
+        /// <summary>
+        /// destroy() 是否已执行:MSG_CLOSE 与析构函数都会触发销毁,保证幂等
+        /// </summary>
+        bool                _destroyed       =   false;
         String              _projectFileName;
 
         // ===== OIT: 可选的 Order-Independent Transparency 管理器 =====
