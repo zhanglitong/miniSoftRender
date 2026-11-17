@@ -28,6 +28,7 @@
 #include    "../../../inc/FEContext.hpp"
 #include    "../../../inc/FEFileFormatRegistry.hpp"
 #include    "../../../inc/FEAppHelper.hpp"
+#include    "../../../inc/FEStringHelper.hpp"
 #include    "../../../inc/graphic/FEScene.h"
 #include    "../../../inc/graphic/FELightDir.h"
 #include    "../../../inc/FEFileFormatHelper.hpp"
@@ -74,22 +75,6 @@ namespace
         bool    _unregAssociation   =   false;
         bool    _help           =   false;
     };
-
-    String  toUtf8(const wchar_t* wstr)
-    {
-        if (wstr == nullptr)
-            return  String();
-#ifdef  _WIN32
-        int     len =   WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
-        if (len <= 1)
-            return  String();
-        String  out(size_t(len - 1), '\0');
-        WideCharToMultiByte(CP_UTF8, 0, wstr, -1, out.data(), len, nullptr, nullptr);
-        return  out;
-#else
-        return  String(wstr);
-#endif
-    }
 
     String  toLower(String text)
     {
@@ -353,7 +338,7 @@ int main(int argc, char** argv)
     if (wargv != nullptr)
     {
         for (int i = 1; i < wargc; ++i)
-            args.push_back(toUtf8(wargv[i]));
+            args.push_back(FEStringHelper::wideToUTF8(wargv[i]));
         LocalFree(wargv);
     }
 #else

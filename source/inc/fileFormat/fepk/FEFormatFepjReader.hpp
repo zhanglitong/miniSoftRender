@@ -187,8 +187,7 @@ namespace   FE
                 /// 头部长度和 magic 必须匹配,否则不进入对象流
                 if (res < sizeof(FEFepjHeader::Header) || !header.isValid())
                 {
-                    LOG_ERR("fepj: invalid header (read %llu of %zu bytes)"
-                            ,(unsigned long long)res,sizeof(FEFepjHeader::Header));
+                    LOG_ERR("fepj: invalid header (read %llu of %zu bytes)",(uint64)res,sizeof(FEFepjHeader::Header));
                     continue;
                 }
                 /// 主版本不一致时无法保证布局兼容,直接拒绝
@@ -221,7 +220,7 @@ namespace   FE
                     pCtx->query(object->objectId(),object.get(),FESerializeCtx::O_Cache);
                     /// 检测是不是FEEntryList 
                     /// 该对象定义了要返回哪些对象
-                    if (object->cast<FEEntryList>())
+                    if (object->cast<FEEntryList>() != nullptr)
                     {
                         entryList.push_back(object);
                     }
@@ -236,7 +235,6 @@ namespace   FE
                     Objects&    eList   =   pList->entryList();
                     results.insert(results.end(),eList.begin(),eList.end());
                 }
-                
             }
             /// 所有对象读完、对象表完整后,统一回填反序列化期间登记的前向引用
             /// 使用外部 ctx(多文件场景)时由 readFiles 在全部读完后统一告警

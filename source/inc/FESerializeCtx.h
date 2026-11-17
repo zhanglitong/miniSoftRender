@@ -53,6 +53,21 @@ namespace   FE
         /// 5. option == O_UpdateProgress,  更新进度
         /// </summary>
         using   QueryObject         =   std::function<QResult(const FEUuid& id,FEObject* object,Option option)>;
+
+        /// <summary>
+        /// 延迟引用回填函数:返回 true 表示已成功绑定,该登记从队列移除;
+        /// 返回 false(目标类型不符等)则保留,最终计入 pendingCount()
+        /// </summary>
+        using   RefBinder           =   std::function<bool(Object object)>;
+        using   ReserveHint         =   std::function<void(size_t)>;
+        using   ResolveNotify       =   std::function<void()>;
+        struct  PendingRef
+        {
+            FEUuid      _id;
+            RefBinder   _binder;
+        };
+        using   PendingRefs         =   std::vector<PendingRef>;
+        using   ResolveNotifies     =   std::vector<ResolveNotify>;
         /// <summary>
         /// 加载数据总大小
         /// </summary>
@@ -71,6 +86,10 @@ namespace   FE
         /// </summary>
         FECreator   preCreator;
         /// <summary>
+        /// 预分配对象表容量(容量提示,可选)
+        /// </summary>
+        ReserveHint reserve;
+        /// <summary>
         /// 上下文查询函数
         /// </summary>
         QueryObject query   =   [](const FEUuid& id,FEObject* object,Option option)->QResult
@@ -80,11 +99,6 @@ namespace   FE
             UNUSED(option);
             return  {};
         };
-        /// <summary>
-        /// 延迟引用回填函数:返回 true 表示已成功绑定,该登记从队列移除;
-        /// 返回 false(目标类型不符等)则保留,最终计入 pendingCount()
-        /// </summary>
-        using   RefBinder   =   std::function<bool(Object object)>;
         /// <summary>
         /// 登记一个当前查不到目标的引用。反序列化是单遍顺序流,目标对象可能写在后面
         /// (如蒙皮关节节点在依赖数据之后),由读取器在所有对象读完、对象表完整后
@@ -96,11 +110,7 @@ namespace   FE
                 return;
             _pendingRefs.push_back({id,std::move(binder)});
         }
-        using   ReserveHint     =   std::function<void(size_t)>;
-        /// <summary>
-        /// 预分配对象表容量(容量提示,可选)
-        /// </summary>
-        ReserveHint     reserve;
+       
         /// <summary>
         /// 还有多少引用未回填
         /// </summary>
@@ -112,7 +122,6 @@ namespace   FE
         /// 登记一个在所有延迟引用回填完成后执行的回调。
         /// 用于列表类引用:需要等每个元素都尝试绑定后,再一次性提交容器
         /// </summary>
-        using   ResolveNotify   =   std::function<void()>;
         inline  void    afterResolve(ResolveNotify notify)
         {
             if (notify)
@@ -144,13 +153,7 @@ namespace   FE
             return  _pendingRefs.size();
         }
     protected:
-        struct  PendingRef
-        {
-            FEUuid      _id;
-            RefBinder   _binder;
-        };
-        using   PendingRefs       =   std::vector<PendingRef>;
-        using   ResolveNotifies   =   std::vector<ResolveNotify>;
+       
         PendingRefs     _pendingRefs;
         ResolveNotifies _resolveNotifies;
     };
