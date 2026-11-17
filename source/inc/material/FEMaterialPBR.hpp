@@ -905,7 +905,7 @@ namespace   FE
             bindTextureTo(dsets,0,BIND_BRDF_LUT,      _brdfLUT);
             bindTextureTo(dsets,0,BIND_IRI_THICKNESS, _iriThicknessMap);
             bindTextureTo(dsets,0,BIND_SCENE_TEX,     _sceneTexWhite);
-        /// 占位绑定随后由 bindSceneTexTo 按 transmission 因子修正
+            /// 占位绑定随后由 bindSceneTexTo 按 transmission 因子修正
             bindSceneTexTo(dsets);
         }
         /// <summary>
