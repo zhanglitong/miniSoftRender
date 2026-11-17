@@ -108,7 +108,20 @@ namespace   FE
             FEUuid  dataId  =   FEUuid::zero();
             reader.read(dataId);
             Object  object  =   ctx.query(dataId,nullptr,FESerializeCtx::O_Query).first;
-            _data   =   object ? object->cast<FESkinData>() : nullptr;
+            if (object != nullptr)
+                _data   =   object->cast<FESkinData>();
+            else
+            {
+                /// 数据块可能写在组件之后,登记到读取器最后统一回填
+                ctx.bindLater(dataId,[this](Object object)->bool
+                {
+                    auto    data    =   object->cast<FESkinData>();
+                    if (data == nullptr)
+                        return  false;
+                    _data           =   data;
+                    return  true;
+                });
+            }
         }
         /// 蒙皮矩阵是每帧运行的缓存,加载后由骨骼动画系统重新生成
         _matrices.clear();

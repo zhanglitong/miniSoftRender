@@ -199,7 +199,20 @@ namespace FE
             if(result == sizeof(objectId))
             {
                 auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
-                _times          =   object ? object->cast<FERealsObject>() : nullptr;
+                if (object != nullptr)
+                    _times  =   object->cast<FERealsObject>();
+                else
+                {
+                    /// 时间序列可能写在轨道之后,登记到读取器最后统一回填
+                    ctx.bindLater(objectId,[this](Object object)->bool
+                    {
+                        auto    times   =   object->cast<FERealsObject>();
+                        if (times == nullptr)
+                            return  false;
+                        _times          =   times;
+                        return  true;
+                    });
+                }
             }
         }
 

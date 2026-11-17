@@ -142,6 +142,18 @@ namespace   FE
         }
     protected:
         /// <summary>
+        /// 统计节点树中的节点数量(含自身)
+        /// </summary>
+        static  void    countNodes(const FEObject* object,uint64& count)
+        {
+            auto    node    =   object ? object->cast<FENode>() : nullptr;
+            if (node == nullptr)
+                return;
+            ++ count;
+            for (auto& var : node->children())
+                countNodes(var.get(),count);
+        }
+        /// <summary>
         /// 查询一个对象的依赖对象
         /// </summary>
         /// <param name="object">被查询对象</param>
@@ -154,9 +166,15 @@ namespace   FE
             ObjectUSet  depends;
             /// 查询object依赖的对象
             object->queryDepends(depends);
+            /// unordered_set 的遍历顺序依赖指针哈希,按 objectId 排序保证同一场景多次保存字节一致
+            Objects     ordered(depends.begin(),depends.end());
+            std::sort(ordered.begin(),ordered.end(),[](const Object& left,const Object& right)
+            {
+                return  left->objectId() < right->objectId();
+            });
             /// 转存到线性表
             /// 准备查询依赖的依赖
-            for (auto& var : depends)
+            for (auto& var : ordered)
             {
                 if (!var->supportSerial())
                     continue;
@@ -173,7 +191,7 @@ namespace   FE
                 for (auto& var : childs)
                 {
                     if (!var->supportSerial())
-                        return;
+                        continue;
                     collectDepends(var.get(),objectSet,results);
                 }
             }
@@ -188,7 +206,29 @@ namespace   FE
             {
                 collectDepends(var,objectSet,results);
             }
+            /// 统计节点数量与对象表容量
+            uint64  nodeCnt     =   0;
+            uint64  rootNodeCnt =   0;
+            uint64  rootCnt     =   0;
+            for (auto& var : ojects)
+            {
+                if (!var->supportSerial())
+                    continue;
+                ++ rootCnt;
+                auto    node    =   var->cast<FENode>();
+                if (node != nullptr)
+                {
+                    ++ rootNodeCnt;
+                    countNodes(node,nodeCnt);
+                }
+            }
             Header  header(true);
+            /// 节点总数(根 + 所有内联子节点)
+            header._header._nodeCnt     =   nodeCnt;
+            /// 读取时对象表条目数 = 依赖块 + 根块 + 入口列表 + 内联子节点
+            header._header._objectCnt   =   uint64(results.size()) + rootCnt + 1 + (nodeCnt - rootNodeCnt);
+            /// _datetime 保持零值:写入墙钟时间会让同一场景每次保存字节不同,
+            /// 破坏内容哈希与缓存;若确实需要,应由调用方提供稳定的时间来源
             header.write(writer);
             /// 依赖写入
             /// 最后面的则最被依赖的，所以倒序遍历

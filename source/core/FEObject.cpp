@@ -76,6 +76,10 @@ namespace   FE
 
         reader.read(_id);
         reader.read(flags());
+        /// 每个反序列化的对象都登记进上下文对象表。节点子级是内联递归读取的,
+        /// 不经过读取器的顶层缓存;不在这里登记,延迟引用(如蒙皮关节)就找不到它们
+        if (sCtx.query)
+            sCtx.query(_id,this,FESerializeCtx::O_Cache);
         /// 赋值默认版本
         version =   FEObject::version();
         /// 如果有版本号，读取

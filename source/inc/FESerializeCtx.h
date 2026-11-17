@@ -96,6 +96,11 @@ namespace   FE
                 return;
             _pendingRefs.push_back({id,std::move(binder)});
         }
+        using   ReserveHint     =   std::function<void(size_t)>;
+        /// <summary>
+        /// 预分配对象表容量(容量提示,可选)
+        /// </summary>
+        ReserveHint     reserve;
         /// <summary>
         /// 还有多少引用未回填
         /// </summary>
@@ -104,18 +109,37 @@ namespace   FE
             return  _pendingRefs.size();
         }
         /// <summary>
-        /// 用当前对象表回填所有登记的引用,返回仍未解析的数量(0 表示全部成功)
+        /// 登记一个在所有延迟引用回填完成后执行的回调。
+        /// 用于列表类引用:需要等每个元素都尝试绑定后,再一次性提交容器
         /// </summary>
-        inline  size_t  resolvePending()
+        using   ResolveNotify   =   std::function<void()>;
+        inline  void    afterResolve(ResolveNotify notify)
+        {
+            if (notify)
+                _resolveNotifies.push_back(std::move(notify));
+        }
+        /// <summary>
+        /// 用当前对象表回填所有登记的引用,返回仍未解析的数量(0 表示全部成功)。
+        /// final == true 时同时执行 afterResolve 登记的回调;
+        /// 多文件分批读取时,只有最后一批应传 true
+        /// </summary>
+        inline  size_t  resolvePending(bool final = true)
         {
             /// 先换出队列,避免回填过程中新增登记导致迭代器失效
-            std::vector<PendingRef> refs;
+            PendingRefs refs;
             refs.swap(_pendingRefs);
             for (auto& ref : refs)
             {
                 Object  object  =   query(ref._id,nullptr,O_Query).first;
                 if (object == nullptr || !ref._binder(object))
                     _pendingRefs.push_back(std::move(ref));
+            }
+            if (final)
+            {
+                ResolveNotifies notifies;
+                notifies.swap(_resolveNotifies);
+                for (auto& notify : notifies)
+                    notify();
             }
             return  _pendingRefs.size();
         }
@@ -125,7 +149,10 @@ namespace   FE
             FEUuid      _id;
             RefBinder   _binder;
         };
-        std::vector<PendingRef> _pendingRefs;
+        using   PendingRefs       =   std::vector<PendingRef>;
+        using   ResolveNotifies   =   std::vector<ResolveNotify>;
+        PendingRefs     _pendingRefs;
+        ResolveNotifies _resolveNotifies;
     };
 }
 

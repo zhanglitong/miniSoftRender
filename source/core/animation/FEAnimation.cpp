@@ -466,7 +466,20 @@ namespace FE
             if (result == sizeof(objectId)) 
             {
                 Object  object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
-                _clip           =   object ? object->cast<FEAnimClip>() : nullptr;
+                if (object != nullptr)
+                    _clip   =   object->cast<FEAnimClip>();
+                else
+                {
+                    /// 剪辑可能写在动画之后,登记到读取器最后统一回填
+                    ctx.bindLater(objectId,[this](Object object)->bool
+                    {
+                        auto    clip    =   object->cast<FEAnimClip>();
+                        if (clip == nullptr)
+                            return  false;
+                        _clip           =   clip;
+                        return  true;
+                    });
+                }
             }
         }
     }

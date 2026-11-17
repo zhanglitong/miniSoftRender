@@ -302,8 +302,10 @@ namespace FE
             reader.read(_name);
 
         uint            count   =   reader.readValue<uint>();
-        Animations      objects;
-        objects.reserve(count);
+        /// 动画可能写在播放器之后,用共享状态收集,全部回填后再统一提交
+        auto            objects =   std::make_shared<Animations>();
+        bool            missing =   false;
+        objects->reserve(count);
         for (uint i = 0; i < count; i++)
         {
             FEUuid  objectId    =   {};
@@ -312,13 +314,34 @@ namespace FE
             if (result != sizeof(objectId)) 
                 continue;
             Object  temp    =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
-            auto    object  =   temp ? temp->cast<FEAnimation>() : nullptr;
-            assert(object != nullptr);
-            if (object == nullptr)
+            if (temp != nullptr)
+            {
+                auto    object  =   temp->cast<FEAnimation>();
+                if (object != nullptr)
+                    objects->push_back(object);
                 continue;
-            objects.push_back(object);
+            }
+            missing =   true;
+            ctx.bindLater(objectId,[objects](Object object)->bool
+            {
+                auto    anim    =   object->cast<FEAnimation>();
+                if (anim == nullptr)
+                    return  false;
+                objects->push_back(anim);
+                return  true;
+            });
         }
-        setObjects(std::move(objects));
+        if (!missing)
+            setObjects(std::move(*objects));
+        else
+        {
+            FEPlayback* self    =   this;
+            ctx.afterResolve([self,objects]()
+            {
+                /// setObjects 内部会排序去重,回填顺序无关紧要
+                self->setObjects(std::move(*objects));
+            });
+        }
     }
     
 }

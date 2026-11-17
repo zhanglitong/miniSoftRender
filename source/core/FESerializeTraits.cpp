@@ -191,7 +191,17 @@ namespace   FE
             flags().addFlag(FLAG_ROTATION_CENTER);
         }
         if (bits._hasColor)     reader.read(_color);
-       
+        /// 统一处理前向引用:对象表里已存在就立即绑定,否则等所有对象读完再回填
+        auto    resolveRef  =   [&ctx](const OBJId& id,auto binder)
+        {
+            Object  object  =   ctx.query(id,nullptr,FESerializeCtx::O_Query).first;
+            if (object != nullptr)
+            {
+                binder(std::move(object));
+                return;
+            }
+            ctx.bindLater(id,std::move(binder));
+        };
         /// 读几何体
         if (bits._hasGeometry)
         {
@@ -199,8 +209,14 @@ namespace   FE
             auto    result  =   reader.read(objectId);
             UNUSED(result);
             assert(result == sizeof(objectId));
-            auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
-            _mesh           =   object ? object->cast<FEMesh>() : nullptr;
+            resolveRef(objectId,[this](Object object)->bool
+            {
+                auto    mesh    =   object->cast<FEMesh>();
+                if (mesh == nullptr)
+                    return  false;
+                _mesh           =   mesh;
+                return  true;
+            });
         }
         /// 读材质
         if (bits._hasMaterial)
@@ -209,8 +225,14 @@ namespace   FE
             auto    result  =   reader.read(objectId);
             UNUSED(result);
             assert(result == sizeof(objectId));
-            auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
-            _material       =   object ? object->cast<FEMaterial>() : nullptr;
+            resolveRef(objectId,[this](Object object)->bool
+            {
+                auto    material    =   object->cast<FEMaterial>();
+                if (material == nullptr)
+                    return  false;
+                _material           =   material;
+                return  true;
+            });
         }
         switch(bits._hasName)
         {
@@ -232,12 +254,14 @@ namespace   FE
             auto    result  =   reader.read(objectId);
             UNUSED(result);
             assert(result == sizeof(objectId));
-            auto    object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
-            if (object == nullptr)
-                continue;
-            auto    com     =   object->cast<FEComponent>();
-            if ( com != nullptr)
+            resolveRef(objectId,[this](Object object)->bool
+            {
+                auto    com     =   object->cast<FEComponent>();
+                if (com == nullptr)
+                    return  false;
                 addComponent(com);
+                return  true;
+            });
         }
 
         uint    childs  =   0;

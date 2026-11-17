@@ -199,8 +199,10 @@ namespace FE
         UNUSED(version);
         UNUSED(ctx);
         uint            nTrack  =   reader.readValue<uint>();
-        KeyFrameTracks  tracks;
-        tracks.reserve(nTrack);
+        /// 轨道可能写在剪辑之后,用共享状态收集,全部回填后再统一提交
+        auto            tracks  =   std::make_shared<KeyFrameTracks>();
+        bool            missing =   false;
+        tracks->reserve(nTrack);
         for (uint i = 0; i < nTrack; i++)
         {
             FEUuid  objectId    =   {};
@@ -209,12 +211,33 @@ namespace FE
             if (result != sizeof(objectId)) 
                 continue;
             Object  object  =   ctx.query(objectId,nullptr,FESerializeCtx::O_Query).first;
-            auto    track   =   object ? object->cast<FEKeyFrameTrack>() : nullptr;
-            assert(track != nullptr);
-            if (track == nullptr)
+            if (object != nullptr)
+            {
+                auto    track   =   object->cast<FEKeyFrameTrack>();
+                if (track != nullptr)
+                    tracks->push_back(track);
                 continue;
-            tracks.push_back(track);
+            }
+            missing =   true;
+            ctx.bindLater(objectId,[tracks](Object object)->bool
+            {
+                auto    track   =   object->cast<FEKeyFrameTrack>();
+                if (track == nullptr)
+                    return  false;
+                tracks->push_back(track);
+                return  true;
+            });
         }
-        setObjects(std::move(tracks));
+        if (!missing)
+            setObjects(std::move(*tracks));
+        else
+        {
+            FEAnimClip* self    =   this;
+            ctx.afterResolve([self,tracks]()
+            {
+                /// setObjects 内部会排序去重,回填顺序无关紧要
+                self->setObjects(std::move(*tracks));
+            });
+        }
     }
 }
