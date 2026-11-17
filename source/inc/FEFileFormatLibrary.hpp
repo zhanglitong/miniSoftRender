@@ -10,4 +10,7 @@
 #include    "fileFormat/gltf/FEFormatGLTFReader.hpp"
 #include    "fileFormat/gltf/FEFormatGLTFWriter.hpp"
 
+#include    "fileFormat/rvm/FEFormatRVMReader.hpp"
+
+
 

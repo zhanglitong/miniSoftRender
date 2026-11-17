@@ -123,6 +123,8 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEFormatGLTFReader);
         DEFINE_CLASS_CREATOR(FEFormatGLTFWriter);
 
+        DEFINE_CLASS_CREATOR(FEFormatRVMReader);
+
         DEFINE_CLASS_CREATOR(FEMaterialV3C4);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3C4);
@@ -154,6 +156,7 @@ namespace   FE
     {
         DEFINE_FORMAT_READER(ctx,FEFormatFepjReader);
         DEFINE_FORMAT_READER(ctx,FEFormatGLTFReader);
+        DEFINE_FORMAT_READER(ctx,FEFormatRVMReader);
     }
     void    systemInitializeWriter(FEContext& ctx)
     {

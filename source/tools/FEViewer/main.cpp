@@ -510,6 +510,9 @@ int main(int argc, char** argv)
         {
             loadBar->bindProgress(nullptr);
             loadBar->setVisible(false);
+            /// 必须在这里释放:进度条的字体图集纹理由本引用最后持有,
+            /// 若拖到 main 结束才释放,设备已销毁,纹理析构会访问空设备
+            loadBar =   nullptr;
         }
         envCube =   nullptr;
         irrCube =   nullptr;

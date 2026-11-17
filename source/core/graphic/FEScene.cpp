@@ -438,6 +438,9 @@ namespace   FE
     }
     void    FEScene::destroy()
     {
+        if (_destroyed)
+            return;
+        _destroyed = true;
         LOG_INF("FEScene.onClose()");
         /// 先关闭跨线程队列:丢弃挂起任务会让阻塞中的 sendRunable
         /// 立即以 broken_promise 返回,避免销毁期间主线程等待卡死
