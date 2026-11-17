@@ -4,7 +4,7 @@
 ///   2. FEScene::save 把整棵节点树(含 FESkin / FESkinData)写入 .fepj
 ///   3. FEScene::clear 清空场景,再 FEScene::open 从 .fepj 重新装载
 ///   4. 重新渲染并回读像素,校验:
-///        a. 关节引用已由 open 内的 resolvePending 回填(无 pending)
+///        a. 关节引用已由读取器在对象表完整后统一回填(全部绑定成功)
 ///        b. worldRotation 等骨骼数据随场景往返
 ///        c. 渲染结果与保存前一致(非背景像素数量接近,说明网格确实被画出来且蒙皮姿态相同)
 /// 用法: test.skin.fepj.scene.exe [--vulkan|--webgpu]
@@ -276,7 +276,6 @@ int     main(int argc,char** argv)
     for (auto& var : loadedPlaybacks)
         check(var.second->objects().size() == 52,"fepj: playback holds 52 node clips");
 
-    size_t  pendingTotal    =   0;
     bool    worldRotOk      =   true;
     bool    jointsBound     =   true;
     for (FESkin* skin : loadedSkins)
@@ -286,7 +285,6 @@ int     main(int argc,char** argv)
             jointsBound =   false;
             continue;
         }
-        pendingTotal    +=  skin->data()->pendingJointCount();
         if (!matNear(skin->data()->worldRotation(),yUpToZUp))
             worldRotOk  =   false;
         for (auto& bone : skin->data()->bones())
@@ -298,8 +296,7 @@ int     main(int argc,char** argv)
             }
         }
     }
-    /// open() 内部已调用 FESkinData::resolvePending,引用必须全部回填
-    check(pendingTotal == 0,"fepj: no pending joints after open");
+    /// 读取器已在对象表完整后统一回填,引用必须全部绑定
     check(jointsBound,"fepj: all joint nodes bound");
     check(worldRotOk,"fepj: world rotation restored");
     check(loadedSkins.front()->data()->jointCount() == sourceJoints,"fepj: joint count restored");

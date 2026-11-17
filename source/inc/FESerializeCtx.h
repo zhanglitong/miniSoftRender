@@ -5,6 +5,7 @@
 #include    <unordered_set>
 #include    <variant>
 #include    <array>
+#include    <vector>
 #include    "FEDefine.h"
 #include    "FEUuid.h"
 
@@ -79,6 +80,52 @@ namespace   FE
             UNUSED(option);
             return  {};
         };
+        /// <summary>
+        /// 延迟引用回填函数:返回 true 表示已成功绑定,该登记从队列移除;
+        /// 返回 false(目标类型不符等)则保留,最终计入 pendingCount()
+        /// </summary>
+        using   RefBinder   =   std::function<bool(Object object)>;
+        /// <summary>
+        /// 登记一个当前查不到目标的引用。反序列化是单遍顺序流,目标对象可能写在后面
+        /// (如蒙皮关节节点在依赖数据之后),由读取器在所有对象读完、对象表完整后
+        /// 调用 resolvePending() 统一回填
+        /// </summary>
+        inline  void    bindLater(const FEUuid& id,RefBinder binder)
+        {
+            if (id == FEUuid::zero() || !binder)
+                return;
+            _pendingRefs.push_back({id,std::move(binder)});
+        }
+        /// <summary>
+        /// 还有多少引用未回填
+        /// </summary>
+        inline  size_t  pendingCount() const
+        {
+            return  _pendingRefs.size();
+        }
+        /// <summary>
+        /// 用当前对象表回填所有登记的引用,返回仍未解析的数量(0 表示全部成功)
+        /// </summary>
+        inline  size_t  resolvePending()
+        {
+            /// 先换出队列,避免回填过程中新增登记导致迭代器失效
+            std::vector<PendingRef> refs;
+            refs.swap(_pendingRefs);
+            for (auto& ref : refs)
+            {
+                Object  object  =   query(ref._id,nullptr,O_Query).first;
+                if (object == nullptr || !ref._binder(object))
+                    _pendingRefs.push_back(std::move(ref));
+            }
+            return  _pendingRefs.size();
+        }
+    protected:
+        struct  PendingRef
+        {
+            FEUuid      _id;
+            RefBinder   _binder;
+        };
+        std::vector<PendingRef> _pendingRefs;
     };
 }
 

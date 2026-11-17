@@ -6,8 +6,8 @@ namespace   FE
 {
     /// ==================== FESkinData:骨骼数据序列化 ====================
     /// 关节是场景节点,由节点树自己保存;这里只记录关节对象 id + inverseBind。
-    /// 反序列化时节点树尚未读取,先从上下文查;查不到的 id 记录到 _pendingJoints,
-    /// 由 FESkinData::resolvePending 在节点树读完后再回填。
+    /// 反序列化时节点树尚未读取,查不到的 id 登记到 FESerializeCtx,
+    /// 由读取器在对象表完整后统一回填。
     void    FESkinData::serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const
     {
         UNUSED(version,ctx);
@@ -37,78 +37,40 @@ namespace   FE
         FEChunkBits     bits(chunk._flags);
 
         _bones.clear();
-        _pendingJoints.clear();
         if (bits._bit0)
         {
             uint16  jointCount  =   0;
             reader.read(jointCount);
             _bones.resize(jointCount);
-            _pendingJoints.assign(jointCount,FEUuid::zero());
             for (uint16 i = 0;i < jointCount;++i)
             {
                 FEUuid  jointId =   FEUuid::zero();
                 reader.read(jointId);
                 reader.read(_bones[i].inverseBind);
 
-                Object  object  =   (jointId == FEUuid::zero())
-                                    ?   nullptr
-                                    :   ctx.query(jointId,nullptr,FESerializeCtx::O_Query).first;
+                if (jointId == FEUuid::zero())
+                    continue;
+                Object  object  =   ctx.query(jointId,nullptr,FESerializeCtx::O_Query).first;
                 FENode* joint   =   (object == nullptr) ? nullptr : object->cast<FENode>();
                 if (joint != nullptr)
+                {
                     _bones[i].node  =   Node(joint);
-                else
-                    _pendingJoints[i]   =   jointId;
+                    continue;
+                }
+                /// 关节节点作为节点树的一部分写在依赖之后,当前一定查不到:
+                /// 登记回填函数,由读取器读完所有对象后统一解析
+                FESkinData* self    =   this;
+                ctx.bindLater(jointId,[self,i](Object target)->bool
+                {
+                    FENode* node    =   (target == nullptr) ? nullptr : target->cast<FENode>();
+                    if (node == nullptr || i >= self->_bones.size())
+                        return  false;
+                    self->_bones[i].node    =   Node(node);
+                    return  true;
+                });
             }
         }
         reader.read(_worldRot);
-    }
-    size_t  FESkinData::resolveJoints(const std::unordered_map<OBJId,FENode*>& nodes)
-    {
-        const   size_t  count   =   std::min(_bones.size(),_pendingJoints.size());
-        size_t          resolved    =   0;
-        for (size_t i = 0;i < count;++i)
-        {
-            if (_pendingJoints[i] == FEUuid::zero())
-                continue;
-            auto    itr =   nodes.find(_pendingJoints[i]);
-            if (itr == nodes.end() || itr->second == nullptr)
-                continue;
-            _bones[i].node      =   Node(itr->second);
-            _pendingJoints[i]   =   FEUuid::zero();
-            ++resolved;
-        }
-        return  resolved;
-    }
-    static  void    collectNodes(const Node& node,std::unordered_map<OBJId,FENode*>& nodes)
-    {
-        if (node == nullptr)
-            return;
-        nodes[node->objectId()] =   const_cast<FENode*>(node.get());
-        for (auto& child : node->children())
-            collectNodes(child,nodes);
-    }
-    size_t  FESkinData::resolvePending(const Nodes& roots)
-    {
-        std::unordered_map<OBJId,FENode*>   nodes;
-        for (auto& root : roots)
-            collectNodes(root,nodes);
-        if (nodes.empty())
-            return  0;
-
-        size_t  resolved    =   0;
-        for (auto& var : nodes)
-        {
-            FENode* node    =   var.second;
-            if (node == nullptr)
-                continue;
-            for (FESkin* skin : node->objects<FESkin>())
-            {
-                if (skin == nullptr || skin->data() == nullptr)
-                    continue;
-                resolved    +=  skin->data()->resolveJoints(nodes);
-            }
-        }
-        return  resolved;
     }
 
     /// ==================== FESkin:蒙皮组件序列化 ====================

@@ -604,8 +604,6 @@ int main(int argc, char** argv)
                             sys->addPlayback(playback);
                     }
                 }
-                /// 骨骼关节引用的是节点 id,节点读完后统一回填
-                FESkinData::resolvePending(rootNodes);
                 if (rootNodes.empty())
                 {
                     std::cerr << "load model failed: " << options._file << "\n";

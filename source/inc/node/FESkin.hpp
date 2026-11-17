@@ -43,12 +43,10 @@ namespace   FE
             :FEObject(other)
             ,_bones(other._bones)
             ,_worldRot(other._worldRot)
-            ,_pendingJoints(other._pendingJoints)
         {}
         inline  void    setBones(const Bones& bones)
         {
             _bones  =   bones;
-            _pendingJoints.clear();
         }
         inline  size_t  jointCount() const
         {
@@ -78,41 +76,13 @@ namespace   FE
         }
         /// <summary>
         /// 写入骨骼:关节对象 id + inverseBind 矩阵 + worldRotation。
-        /// 关节引用的是 id,读回时节点可能尚未创建,由 resolvePending 统一回填
+        /// 关节引用的是 id,读回时节点可能尚未创建,由反序列化上下文统一延迟回填
         /// </summary>
         virtual void    serializeTraits(FEWriter& writer,FEChunkInf& chunk,uint version,FESerializeCtx& ctx) const override;
         virtual void    deserializeTraits(FEReader& reader,const FEChunkInf& chunk,uint version,FESerializeCtx& ctx) override;
-        /// <summary>
-        /// 用 id -> 节点 的映射回填反序列化时未解析的关节引用;
-        /// 返回本次成功回填的关节数量
-        /// </summary>
-        size_t          resolveJoints(const std::unordered_map<OBJId,FENode*>& nodes);
-        /// <summary>
-        /// 等待回填的关节数量(0 表示引用已全部解析)
-        /// </summary>
-        size_t          pendingJointCount() const
-        {
-            size_t  count   =   0;
-            for (auto& id : _pendingJoints)
-            {
-                if (id != FEUuid::zero())
-                    ++count;
-            }
-            return  count;
-        }
-        /// <summary>
-        /// 节点树读取完成后统一回填所有蒙皮组件的关节引用
-        /// (关节节点作为节点树的普通节点保存,FESkinData 先于节点树被反序列化);
-        /// 返回成功回填的关节数量
-        /// </summary>
-        static  size_t  resolvePending(const Nodes& roots);
     protected:
         Bones                   _bones;
         mat4r                   _worldRot   =   mat4r(1.0);
-        /// <summary>
-        /// 反序列化时尚未解析的关节对象 id(与 _bones 对齐,零 uuid 表示已解析)
-        /// </summary>
-        Uuids                   _pendingJoints;
     };
     using   SkinData  =   SharedPtr<FESkinData>;
     

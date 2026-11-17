@@ -87,7 +87,7 @@ namespace
 
 /// ==================== 含蒙皮场景的 .fepj 往返 ====================
 /// 覆盖:FESkin / FESkinData 写入 fepj、共享骨骼数据去重、
-/// 关节引用(节点 id)在节点树读完后由 resolvePending 回填。
+/// 关节引用(节点 id)由读取器在对象表完整后统一回填。
 static  void    testSkinFepjRoundTrip(FEContext& ctx)
 {
     namespace   fs  =   std::filesystem;
@@ -145,7 +145,6 @@ static  void    testSkinFepjRoundTrip(FEContext& ctx)
     if (loadedRoot == nullptr)
         return;
 
-    Nodes   roots   =   {loadedRoot};
     FENode* loadedMesh  =   findNode(loadedRoot.get(),"Soldier");
     check(loadedMesh != nullptr,"fepj: mesh node loaded");
     if (loadedMesh == nullptr)
@@ -161,12 +160,7 @@ static  void    testSkinFepjRoundTrip(FEContext& ctx)
     if (loadedSkin->data() == nullptr)
         return;
 
-    /// 关节引用在蒙皮数据之后才读到,必须由 resolvePending 回填
-    check(loadedSkin->data()->pendingJointCount() == inst.joints.size(),"fepj: joints pending before resolve");
-    const   size_t  resolved    =   FESkinData::resolvePending(roots);
-    check(resolved == inst.joints.size(),"fepj: joints resolved");
-    check(loadedSkin->data()->pendingJointCount() == 0,"fepj: no pending joints");
-
+    /// 关节引用在蒙皮数据之后才读到,由读取器统一回填;下面逐个校验绑定
     auto&   bones   =   loadedSkin->data()->bones();
     check(bones.size() == 3,"fepj: bone count");
     if (bones.size() != 3)

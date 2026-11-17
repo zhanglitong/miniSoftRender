@@ -199,6 +199,10 @@ namespace   FE
                 }
                 
             }
+            /// 所有对象读完、对象表完整后,统一回填反序列化期间登记的前向引用
+            const   size_t  unresolved  =   pCtx->resolvePending();
+            if (unresolved > 0)
+                LOG_WAR("xml: %zu pending reference(s) unresolved",unresolved);
             return  results;
         }
         /// <summary>
