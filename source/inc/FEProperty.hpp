@@ -4,11 +4,12 @@
 #include    "FEKeyValues.hpp"
 #include    "FEReaderHelper.hpp"
 #include    "FEWriterHelper.hpp"
+#include    "FEComponent.hpp"
 namespace   FE
 {
     DEFINE_CLASS_UUID(FEProperty,"{92364CA0-EC58-448E-9A16-534A5B2C181C}");
 
-    class   FEProperty :public FEObject
+    class   FEProperty :public FEComponent
     {
     public:
         /// <summary>
@@ -75,11 +76,30 @@ namespace   FE
         IMPLEMENT_CLASS_REFLECT(FEProperty)
     public:
         FEProperty(FEContext& ctx)
-            :FEObject(ctx)
+            :FEComponent(ctx)
         {}
         FEProperty(const FEProperty& other)
-            :FEObject(other)
-        {}
+            :FEComponent(other)
+        {
+            _code   =   other._code;
+        }
+        /// <summary>
+        /// 记录名/编码:外部数据(如 .ATT 属性文件)按该名称与节点关联,
+        /// 普通属性对象可为空
+        /// </summary>
+        /// <returns></returns>
+        inline  const   String& code() const
+        {
+            return  _code;
+        }
+        inline  void    setCode(const String& code)
+        {
+            _code   =   code;
+        }
+        inline  void    setCode(String&& code)
+        {
+            _code   =   std::move(code);
+        }
 
         /// <summary>
         /// C++20 下 std::variant 构造函数更严格,需把 int 显式映射到 int64
@@ -220,8 +240,10 @@ namespace   FE
         }
     protected:
         KeyValues   _values;
-
-
+        /// <summary>
+        /// 记录名/编码,仅用于外部数据关联,不参与序列化
+        /// </summary>
+        String      _code;
     };
 
     using   Property    =   SharedPtr<FEProperty>;

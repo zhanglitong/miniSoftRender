@@ -478,8 +478,8 @@ namespace   FE
         _depthView  =   nullptr;
         _imgColorMSAA   =   nullptr;
         _msaaColorView  =   nullptr;
-        _sceneTex   =   nullptr;
-        _sceneTexView = nullptr;
+        _sceneTex       =   nullptr;
+        _sceneTexView   = nullptr;
         _sceneTexColorView = nullptr;
 
         for (auto  var : _factorys.objects())

@@ -490,9 +490,9 @@ namespace   FE
         /// <summary>
         /// transmission 场景折射纹理(不透明场景预渲染,color attachment + sampled 双用途)
         /// </summary>
-        TexPtr              _sceneTex   =   nullptr;
-        GImgView            _sceneTexView = nullptr;   ///< 完整 mip 链(shader 采样)
-        GImgView            _sceneTexColorView = nullptr;   ///< 仅 mip0(pass1 color attachment)
+        TexPtr              _sceneTex           =   nullptr;
+        GImgView            _sceneTexView       =   nullptr;    ///< 完整 mip 链(shader 采样)
+        GImgView            _sceneTexColorView  =   nullptr;    ///< 仅 mip0(pass1 color attachment)
         /// <summary>
         /// 反射探针列表(onFrameRender 主趟之前逐面捕获)
         /// </summary>

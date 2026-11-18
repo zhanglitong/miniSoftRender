@@ -12,5 +12,7 @@
 
 #include    "fileFormat/rvm/FEFormatRVMReader.hpp"
 
+#include    "fileFormat/att/FEFormatATTReader.hpp"
+
 
 

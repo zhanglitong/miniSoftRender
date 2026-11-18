@@ -22,6 +22,9 @@
 #include    "../../inc/node/FENode.hpp"
 #include    "../../inc/material/FEMaterialPBR.hpp"
 #include    "../../inc/fileFormat/rvm/FEFormatRVMReader.hpp"
+#include    "../../inc/fileFormat/att/FEFormatATTReader.hpp"
+#include    "../../inc/FEBuffer.hpp"
+#include    "../../inc/FEProperty.hpp"
 
 using   namespace   FE;
 
@@ -189,6 +192,49 @@ int     main(int argc,char** argv)
         check(root != nullptr,"readBuffers: root is node");
         Stat    stat;
         checkModel(root,stat,"readBuffers");
+    }
+
+    /// 3. .ATT 属性文件:解析记录并按节点名挂接 FEProperty 组件
+    {
+        const   String  att =
+            "CADC_Attributes_File v1.0 , start: NEW , end: END , name_end: := , sep: &end&\n"
+            "NEW Header Information\n"
+            "  Source:= PDMS Data &end& Date:= 30 Nov 2021 &end& Time:= 09:34\n"
+            "END\n"
+            "  NEW /ROOT\n"
+            "         TYPE:=  SITE\n"
+            "         \xCE\xBB\xBA\xC5:=  /ROOT\n"
+            "END\n"
+            "  NEW /ROOT/CHILD\n"
+            "         TYPE:=  ZONE\n"
+            "         \xD7\xF8\xB1\xEA:=  E 1mm N 2mm U 3mm\n"
+            "END\n";
+        Buffer  buffer  =   new FEBuffer(ctx);
+        buffer->cInfo()._buffer.assign(att.begin(),att.end());
+
+        auto    attReader   =   new FEFormatATTReader(ctx);
+        Objects properties  =   attReader->readBuffers({buffer});
+        check(properties.size() == 2,"ATT: record count = 2 (header skipped)");
+        check(attReader->progress() == real(1),"ATT: progress reaches 1");
+
+        FEProperty* rootProp    =   properties.empty() ? nullptr : properties[0]->cast<FEProperty>();
+        check(rootProp != nullptr && rootProp->code() == "/ROOT","ATT: code = NEW name");
+        const   auto*   typeVal =   rootProp != nullptr ? rootProp->values().isExist("TYPE") : nullptr;
+        check(typeVal != nullptr && std::get<String>(typeVal->value()) == "SITE","ATT: key/value kept");
+        /// 键为 GBK 的"位号",读取后应转为 UTF-8
+        const   auto*   nameKey =   rootProp != nullptr ? rootProp->values().isExist("\xE4\xBD\x8D\xE5\x8F\xB7") : nullptr;
+        check(nameKey != nullptr && std::get<String>(nameKey->value()) == "/ROOT","ATT: GBK -> UTF-8");
+        check(properties.size() > 1 && properties[1]->cast<FEProperty>() != nullptr
+           && properties[1]->cast<FEProperty>()->code() == "/ROOT/CHILD","ATT: nested record name");
+
+        Node    root    =   new FENode(ctx);
+        root->setName("/ROOT");
+        Node    child   =   new FENode(ctx);
+        child->setName("/ROOT/CHILD");
+        root->addChild(child);
+        check(FEFormatATTReader::attach(root,properties) == 2,"ATT: attach by node name");
+        check(root->objects<FEProperty>().size() == 1
+           && child->objects<FEProperty>().size() == 1,"ATT: FEProperty as component");
     }
 
     scene->destroy();
