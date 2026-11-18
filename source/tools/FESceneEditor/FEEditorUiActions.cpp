@@ -55,6 +55,80 @@ using   namespace   FE::ui::internal;
 
 namespace   FE
 {
+namespace
+{
+    /// <summary>
+    /// 扩展名列表转成过滤器显示文本,例如 ".gltf;.glb" -> "*.gltf;*.glb"
+    /// </summary>
+    std::string filterExtText(const std::string& exts)
+    {
+        std::string text;
+        size_t      begin   =   0;
+        while (begin <= exts.size())
+        {
+            const   size_t      end =   exts.find(';',begin);
+            const   std::string ext =   exts.substr(begin,end == std::string::npos
+                                                          ? std::string::npos : end - begin);
+            if (!ext.empty())
+            {
+                if (!text.empty())
+                    text    +=  ';';
+                text    +=  '*';
+                text    +=  ext;
+            }
+            if (end == std::string::npos)
+                break;
+            begin   =   end + 1;
+        }
+        return  text;
+    }
+
+    /// <summary>
+    /// 从引擎的格式注册表收集模型类读取器,组装"导入模型"的文件类型过滤器:
+    /// 新增/移除模型读取器(含插件)后下拉框自动跟随,不在编辑器里写死格式
+    /// </summary>
+    std::vector<FEFileDialog::Filter>    buildModelImportFilters(FEContext& ctx)
+    {
+        std::vector<FEFileDialog::Filter>   filters;
+        std::string                         exts;
+        std::vector<std::string>            seenExts;
+        FEFileFormatRegistry                formats(ctx);
+        for (const auto& it : formats.readerFormats().data())
+        {
+            const   FEFileFormat&   fmt =   it.second;
+            /// <summary>
+            /// 只收模型类型且支持文件读取的格式;工程文件走"打开工程",不作为模型导入
+            /// </summary>
+            if (fmt._type != FEFileFormat::DT_Model || !fmt._mode.containFlag(FEFileFormat::SM_FILE))
+                continue;
+            if (_stricmp(fmt.ext(),".fepj") == 0)
+                continue;
+            const   std::string ext =   fmt.ext();
+            /// <summary>
+            /// 注册表允许同一格式登记大小写不同的扩展名(如 .rvm/.RVM),
+            /// 过滤时二者等价,下拉框里去重
+            /// </summary>
+            std::string lower =   ext;
+            std::transform(lower.begin(),lower.end(),lower.begin(),
+                           [](unsigned char c) {   return  char(std::tolower(c));   });
+            if (std::find(seenExts.begin(),seenExts.end(),lower) != seenExts.end())
+                continue;
+            seenExts.push_back(lower);
+            if (!exts.empty())
+                exts    +=  ';';
+            exts    +=  ext;
+            filters.push_back({std::string(fmt.desc()) + " (*" + ext + ")",ext});
+        }
+        /// <summary>
+        /// 汇总项放最前,作为默认过滤:一次列出系统支持的全部模型格式
+        /// </summary>
+        if (!exts.empty())
+            filters.insert(filters.begin(),{"3D 模型 (" + filterExtText(exts) + ")",exts});
+        filters.push_back({"所有文件 (*.*)",""});
+        return  filters;
+    }
+}
+
     void    FEEditorUi::drawFileDialog()
     {
         if (!_fileDialog.isOpen())
@@ -145,16 +219,15 @@ namespace   FE
         else if (name == "action_importModel")
         {
             /// <summary>
-            /// 导入模型:默认选 .gltf/.glb,类型下拉框可切到所有文件;
+            /// 导入模型:类型下拉框的选项来自引擎格式注册表中的模型读取器;
             /// 解析与入场景推迟到下一帧 MSG_UPDATE
             /// (与创建节点同理,避免渲染趟内新建渲染工厂)
             /// </summary>
             _fileDialogSaveMode     =   false;
             _fileDialogImportMode   =   true;
-            _fileDialog.open(FEFileDialog::kOpen,"导入模型",
-                             {{"3D 模型 (*.gltf;*.glb)",".gltf;.glb"},
-                              {"所有文件 (*.*)",""}},
-                             _startDir,"");
+            if (_ctx != nullptr)
+                _fileDialog.open(FEFileDialog::kOpen,"导入模型",
+                                 buildModelImportFilters(*_ctx),_startDir,"");
         }
         else if (name == "action_TimeLine")
         {
@@ -488,19 +561,18 @@ namespace   FE
                        [](unsigned char c) {   return  char(std::tolower(c));   });
 
         /// <summary>
-        /// 格式必须与 FEContext 注册读取器时使用的完全一致(见 FEContext.cpp 的
-        /// DEFINE_FORMAT_READER(FEFormatGLTFReader)),否则 queryReader 查不到
+        /// 格式来自引擎的格式注册表:凡是注册过模型读取器的扩展名都能导入,
+        /// 不在编辑器里写死 .gltf/.glb(与"导入模型"下拉框同源)
         /// </summary>
-        FEFileFormat    fmt(".gltf","1.0.0.0","GLTF text Format!");
-        if (ext == ".glb")
-            fmt =   FEFileFormat(".glb","1.0.0.0","GLTF binary Format!");
-        else if (ext != ".gltf")
+        FEFileFormatRegistry    formats(*_ctx);
+        const   FEFileFormat*   fmt =   formats.reader(ext);
+        if (fmt == nullptr || fmt->_type != FEFileFormat::DT_Model)
         {
             _statusText =   "不支持导入该格式:" + fsPath.filename().u8string();
             return;
         }
 
-        auto    reader  =   FEFileFormatHelper::queryReader(*_ctx,fmt);
+        auto    reader  =   FEFileFormatHelper::queryReader(*_ctx,*fmt);
         if (reader == nullptr)
         {
             _statusText =   "导入失败:没有可用的模型读取器";

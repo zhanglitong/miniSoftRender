@@ -10,7 +10,8 @@
 ///   - checkVisible:     (flagBits & RF_VISIBLE) != 0
 ///   - checkFrustumIn:   dot(vec4(center,1), plane[i]) < -radius  => 剔除(6 个面)
 ///   - checkMinPixels:   minVisiblePixels=10,投影中心与 center+radius*rightDir,
-///                       clip.w<=0 剔除,pixelDist=length((ndc1-ndc0)*viewSizeW) < 10 剔除
+///                       clip.w<=0 视为可见(投影跨无穷远无法判断,保守保留),
+///                       pixelDist=length((ndc1-ndc0)*viewSizeW) < 10 剔除
 /// 用法: test.cull.exe [--vulkan|--webgpu]
 ///   WebGPU 后端不支持 GPU 裁剪(引擎自动回退全量绘制),仅输出 CPU 统计,不计错误
 /// 运行: 相机自动环绕场景,视锥持续变化,对象进出视锥/缩小到像素阈值以下时
@@ -140,14 +141,11 @@ namespace
             const float4    clip0   =   cam._mvp * float4(center,1.0f);
             const float3    rightPos=   center + radius * cam._right;
             const float4    clip1   =   cam._mvp * float4(rightPos,1.0f);
-            /// 避免除零(点在相机后方)
+            /// w<=0:点在相机平面之后,投影跨无穷远,像素尺度无法判断。
+            /// 大对象把相机包在包围球内时球心在相机后方但仍可见,必须保守保留
+            /// (与 computeCull/shader.comp 一致)
             if (clip0.w <= 0.0f || clip1.w <= 0.0f)
-            {
-                /// w 接近 0 时投影结论可能被 ULP 差异翻转
-                if (std::min(fabs(clip0.w),fabs(clip1.w)) < 0.5f)
-                    boundary    =   true;
-                return  false;
-            }
+                return  true;
             const float2    ndc0    =   float2(clip0.x,clip0.y) / clip0.w;
             const float2    ndc1    =   float2(clip1.x,clip1.y) / clip1.w;
             const float     pixelDist   =   length((ndc1 - ndc0) * cam._viewW);

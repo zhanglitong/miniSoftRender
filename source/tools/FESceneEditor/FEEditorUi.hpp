@@ -221,7 +221,7 @@ namespace   FE
         /// <param name="actionName">.ui 中的动作名,例如 action_addBox</param>
         void    createModelNode(const std::string& actionName);
         /// <summary>
-        /// 导入模型:用引擎的模型读取器(.gltf/.glb)解析文件,把解析出的节点
+        /// 导入模型:用引擎格式注册表中登记的模型读取器解析文件,把解析出的节点
         /// 整批加入场景并记为一条撤销记录
         /// </summary>
         /// <param name="path">模型文件路径(UTF-8)</param>

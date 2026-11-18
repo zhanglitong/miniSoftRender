@@ -240,7 +240,7 @@ namespace
             return;
         }
         /// <summary>
-        /// 扩展名过滤支持以分号分隔多个扩展(如 "导入模型" 的 .gltf;.glb)
+        /// 扩展名过滤支持以分号分隔多个扩展(由调用方按引擎注册的格式组装)
         /// </summary>
         std::string filter  =   _ext;
         std::transform(filter.begin(),filter.end(),filter.begin(),

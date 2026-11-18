@@ -7,7 +7,7 @@
 ///      关联后双击 .fepj 即用 FEViewer 打开
 /// 用法:
 ///   FEViewer.exe <model.gltf|model.glb|scene.fepj> [--vulkan|--webgpu]
-///                [--msaa 1|2|4|8] [--env <name|path>] [--bg r,g,b] [--grid]
+///                [--msaa 1|2|4|8] [--env <name|path>] [--bg r,g,b] [--grid] [--keep-camera]
 ///   FEViewer.exe --register
 ///   FEViewer.exe --unregister
 
@@ -71,6 +71,8 @@ namespace
         String  _env            =   "Cannon_Exterior";
         float4  _clearColor     =   float4(0.22f, 0.22f, 0.22f, 1.0f);
         bool    _showGrid       =   true;
+        /// 打开模型后是否自动按包围盒构图(false 时沿用配置里恢复的相机)
+        bool    _autoFrame      =   true;
         bool    _regAssociation =   false;
         bool    _unregAssociation   =   false;
         bool    _help           =   false;
@@ -268,6 +270,8 @@ namespace
             << "                         Colorful_Studio, or a .hdr file path\n"
             << "  --bg <r,g,b>           clear color in 0..1 (default: 0.22,0.22,0.22)\n"
             << "  --grid                 show the editor grid (default: shown)\n"
+            << "  --keep-camera          keep the restored camera instead of framing\n"
+            << "                         the model bounding box after loading\n"
             << "\n"
             << "Keys:\n"
             << "  F / R  frame model        E  cycle HDR environment\n"
@@ -276,7 +280,7 @@ namespace
 
     /// <summary>
     /// 解析命令行(cmdline.h):第一个位置参数是要打开的文件,
-    /// 其余为 --vulkan/--webgpu/--msaa/--env/--bg/--grid/--register/--unregister
+    /// 其余为 --vulkan/--webgpu/--msaa/--env/--bg/--grid/--keep-camera/--register/--unregister
     /// </summary>
     bool    parseOptions(const Strings& args, ViewerOptions& options)
     {
@@ -290,6 +294,7 @@ namespace
                    false, String("Cannon_Exterior"));
         parser.add("bg",         0,  "clear color as r,g,b in 0..1", false, String("0.22,0.22,0.22"));
         parser.add("grid",       0,  "show the editor grid (default)");
+        parser.add("keep-camera", 0, "keep the restored camera instead of framing the model bounds after loading");
         parser.add("register",   0,  "associate .fepj with FEViewer (current user)");
         parser.add("unregister", 0,  "remove the .fepj association");
         /// 解析器约定第 0 个参数是程序名,这里补上
@@ -308,6 +313,7 @@ namespace
         options._sampleCount    =   parser.get<uint>("msaa");
         options._env            =   parser.get<String>("env");
         options._showGrid       =   true;
+        options._autoFrame      =   !parser.exist("keep-camera");
         options._regAssociation =   parser.exist("register");
         options._unregAssociation   =   parser.exist("unregister");
 
@@ -328,9 +334,6 @@ namespace
 
 int main(int argc, char** argv)
 {
-    UNUSED(argc);
-    UNUSED(argv);
-
     Strings args;
 #ifdef  _WIN32
     int     wargc   =   0;
@@ -461,6 +464,9 @@ int main(int argc, char** argv)
     ctx.setWindow(app.get());
     ctx.setWorkPath(app->path());
     ctx.setResourcePath(app->path() + "/../");
+    /// 传入命令行参数:引擎据此按应用同名规则加载/保存配置(如 FEViewer.cfg);
+    /// 缺了这一步 _settingPath 为空,退出时 FEContext::destroy 不会落盘
+    ctx.setArg(argc, argv);
 
     scene   =   new FEScene(ctx);
     scene->setSampleCount(options._sampleCount);
@@ -600,7 +606,9 @@ int main(int argc, char** argv)
                 scene->dispatchNodesToSystem(rootNodes);
                 scene->addNodesToTree(rootNodes);
                 envReady    =   applyEnvironment(ctx, rootNodes, envFile, envCube, irrCube, brdfLUT, scene.get());
-                frameCamera(ctx, scene.get(), rootNodes);
+                /// --keep-camera 时保留从配置恢复的相机,不按包围盒重新构图
+                if (options._autoFrame)
+                    frameCamera(ctx, scene.get(), rootNodes);
 
                 std::cout << "FEViewer ready: " << options._file << "\n"
                           << "LButton orbit / RButton pan / Wheel zoom, F frame, E environment, G grid\n";

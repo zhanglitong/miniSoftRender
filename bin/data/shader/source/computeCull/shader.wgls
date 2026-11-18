@@ -73,10 +73,12 @@ fn  checkMinPixels(center : vec3f, radius : f32) -> bool
     let rightPos   = center + radius * vec3f(_cullParam._rightX,_cullParam._rightY,_cullParam._rightZ);
     let clip1      = _cullParam._mvp * vec4f(rightPos,1.0);
 
-    /// 避免除零(点在相机后方)
+    /// w <= 0 表示该点位于相机平面之后(w = -viewZ),无法用像素尺度判断实例大小。
+    /// 大对象(如地面/楼板)常把相机包在包围球内,球心在相机后方但仍有大片区域可见,
+    /// 此时必须保守保留,否则整个实例会被误剔除。
     if (clip0.w <= 0.0 || clip1.w <= 0.0)
     {
-        return false;
+        return true;
     }
     let ndc0       = clip0.xy / clip0.w;
     let ndc1       = clip1.xy / clip1.w;
