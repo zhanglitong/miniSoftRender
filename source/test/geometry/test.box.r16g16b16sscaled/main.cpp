@@ -121,7 +121,7 @@ int     main(int argc, char** argv)
             node->setMesh(mesh);
             /// 明亮漫反射 + 自发光,SSCALED 量化后边长为 2,默认相机下清晰可见
             /// 使用 pbrSScaled 管线:其顶点声明 POS/NOR 为 R16G16B16_SSCALED,
-            /// 与 mesh 属性格式一致,否则 buildBuffer 会按 FLOAT32 stride 拷贝导致数据错位
+            /// 与 mesh 属性格式一致;不一致时 buildBuffer 会做格式转换(多一次解码/打包开销)
             FEMaterialPBR* pMat  =   new FEMaterialPBR(ctx, "pbrSScaled");
             pMat->data()._value._diffuse  =   float4(0.95f, 0.35f, 0.20f, 1.0f);
             pMat->data()._value._emissive =   float4(0.40f, 0.12f, 0.05f, 1.0f);

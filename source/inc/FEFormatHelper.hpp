@@ -1130,4 +1130,135 @@ namespace   FE
 
     #undef  FE_TYPE_OF_FORMAT
 
+    /// <summary>
+    /// 顶点属性格式转换:把属性缓冲从源格式解码为 float,再按目标格式重新打包。
+    /// 用于 mesh 属性格式与管线顶点声明格式不一致的顶点缓冲构建;
+    /// 位打包格式(4G4/565/10_10_10_2等)不支持解码,返回空结果由调用方兜底。
+    /// </summary>
+    struct  FEVertexFormat
+    {
+        /// <summary>
+        /// 按元素类型与量化类别整块解码,输出每元素 N 个 float
+        /// </summary>
+        template<class V,FEQuantCat Cat>
+        static  void    unpackTyped(const void* src,size_t elements,floats& out)
+        {
+            constexpr   uint32  N   =   FEVecTraits<V>::Count;
+            const   V*          p   =   reinterpret_cast<const V*>(src);
+            out.resize(elements * N);
+            for (size_t e = 0; e < elements; ++e)
+            {
+                const   float4  v   =   TToFloat4<V,Cat>::convert(p[e]);
+                for (uint32 c = 0; c < N; ++c)
+                    out[e*N+c]  =   v[c];
+            }
+        }
+        /// <summary>
+        /// 整块解码:源格式不支持解码时返回 false
+        /// </summary>
+        static  bool    unpack(const void* src,size_t elements,FEFormat fmt,floats& out)
+        {
+            if (src == nullptr || elements == 0)
+                return  false;
+            #define FE_UNPACK_CASE(FMT) \
+                case FMT: unpackTyped<TypeOfFormat<FMT>::type,quantCatOfFormat(FMT)>(src,elements,out); break;
+            switch(fmt)
+            {
+            /// 8bit 族
+            FE_UNPACK_CASE(FMT_R8_UNORM)
+            FE_UNPACK_CASE(FMT_R8_SNORM)
+            FE_UNPACK_CASE(FMT_R8_USCALED)
+            FE_UNPACK_CASE(FMT_R8_SSCALED)
+            FE_UNPACK_CASE(FMT_R8_UINT)
+            FE_UNPACK_CASE(FMT_R8_SINT)
+
+            FE_UNPACK_CASE(FMT_R8G8_UNORM)
+            FE_UNPACK_CASE(FMT_R8G8_SNORM)
+            FE_UNPACK_CASE(FMT_R8G8_USCALED)
+            FE_UNPACK_CASE(FMT_R8G8_SSCALED)
+            FE_UNPACK_CASE(FMT_R8G8_UINT)
+            FE_UNPACK_CASE(FMT_R8G8_SINT)
+
+            FE_UNPACK_CASE(FMT_R8G8B8_UNORM)
+            FE_UNPACK_CASE(FMT_R8G8B8_SNORM)
+            FE_UNPACK_CASE(FMT_R8G8B8_USCALED)
+            FE_UNPACK_CASE(FMT_R8G8B8_SSCALED)
+            FE_UNPACK_CASE(FMT_R8G8B8_UINT)
+            FE_UNPACK_CASE(FMT_R8G8B8_SINT)
+
+            FE_UNPACK_CASE(FMT_R8G8B8A8_UNORM)
+            FE_UNPACK_CASE(FMT_R8G8B8A8_SNORM)
+            FE_UNPACK_CASE(FMT_R8G8B8A8_USCALED)
+            FE_UNPACK_CASE(FMT_R8G8B8A8_SSCALED)
+            FE_UNPACK_CASE(FMT_R8G8B8A8_UINT)
+            FE_UNPACK_CASE(FMT_R8G8B8A8_SINT)
+
+            /// 16bit 整型族
+            FE_UNPACK_CASE(FMT_R16_UNORM)
+            FE_UNPACK_CASE(FMT_R16_SNORM)
+            FE_UNPACK_CASE(FMT_R16_USCALED)
+            FE_UNPACK_CASE(FMT_R16_SSCALED)
+            FE_UNPACK_CASE(FMT_R16_UINT)
+            FE_UNPACK_CASE(FMT_R16_SINT)
+
+            FE_UNPACK_CASE(FMT_R16G16_UNORM)
+            FE_UNPACK_CASE(FMT_R16G16_SNORM)
+            FE_UNPACK_CASE(FMT_R16G16_USCALED)
+            FE_UNPACK_CASE(FMT_R16G16_SSCALED)
+            FE_UNPACK_CASE(FMT_R16G16_UINT)
+            FE_UNPACK_CASE(FMT_R16G16_SINT)
+
+            FE_UNPACK_CASE(FMT_R16G16B16_UNORM)
+            FE_UNPACK_CASE(FMT_R16G16B16_SNORM)
+            FE_UNPACK_CASE(FMT_R16G16B16_USCALED)
+            FE_UNPACK_CASE(FMT_R16G16B16_SSCALED)
+            FE_UNPACK_CASE(FMT_R16G16B16_UINT)
+            FE_UNPACK_CASE(FMT_R16G16B16_SINT)
+
+            FE_UNPACK_CASE(FMT_R16G16B16A16_UNORM)
+            FE_UNPACK_CASE(FMT_R16G16B16A16_SNORM)
+            FE_UNPACK_CASE(FMT_R16G16B16A16_USCALED)
+            FE_UNPACK_CASE(FMT_R16G16B16A16_SSCALED)
+            FE_UNPACK_CASE(FMT_R16G16B16A16_UINT)
+            FE_UNPACK_CASE(FMT_R16G16B16A16_SINT)
+
+            /// 32bit 整型族
+            FE_UNPACK_CASE(FMT_R32_UINT)
+            FE_UNPACK_CASE(FMT_R32_SINT)
+            FE_UNPACK_CASE(FMT_R32G32_UINT)
+            FE_UNPACK_CASE(FMT_R32G32_SINT)
+            FE_UNPACK_CASE(FMT_R32G32B32_UINT)
+            FE_UNPACK_CASE(FMT_R32G32B32_SINT)
+            FE_UNPACK_CASE(FMT_R32G32B32A32_UINT)
+            FE_UNPACK_CASE(FMT_R32G32B32A32_SINT)
+            /// 半精度族
+            FE_UNPACK_CASE(FMT_R16_FLOAT)
+            FE_UNPACK_CASE(FMT_R16G16_FLOAT)
+            FE_UNPACK_CASE(FMT_R16G16B16_FLOAT)
+            FE_UNPACK_CASE(FMT_R16G16B16A16_FLOAT)
+            /// 32bit 浮点族
+            FE_UNPACK_CASE(FMT_R32_FLOAT)
+            FE_UNPACK_CASE(FMT_R32G32_FLOAT)
+            FE_UNPACK_CASE(FMT_R32G32B32_FLOAT)
+            FE_UNPACK_CASE(FMT_R32G32B32A32_FLOAT)
+            default:
+                return  false;
+            }
+            #undef  FE_UNPACK_CASE
+            return  true;
+        }
+        /// <summary>
+        /// 整块转换:元素数不变,按目标格式逐元素重新打包;源/目标同格式或解码不支持时返回空
+        /// </summary>
+        static  uint8s  convert(const uint8* src,size_t elements,FEFormat srcFmt,FEFormat dstFmt)
+        {
+            if (src == nullptr || elements == 0 || srcFmt == dstFmt)
+                return  {};
+            floats  decoded;
+            if (!unpack(src,elements,srcFmt,decoded))
+                return  {};
+            const   uint    components  =   uint(decoded.size() / elements);
+            return  FEFormatHelper::packFloatsCore(decoded.data(),elements,components,dstFmt);
+        }
+    };
 }

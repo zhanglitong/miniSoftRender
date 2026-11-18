@@ -800,9 +800,9 @@ namespace   FE
             if (bind.inputRate == V_INPUT_INSTANCE)
                 continue;
             /// 交错布局必须按管线声明驱动:
-            /// mesh 缺失的声明属性(如 helmet 无 TEXCOORD1)以 0 填充,
-            /// 保证大缓冲区记录跨度与管线 stride(xml offsets)一致
-            VBO     cpuVBO  =   buildBuffer(meshSet,bind.inputs);
+            /// 每条记录按 binding.stride 排布,属性写在声明的位置(input.offset),
+            /// mesh 缺失的声明属性(如 helmet 无 TEXCOORD1)与声明间隙以 0 填充
+            VBO     cpuVBO  =   buildBuffer(meshSet,bind);
             assert(cpuVBO != nullptr);
             if (cpuVBO == nullptr)
                 continue;
@@ -1542,79 +1542,52 @@ namespace   FE
             pCull->bind(0,7,{_vboCmdLod.get()});
         pCull->update();
     }
-    VBO     FEFactoryRender::buildBuffer(MeshUSet& meshSet,FEInputSlot slot)
+    VBO     FEFactoryRender::buildBuffer(MeshUSet& meshSet,const FEInputBindDesc& bind)
     {
-        if (meshSet.empty())
-            return  nullptr;
-        auto&       temp    =   *meshSet.begin();
-        auto&       buffers =   temp->buffers();
-        /// 输出每一个buffer对应的属性
-        size_t      index   =   size_t(-1);
-        for (size_t i = 0; i < buffers.size(); i++)
-        {
-            if (buffers[i].attr().slot() != slot)
-                continue;
-            index   =   i;
-            break;
-        }
-        if (index == size_t(-1))
-            return  nullptr;
-        /// 统计缓冲所有mesh属性缓冲区的长度
-        size_t      length  =   0;
-        for (auto& mesh : meshSet)
-        {
-            auto&   buffer  =    mesh->buffers()[index];
-            length  +=  buffer.length();
-        }
-        /// 创建host 缓冲区
-        VBO     vboCPU  =   _device.createVBO();
-        auto    result  =   vboCPU->create({length,HOST_VISIBLE_BIT});
-        assert(result);
-        if(!result)
-            return  nullptr;
-        /// 属性数据拷贝到大缓冲区中
-        uint8*  pData   =   (uint8*)vboCPU->lock(length,0);
-        for (auto& mesh : meshSet)
-        {
-            auto&   buffer  =    mesh->buffers()[index];
-            memcpy(pData,buffer.data(),buffer.length());
-            pData   +=  buffer.length();
-        }
-        vboCPU->unlock();
-        return  vboCPU;
-    }
-
-    VBO     FEFactoryRender::buildBuffer(MeshUSet& meshSet,const InputDescs& inputs)
-    {
-        if (meshSet.empty())
+        if (meshSet.empty() || bind.inputs.empty() || bind.stride == 0)
             return  nullptr;
         /// <summary>
-        /// 交错布局必须按管线声明顺序驱动(与 xml offsets/stride 一致):
-        /// 1. 组内各 mesh 属性集合可能不同(如 glTF 部分图元无 TANGENT),按 slot 逐 mesh 匹配;
-        /// 2. mesh 缺失的声明属性(如 helmet 无 TEXCOORD1)交错时写 0 填充,
-        ///    保证大缓冲区记录跨度与管线声明的 stride 一致,否则顶点属性整体错位。
+        /// 交错布局按管线声明驱动:
+        /// 1. 每条顶点记录按 binding.stride 排布,各属性写在声明的 input.offset 处,
+        ///    声明间隙以 0 填充(不能假设属性按声明顺序紧密排列);
+        /// 2. 组内各 mesh 属性集合可能不同(如 glTF 部分图元无 TANGENT),按 slot 逐 mesh 匹配,
+        ///    缺失的声明属性同样保持 0;
+        /// 3. mesh 属性格式与声明格式不一致时,先解码再按目标格式重新打包。
         /// </summary>
-        struct  DataStride
+        struct  DataSource
         {
-            uint8*  source  =   nullptr;
-            uint16  stride  =   0;
+            uint8*  source      =   nullptr;
+            /// 源每元素步进(未转换时按 mesh 属性格式,转换后为目标格式字节数)
+            uint16  srcStride   =   0;
+            /// 源/目标格式不一致时的转换结果
+            uint8s  converted;
         };
-        uints   slots;
-        std::vector<DataStride> strides;
-        strides.reserve(inputs.size());
+        using   DataSources =   std::vector<DataSource>;
+        const auto& inputs  =   bind.inputs;
+        /// <summary>
+        /// 顶点记录跨度以管线 binding stride 为准,必须覆盖所有声明属性
+        /// </summary>
+        const uint32    stride  =   bind.stride;
+        uints           slots;
+        uints           offsets;
+        uints           sizes;
+        slots.reserve(inputs.size());
+        offsets.reserve(inputs.size());
+        sizes.reserve(inputs.size());
         for (auto& input : inputs)
         {
+            const uint32    size    =   FEFormatHelper::sizeOf(input.format);
+            assert(size_t(input.offset) + size <= stride);
+            if (size_t(input.offset) + size > stride)
+                return  nullptr;
             slots.push_back(input.slot);
-            strides.push_back({nullptr,uint16(FEFormatHelper::sizeOf(input.format))});
+            offsets.push_back(input.offset);
+            sizes.push_back(size);
         }
-        /// 统计缓冲所有mesh属性缓冲区的长度
+       
         size_t      length  =   0;
         for (auto& mesh : meshSet)
-        {
-            auto    count   =   mesh->buffers().front().count();
-            for (size_t i = 0 ;i < slots.size(); ++ i)
-                length  +=  size_t(count) * strides[i].stride;
-        }
+            length  +=  size_t(mesh->buffers().front().count()) * stride;
         /// 创建host 缓冲区
         VBO     vboCPU  =   _device.createVBO();
         auto    result  =   vboCPU->create({length,HOST_VISIBLE_BIT});
@@ -1623,43 +1596,56 @@ namespace   FE
             return  nullptr;
         /// 属性数据拷贝到大缓冲区中
         uint8*  pData   =   (uint8*)vboCPU->lock(length,0);
-        std::vector<uint8>  zeros(64,0);
+
+        DataSources     dataSource(slots.size());
         for (auto& mesh : meshSet)
         {
-            auto&   buffers     =   mesh->buffers();
-            auto    count       =   buffers.front().count();
+            auto&       buffers         =   mesh->buffers();
+            auto        count           =   buffers.front().count();
+            std::fill(dataSource.begin(), dataSource.end(), DataSource());
 
-            DataStride  dataStride[16]  =   {};
-            assert(slots.size() < sizeof(dataStride)/sizeof(dataStride[0]));
             for (size_t i = 0 ;i < slots.size(); ++ i)
             {
-                /// 按 slot 在当前 mesh 中找属性缓冲,找不到则该属性交错时填 0
+                auto&   data    =   dataSource[i];
+                auto    dstFmt  =   inputs[i].format;
+                /// 按 slot 在当前 mesh 中找属性缓冲,找不到则该属性保持 0
                 for (auto& buffer : buffers)
                 {
-                    if (buffer.attr().slot() == slots[i])
+                    if (buffer.attr().slot() != slots[i])
+                        continue;
+                    const   auto    srcFmt  =   buffer.attr().format();
+                    if (srcFmt == dstFmt)
                     {
-                        dataStride[i].source    =   (uint8*)buffer.data();
-                        break;
-                    }
-                }
-                dataStride[i].stride    =   strides[i].stride;
-            }
-            for (uint c = 0; c < count; ++c)
-            {
-                for (size_t i = 0 ;i < slots.size(); ++ i)
-                {
-                    auto    stride  =   dataStride[i].stride;
-                    if (dataStride[i].source != nullptr)
-                    {
-                        memcpy(pData,dataStride[i].source,stride);
-                        dataStride[i].source    +=  stride;
+                        data.source     =   (uint8*)buffer.data();
+                        data.srcStride  =   uint16(FEFormatHelper::sizeOf(srcFmt));
                     }
                     else
                     {
-                        memcpy(pData,zeros.data(),stride);
+                        /// 元素数量按源格式计算,转换结果已按目标格式打包
+                        const   size_t  elements    =   size_t(buffer.length() / FEFormatHelper::sizeOf(srcFmt));
+                        data.converted              =   FEVertexFormat::convert(buffer.data(),elements,srcFmt,dstFmt);
+                        assert(!data.converted.empty());
+                        if (!data.converted.empty())
+                        {
+                            data.source     =   data.converted.data();
+                            data.srcStride  =   uint16(sizes[i]);
+                        }
                     }
-                    pData                   +=  stride;
+                    break;
                 }
+            }
+            /// 整条记录先清零:缺失属性与声明间隙都保持 0,记录跨度与管线 stride 一致
+            for (uint c = 0; c < count; ++c)
+            {
+                memset(pData,0,stride);
+                for (size_t i = 0 ;i < slots.size(); ++ i)
+                {
+                    if (dataSource[i].source == nullptr)
+                        continue;
+                    memcpy(pData + offsets[i],dataSource[i].source,sizes[i]);
+                    dataSource[i].source    +=  dataSource[i].srcStride;
+                }
+                pData   +=  stride;
             }
         }
         vboCPU->unlock();

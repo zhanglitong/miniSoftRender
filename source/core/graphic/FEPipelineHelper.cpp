@@ -171,6 +171,16 @@ namespace   FE
                         }
                     }
                 }
+                /// 显式 offsets 可能声明间隙或非紧密顺序:记录跨度取布局末端最大值,
+                /// 保证 GPU 顶点步进与顶点缓冲打包跨度一致
+                uint32  extent  =   desc.stride;
+                for (auto& input : desc.inputs)
+                {
+                    const   uint32  end =   input.offset + FEFormatHelper::sizeOf(input.format);
+                    if (end > extent)
+                        extent  =   end;
+                }
+                desc.stride             =   extent;
                 cInfo._binds.emplace_back(desc);
             }
         }

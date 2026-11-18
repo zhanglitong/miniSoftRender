@@ -242,9 +242,9 @@ namespace   FE
             float4  color       =   float4(0.8f,0.8f,0.8f,1.0f);
             size_t  primCount   =   0;
         };
-        using   FacetVertex =   std::pair<float3,float3>;
-        using   FacetContour=   std::vector<FacetVertex>;
-        using   FacetPolygon=   std::vector<FacetContour>;
+        using   FacetVertex     =   std::pair<float3,float3>;
+        using   FacetContour    =   std::vector<FacetVertex>;
+        using   FacetPolygon    =   std::vector<FacetContour>;
     protected:
         MaterialIndex   _materials;
         uint8           _palette[256 * 3]   =   {0};
@@ -256,7 +256,7 @@ namespace   FE
         /// <summary>
         /// 按已消费字节数上报进度(进度条订阅读取器的 progress)
         /// </summary>
-        inline  void    reportProgress(const Cursor& cur)
+        void    reportProgress(const Cursor& cur)
         {
             setProgress(real(cur.pos()) / real(_totalSize > 0 ? _totalSize : 1));
         }
@@ -859,9 +859,13 @@ namespace   FE
         /// <summary>
         /// 面片顶点相对包围盒中心写入并去重,返回索引
         /// </summary>
-        uint32  addVertex(const FacetVertex& vertex,const float3& center,
-                          floats& nors,floats& poss,floats& uvs,
-                          std::map<std::array<uint32,6>,uint32>& vertexMap)
+        uint32  addVertex(   const FacetVertex& vertex
+                            ,const float3& center
+                            ,floats& nors
+                            ,floats& poss
+                            ,floats& uvs
+                            ,std::map<std::array<uint32,6>
+                            ,uint32>& vertexMap)
         {
             const   float3  local   =   vertex.first - center;
             float3          normal(vertex.second);

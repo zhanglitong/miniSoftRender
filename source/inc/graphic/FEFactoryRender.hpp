@@ -450,8 +450,7 @@ namespace   FE
         /// 填充裁剪材质参数与绑定(创建/更新共用)
         /// </summary>
         void    fillCullParams(class FEMaterialCull* cull,Group grp,Camera camera);
-        VBO     buildBuffer(MeshUSet& meshSet,FEInputSlot slot);
-        VBO     buildBuffer(MeshUSet& meshSet,const InputDescs& inputs);
+        VBO     buildBuffer(MeshUSet& meshSet,const FEInputBindDesc& bind);
         /// <summary>
         /// CPU数据上传到GPU上 
         /// </summary>
