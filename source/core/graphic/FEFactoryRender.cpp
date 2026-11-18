@@ -570,8 +570,8 @@ namespace   FE
             cmd->bindIBO(_ibo,0,FEIndexType::INDEX_UINT32);
             break;
         }
-        bool    gpuCull =   supportGPUCull();
-        const   bool    isArray =   _key._drawType == EDrawType::DRAW_ARRAY;
+        bool    gpuCull     =   supportGPUCull();
+        bool    isArray     =   _key._drawType == EDrawType::DRAW_ARRAY;
         /// <summary>
         /// 组类别:材质特性 -> 批次分类(优先级 透射 > 混合 > 不透明)。
         /// 工厂只做这一层机械映射;本趟画哪些类别完全由场景下发的趟描述决定。
@@ -590,84 +590,84 @@ namespace   FE
         /// 工厂只按类别掩码顺序筛选
         auto    drawGroups  =   [&](uint cats)
         {
-        if (cats == GroupCat::GC_NONE)
-            return;
-        /// 趟没有颜色附件 = 透明层收集趟。管线兼容性是硬约束:
-        /// OIT 写出变体的片元着色器不声明颜色输出,只能配 0 附件的 render pass
-        const   bool    oitOut  =   pass._colorAttachmentCount == 0;
-        for (auto& grp : _groupNode)
-        {
-            auto    mat         =   grp->_mat;
-            if (mat == nullptr)
-                continue;
-            if ((groupCat(mat) & cats) == 0)
-                continue;
-            /// 收集趟使用 OIT 写出变体管线(布局含独立的 set 1,材质资源仍是
-            /// 主管线的 set 0);同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
-            /// 切换到该组材质自身的管线与动态状态(混合状态/剔除模式随管线变化)
-            auto    grpPl   =   oitOut
-                                ?   mat->oitPipeline(_key._primitive)
-                                :   mat->pipeline(_key._primitive);
-            auto    gpl     =   (grpPl != nullptr) ? grpPl->as<FEGPipeline>() : nullptr;
-            if (gpl == nullptr)
-                continue;
-            if (gpl != pl)
+            if (cats == GroupCat::GC_NONE)
+                return;
+            /// 趟没有颜色附件 = 透明层收集趟。管线兼容性是硬约束:
+            /// OIT 写出变体的片元着色器不声明颜色输出,只能配 0 附件的 render pass
+            bool    oitOut  =   pass._colorAttachmentCount == 0;
+            for (auto& grp : _groupNode)
             {
-                pl  =   gpl;
-                cmd->bindPipeline(pl);
-                mat->appDynamicState(cmd,_key._primitive);
-            }
-            FECmdBuffer::DSetBind   binds   =   {};
-            /// set 0 始终是材质资源;LIST 趟再追加 OIT 透明层的共享 set 1
-            binds.dSets         =   mat->dsets();
-            if (oitOut)
-            {
-                auto    oitMgr  =   FEOITManager::active();
-                if (oitMgr == nullptr || oitMgr->listDSet() == nullptr)
+                auto    mat         =   grp->_mat;
+                if (mat == nullptr)
                     continue;
-                binds.dSets.push_back(oitMgr->listDSet());
-            }
-            if (binds.dSets.empty())
-                continue;
-            binds.firstSet      =   0;
-            binds.offsetCount   =   0;
-            binds.offsets       =   nullptr;
-            binds.plBindPoint   =   PL_GRAPIC;
-            binds.plLayout      =   pl->nativeLayout();
-            cmd->bindDescriptors(binds);
-            uint64  offset      =   grp->cmdOffset() * sizeof(FECmdIndex);
-            /// GPU 裁剪时命令数由 GPU 计数器给出,不再回读 CPU:
-            /// compute shader 把通过裁剪的命令从 offset 起紧凑写入 _indirectClip,
-            /// 并把条数 atomicAdd 到 _cullResult.clippedCount(每组建一个裁剪材质)
-            if (gpuCull && grp->_cullMat != nullptr)
-            {
-                uint    maxCmd      =   grp->cmdCount();
-                if (maxCmd == 0)
+                if ((groupCat(mat) & cats) == 0)
                     continue;
-                auto    cull        =   grp->_cullMat->as<FEMaterialCull>();
-                ITO     countBuf    =   cull->_cullResult._gpu;
+                /// 收集趟使用 OIT 写出变体管线(布局含独立的 set 1,材质资源仍是
+                /// 主管线的 set 0);同工厂内不同材质可能使用不同管线变体(pbr/pbr2s/pbrBlend),
+                /// 切换到该组材质自身的管线与动态状态(混合状态/剔除模式随管线变化)
+                auto    grpPl   =   oitOut
+                                    ?   mat->oitPipeline(_key._primitive)
+                                    :   mat->pipeline(_key._primitive);
+                auto    gpl     =   (grpPl != nullptr) ? grpPl->as<FEGPipeline>() : nullptr;
+                if (gpl == nullptr)
+                    continue;
+                if (gpl != pl)
+                {
+                    pl  =   gpl;
+                    cmd->bindPipeline(pl);
+                    mat->appDynamicState(cmd,_key._primitive);
+                }
+                FECmdBuffer::DSetBind   binds   =   {};
+                /// set 0 始终是材质资源;LIST 趟再追加 OIT 透明层的共享 set 1
+                binds.dSets         =   mat->dsets();
+                if (oitOut)
+                {
+                    auto    oitMgr  =   FEOITManager::active();
+                    if (oitMgr == nullptr || oitMgr->listDSet() == nullptr)
+                        continue;
+                    binds.dSets.push_back(oitMgr->listDSet());
+                }
+                if (binds.dSets.empty())
+                    continue;
+                binds.firstSet      =   0;
+                binds.offsetCount   =   0;
+                binds.offsets       =   nullptr;
+                binds.plBindPoint   =   PL_GRAPIC;
+                binds.plLayout      =   pl->nativeLayout();
+                cmd->bindDescriptors(binds);
+                uint64  offset      =   grp->cmdOffset() * sizeof(FECmdIndex);
+                /// GPU 裁剪时命令数由 GPU 计数器给出,不再回读 CPU:
+                /// compute shader 把通过裁剪的命令从 offset 起紧凑写入 _indirectClip,
+                /// 并把条数 atomicAdd 到 _cullResult.clippedCount(每组建一个裁剪材质)
+                if (gpuCull && grp->_cullMat != nullptr)
+                {
+                    uint    maxCmd      =   grp->cmdCount();
+                    if (maxCmd == 0)
+                        continue;
+                    auto    cull        =   grp->_cullMat->as<FEMaterialCull>();
+                    ITO     countBuf    =   cull->_cullResult._gpu;
+                    if (isArray)
+                        cmd->drawArrayIndirectCount(_indirectClip,  offset,countBuf,0,maxCmd,sizeof(FECmdIndex));
+                    else
+                        cmd->drawIndexedIndirectCount(_indirectClip,offset,countBuf,0,maxCmd,sizeof(FECmdIndex));
+                    continue;
+                }
+                uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
+                if (nCmd == 0)
+                    continue;
+                /// 关闭 GPU 裁剪时(clamp 为 0 或渲染探针等旁路相机)必须用完整
+                /// 命令缓冲:_indirectClip 只剩主相机上一帧裁剪通过的命令,
+                /// 直接按 cmdCount 读会取到缺失/错位的命令
+                auto    indirect    =   gpuCull ? _indirectClip : _indirectFull;
                 if (isArray)
-                    cmd->drawArrayIndirectCount(_indirectClip,  offset,countBuf,0,maxCmd,sizeof(FECmdIndex));
+                {
+                    cmd->drawArrayIndirect(indirect,    offset, nCmd,sizeof(FECmdIndex));
+                }
                 else
-                    cmd->drawIndexedIndirectCount(_indirectClip,offset,countBuf,0,maxCmd,sizeof(FECmdIndex));
-                continue;
+                {
+                    cmd->drawIndexedIndirect(indirect,  offset, nCmd,sizeof(FECmdIndex));
+                }
             }
-            uint    nCmd        =   gpuCull ? grp->cullCount() : grp->cmdCount();
-            if (nCmd == 0)
-                continue;
-            /// 关闭 GPU 裁剪时(clamp 为 0 或渲染探针等旁路相机)必须用完整
-            /// 命令缓冲:_indirectClip 只剩主相机上一帧裁剪通过的命令,
-            /// 直接按 cmdCount 读会取到缺失/错位的命令
-            auto    indirect    =   gpuCull ? _indirectClip : _indirectFull;
-            if (isArray)
-            {
-                cmd->drawArrayIndirect(indirect,    offset, nCmd,sizeof(FECmdIndex));
-            }
-            else
-            {
-                cmd->drawIndexedIndirect(indirect,  offset, nCmd,sizeof(FECmdIndex));
-            }
-        }
         };
         drawGroups(pass._catsFirst);
         drawGroups(pass._catsLate);
