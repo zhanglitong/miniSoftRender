@@ -237,8 +237,11 @@ namespace
         {
             ++  stat.meshes;
             auto*   pos =   mesh->get(FEAttribute(IS_VERTEX_POS));
+            auto*   clr =   mesh->get(FEAttribute(IS_VERTEX_COLOR0));
             if (pos == nullptr || pos->count() == 0
-                || pos->attr().format() != FMT_R32G32_UINT)
+                || pos->attr().format() != FMT_R16G16B16_SNORM
+                || clr == nullptr || clr->attr().format() != FMT_R16_UINT
+                || clr->count() != pos->count())
             {
                 ++  stat.badAttr;
             }
@@ -247,17 +250,16 @@ namespace
                 ++  stat.leaves;
                 stat.points +=  pos->count();
                 stat.maxLeaf =  (std::max)(stat.maxLeaf,size_t(pos->count()));
-                /// 8 字节/点:word0 = x|y, word1 = z|rgb565;位置需乘节点缩放还原
-                const   uint32* data    =   (const uint32*)pos->data();
+                /// 位置为 SNORM 归一化坐标(int16/32767)，乘节点缩放还原世界单位；
+                /// 颜色独立存在 R16_UINT 属性里(RGB565)
+                const   int16*  data    =   (const int16*)pos->data();
+                const   uint16* cdata   =   (const uint16*)clr->data();
                 const   real3   scl     =   node->localScaling();
                 for (uint i = 0; i < pos->count(); ++i)
                 {
-                    const   int16   qx  =   int16(data[i * 2] & 0xFFFFu);
-                    const   int16   qy  =   int16((data[i * 2] >> 16) & 0xFFFFu);
-                    const   int16   qz  =   int16(data[i * 2 + 1] & 0xFFFFu);
-                    const   double  p[3]    =   {double(qx) * scl.x + world.x,
-                                                 double(qy) * scl.y + world.y,
-                                                 double(qz) * scl.z + world.z};
+                    const   double  p[3]    =   {double(data[i * 3 + 0]) / 32767.0 * scl.x + world.x,
+                                                 double(data[i * 3 + 1]) / 32767.0 * scl.y + world.y,
+                                                 double(data[i * 3 + 2]) / 32767.0 * scl.z + world.z};
                     for (int k = 0; k < 3; ++k)
                     {
                         stat.mn[k]  =   (std::min)(stat.mn[k],p[k]);
@@ -265,7 +267,7 @@ namespace
                         stat.sum[k] +=  p[k];
                         stat.sum2[k]+=  p[k] * p[k];
                     }
-                    ++  stat.colors[uint32(data[i * 2 + 1] >> 16)];
+                    ++  stat.colors[uint32(cdata[i])];
                 }
             }
             if (mesh->primitives().empty()

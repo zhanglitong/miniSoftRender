@@ -114,10 +114,12 @@ namespace   FE
             return  mesh;
         }
         /// <summary>
-        /// 8 字节/点的紧凑点云网格，每个点占两个 32 位字:
+        /// 8 字节/点的紧凑点云网格，输入为两个 32 位字:
         ///   word0 = x(int16) | (y(int16) &lt;&lt; 16)
         ///   word1 = z(int16) | (rgb565 &lt;&lt; 16)
-        /// 位置为相对叶子盒中心的量化整数，由节点缩放还原为世界单位
+        /// 位置按 R16G16B16_SNORM 存放(int16 / 32767 归一化到 [-1,1])，节点缩放
+        /// 负责还原为世界单位；颜色用 R16_UINT 保存原始 RGB565(硬件不支持 16 位打包
+        /// 格式作为顶点属性,由着色器解包)，工厂按管线声明把两个属性交错成 8 字节顶点
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="packed">打包后的顶点字</param>
@@ -126,16 +128,33 @@ namespace   FE
         {
             if (packed.size() < 2)
                 return  nullptr;
+            const   size_t  count       =   packed.size() / 2;
+            std::vector<int16>  positions(size_t(count) * 3);
+            std::vector<uint16> colors(count);
+            for (size_t i = 0; i < count; ++i)
+            {
+                const   uint32  w0  =   packed[i * 2 + 0];
+                const   uint32  w1  =   packed[i * 2 + 1];
+                positions[i * 3 + 0]    =   int16(w0 & 0xFFFFu);
+                positions[i * 3 + 1]    =   int16(w0 >> 16);
+                positions[i * 3 + 2]    =   int16(w1 & 0xFFFFu);
+                colors[i]               =   uint16(w1 >> 16);
+            }
             MeshPtr     mesh        =   new FEMesh(ctx);
             {
-                auto        attr        =   FEAttribute(IS_VERTEX_POS,     FMT_R32G32_UINT);
+                auto        attr        =   FEAttribute(IS_VERTEX_POS,     FMT_R16G16B16_SNORM);
                 auto&       subMesh     =   mesh->getOrCreate(attr);
-                subMesh.setBuffer(packed.data(),packed.size()  * sizeof(uint32));
+                subMesh.setBuffer(positions.data(),positions.size()  * sizeof(int16));
+            }
+            {
+                auto        attr        =   FEAttribute(IS_VERTEX_COLOR0,  FMT_R16_UINT);
+                auto&       subMesh     =   mesh->getOrCreate(attr);
+                subMesh.setBuffer(colors.data(),colors.size()  * sizeof(uint16));
             }
             DrawArray   drawArray   =   new FEDrawArray(ctx);
             drawArray->setPrimitive(PRI_POINTS);
             drawArray->setStart(0);
-            drawArray->setCount((uint)(packed.size() / 2));
+            drawArray->setCount((uint)count);
             mesh->setPrimitives({drawArray.get()});
             mesh->updateAabb();
             return  mesh;

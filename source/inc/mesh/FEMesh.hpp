@@ -40,9 +40,10 @@ namespace   FE
         /// </summary>
         EPrimitive      _primitive  =   PRI_POINTS;
         /// <summary>
-        /// 保留
+        /// 属性格式签名:槽位相同但顶点格式不同的网格(如 point 与 point565)
+        /// 必须分到不同工厂,否则会复用同一份交错顶点布局,导致数据错位
         /// </summary>
-        uint16          _reserver   =   0;
+        uint16          _fmtSig     =   0;
     public:
         /// <summary>
         /// 生成Key
@@ -52,7 +53,8 @@ namespace   FE
         {
             return    (static_cast<uint64_t>(_slotBits.data())) 
                     | (static_cast<uint64_t>(_drawType)  << 32) 
-                    | (static_cast<uint64_t>(_primitive) << 40);
+                    | (static_cast<uint64_t>(_primitive) << 40)
+                    | (static_cast<uint64_t>(_fmtSig)    << 48);
         }
         /// <summary>
         /// 从一个 key中萃取对应值
@@ -63,6 +65,7 @@ namespace   FE
             _slotBits   =   static_cast<uint32_t>(value & 0xFFFFFFFFULL);
             _drawType   =   EDrawType(static_cast<uint8_t>((value >> 32) & 0xFFULL));
             _primitive  =   EPrimitive(static_cast<uint8_t>((value >> 40) & 0xFFULL));
+            _fmtSig     =   static_cast<uint16_t>((value >> 48) & 0xFFFFULL);
         }
     };
 
@@ -233,6 +236,15 @@ namespace   FE
             key._drawType   =   pri ? pri->type()     :   DRAW_ARRAY;
             key._primitive  =   pri ? pri->primitive():   PRI_TRIANGLES;
             key._slotBits   =   slotBits();
+            /// 属性格式签名:与顺序无关(异或),用于把同槽位不同格式的网格分到不同工厂
+            uint32  sig     =   0;
+            for (auto& var : _buffers)
+            {
+                const   uint32  h   =   uint32(var.attr().slot()) * 2654435761u
+                                    ^   uint32(var.attr().format()) * 40503u;
+                sig ^=  h * 2246822519u;
+            }
+            key._fmtSig     =   uint16((sig >> 16) ^ sig);
             return  key;
         }
         /// <summary>

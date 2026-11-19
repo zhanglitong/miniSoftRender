@@ -356,13 +356,14 @@ namespace   FE
                 const   PcoNode&    e       =   entries[i];
                 double              center[3];
                 double              halfLen[3];
-                /// 世界缩放:量化顶点(±32767)还原为世界单位；退化轴用 1 避免零缩放
+                /// 世界缩放:顶点位置已按 SNORM 归一化到 [-1,1]，缩放直接取半边长
+                /// 即还原世界单位；退化轴用 1 避免零缩放
                 double              worldScale[3];
                 for (int k = 0; k < 3; ++k)
                 {
                     center[k]   =   (double(e.relMin[k]) + double(e.relMax[k])) * 0.5;
                     halfLen[k]  =   (double(e.relMax[k]) - double(e.relMin[k])) * 0.5;
-                    worldScale[k]   =   halfLen[k] > 0.0 ? halfLen[k] / 32767.0 : 1.0;
+                    worldScale[k]   =   halfLen[k] > 0.0 ? halfLen[k] : 1.0;
                 }
                 Node    node    =   new FENode(_ctx);
                 node->setName(i == 0 ? name : name + "_" + std::to_string(i));
@@ -383,7 +384,7 @@ namespace   FE
                     {
                         pc[k]           =   (double(pe.relMin[k]) + double(pe.relMax[k])) * 0.5;
                         const   double  parentHalf  =   (double(pe.relMax[k]) - double(pe.relMin[k])) * 0.5;
-                        parentScale[k]  =   parentHalf > 0.0 ? parentHalf / 32767.0 : 1.0;
+                        parentScale[k]  =   parentHalf > 0.0 ? parentHalf : 1.0;
                     }
                     /// 父节点缩放会被子节点继承:本地平移先除以父世界缩放，
                     /// 本地缩放取"本节点世界缩放/父世界缩放"，父子合并后正好还原世界坐标

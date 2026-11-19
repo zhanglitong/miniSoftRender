@@ -276,12 +276,11 @@ namespace   FE
             }
             if (count == 0 || count > available)
                 count   =   available;
-            _hdr    =   hdr;
             LasPoints   points;
             points.reserve(size_t(count));
             reader.seek(hdr.offsetToPointData);
             const   auto    tRead0  =   std::chrono::steady_clock::now();
-            if (!readPoints(reader,count,points))
+            if (!readPoints(reader,hdr,count,points))
                 return  nullptr;
             LOG_INF("LAS: read points %lldms",
                     (long long)std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -320,29 +319,28 @@ namespace   FE
             }
             if (count == 0 || count > available)
                 count   =   available;
-            _hdr    =   hdr;
             LasPoints   points;
             points.reserve(size_t(count));
-            parseRecords(data + hdr.offsetToPointData,count,points);
+            parseRecords(data + hdr.offsetToPointData,hdr,count,points);
             setProgress(0.7);
             return  buildCloud(stemOf(name),hdr,std::move(points));
         }
         /// <summary>
         /// 流式读取点记录
         /// </summary>
-        bool    readPoints(FEReaderFile& reader,uint64 count,LasPoints& points)
+        bool    readPoints(FEReaderFile& reader,const LasHeader& hdr,uint64 count,LasPoints& points)
         {
-            if (_hdr.pointRecordLength == 0)
+            if (hdr.pointRecordLength == 0)
                 return  false;
-            uint64  recordsPerChunk =   std::max<uint64>(1,(1ULL << 20) / _hdr.pointRecordLength);
-            uint8s  chunk(size_t(recordsPerChunk) * _hdr.pointRecordLength);
+            uint64  recordsPerChunk =   std::max<uint64>(1,(1ULL << 20) / hdr.pointRecordLength);
+            uint8s  chunk(size_t(recordsPerChunk) * hdr.pointRecordLength);
             uint64  done    =   0;
             while (done < count)
             {
                 if (isCanceled())
                     return  false;
                 uint64  n       =   std::min<uint64>(recordsPerChunk,count - done);
-                uint64  want    =   n * _hdr.pointRecordLength;
+                uint64  want    =   n * hdr.pointRecordLength;
                 uint64  got     =   reader.readBuffer(chunk.data(),want);
                 if (got < want)
                 {
@@ -350,7 +348,7 @@ namespace   FE
                             (unsigned long long)done,(unsigned long long)count);
                     return  false;
                 }
-                parseRecords(chunk.data(),n,points);
+                parseRecords(chunk.data(),hdr,n,points);
                 done    +=  n;
                 setProgress(0.05 + 0.65 * double(done) / double(count));
             }
@@ -359,26 +357,25 @@ namespace   FE
         /// <summary>
         /// 解析点记录到原始整型坐标 + RGB565 颜色
         /// </summary>
-        void    parseRecords(const uint8* data,uint64 count,LasPoints& points)
+        void    parseRecords(const uint8* data,const LasHeader& hdr,uint64 count,LasPoints& points)
         {
             points.reserve(points.size() + size_t(count));
             for (uint64 i = 0; i < count; ++i)
             {
-                const   uint8*  rec =   data + i * _hdr.pointRecordLength;
+                const   uint8*  rec =   data + i * hdr.pointRecordLength;
                 LasPoint        p;
                 p.x     =   rdI32(rec);
                 p.y     =   rdI32(rec + 4);
                 p.z     =   rdI32(rec + 8);
-                p.color =   colorOf(rec);
+                p.color =   colorOf(rec,hdr.pointFormat);
                 points.push_back(p);
             }
         }
         /// <summary>
         /// 依据点格式计算颜色:RGB -> 分类色 -> 强度灰度
         /// </summary>
-        uint32  colorOf(const uint8* rec) const
+        uint32  colorOf(const uint8* rec,uint8 fmt) const
         {
-            uint8   fmt         =   _hdr.pointFormat;
             uint16  rgbOffset   =   rgbOffsetOf(fmt);
             if (rgbOffset != 0xFFFF)
             {
@@ -412,7 +409,6 @@ namespace   FE
         /// </summary>
         Node    buildCloud(const String& name,const LasHeader& hdr,LasPoints&& points)
         {
-            _hdr    =   hdr;
             if (points.empty())
                 return  nullptr;
             size_t  totalPoints     =   points.size();
@@ -431,20 +427,21 @@ namespace   FE
             size_t  leafCount       =   0;
             size_t  overflowCount   =   0;
             const   auto    tTree0  =   std::chrono::steady_clock::now();
-            buildTree(std::move(points),leafCount,overflowCount);
+            LasBoxes    boxes;
+            buildTree(boxes,hdr,std::move(points),leafCount,overflowCount);
             const   auto    tTree1  =   std::chrono::steady_clock::now();
             setProgress(0.85);
             Nodes   nodes;
-            nodes.resize(_boxes.size());
+            nodes.resize(boxes.size());
             Material    material    =   new FEMaterialPoint565(_ctx);
             /// 以点云包围盒对角线为基准设置距离衰减，使不同尺度的文件初始观感一致:
             /// 适配整片点云时约 1 像素，拉近后逐渐增大到 8 像素上限
             const   double  diag    =   std::sqrt(dx * dx + dy * dy + dz * dz);
             if (diag > 0.0)
                 material->cast<FEMaterialPoint565>()->setPointSizeScale(float(diag * 1.5));
-            for (size_t i = 0; i < _boxes.size(); ++i)
+            for (size_t i = 0; i < boxes.size(); ++i)
             {
-                LasBox& box     =   _boxes[i];
+                LasBox& box     =   boxes[i];
                 Node    node    =   new FENode(_ctx);
                 if (i == 0)
                 {
@@ -453,7 +450,7 @@ namespace   FE
                 }
                 else
                 {
-                    const   LasBox& parent  =   _boxes[box.parent];
+                    const   LasBox& parent  =   boxes[box.parent];
                     node->setName(name + "_" + std::to_string(i));
                     node->setLocalTranslation(real3(box.center[0] - parent.center[0],
                                                     box.center[1] - parent.center[1],
@@ -463,17 +460,17 @@ namespace   FE
                 nodes[i]    =   node;
             }
             const   auto    tNode1  =   std::chrono::steady_clock::now();
-            for (size_t i = 0; i < _boxes.size(); ++i)
+            for (size_t i = 0; i < boxes.size(); ++i)
             {
                 if (isCanceled())
                     break;
-                LasBox& box =   _boxes[i];
+                LasBox& box =   boxes[i];
                 if (box.child0 == kInvalid)
-                    buildLeafMesh(nodes[i],box,material.get());
-                setProgress(0.85 + 0.15 * double(i + 1) / double(_boxes.size()));
+                    buildLeafMesh(nodes[i],box,hdr,material.get());
+                setProgress(0.85 + 0.15 * double(i + 1) / double(boxes.size()));
             }
             LOG_INF("LAS: %s points=%zu boxes=%zu leaves=%zu overflow=%zu",
-                    name.c_str(),totalPoints,_boxes.size(),leafCount,overflowCount);
+                    name.c_str(),totalPoints,boxes.size(),leafCount,overflowCount);
             {
                 const   auto    tEnd    =   std::chrono::steady_clock::now();
                 auto    ms  =   [](std::chrono::steady_clock::time_point a,std::chrono::steady_clock::time_point b)
@@ -483,25 +480,23 @@ namespace   FE
                 LOG_INF("LAS: phases tree=%lldms nodes=%lldms mesh=%lldms",
                         ms(tTree0,tTree1),ms(tTree1,tNode1),ms(tNode1,tEnd));
             }
-            _boxes.clear();
             return  nodes.empty() ? nullptr : nodes[0];
         }
         /// <summary>
         /// 递归构建 KD 盒树(中位二分，叶子点数不超过 kMaxPointsPerBox，
         /// 且叶子各轴边长不超过 _leafMaxExt，以保证 16 位坐标量化精度)
         /// </summary>
-        void    buildTree(LasPoints&& points,size_t& leafCount,size_t& overflowCount)
+        void    buildTree(LasBoxes& boxes,const LasHeader& hdr,LasPoints&& points,size_t& leafCount,size_t& overflowCount)
         {
-            _boxes.clear();
             LasBox  root;
             root.points =   std::move(points);
-            computeBounds(root);
-            _boxes.push_back(std::move(root));
+            computeBounds(root,hdr);
+            boxes.push_back(std::move(root));
             uint32s stack;
             stack.push_back(0);
             /// 组合均匀分割时叶子数约为 2 的幂，用该估计驱动进度条，
             /// 避免 KD 构建期间进度一直停在 70%
-            size_t  needLeaves  =   (_boxes[0].points.size() + kMaxPointsPerBox - 1) / kMaxPointsPerBox;
+            size_t  needLeaves  =   (boxes[0].points.size() + kMaxPointsPerBox - 1) / kMaxPointsPerBox;
             size_t  leafEst     =   1;
             while (leafEst < needLeaves)
                 leafEst <<= 1;
@@ -513,9 +508,9 @@ namespace   FE
                     break;
                 uint32  idx =   stack.back();
                 stack.pop_back();
-                if (!needSplit(_boxes[idx]))
+                if (!needSplit(boxes[idx]))
                     continue;
-                if (!splitBox(idx))
+                if (!splitBox(boxes,hdr,idx))
                 {
                     ++overflowCount;
                     continue;
@@ -523,11 +518,11 @@ namespace   FE
                 ++splits;
                 if ((splits & 63u) == 0u)
                     setProgress(0.7 + 0.15 * (std::min)(1.0,double(splits) / splitsEst));
-                stack.push_back(_boxes[idx].child0);
-                stack.push_back(_boxes[idx].child1);
+                stack.push_back(boxes[idx].child0);
+                stack.push_back(boxes[idx].child1);
             }
             leafCount   =   0;
-            for (auto& box : _boxes)
+            for (auto& box : boxes)
             {
                 if (box.child0 == kInvalid)
                     ++leafCount;
@@ -611,51 +606,51 @@ namespace   FE
         /// <summary>
         /// 按最长轴中位二分一个盒子
         /// </summary>
-        bool    splitBox(uint32 idx)
+        bool    splitBox(LasBoxes& boxes,const LasHeader& hdr,uint32 idx)
         {
             int     axis    =   -1;
             double  best    =   0.0;
             for (int i = 0; i < 3; ++i)
             {
-                double  ext =   _boxes[idx].max[i] - _boxes[idx].min[i];
+                double  ext =   boxes[idx].max[i] - boxes[idx].min[i];
                 if (ext > best + 1e-9)
                 {
                     best    =   ext;
                     axis    =   i;
                 }
             }
-            if (axis < 0 || _boxes[idx].depth >= kMaxDepth || _boxes[idx].points.size() < 2)
+            if (axis < 0 || boxes[idx].depth >= kMaxDepth || boxes[idx].points.size() < 2)
                 return  false;
-            LasPoints   left    =   std::move(_boxes[idx].points);
-            _boxes[idx].points  =   LasPoints();
+            LasPoints   left    =   std::move(boxes[idx].points);
+            boxes[idx].points   =   LasPoints();
             size_t  mid =   left.size() / 2;
             selectByAxis(left.data(),left.data() + mid,left.data() + left.size(),axis);
             LasPoints   right(std::make_move_iterator(left.begin() + mid),
                               std::make_move_iterator(left.end()));
             left.resize(mid);
-            uint32  depth   =   _boxes[idx].depth + 1;
+            uint32  depth   =   boxes[idx].depth + 1;
             LasBox  c0;
             c0.parent   =   idx;
             c0.depth    =   depth;
             c0.points   =   std::move(left);
-            computeBounds(c0);
+            computeBounds(c0,hdr);
             LasBox  c1;
             c1.parent   =   idx;
             c1.depth    =   depth;
             c1.points   =   std::move(right);
-            computeBounds(c1);
-            uint32  i0  =   uint32(_boxes.size());
-            _boxes.push_back(std::move(c0));
-            uint32  i1  =   uint32(_boxes.size());
-            _boxes.push_back(std::move(c1));
-            _boxes[idx].child0  =   i0;
-            _boxes[idx].child1  =   i1;
+            computeBounds(c1,hdr);
+            uint32  i0  =   uint32(boxes.size());
+            boxes.push_back(std::move(c0));
+            uint32  i1  =   uint32(boxes.size());
+            boxes.push_back(std::move(c1));
+            boxes[idx].child0  =   i0;
+            boxes[idx].child1  =   i1;
             return  true;
         }
         /// <summary>
         /// 计算盒子的世界包围盒、中心与原始坐标范围
         /// </summary>
-        void    computeBounds(LasBox& box) const
+        void    computeBounds(LasBox& box,const LasHeader& hdr) const
         {
             if (box.points.empty())
                 return;
@@ -678,8 +673,8 @@ namespace   FE
             {
                 box.rawMin[i]   =   rmin[i];
                 box.rawMax[i]   =   rmax[i];
-                double  a   =   double(rmin[i]) * _hdr.scale[i] + _hdr.offset[i];
-                double  b   =   double(rmax[i]) * _hdr.scale[i] + _hdr.offset[i];
+                double  a   =   double(rmin[i]) * hdr.scale[i] + hdr.offset[i];
+                double  b   =   double(rmax[i]) * hdr.scale[i] + hdr.offset[i];
                 box.min[i]      =   std::min(a,b);
                 box.max[i]      =   std::max(a,b);
                 box.center[i]   =   (box.min[i] + box.max[i]) * 0.5;
@@ -688,7 +683,7 @@ namespace   FE
         /// <summary>
         /// 将叶子盒的点转为局部坐标网格并挂到节点上
         /// </summary>
-        void    buildLeafMesh(Node& node,LasBox& box,FEMaterial* material)
+        void    buildLeafMesh(Node& node,LasBox& box,const LasHeader& hdr,FEMaterial* material)
         {
             /// 8 字节/点:word0 = x(int16)|y(int16)<<16, word1 = z(int16)|rgb565<<16
             /// 位置按叶子盒各轴半宽量化，节点缩放负责还原为世界单位
@@ -704,9 +699,9 @@ namespace   FE
             }
             for (auto& p : box.points)
             {
-                const   double  pos[3]  =   {double(p.x) * _hdr.scale[0] + _hdr.offset[0] - box.center[0],
-                                             double(p.y) * _hdr.scale[1] + _hdr.offset[1] - box.center[1],
-                                             double(p.z) * _hdr.scale[2] + _hdr.offset[2] - box.center[2]};
+                const   double  pos[3]  =   {double(p.x) * hdr.scale[0] + hdr.offset[0] - box.center[0],
+                                             double(p.y) * hdr.scale[1] + hdr.offset[1] - box.center[1],
+                                             double(p.z) * hdr.scale[2] + hdr.offset[2] - box.center[2]};
                 int     q[3]            =   {0,0,0};
                 for (int i = 0; i < 3; ++i)
                 {
@@ -719,10 +714,11 @@ namespace   FE
             Mesh    mesh    =   FEMeshBuilder::makePointMesh565(_ctx,packed);
             if (mesh != nullptr)
             {
-                /// 退化轴(所有点同值)用 1.0 缩放，避免零缩放矩阵;此时量化值恒为 0
-                node->setLocalScaling(real3(half[0] > 0.0 ? half[0] / 32767.0 : 1.0,
-                                            half[1] > 0.0 ? half[1] / 32767.0 : 1.0,
-                                            half[2] > 0.0 ? half[2] / 32767.0 : 1.0));
+                /// 退化轴(所有点同值)用 1.0 缩放，避免零缩放矩阵;此时量化值恒为 0。
+                /// 顶点位置已归一化到 [-1,1]，节点缩放直接取叶子盒半宽即还原世界单位
+                node->setLocalScaling(real3(half[0] > 0.0 ? half[0] : 1.0,
+                                            half[1] > 0.0 ? half[1] : 1.0,
+                                            half[2] > 0.0 ? half[2] : 1.0));
                 node->setMesh(mesh.get());
                 node->setMaterial(material);
             }
@@ -995,8 +991,5 @@ namespace   FE
             std::memcpy(&v,p,8);
             return  v;
         }
-    protected:
-        LasHeader   _hdr;
-        LasBoxes    _boxes;
     };
 }
