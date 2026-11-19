@@ -419,10 +419,17 @@ namespace
         /// 拾取:顶点是量化整数、节点带缩放，世界单位容差必须换算到局部空间
         root->updateTransform(real(0),true);
         root->updateAabb(true);
-        const   SrcPoint&   sp  =   def.points[def.points.size() / 2 + 3];
-        const   real3   target  =   real3(real(double(sp.x) * def.scale[0] + def.offset[0]),
-                                          real(double(sp.y) * def.scale[1] + def.offset[1]),
-                                          real(double(sp.z) * def.scale[2] + def.offset[2]));
+        /// 取 Z 最高的点作为目标:拾取按"射线上最近的候选点"取(与深度一致),
+        /// 最高点沿向下的射线不会被其它点抢在前头
+        const   SrcPoint*   sp  =   &def.points.front();
+        for (auto& spItem : def.points)
+        {
+            if (spItem.z > sp->z)
+                sp  =   &spItem;
+        }
+        const   real3   target  =   real3(real(double(sp->x) * def.scale[0] + def.offset[0]),
+                                          real(double(sp->y) * def.scale[1] + def.offset[1]),
+                                          real(double(sp->z) * def.scale[2] + def.offset[2]));
         const   Ray     rayPick =   Ray(target + real3(0,0,10),real3(0,0,-1));
         Pickups picks;
         root->intersect(rayPick,picks);

@@ -1837,6 +1837,7 @@ namespace   FE
     /// 按 key 查找/创建工厂:reuseExisting 时优先复用场景中同 key 的非常驻工厂,
     /// 避免同一 mesh key 重复建厂(VBO/IBO 重复拷贝、绘制批次被拆散)。
     /// 常驻工厂(天空盒/网格/编辑工具)不复用,否则会把普通节点并进常驻工厂。
+    /// 这里只创建默认批量工厂;需要专用工厂的调用方通过 DispatchOption::_factorys 指定
     /// </summary>
     static  RFactory    queryOrCreateFactory(FEContext& ctx,FEScene& scene,uint64 key,bool reuseExisting)
     {
@@ -1852,7 +1853,27 @@ namespace   FE
         factory->setKey(key);
         return  factory;
     }
-    RFactorys   FEFactoryRender::addNodesToFactory(FEScene& scene,const Nodes& nodeList,bool reuseExisting,DispatchErrors* errors)
+    /// <summary>
+    /// 从候选工厂中挑选:key 相同的直接使用,key 为 0 的候选由当前分组认领并设置 key。
+    /// 候选由调用方显式指定类型(如点云逐节点工厂),分发器不判断工厂类型
+    /// </summary>
+    static  RFactory    claimCandidate(const RFactorys& factorys,uint64 key)
+    {
+        for (auto& cand : factorys)
+        {
+            if (cand == nullptr)
+                continue;
+            const   uint64  candKey =   cand->key().value();
+            if (candKey != 0 && candKey != key)
+                continue;
+            RFactory    factory =   cand;
+            if (candKey == 0)
+                factory->setKey(key);
+            return  factory;
+        }
+        return  nullptr;
+    }
+    RFactorys   FEFactoryRender::addNodesToFactory(FEScene& scene,const Nodes& nodeList,const DispatchOption& option)
     {
         /// 1. 排序，按照 pri, drawtype, Attr
         uint    nCount  =   0;
@@ -1926,7 +1947,13 @@ namespace   FE
 
         for (auto& var : priGroup)
         {
-            auto    factory =   queryOrCreateFactory(scene.ctx(),scene,var.first,reuseExisting);
+            /// 复用模式下优先使用调用方指定的候选工厂,其次复用场景中同 key 的非常驻工厂;
+            /// 都没有时创建默认批量工厂
+            RFactory    factory;
+            if (option._reuseExisting)
+                factory =   claimCandidate(option._factorys,var.first);
+            if (factory == nullptr)
+                factory =   queryOrCreateFactory(scene.ctx(),scene,var.first,option._reuseExisting);
             if (factory == nullptr)
                 continue;
             /// 一个 FEPrimitive 只能属于一个工厂:确认目标图元没有被其它工厂占用
@@ -1944,8 +1971,8 @@ namespace   FE
             {
                 Node    node    =   var.second._nodes.empty() ? nullptr : var.second._nodes.front();
                 /// 复用模式:重定向到占用者,保证节点仍能渲染
-                auto    exist   =   scene.factoryMgr().findObject(var.first);
-                if (reuseExisting && exist != nullptr && exist.get() == owner.get())
+                auto    exist   =   scene.factoryMgr().findObject(factory->key().value());
+                if (option._reuseExisting && exist != nullptr && exist.get() == owner.get())
                 {
                     for (auto& pri : var.second._pris)
                         pri->setFactory(owner);
@@ -1954,8 +1981,8 @@ namespace   FE
                     continue;
                 }
                 /// 独立工厂模式无法满足唯一性,记录原因并跳过
-                if (errors != nullptr)
-                    errors->push_back({node,owner,var.first});
+                if (option._errors != nullptr)
+                    option._errors->push_back({node,owner,var.first});
                 scene.ctx().log().error("FEFactoryRender::addNodesToFactory key %llu already owned by another factory,node dropped",(uint64)var.first);
                 continue;
             }
@@ -2046,7 +2073,16 @@ namespace   FE
                     {
                         /// 先摘除,避免多图元节点残留在其它工厂
                         removeNodesFromFactory(scene,{child});
-                        auto    factorys    =   addNodesToFactory(scene,{child},true);
+                        /// 清掉图元上的旧归属,否则会因"已被其它工厂占用"被丢弃
+                        for (auto& p : pris)
+                        {
+                            /// primitives() 返回 const 引用,拷贝共享指针后调用非 const 接口
+                            Primitive   target  =   p;
+                            target->setFactory(nullptr);
+                        }
+                        DispatchOption  option;
+                        option._reuseExisting   =   true;
+                        auto    factorys    =   addNodesToFactory(scene,{child},option);
                         for (auto& var : factorys)
                             updated +=  scene.factoryMgr().addObject(var);
                         break;

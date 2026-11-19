@@ -58,6 +58,8 @@ namespace   FE
         {
         public:
             friend  class   FEFactoryRender;
+            /// 逐节点绘制工厂需要直接遍历组内节点与其命令偏移
+            friend  class   FEFactoryPointCloud;
         public:
             struct  NodeUpdate
             {
@@ -517,17 +519,36 @@ namespace   FE
         };
         using   DispatchErrors  =   std::vector<DispatchError>;
         /// <summary>
+        /// 工厂分发选项
+        /// </summary>
+        struct  DispatchOption
+        {
+            /// <summary>
+            /// 是否复用工厂:为真时先从 _factorys 候选中按 key 匹配,
+            /// 再查找场景注册表中同 key 的非常驻工厂
+            /// </summary>
+            bool            _reuseExisting  =   false;
+            /// <summary>
+            /// 优先备选的工厂(调用方显式指定类型):
+            /// key 相同的候选直接使用,key 为 0 的候选由当前分组认领并设置 key
+            /// </summary>
+            RFactorys       _factorys;
+            /// <summary>
+            /// 图元归属冲突记录,可为空
+            /// </summary>
+            DispatchErrors* _errors         =   nullptr;
+        };
+        /// <summary>
         /// 按 mesh key 分组把节点分派到渲染工厂。
-        /// reuseExisting 为 true 时优先复用场景中同 key 的非常驻工厂;
+        /// 优先使用 option 中的候选工厂,其次复用场景中同 key 的非常驻工厂;
         /// 图元已被其它工厂占用时:复用模式重定向到占用者,
         /// 独立工厂模式则跳过并记录失败原因
         /// </summary>
         /// <param name="scene">节点所属场景</param>
         /// <param name="nodes">要添加的顶层节点</param>
-        /// <param name="reuseExisting">是否复用已有的非常驻工厂</param>
-        /// <param name="errors">失败原因输出,可为空</param>
+        /// <param name="option">分发选项(复用策略/候选工厂/错误输出)</param>
         /// <returns>本次涉及到的工厂列表(含被复用的工厂)</returns>
-        static  RFactorys   addNodesToFactory(FEScene& scene,const Nodes& nodes,bool reuseExisting = false,DispatchErrors* errors = nullptr);
+        static  RFactorys   addNodesToFactory(FEScene& scene,const Nodes& nodes,const DispatchOption& option = DispatchOption());
         /// <summary>
         /// 把节点(含其带 mesh 的子节点)从场景所有渲染工厂中移除,
         /// 与 addNodesToFactory 相对应。工厂对象本身保留(可能仍驻留其它节点),
@@ -618,4 +639,5 @@ namespace   FE
     using   FactoryRender       =   RFactory;
     using   FactoryRenders      =   RFactorys;
     using   RFactoryMap         =   std::map<uint64,RFactory>;
+    using   DispatchOption      =   FEFactoryRender::DispatchOption;
 }

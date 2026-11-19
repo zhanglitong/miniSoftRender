@@ -196,7 +196,7 @@ namespace   FE
         /// solve(tm);
     }
 
-    size_t  FENode::intersect(const Ray& ray,Pickups& results) const
+    size_t  FENode::intersect(const Ray& ray,Pickups& results,real radius) const
     {
         size_t  nOld    =   results.size();
         if (_aabb.isNull())
@@ -206,6 +206,7 @@ namespace   FE
         if (_mesh)
         {
             FEPickup    result  =   {};
+            result.radius       =   radius;
             if(_mesh->intersect(ray,_gloabal.toMatrix(),result))
             {
                 result.object   =   const_cast<FENode*>(this);
@@ -220,7 +221,7 @@ namespace   FE
         {
             auto    node    =   child->as<FENode>();
             if (node)
-                node->intersect(ray,results);
+                node->intersect(ray,results,radius);
         }
         return  results.size() - nOld;
     }

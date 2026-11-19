@@ -200,7 +200,7 @@ namespace   FE
             _node->makeDirty();
             _node->update();
 
-            RFactorys   factorys    =   FEFactoryRender::addNodesToFactory(scene,{_node},false);
+            RFactorys   factorys    =   FEFactoryRender::addNodesToFactory(scene,{_node});
             if (factorys.empty())
             {
                 LOG_ERR("FESkyEnvironment.setup: create bake factory failed");

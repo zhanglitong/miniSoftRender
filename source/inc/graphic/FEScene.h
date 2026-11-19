@@ -208,7 +208,8 @@ namespace   FE
         /// </summary>
         /// <param name="nodeList"></param>
         /// <param name="result"></param>
-        void            dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result = nullptr);
+        /// <param name="option">分发选项:复用策略/候选工厂/错误输出(默认复用已有工厂)</param>
+        void            dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result = nullptr,const DispatchOption& option = DispatchOption{true});
         /// <summary>
         /// dispatchNodesToSystem 的逆操作:把节点(含带 mesh 的子节点)从渲染工厂移除,
         /// 并把组件从对应组件系统中摘除。节点树本身的摘除由调用方负责
@@ -335,7 +336,7 @@ namespace   FE
         /// </summary>
         /// <param name="nodeList"></param>
         /// <returns></returns>
-        void    addNodesToFactory(const Nodes& nodeList,DispatchResult* result);
+        void    addNodesToFactory(const Nodes& nodeList,DispatchResult* result,const DispatchOption& option = DispatchOption{true});
         /// <summary>
         /// 默认加载管线
         /// </summary>

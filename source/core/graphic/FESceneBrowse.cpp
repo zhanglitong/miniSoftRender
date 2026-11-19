@@ -2,6 +2,7 @@
 #include    "../../inc/FEContext.hpp"
 #include    "../../inc/graphic/FEScene.h"
 #include    "../inc/graphic/FESceneBrowse.h"
+#include    <cmath>
 
 namespace   FE
 {
@@ -66,9 +67,15 @@ namespace   FE
         auto&   nodeTree=   _ctx.nodeTree();
 
         Pickups results;
+        /// 点云的点在屏幕上只有几像素,固定的世界容差在远景会小于一个像素,
+        /// 造成"部分区域能拾取、部分点不到":按锚点处的世界/像素比换算拾取半径
+        /// (约 4 像素)。换算失败(零/NaN)时回退到引擎默认容差
+        real    radius  =   std::abs(camera->calcWowrldPScreen(_ctx.anchor().point())) * real(4);
+        if (!(radius > 0) || !std::isfinite(radius))
+            radius  =   0;
         for (auto& node: nodeTree.topLevelNodes())
         {
-            node->intersect(ray,results);
+            node->intersect(ray,results,radius);
         }
         std::sort(results.begin(),results.end(),[](const FEPickup& left,const FEPickup& right)
         {

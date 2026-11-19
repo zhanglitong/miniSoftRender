@@ -18,6 +18,7 @@
 #include    "../../material/FEMaterialPoint565.hpp"
 #include    "../../node/FENode.hpp"
 #include    "../../graphic/FEScene.h"
+#include    "../../graphic/FEFactoryPointCloud.hpp"
 #include    "../../graphic/FEUpdateQueue.hpp"
 
 namespace   FE
@@ -115,8 +116,17 @@ namespace   FE
         static  constexpr   uint64  kUnloadFrames        =   180;
     protected:
         String                              _file;
+        /// <summary>
+        /// 文件句柄缓存:只在加载线程/后台读取线程使用(两者不并发)，
+        /// 首次读取时打开，析构或换源时关闭，避免每次读节点都开关文件
+        /// </summary>
+        std::FILE*                          _fp             =   nullptr;
         Buffer                              _memory;
         Material                            _material;
+        /// <summary>
+        /// 点云专用逐节点工厂:作为分发候选显式指定,由本模块持有
+        /// </summary>
+        RFactory                            _factory;
         std::vector<NodeInfo>               _nodes;
         std::vector<uint8>                  _wanted;
         std::vector<float>                  _priority;
@@ -138,6 +148,7 @@ namespace   FE
         virtual ~FEPointCloudLod()
         {
             stop();
+            closeFile();
         }
         inline  const   std::vector<NodeInfo>&  nodes() const
         {
@@ -152,6 +163,7 @@ namespace   FE
         /// </summary>
         void    setSource(const String& file,const Buffer& memory)
         {
+            closeFile();
             _file       =   file;
             _memory     =   memory;
         }
@@ -215,6 +227,17 @@ namespace   FE
             _cv.notify_all();
             if (_thread.joinable())
                 _thread.join();
+        }
+        /// <summary>
+        /// 关闭缓存的文件句柄(必须保证后台线程已停止)
+        /// </summary>
+        void    closeFile()
+        {
+            if (_fp != nullptr)
+            {
+                std::fclose(_fp);
+                _fp =   nullptr;
+            }
         }
         /// <summary>
         /// 每帧调度(主线程)
@@ -288,13 +311,13 @@ namespace   FE
             }
             if (_file.empty())
                 return  false;
-            FILE*   file    =   std::fopen(_file.c_str(),"rb");
-            if (file == nullptr)
+            /// 复用同一个文件句柄:首次读取时打开，之后只 seek/read
+            if (_fp == nullptr)
+                _fp     =   std::fopen(_file.c_str(),"rb");
+            if (_fp == nullptr)
                 return  false;
-            const   bool    ok  =   _fseeki64(file,int64(n.dataOffset),SEEK_SET) == 0
-                                &&  std::fread(packed.data(),1,n.dataSize,file) == n.dataSize;
-            std::fclose(file);
-            return  ok;
+            return  _fseeki64(_fp,int64(n.dataOffset),SEEK_SET) == 0
+                &&  std::fread(packed.data(),1,n.dataSize,_fp) == n.dataSize;
         }
         /// <summary>
         /// 子节点下标:children 连续存储，childMask 的位序即槽位顺序
@@ -581,7 +604,16 @@ namespace   FE
                 }
             }
             if (!added.empty())
-                scene.dispatchNodesToSystem(added);
+            {
+                /// 点云节点几何互不相同、运行期频繁增删:显式指定逐节点工厂作为候选,
+                /// 避免批量工厂每次增删都全量重建交错顶点缓冲
+                if (_factory == nullptr)
+                    _factory    =   new FEFactoryPointCloud(_ctx);
+                DispatchOption  option;
+                option._reuseExisting   =   true;
+                option._factorys.emplace_back(_factory);
+                scene.dispatchNodesToSystem(added,nullptr,option);
+            }
             if (!updated.empty())
                 scene.updateNodesToSystem(updated);
             _pendingReady.clear();

@@ -561,9 +561,9 @@ namespace   FE
             removeNodesFromSystem(removed);
     }
    
-    void    FEScene::dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result)
+    void    FEScene::dispatchNodesToSystem(const Nodes& nodeList,DispatchResult* result,const DispatchOption& option)
     {
-        addNodesToFactory(nodeList,result);
+        addNodesToFactory(nodeList,result,option);
         dispatchToSystem<FEAnimation>(_comSysMgr,nodeList);
         dispatchToSystem<FEConstraint>(_comSysMgr,nodeList);
         dispatchToSystem<FESkin>(_comSysMgr,nodeList);
@@ -1347,10 +1347,10 @@ namespace   FE
         registerInputTools();
     }
 
-    void    FEScene::addNodesToFactory(const Nodes& nodeList,DispatchResult* result)
+    void    FEScene::addNodesToFactory(const Nodes& nodeList,DispatchResult* result,const DispatchOption& option)
     {
         /// 通用分发路径复用同 key 的非常驻工厂,避免同一 mesh 重复建厂
-        auto    results =   FEFactoryRender::addNodesToFactory(*this,nodeList,true);
+        auto    results =   FEFactoryRender::addNodesToFactory(*this,nodeList,option);
         for (auto& var : results)
         {
             _factorys.addObject(var);

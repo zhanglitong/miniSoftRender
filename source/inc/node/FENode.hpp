@@ -530,10 +530,10 @@ namespace   FE
         /// <summary>
         /// 拾取函数
         /// </summary>
-        /// <param name="ray"></param>
-        /// <param name="result"></param>
-        /// <returns></returns>
-        virtual size_t  intersect(const Ray& ray,Pickups& result) const;
+        /// <param name="ray">世界空间射线</param>
+        /// <param name="result">拾取结果输出</param>
+        /// <param name="radius">拾取半径(世界单位),<=0 使用引擎默认容差</param>
+        virtual size_t  intersect(const Ray& ray,Pickups& result,real radius = 0) const;
         virtual size_t  intersect(const Ray& ray,FEPickup& result) const;
         /// <summary>
         /// 局部坐标矩阵

@@ -260,8 +260,10 @@ namespace   FE
         uint    nStart      =   pri->start();
         uint    nEnd        =   pri->start() + pri->count();
 
-        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
-        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同);
+        /// 调用方给出屏幕像素换算后的拾取半径时优先使用
+        const   real    worldTol2   =   result.radius > 0 ? result.radius * result.radius : constDistance2;
+        const   real    distTol2    =   worldTol2 * pickupScale2(mat);
         real    minDist2    =   FLT_MAX;
         real    time        =   result.time;
         real3   point;
@@ -286,8 +288,10 @@ namespace   FE
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
                     if (dist2 > distTol2)
                         continue;
-                    /// 取最靠近射线的点,垂距相同时取更近的点
-                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                    /// 与深度测试一致:优先取射线上最近的候选点,同样靠前时取垂距更小的。
+                    /// 不能只按垂距取:点云很密时射线会穿过大量点,垂距最小的点可能
+                    /// 落在可见表面之后很远处,拾取结果会跑到节点深处的包围盒附近
+                    if (pickup && (t > time || (t == time && dist2 >= minDist2)))
                         continue;
                     minDist2        =   dist2;
                     time            =   t;
@@ -454,8 +458,10 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
-        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
-        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同);
+        /// 调用方给出屏幕像素换算后的拾取半径时优先使用
+        const   real    worldTol2   =   result.radius > 0 ? result.radius * result.radius : constDistance2;
+        const   real    distTol2    =   worldTol2 * pickupScale2(mat);
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -484,8 +490,10 @@ namespace   FE
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
                     if (dist2 > distTol2)
                         continue;
-                    /// 取最靠近射线的点,垂距相同时取更近的点
-                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                    /// 与深度测试一致:优先取射线上最近的候选点,同样靠前时取垂距更小的。
+                    /// 不能只按垂距取:点云很密时射线会穿过大量点,垂距最小的点可能
+                    /// 落在可见表面之后很远处,拾取结果会跑到节点深处的包围盒附近
+                    if (pickup && (t > time || (t == time && dist2 >= minDist2)))
                         continue;
                     minDist2        =   dist2;
                     time            =   t;
@@ -573,8 +581,10 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
-        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
-        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同);
+        /// 调用方给出屏幕像素换算后的拾取半径时优先使用
+        const   real    worldTol2   =   result.radius > 0 ? result.radius * result.radius : constDistance2;
+        const   real    distTol2    =   worldTol2 * pickupScale2(mat);
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -603,8 +613,10 @@ namespace   FE
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
                     if (dist2 > distTol2)
                         continue;
-                    /// 取最靠近射线的点,垂距相同时取更近的点
-                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                    /// 与深度测试一致:优先取射线上最近的候选点,同样靠前时取垂距更小的。
+                    /// 不能只按垂距取:点云很密时射线会穿过大量点,垂距最小的点可能
+                    /// 落在可见表面之后很远处,拾取结果会跑到节点深处的包围盒附近
+                    if (pickup && (t > time || (t == time && dist2 >= minDist2)))
                         continue;
                     minDist2        =   dist2;
                     time            =   t;
@@ -692,8 +704,10 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
-        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
-        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同);
+        /// 调用方给出屏幕像素换算后的拾取半径时优先使用
+        const   real    worldTol2   =   result.radius > 0 ? result.radius * result.radius : constDistance2;
+        const   real    distTol2    =   worldTol2 * pickupScale2(mat);
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -722,8 +736,10 @@ namespace   FE
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
                     if (dist2 > distTol2)
                         continue;
-                    /// 取最靠近射线的点,垂距相同时取更近的点
-                    if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
+                    /// 与深度测试一致:优先取射线上最近的候选点,同样靠前时取垂距更小的。
+                    /// 不能只按垂距取:点云很密时射线会穿过大量点,垂距最小的点可能
+                    /// 落在可见表面之后很远处,拾取结果会跑到节点深处的包围盒附近
+                    if (pickup && (t > time || (t == time && dist2 >= minDist2)))
                         continue;
                     minDist2        =   dist2;
                     time            =   t;

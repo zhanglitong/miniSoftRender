@@ -35,6 +35,11 @@ namespace FE
         /// 射线的时间T
         /// </summary>
         real        time        =   FLT_MAX;
+        /// <summary>
+        /// 拾取半径(世界单位),用于点/线拾取容差;
+        /// 由调用方按屏幕像素换算,<=0 时使用引擎默认常量
+        /// </summary>
+        real        radius      =   0;
         
     };
     using   Pickups     =   std::vector<FEPickup>; 
