@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!--RGB565 点云管线:8 字节/点(word0 = x|y, word1 = z|rgb565),与 point 管线共用片段着色器-->
+<!--RGB565 点云管线:8 字节/点(位置 snorm16x3 归一化 + RGB565),与 point 管线共用片段着色器-->
 <root using_defult="0">
   <!--shader-->
   <shaders>
     <shader url =":/data/shader/cache/point/shader.frag.spv"/>
     <shader url =":/data/shader/cache/point565/shader.vert.spv"/>
-</shaders>
+  </shaders>
   <dynamicStates>
     <VIEWPORT/>
     <SCISSOR/>
@@ -19,8 +19,14 @@
           name      = "" 
           location  = "0" 
           slots     = "IS_VERTEX_POS" 
-          formats   = "R32G32_UINT"    
+          formats   = "R16G16B16_SNORM"    
           offsets   = "0"/>
+      <input 
+          name      = "" 
+          location  = "1" 
+          slots     = "IS_VERTEX_COLOR0" 
+          formats   = "R16_UINT"    
+          offsets   = "6"/>
     </binding>
     <binding binding="1" inputRate="1">
       <input
