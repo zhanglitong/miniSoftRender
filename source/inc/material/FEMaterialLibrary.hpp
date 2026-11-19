@@ -4,6 +4,7 @@
 #include    "FEMaterialV3N3C4.hpp"
 #include    "FEMaterialPBR.hpp"
 #include    "FEMaterialPoint.hpp"
+#include    "FEMaterialPoint565.hpp"
 #include    "FEMaterialV3.hpp"
 #include    "FEMaterialTexture.hpp"
 #include    "FEMaterialText.hpp"

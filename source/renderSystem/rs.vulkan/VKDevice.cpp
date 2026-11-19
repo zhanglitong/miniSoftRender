@@ -111,6 +111,11 @@ namespace   FE
             _enabledFeatures.wideLines          =   supportedFeatures.wideLines;
         else
             _enabledFeatures.wideLines          =   VK_FALSE;   
+        /// 点云按距离调整点大小(gl_PointSize>1)必须启用 largePoints，否则被钳制为 1 像素
+        if (supportedFeatures.largePoints)
+            _enabledFeatures.largePoints        =   supportedFeatures.largePoints;
+        else
+            _enabledFeatures.largePoints        =   VK_FALSE;
         if (supportedFeatures.multiDrawIndirect)    
             _enabledFeatures.multiDrawIndirect  =   supportedFeatures.multiDrawIndirect;
         else

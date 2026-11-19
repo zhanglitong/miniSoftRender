@@ -14,5 +14,10 @@
 
 #include    "fileFormat/att/FEFormatATTReader.hpp"
 
+#include    "fileFormat/las/FEFormatLASReader.hpp"
+
+#include    "fileFormat/pco/FEFormatPCOReader.hpp"
+
+
 
 

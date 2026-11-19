@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='gb2312' ?>
-<root dataPath="E:/miniSoftRender/bin/data" outPath="" singleOut="1">
+<root dataPath="D:/miniSoftRender/bin/data" outPath="" singleOut="1">
 	<folder path="shader">
 		<folder path="cache">
 			<folder path="brdf">
@@ -15,11 +15,12 @@
 			<folder path="oit">
 				<file name="shader/cache/oit/color.frag.spv" input="color.frag.spv"/>
 				<file name="shader/cache/oit/color.vert.spv" input="color.vert.spv"/>
+				<file name="shader/cache/oit/geometry.frag.spv" input="geometry.frag.spv"/>
+				<file name="shader/cache/oit/geometry.vert.spv" input="geometry.vert.spv"/>
 			</folder>
 			<folder path="pbr">
 				<file name="shader/cache/pbr/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/pbr/shader.oit.frag.spv" input="shader.oit.frag.spv"/>
-				<file name="shader/cache/pbr/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/pbr/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="pbrSkin">
@@ -27,13 +28,14 @@
 			</folder>
 			<folder path="phong">
 				<file name="shader/cache/phong/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/phong/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/phong/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="point">
 				<file name="shader/cache/point/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/point/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/point/shader.vert.spv" input="shader.vert.spv"/>
+			</folder>
+			<folder path="point565">
+				<file name="shader/cache/point565/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="progress">
 				<file name="shader/cache/progress/shader.frag.spv" input="shader.frag.spv"/>
@@ -47,6 +49,11 @@
 				<file name="shader/cache/sky/shader.vert.spv" input="shader.vert.spv"/>
 				<file name="shader/cache/sky/shader_env.frag.spv" input="shader_env.frag.spv"/>
 			</folder>
+			<folder path="skybox">
+				<file name="shader/cache/skybox/shader.frag.spv" input="shader.frag.spv"/>
+				<file name="shader/cache/skybox/shader.vert.spv" input="shader.vert.spv"/>
+				<file name="shader/cache/skybox/shader_env.frag.spv" input="shader_env.frag.spv"/>
+			</folder>
 			<folder path="text">
 				<file name="shader/cache/text/shader.frag.spv" input="shader.frag.spv"/>
 				<file name="shader/cache/text/shader.oit.frag.spv" input="shader.oit.frag.spv"/>
@@ -58,7 +65,6 @@
 			</folder>
 			<folder path="v3">
 				<file name="shader/cache/v3/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/v3/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/v3/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="v3Instance">
@@ -67,7 +73,6 @@
 			</folder>
 			<folder path="v3c4">
 				<file name="shader/cache/v3c4/shader.frag.spv" input="shader.frag.spv"/>
-				<file name="shader/cache/v3c4/shader.spv" input="shader.spv"/>
 				<file name="shader/cache/v3c4/shader.vert.spv" input="shader.vert.spv"/>
 			</folder>
 			<folder path="v3n3c4">
@@ -115,6 +120,10 @@
 				<file name="shader/source/point/shader.vert" input="shader.vert"/>
 				<file name="shader/source/point/shader.vert.wgls" input="shader.vert.wgls"/>
 				<file name="shader/source/point/shader.wgls" input="shader.wgls"/>
+			</folder>
+			<folder path="point565">
+				<file name="shader/source/point565/shader.vert" input="shader.vert"/>
+				<file name="shader/source/point565/shader.vert.wgls" input="shader.vert.wgls"/>
 			</folder>
 			<folder path="progress">
 				<file name="shader/source/progress/shader.frag" input="shader.frag"/>

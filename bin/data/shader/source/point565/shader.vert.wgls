@@ -1,0 +1,74 @@
+/// point565 顶点着色器 WGSL 版本,与 shader.vert 对齐
+/// 8 字节/点:word0 = x(int16)|y(int16)<<16, word1 = z(int16)|rgb565<<16。
+/// 位置为相对叶子盒中心的量化整数，实例缩放负责还原为世界单位。
+/// 实例参数: intPart(整数平移)/trans(小数平移)/scale/rot(四元数)
+/// WebGPU/WGSL 不支持可编程点大小,点默认渲染为 1 像素。
+
+struct  CameraData
+{
+    _v          : mat4x4f,
+    _p          : mat4x4f,
+    _vp         : mat4x4f,
+    _offsetVp   : mat4x4f,
+    _decimal    : vec4f,
+    _offset     : vec4i,
+    _upDir      : vec4f,
+    _rightDir   : vec4f,
+}
+
+@group(0) @binding(0) var<uniform> _camera : CameraData;
+
+/// 大坐标处理:用 (intPart - cameraOffset) 抵消相机整数偏移,
+/// 平移部分只保留小数量级数值,减少大坐标下的浮点误差
+fn  makeOffsetLocalMatrix(t : vec3f, s : vec3f, q : vec4f, intPart : vec3i, cameraOffset : vec3i) -> mat4x4f
+{
+    let pp  = 2.0 * q.xyz * q.yzx;      // 2xy, 2yz, 2zx
+    let pw  = 2.0 * q.w   * q.zyx;      // 2wz, 2wy, 2wx
+    let dd  = q.xyz * q.xyz;            // xx, yy, zz
+    let sum = pp + pw.xzy;              // 2(xy+wz), 2(yz+wx), 2(xz+wy)
+    let dif = pp - pw.xzy;              // 2(xy-wz), 2(yz-wx), 2(xz-wy)
+    let dg  = vec3f(1.0) - 2.0 * (dd.yzx + dd.zxy);
+    return mat4x4f(
+        vec4f(vec3f(dg.x, sum.x, dif.z) * s.x, 0.0),
+        vec4f(vec3f(dif.x, dg.y, sum.y) * s.y, 0.0),
+        vec4f(vec3f(sum.z, dif.y, dg.z) * s.z, 0.0),
+        vec4f(t + vec3f(intPart - cameraOffset), 1.0));
+}
+
+struct  VsIn
+{
+    /// R32G32_UINT:word0 = x(int16)|y(int16)<<16, word1 = z(int16)|rgb565<<16
+    @location(0) vertex     : vec2<u32>,
+    @location(2) intPart    : vec3i,
+    @location(3) trans      : vec3f,
+    @location(4) scale      : vec3f,
+    @location(5) rot        : vec4f,
+}
+
+struct  VsOut
+{
+    @location(0) outColor   : vec4f,
+    @builtin(position) pos  : vec4f,
+}
+
+@vertex
+fn  main(in : VsIn) -> VsOut
+{
+    var out     : VsOut;
+    let localOffset = makeOffsetLocalMatrix(in.trans, in.scale, in.rot, in.intPart, _camera._offset.xyz);
+
+    /// 解包 RGB565 到 [0,1] 颜色
+    let color565 = in.vertex.y >> 16u;
+    let r = f32((color565 >> 11u) & 0x1Fu) / 31.0;
+    let g = f32((color565 >> 5u)  & 0x3Fu) / 63.0;
+    let b = f32(color565 & 0x1Fu) / 31.0;
+    out.outColor = vec4f(r, g, b, 1.0);
+
+    /// 解包有符号 16 位量化坐标(左移后 bitcast 再算术右移完成符号扩展)
+    let qpos = vec3f(f32(bitcast<i32>(in.vertex.x << 16u) >> 16u),
+                     f32(bitcast<i32>(in.vertex.x) >> 16u),
+                     f32(bitcast<i32>(in.vertex.y << 16u) >> 16u));
+    out.pos      = _camera._offsetVp * localOffset * vec4f(qpos, 1.0);
+
+    return out;
+}

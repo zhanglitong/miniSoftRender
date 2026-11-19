@@ -36,6 +36,7 @@ namespace   FE
             switch (format)
             {
             case FMT_R32G32B32_FLOAT:
+            case FMT_R32G32_UINT:
             case FMT_R32G32B32A32_FLOAT:
             case FMT_R16G16B16_FLOAT:
             case FMT_R16G16B16A16_FLOAT:
@@ -80,6 +81,15 @@ namespace   FE
                     const   float3* p   =   (const float3*)pData;
                     return  real3(p->x,p->y,p->z);
                 }
+            /// 点云紧凑格式:word0 = x(int16)|y(int16)<<16, word1 = z(int16)|颜色
+            case FMT_R32G32_UINT:
+                {
+                    const   uint32* p   =   (const uint32*)pData;
+                    int16   x   =   int16(p[0] & 0xFFFFu);
+                    int16   y   =   int16((p[0] >> 16) & 0xFFFFu);
+                    int16   z   =   int16(p[1] & 0xFFFFu);
+                    return  real3(real(x),real(y),real(z));
+                }
             case FMT_R32G32B32A32_FLOAT:
                 {
                     const   float4* p   =   (const float4*)pData;
@@ -122,6 +132,23 @@ namespace   FE
             default:
                 return  real3(0);
             }
+        }
+
+        /// <summary>
+        /// 世界->局部变换矩阵线性部分的最大列长平方。
+        /// 节点带缩放时(如点云叶子用节点缩放还原量化坐标)，世界单位的拾取容差
+        /// 必须乘上该系数换算到局部空间，否则容差会被缩放系数吃掉导致拾取失败
+        /// </summary>
+        static  real    pickupScale2(const mat4r& mat)
+        {
+            real    k2  =   0.0f;
+            for (int c = 0; c < 3; ++c)
+            {
+                const   real    len2    =   mat[c].x * mat[c].x + mat[c].y * mat[c].y + mat[c].z * mat[c].z;
+                if (len2 > k2)
+                    k2  =   len2;
+            }
+            return  k2 > 0.0f ? k2 : 1.0f;
         }
     }
 
@@ -215,7 +242,7 @@ namespace   FE
         return  false;
     }
 
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawArray* pri,       const mat4r& , FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawArray* pri,       const mat4r& mat, FEPickup& result) 
     {
         auto    pSubMesh    =   get(IS_VERTEX_POS);
         if (pSubMesh == nullptr)
@@ -233,6 +260,8 @@ namespace   FE
         uint    nStart      =   pri->start();
         uint    nEnd        =   pri->start() + pri->count();
 
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
+        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
         real    minDist2    =   FLT_MAX;
         real    time        =   result.time;
         real3   point;
@@ -255,7 +284,7 @@ namespace   FE
                         continue;
                     /// 点到射线的垂距平方,阈值与线段拾取保持一致
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
-                    if (dist2 > constDistance2)
+                    if (dist2 > distTol2)
                         continue;
                     /// 取最靠近射线的点,垂距相同时取更近的点
                     if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
@@ -279,7 +308,7 @@ namespace   FE
                     real3   ptRay;
                     real3   ptSet;
                     auto    dist    =   ray.distance2(seg,&ptSet,&ptRay);
-                    if (dist.x > constDistance2)
+                    if (dist.x > distTol2)
                         continue;
                     if (dist.x > minDist2)
                         continue;
@@ -302,7 +331,7 @@ namespace   FE
                     real3   ptSet;
                     auto    dist    =   ray.distance2(seg,&ptSet,&ptRay);
                     /// 距离符合要求,time 符合要求
-                    if (dist.x < constDistance2 && dist.y < time)
+                    if (dist.x < distTol2 && dist.y < time)
                     {
                         time            =   dist.y;
                         point           =   ptSet;
@@ -409,7 +438,7 @@ namespace   FE
         }
         return  pickup;
     }
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint8*pri, const mat4r& , FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint8*pri, const mat4r& mat, FEPickup& result) 
     {
         /// 获取顶点缓冲区数据
         auto    pBuffer =   get(IS_VERTEX_POS);
@@ -425,6 +454,8 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
+        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -451,7 +482,7 @@ namespace   FE
                         continue;
                     /// 点到射线的垂距平方,阈值与线段拾取保持一致
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
-                    if (dist2 > constDistance2)
+                    if (dist2 > distTol2)
                         continue;
                     /// 取最靠近射线的点,垂距相同时取更近的点
                     if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
@@ -481,7 +512,7 @@ namespace   FE
                     if (dpos0 == dpos1)
                         continue;
                     auto    res    =   ray.distance2(seg,&ptSet,&ptRay);
-                    if (res.x > constDistance2)
+                    if (res.x > distTol2)
                         continue;
                     if (res.y > time)
                         continue;
@@ -526,7 +557,7 @@ namespace   FE
         }
         return  pickup;
     }
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint16*pri,const mat4r& , FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint16*pri,const mat4r& mat, FEPickup& result) 
     {
         /// 获取顶点缓冲区数据
         auto    pBuffer =   get(IS_VERTEX_POS);
@@ -542,6 +573,8 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
+        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -568,7 +601,7 @@ namespace   FE
                         continue;
                     /// 点到射线的垂距平方,阈值与线段拾取保持一致
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
-                    if (dist2 > constDistance2)
+                    if (dist2 > distTol2)
                         continue;
                     /// 取最靠近射线的点,垂距相同时取更近的点
                     if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
@@ -598,7 +631,7 @@ namespace   FE
                     if (dpos0 == dpos1)
                         continue;
                     auto    res    =   ray.distance2(seg,&ptSet,&ptRay);
-                    if (res.x > constDistance2)
+                    if (res.x > distTol2)
                         continue;
                     if (res.y > time)
                         continue;
@@ -643,7 +676,7 @@ namespace   FE
         }
         return  pickup;
     }
-    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint32*pri,const mat4r& , FEPickup& result) 
+    bool    FEMesh::intersect(const Ray& ray, const FEDrawElementUint32*pri,const mat4r& mat, FEPickup& result) 
     {
         /// 获取顶点缓冲区数据
         auto    pBuffer =   get(IS_VERTEX_POS);
@@ -659,6 +692,8 @@ namespace   FE
         auto    pData       =   pBuffer->buffer()->data();
         if (pData == nullptr)
             return  false;
+        /// 世界单位容差换算到局部空间(节点缩放时局部坐标单位不同)
+        const   real    distTol2    =   constDistance2 * pickupScale2(mat);
         real    time        =   FLT_MAX;
         real    dist        =   FLT_MAX;
         real3   point;
@@ -685,7 +720,7 @@ namespace   FE
                         continue;
                     /// 点到射线的垂距平方,阈值与线段拾取保持一致
                     real    dist2   =   FE::distance2(dpos,ray.getPoint(t));
-                    if (dist2 > constDistance2)
+                    if (dist2 > distTol2)
                         continue;
                     /// 取最靠近射线的点,垂距相同时取更近的点
                     if (dist2 > minDist2 || (dist2 == minDist2 && t > time))
@@ -715,7 +750,7 @@ namespace   FE
                     if (dpos0 == dpos1)
                         continue;
                     auto    res    =   ray.distance2(seg,&ptSet,&ptRay);
-                    if (res.x > constDistance2)
+                    if (res.x > distTol2)
                         continue;
                     if (res.y > time)
                         continue;

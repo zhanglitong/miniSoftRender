@@ -125,12 +125,15 @@ namespace   FE
 
         DEFINE_CLASS_CREATOR(FEFormatRVMReader);
         DEFINE_CLASS_CREATOR(FEFormatATTReader);
+        DEFINE_CLASS_CREATOR(FEFormatLASReader);
+        DEFINE_CLASS_CREATOR(FEFormatPCOReader);
 
         DEFINE_CLASS_CREATOR(FEMaterialV3C4);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3C4);
         DEFINE_CLASS_CREATOR(FEMaterialPBR);
         DEFINE_CLASS_CREATOR(FEMaterialPoint);
+        DEFINE_CLASS_CREATOR(FEMaterialPoint565);
         DEFINE_CLASS_CREATOR(FEMaterialV3);
         DEFINE_CLASS_CREATOR(FEMaterialTexture);
         DEFINE_CLASS_CREATOR(FEMaterialText);
@@ -159,6 +162,8 @@ namespace   FE
         DEFINE_FORMAT_READER(ctx,FEFormatGLTFReader);
         DEFINE_FORMAT_READER(ctx,FEFormatRVMReader);
         DEFINE_FORMAT_READER(ctx,FEFormatATTReader);
+        DEFINE_FORMAT_READER(ctx,FEFormatLASReader);
+        DEFINE_FORMAT_READER(ctx,FEFormatPCOReader);
     }
     void    systemInitializeWriter(FEContext& ctx)
     {
@@ -265,7 +270,8 @@ namespace   FE
 
     FEScene*    FEContext::scene()
     {
-        return  _scene->as<FEScene>();
+        /// 无场景时返回空(数据读取等场景无关流程会用到)
+        return  _scene != nullptr ? _scene->as<FEScene>() : nullptr;
     }
     FENodeTree& FEContext::nodeTree()
     {

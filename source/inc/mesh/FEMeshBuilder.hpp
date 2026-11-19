@@ -113,6 +113,33 @@ namespace   FE
             mesh->setPrimitives({drawArray.get()});
             return  mesh;
         }
+        /// <summary>
+        /// 8 字节/点的紧凑点云网格，每个点占两个 32 位字:
+        ///   word0 = x(int16) | (y(int16) &lt;&lt; 16)
+        ///   word1 = z(int16) | (rgb565 &lt;&lt; 16)
+        /// 位置为相对叶子盒中心的量化整数，由节点缩放还原为世界单位
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <param name="packed">打包后的顶点字</param>
+        /// <returns></returns>
+        static  Mesh    makePointMesh565(FEContext& ctx,const uints& packed)
+        {
+            if (packed.size() < 2)
+                return  nullptr;
+            MeshPtr     mesh        =   new FEMesh(ctx);
+            {
+                auto        attr        =   FEAttribute(IS_VERTEX_POS,     FMT_R32G32_UINT);
+                auto&       subMesh     =   mesh->getOrCreate(attr);
+                subMesh.setBuffer(packed.data(),packed.size()  * sizeof(uint32));
+            }
+            DrawArray   drawArray   =   new FEDrawArray(ctx);
+            drawArray->setPrimitive(PRI_POINTS);
+            drawArray->setStart(0);
+            drawArray->setCount((uint)(packed.size() / 2));
+            mesh->setPrimitives({drawArray.get()});
+            mesh->updateAabb();
+            return  mesh;
+        }
     };
 }
 
