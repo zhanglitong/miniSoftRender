@@ -6,6 +6,7 @@
 #include    "../../material/FEMaterialPoint565.hpp"
 #include    "FEFormatLAS.hpp"
 #include    <algorithm>
+#include    <chrono>
 #include    <cmath>
 #include    <cstring>
 #include    <filesystem>
@@ -279,8 +280,12 @@ namespace   FE
             LasPoints   points;
             points.reserve(size_t(count));
             reader.seek(hdr.offsetToPointData);
+            const   auto    tRead0  =   std::chrono::steady_clock::now();
             if (!readPoints(reader,count,points))
                 return  nullptr;
+            LOG_INF("LAS: read points %lldms",
+                    (long long)std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - tRead0).count());
             setProgress(0.7);
             return  buildCloud(stemOf(file),hdr,std::move(points));
         }
@@ -425,13 +430,15 @@ namespace   FE
                 _leafMaxExt[i]      =   maxExt;
             size_t  leafCount       =   0;
             size_t  overflowCount   =   0;
+            const   auto    tTree0  =   std::chrono::steady_clock::now();
             buildTree(std::move(points),leafCount,overflowCount);
-            setProgress(0.7);
+            const   auto    tTree1  =   std::chrono::steady_clock::now();
+            setProgress(0.85);
             Nodes   nodes;
             nodes.resize(_boxes.size());
             Material    material    =   new FEMaterialPoint565(_ctx);
             /// 以点云包围盒对角线为基准设置距离衰减，使不同尺度的文件初始观感一致:
-            /// 适配整片点云时约 1 像素，拉近后逐渐增大到 16 像素上限
+            /// 适配整片点云时约 1 像素，拉近后逐渐增大到 8 像素上限
             const   double  diag    =   std::sqrt(dx * dx + dy * dy + dz * dz);
             if (diag > 0.0)
                 material->cast<FEMaterialPoint565>()->setPointSizeScale(float(diag * 1.5));
@@ -455,6 +462,7 @@ namespace   FE
                 }
                 nodes[i]    =   node;
             }
+            const   auto    tNode1  =   std::chrono::steady_clock::now();
             for (size_t i = 0; i < _boxes.size(); ++i)
             {
                 if (isCanceled())
@@ -462,10 +470,19 @@ namespace   FE
                 LasBox& box =   _boxes[i];
                 if (box.child0 == kInvalid)
                     buildLeafMesh(nodes[i],box,material.get());
-                setProgress(0.7 + 0.3 * double(i + 1) / double(_boxes.size()));
+                setProgress(0.85 + 0.15 * double(i + 1) / double(_boxes.size()));
             }
             LOG_INF("LAS: %s points=%zu boxes=%zu leaves=%zu overflow=%zu",
                     name.c_str(),totalPoints,_boxes.size(),leafCount,overflowCount);
+            {
+                const   auto    tEnd    =   std::chrono::steady_clock::now();
+                auto    ms  =   [](std::chrono::steady_clock::time_point a,std::chrono::steady_clock::time_point b)
+                {
+                    return  (long long)std::chrono::duration_cast<std::chrono::milliseconds>(b - a).count();
+                };
+                LOG_INF("LAS: phases tree=%lldms nodes=%lldms mesh=%lldms",
+                        ms(tTree0,tTree1),ms(tTree1,tNode1),ms(tNode1,tEnd));
+            }
             _boxes.clear();
             return  nodes.empty() ? nullptr : nodes[0];
         }
@@ -482,6 +499,14 @@ namespace   FE
             _boxes.push_back(std::move(root));
             uint32s stack;
             stack.push_back(0);
+            /// 组合均匀分割时叶子数约为 2 的幂，用该估计驱动进度条，
+            /// 避免 KD 构建期间进度一直停在 70%
+            size_t  needLeaves  =   (_boxes[0].points.size() + kMaxPointsPerBox - 1) / kMaxPointsPerBox;
+            size_t  leafEst     =   1;
+            while (leafEst < needLeaves)
+                leafEst <<= 1;
+            const   double  splitsEst   =   leafEst > 1 ? double(leafEst * 2 - 2) : 1.0;
+            size_t  splits      =   0;
             while (!stack.empty())
             {
                 if (isCanceled())
@@ -495,6 +520,9 @@ namespace   FE
                     ++overflowCount;
                     continue;
                 }
+                ++splits;
+                if ((splits & 63u) == 0u)
+                    setProgress(0.7 + 0.15 * (std::min)(1.0,double(splits) / splitsEst));
                 stack.push_back(_boxes[idx].child0);
                 stack.push_back(_boxes[idx].child1);
             }
@@ -522,6 +550,65 @@ namespace   FE
             return  false;
         }
         /// <summary>
+        /// 取指定轴上的原始整数坐标
+        /// </summary>
+        static  int32   axisValue(const LasPoint& p,int axis)
+        {
+            return  axis == 0 ? p.x : (axis == 1 ? p.y : p.z);
+        }
+        /// <summary>
+        /// 按指定轴就地选出第 nth 个元素(左侧全部不大于它)。
+        /// 手写三分取中快选替代 std::nth_element:后者每次比较都要经过
+        /// lambda/函数调用，Debug 构建下 KD 树构建的耗时几乎全在这里。
+        /// </summary>
+        static  void    selectByAxis(LasPoint* first,LasPoint* nth,LasPoint* last,int axis)
+        {
+            while (last - first > 24)
+            {
+                LasPoint* mid    =   first + (last - first) / 2;
+                const   int32   a    =   axisValue(*first,axis);
+                const   int32   b    =   axisValue(*mid,axis);
+                const   int32   c    =   axisValue(*(last - 1),axis);
+                /// 三数取中，避免有序数据退化
+                const   int32   pivot = a < b ? (b < c ? b : (a < c ? c : a))
+                                              : (a < c ? a : (b < c ? c : b));
+                LasPoint* i =   first;
+                LasPoint* j =   last - 1;
+                while (i <= j)
+                {
+                    while (axisValue(*i,axis) < pivot) ++i;
+                    while (axisValue(*j,axis) > pivot) --j;
+                    if (i <= j)
+                    {
+                        LasPoint    tmp =   *i;
+                        *i  =   *j;
+                        *j  =   tmp;
+                        ++i;
+                        --j;
+                    }
+                }
+                /// [first,j] 不大于 pivot，[i,last) 不小于 pivot
+                if (nth <= j)
+                    last    =   j + 1;
+                else if (nth >= i)
+                    first   =   i;
+                else
+                    return;
+            }
+            /// 小区间插入排序收尾
+            for (LasPoint* it = first + 1; it < last; ++it)
+            {
+                const   LasPoint    v   =   *it;
+                LasPoint*           p   =   it;
+                while (p > first && axisValue(*(p - 1),axis) > axisValue(v,axis))
+                {
+                    *p  =   *(p - 1);
+                    --p;
+                }
+                *p  =   v;
+            }
+        }
+        /// <summary>
         /// 按最长轴中位二分一个盒子
         /// </summary>
         bool    splitBox(uint32 idx)
@@ -542,11 +629,7 @@ namespace   FE
             LasPoints   left    =   std::move(_boxes[idx].points);
             _boxes[idx].points  =   LasPoints();
             size_t  mid =   left.size() / 2;
-            std::nth_element(left.begin(),left.begin() + mid,left.end(),
-                [axis](const LasPoint& a,const LasPoint& b)
-                {
-                    return  rawOf(a,axis) < rawOf(b,axis);
-                });
+            selectByAxis(left.data(),left.data() + mid,left.data() + left.size(),axis);
             LasPoints   right(std::make_move_iterator(left.begin() + mid),
                               std::make_move_iterator(left.end()));
             left.resize(mid);
@@ -584,12 +667,12 @@ namespace   FE
                                  std::numeric_limits<int32>::min()};
             for (auto& p : box.points)
             {
-                rmin[0] =   std::min(rmin[0],p.x);
-                rmin[1] =   std::min(rmin[1],p.y);
-                rmin[2] =   std::min(rmin[2],p.z);
-                rmax[0] =   std::max(rmax[0],p.x);
-                rmax[1] =   std::max(rmax[1],p.y);
-                rmax[2] =   std::max(rmax[2],p.z);
+                if (p.x < rmin[0]) rmin[0] = p.x;
+                if (p.x > rmax[0]) rmax[0] = p.x;
+                if (p.y < rmin[1]) rmin[1] = p.y;
+                if (p.y > rmax[1]) rmax[1] = p.y;
+                if (p.z < rmin[2]) rmin[2] = p.z;
+                if (p.z > rmax[2]) rmax[2] = p.z;
             }
             for (int i = 0; i < 3; ++i)
             {
@@ -699,17 +782,6 @@ namespace   FE
             if (hdr.versionMinor >= 4 && hdr.extendedPointCount > 0)
                 return  hdr.extendedPointCount;
             return  hdr.legacyPointCount;
-        }
-        /// <summary>
-        /// 中位分割使用的原始坐标分量
-        /// </summary>
-        static  int32   rawOf(const LasPoint& p,int axis)
-        {
-            if (axis == 0)
-                return  p.x;
-            if (axis == 1)
-                return  p.y;
-            return  p.z;
         }
         /// <summary>
         /// 颜色属性偏移，0xFFFF 表示该格式没有 RGB

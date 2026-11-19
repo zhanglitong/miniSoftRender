@@ -1,4 +1,5 @@
 add_subdirectory ("tool.resource.cc")
+add_subdirectory ("tool.las2pco")
 if(DEFINED ENV{EMSDK})
     add_subdirectory ("tool.wasm")
 else()

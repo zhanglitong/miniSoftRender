@@ -14,5 +14,7 @@
 
 #include    "fileFormat/las/FEFormatLASReader.hpp"
 
+#include    "fileFormat/pco/FEFormatPCOReader.hpp"
+
 
 
