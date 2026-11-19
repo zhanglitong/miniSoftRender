@@ -177,7 +177,7 @@ namespace   FE
                     reader.close();
                     continue;
                 }
-                std::vector<uint8>  table(size_t(hdr.nodeTableSize));
+                uint8s      table(size_t(hdr.nodeTableSize));
                 reader.seek(hdr.nodeTableOffset);
                 if (reader.readBuffer(table.data(),hdr.nodeTableSize) != hdr.nodeTableSize)
                 {
@@ -295,7 +295,7 @@ namespace   FE
         {
             const   uint32  count   =   hdr.nodeCount;
             std::vector<PcoNode>    entries(count);
-            std::vector<uint32>     parents(count,kInvalidIndex);
+            uint32s                 parents(count,kInvalidIndex);
             for (uint32 i = 0; i < count; ++i)
             {
                 PcoNode&    e   =   entries[i];
@@ -350,7 +350,7 @@ namespace   FE
             }
             SharedPtr<FEPointCloudLod>  lod =   new FEPointCloudLod(_ctx);
             lod->setMaterial(material);
-            std::vector<Node>   nodes(count);
+            Nodes               nodes(count);
             for (uint32 i = 0; i < count; ++i)
             {
                 const   PcoNode&    e       =   entries[i];
@@ -441,8 +441,7 @@ namespace   FE
                 items.emplace_back(item);
                 scene->postRunable(std::move(items));
             }
-            LOG_INF("PCO: %s nodes=%u points=%llu",name.c_str(),
-                    count,(unsigned long long)hdr.pointCount);
+            LOG_INF("PCO: %s nodes=%u points=%llu",name.c_str(),count,(unsigned long long)hdr.pointCount);
             return  nodes.empty() ? nullptr : nodes[0];
         }
         /// <summary>

@@ -96,14 +96,14 @@ namespace   FE
                 return  nullptr;
             MeshPtr     mesh        =   new FEMesh(ctx);
             {
-                auto        attr        =   FEAttribute(IS_VERTEX_POS,     FMT_R32G32B32_FLOAT);
-                auto&       subMesh     =   mesh->getOrCreate(attr);
+                auto    attr        =   FEAttribute(IS_VERTEX_POS,     FMT_R32G32B32_FLOAT);
+                auto&   subMesh     =   mesh->getOrCreate(attr);
                 subMesh.setBuffer(poss.data(),poss.size()  * sizeof(float3));
             }
             if (colors.size() >=  poss.size())
             {
-                auto        attr        =   FEAttribute(IS_VERTEX_COLOR0,   FMT_R8G8B8A8_UNORM);
-                auto&       subMesh     =   mesh->getOrCreate(attr);
+                auto    attr        =   FEAttribute(IS_VERTEX_COLOR0,   FMT_R8G8B8A8_UNORM);
+                auto&   subMesh     =   mesh->getOrCreate(attr);
                 subMesh.setBuffer(colors.data(),colors.size()  * sizeof(Rgba8));
             }
             DrawArray   drawArray   =   new FEDrawArray(ctx);
@@ -129,8 +129,8 @@ namespace   FE
             if (packed.size() < 2)
                 return  nullptr;
             const   size_t  count       =   packed.size() / 2;
-            std::vector<int16>  positions(size_t(count) * 3);
-            std::vector<uint16> colors(count);
+            int16s          positions(size_t(count) * 3);
+            uint16s         colors(count);
             for (size_t i = 0; i < count; ++i)
             {
                 const   uint32  w0  =   packed[i * 2 + 0];
