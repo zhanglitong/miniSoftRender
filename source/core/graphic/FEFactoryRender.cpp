@@ -1605,7 +1605,9 @@ namespace   FE
         for (auto& input : inputs)
         {
             slots.push_back(input.slot);
-            strides.push_back({nullptr,uint16(FEFormatHelper::sizeOf(input.format))});
+            DataStride  ds;
+            ds.stride   =   uint16(FEFormatHelper::sizeOf(input.format));
+            strides.push_back(ds);
         }
         /// 统计缓冲所有mesh属性缓冲区的长度
         size_t      length  =   0;

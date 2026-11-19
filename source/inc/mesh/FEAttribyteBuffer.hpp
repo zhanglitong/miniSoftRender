@@ -195,6 +195,21 @@ namespace   FE
                 case FMT_R16G16B16_SINT         :   mergeElements<short3,3>(box,buff,elements,asFloat); break;
                 case FMT_R16G16B16A16_SSCALED   :
                 case FMT_R16G16B16A16_SINT      :   mergeElements<short4,3>(box,buff,elements,asFloat); break;
+                /// 8 字节打包顶点:word0 = x(int16)|y(int16)<<16,word1 = z(int16)|rgb565<<16,
+                /// 位置分量按有符号 16 位整数解包(与 point565 管线一致)
+                case FMT_R32G32_UINT            :
+                    {
+                        const   uint32* pData   =   (const uint32*)buff->data();
+                        for (size_t i = 0; i < elements; ++i)
+                        {
+                            const   uint32  w0  =   pData[i * 2 + 0];
+                            const   uint32  w1  =   pData[i * 2 + 1];
+                            box.merge(float3(float(int16(w0 & 0xFFFFu)),
+                                             float(int16(w0 >> 16)),
+                                             float(int16(w1 & 0xFFFFu))));
+                        }
+                    }
+                    break;
                 }
                 return  box;
             } while (false);

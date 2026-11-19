@@ -10,9 +10,17 @@ namespace   FE
         IMPLEMENT_CLASS_REFLECT(FEMaterialPoint)
     public:
         FEMaterialPoint(FEContext& ctx)
+            :FEMaterialPoint(ctx,"point")
+        {}
+        /// <summary>
+        /// 指定管线名称构造，供派生的点材质复用不同的颜色格式管线
+        /// </summary>
+        /// <param name="ctx">上下文</param>
+        /// <param name="pipeline">管线名称，例如 point/point565</param>
+        FEMaterialPoint(FEContext& ctx,const String& pipeline)
             :FEMaterial(ctx)
         {  
-            setup("point");
+            setup(pipeline);
             /// <summary>
             /// 自动将系统数据与材质所需数据关联起来
             /// </summary>
@@ -41,6 +49,13 @@ namespace   FE
         virtual PCVOID      pushConstantData() const override
         {
             return  &_pushConst;
+        }
+        /// <summary>
+        /// 设置点大小的距离衰减系数: 点大小 = clamp(scale / 相机距离, min, max)，0 表示固定为 min
+        /// </summary>
+        void                setPointSizeScale(float scale)
+        {
+            _pushConst._sizeScale   =   scale;
         }
 
     protected:

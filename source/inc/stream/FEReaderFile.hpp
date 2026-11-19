@@ -161,7 +161,7 @@ namespace   FE
         virtual uint64  length() const override
         {
             if (_file == nullptr)   
-                return  0;
+                return  _size;
             _fseeki64(_file,0,SEEK_END);
             auto    len =   _ftelli64(_file);
             _fseeki64(_file,0,SEEK_SET);

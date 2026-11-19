@@ -602,6 +602,10 @@ struct  PointData
     /// 颜色
     /// </summary>
     uint        _color;
+    /// <summary>
+    /// 距离衰减系数: >0 时点大小 = clamp(_sizeScale / 相机距离, min, max)，0 表示固定为 min
+    /// </summary>
+    float       _sizeScale;
 #ifdef __cplusplus
     PointData()
     {
@@ -617,6 +621,7 @@ struct  PointData
         _point  |=  (static_cast<uint32_t>((8))     << 16);  // 点的min 8
         _point  |=  (static_cast<uint32_t>((16))    << 8 );  // 点的max 16
         _point  |=  (static_cast<uint32_t>((0xFF))  << 0 );  // 非0,表示点
+        _sizeScale  =   0.0f;
     }
 #endif
 };

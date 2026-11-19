@@ -124,12 +124,14 @@ namespace   FE
         DEFINE_CLASS_CREATOR(FEFormatGLTFWriter);
 
         DEFINE_CLASS_CREATOR(FEFormatRVMReader);
+        DEFINE_CLASS_CREATOR(FEFormatLASReader);
 
         DEFINE_CLASS_CREATOR(FEMaterialV3C4);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3);
         DEFINE_CLASS_CREATOR(FEMaterialV3N3C4);
         DEFINE_CLASS_CREATOR(FEMaterialPBR);
         DEFINE_CLASS_CREATOR(FEMaterialPoint);
+        DEFINE_CLASS_CREATOR(FEMaterialPoint565);
         DEFINE_CLASS_CREATOR(FEMaterialV3);
         DEFINE_CLASS_CREATOR(FEMaterialTexture);
         DEFINE_CLASS_CREATOR(FEMaterialText);
@@ -157,6 +159,7 @@ namespace   FE
         DEFINE_FORMAT_READER(ctx,FEFormatFepjReader);
         DEFINE_FORMAT_READER(ctx,FEFormatGLTFReader);
         DEFINE_FORMAT_READER(ctx,FEFormatRVMReader);
+        DEFINE_FORMAT_READER(ctx,FEFormatLASReader);
     }
     void    systemInitializeWriter(FEContext& ctx)
     {
